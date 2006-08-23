@@ -94,20 +94,40 @@ class MyGeneBank:
 
 		self.dicGenes = {}
 		self.dicEspeces = {}
+		self.dicEspecesNonDup = []
+		self.dicEspecesDup = []
 		f = open(nom, 'r')
 		
 		for ligne in f:
 
 			champs = ligne.split()
-			if (champs[0] not in only and len(only) > 0) or ligne[0] == '#':
+			
+			# Un commentaire
+			if ligne[0] == '#':
+				continue
+
+			# Le nom de l'espece
+			if champs[0][-1] == '.':
+				s = champs[0][:-1]
+				dup = True
+			else:
+				s = champs[0]
+				dup = False
+			
+			# Est-ce que l'espece a ete filtree
+			if s not in only and len(only) > 0:
 				continue
 
 			g = EnsemblSpeciesGenes(champs[1], champs[2:])
 			
-			self.dicEspeces[champs[0]] = g
+			if dup:
+				self.dicEspecesDup.append(s)
+			else:
+				self.dicEspecesNonDup.append(s)
+			self.dicEspeces[s] = g
 			
 			for x in g.dicGenes:
-				self.dicGenes[x] = (champs[0], g.dicGenes[x][0], g.dicGenes[x][1])
+				self.dicGenes[x] = (s, g.dicGenes[x][0], g.dicGenes[x][1])
 
 		f.close()
 

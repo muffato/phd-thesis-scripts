@@ -15,7 +15,7 @@ import myTools
 import myMaths
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs(["genes_list.conf", "GENES_ANC"], [("taillePoint", float, -1), ("useColors", str, ""), ("espece1", str, "H"), ("espece2", str, "P"), ("ancestralGenome", bool, False)])
+(noms_fichiers, options) = myTools.checkArgs(["genes_list.conf", "GENES_ANC"], [("taillePoint", float, -1), ("useColors", str, ""), ("espece1", str, "H"), ("espece2", str, "P"), ("ancestralGenome", bool, False)], "")
 
 geneBank = myOrthos.MyGeneBank(noms_fichiers[0], [options["espece1"], options["espece2"]])
 if len(geneBank.dicEspeces) != 2:

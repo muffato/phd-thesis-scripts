@@ -97,13 +97,13 @@ def sort_dict(d):
 # Recupere les valeurs des parametres optionnels
 # -options- est un tableau de triplets (nom, constructeur, val_defaut)
 #
-def checkArgs(args, options = [], info = ""):
+def checkArgs(args, options, info):
 
 	#
 	# Affiche le message d'erreur de mauvais arguments
 	#
 	def error_usage():
-		s = "- ERROR - Usage : " + sys.argv[0]
+		s = "- ERREUR - Usage : " + sys.argv[0]
 		for t in args:
 			s += " " + t
 		print >> sys.stderr, s
@@ -114,7 +114,7 @@ def checkArgs(args, options = [], info = ""):
 				invite = "-"
 			print >> sys.stderr, "  ", invite + "%s [%s] (%s)" % t
 		if info != "":
-			print >> sys.stderr, info
+			print >> sys.stderr, "\n", info
 		sys.exit(1)
 
 	types = dict([ (x[0], x[1]) for x in options ])

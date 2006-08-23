@@ -1,0 +1,225 @@
+#! /usr/bin/python2.4
+
+# Ce script scanne les paralogues d'une espece et essaie de reconstruire
+#   les chromosomes pre-duplication de maniere appoximative.
+#   C'est a dire savoir sur quels chromosomes actuels ils se repartissent.
+
+# INITIALISATION #
+
+# Librairies
+import string
+import sys
+import math
+import random
+import os
+
+sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
+import myOrthos
+import myTools
+import myMaths
+
+# FONCTIONS #
+
+#
+# Construit les tables d'associations:
+#  - des paralogues de Tetraodon
+#  - des orthologues avec Tetraodon
+#
+def buildParaOrtho(lstGenesAnc, genomeDup):
+	para = {}
+	ortho = {}
+	for g in lstGenesAnc:
+		gT = [x for x in g if x in genomeDup.dicGenes]
+		if len(gT) == 0:
+			continue
+		for x in gT:
+			for y in gT:
+				if x != y:
+					para[x] = y
+		gNT = [x for x in g if x not in genomeDup.dicGenes]
+		for x in gNT:
+			ortho[x] = genomeDup.dicGenes[gT[0]]
+	return (para, ortho)
+
+
+
+#
+# Compte le nombre de passages d'un chromosome a l'autre
+#
+def countAltern3(genome, orthos, count):
+
+	for c in genome.lstGenes:
+		grp3Tet = []
+		for (_,_,_,g) in genome.lstGenes[c]:
+			# Il faut un orthologue avec Tetraodon
+			if g not in orthos:
+				continue
+		
+			(KT,_) = orthos[g]
+			
+			if KT in grp3Tet:
+				# On deplace le numero de chromosome en fin de groupe
+				grp3Tet.remove(KT)
+				grp3Tet.append(KT)
+				
+			elif len(grp3Tet) < 3:
+				# On construit l'alternance
+				grp3Tet.append(KT)
+			else:
+				# On enleve le plus vieux et on rajoute le nouveau
+				grp3Tet.pop(0)
+				grp3Tet.append(KT)
+			
+			if len(grp3Tet) == 3:
+				# On ajoute 1 au score
+				t = grp3Tet[:]
+				t.sort()
+				t = tuple(t)
+				if t in count:
+					count[t] += 1
+				else:
+					count[t] = 1
+
+#
+# Renvoie le nombre de paralogues qui lie chaque couple de chromosomes Tetraodon
+#
+def countPara():
+	
+	count = {}
+	for g1 in para:
+		(c1,_) = genomeDup.dicGenes[g1]
+		(c2,_) = genomeDup.dicGenes[para[g1]]
+		if c1 < c2:
+			count[ (c1,c2) ] = count.get( (c1,c2), 0) + 1
+	return count
+
+
+# MAIN #
+
+# Arguments
+(noms_fichiers, options) = myTools.checkArgs( \
+	["genesList.conf", "genesAncestraux.list"],
+	[("especeDupliquee", str, ""), ("nbMinParaloguesCoupleChr", int, -1), ("coefMinAltern3", float, -1.)], \
+	"Analyse les genes paralogues d'une espece et decrit les alternances que l'on devra observer" \
+)
+
+# Chargement des fichiers
+geneBank = myOrthos.MyGeneBank(noms_fichiers[0])
+if options["especeDupliquee"] not in geneBank.dicEspecesDup:
+	print >> sys.stderr, "-ERREUR- Pas de -%s- dans la liste des especes dupliquees ..." % options["especeDupliquee"]
+	sys.exit(1)
+genomeDup = geneBank.dicEspeces[options["especeDupliquee"]]
+genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], False)
+lstGenesAnc = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
+(para,orthos) = buildParaOrtho(lstGenesAnc, genomeDup)
+
+# On initialise les calculs
+
+print >> sys.stderr, "Calculs des 3-alternances ",
+count3 = {}
+for e in geneBank.dicEspecesNonDup:
+	countAltern3(geneBank.dicEspeces[e], orthos, count3)
+	sys.stderr.write(".")
+
+for c in count3:
+	count3[c] /= len(geneBank.dicEspecesNonDup)
+print >> sys.stderr, " OK"
+
+
+countP = countPara()
+
+if options["nbMinParaloguesCoupleChr"] < 0:
+	dicNb = {}
+	for ((c1,c2), v) in countP.items():
+		if v in dicNb:
+			dicNb[v].append( (c1,c2) )
+		else:
+			dicNb[v] = [(c1,c2)]
+	
+	print "NbPara\tNbCouples\tCouples..."
+	lst = dicNb.keys()
+	lst.sort(reverse = True)
+	for v in lst:
+		print "%d\t%d\t" % (v,len(dicNb[v])), dicNb[v]
+	
+	sys.exit(0)
+
+r = []
+for ((c1,c2), v) in countP.items():
+	if v >= options["nbMinParaloguesCoupleChr"]:
+		r.append( (v, c1, c2) )
+r.sort()
+r.reverse()
+countP = r
+
+chrom = []
+nbPara = []
+rep = dict([(k,[]) for k in genomeDup.lstGenes])
+
+# 1ere etape on extrait tous les couples qui ne se chevauchent pas
+#  (priorite aux mieux representes)
+newCountP = []
+for (v, c1, c2) in countP:
+	if len(rep[c1]) == 0 and len(rep[c2]) == 0:
+	
+		# Les deux chromosomes sont inutilises: nouveau chromosome ancestral
+		print >> sys.stderr, "Nouveau chromosome:", c1, c2
+		rep[c1].append(len(chrom))
+		rep[c2].append(len(chrom))
+		chrom.append( set([c1,c2]) )
+		nbPara.append( v )
+	else:
+		newCountP.append( (v,c1,c2) )
+print >> sys.stderr
+
+# 2eme etape, on rajoute le reste
+for (v, c1, c2) in newCountP:
+
+	if len(set(rep[c1]).intersection(rep[c2])) > 0:
+		continue
+	
+	best = 0
+	bestC = -1
+	
+	for i in rep[c1] + rep[c2]:
+		for c in chrom[i]:
+			if c == c1 or c == c2:
+				continue
+			t = [c,c1,c2]
+			t.sort()
+			x = float(count3.get(tuple(t), 0)) / float(nbPara[i]+v)
+			print >> sys.stderr, "Test de", c1, c2, "sur", chrom[i], "(score %f)" % x
+			if x > best:
+				best = x
+				bestC = i
+
+	if options["coefMinAltern3"] < 0:
+		continue
+
+	if best >= options["coefMinAltern3"]:
+		print >> sys.stderr, "Ajout de", c1, c2, "sur", chrom[bestC], "(meilleur choix, score %f)" % best
+		chrom[bestC].add( c1 )
+		chrom[bestC].add( c2 )
+		rep[c1].append(bestC)
+		rep[c2].append(bestC)
+		nbPara[bestC] += v
+	else:
+		print >> sys.stderr, "Nouveau chromosome (aucune 3-alternance satisfaisante):", c1, c2
+		rep[c1].append(len(chrom))
+		rep[c2].append(len(chrom))
+		chrom.append( set([c1,c2]) )
+		nbPara.append( v )
+
+	print >> sys.stderr, "\n"
+
+if options["coefMinAltern3"] < 0:
+	sys.exit(0)
+
+# Affichage des resultats
+print >> sys.stderr, "%d chromosomes trouves :" % len(chrom)
+for i in range(len(chrom)):
+	print >> sys.stderr, "Chromosome %c (%d):" % (chr(65+i), nbPara[i]),
+	for c in chrom[i]:
+		print >> sys.stderr, " ", c,
+	print >> sys.stderr
+
