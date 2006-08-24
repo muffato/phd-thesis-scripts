@@ -55,13 +55,14 @@ def buildParaOrtho(lstGenesAnc, geneBank):
 #
 # Cree les regions de chromosomes ancestraux dans la classe d'orthologues
 #
-def colorAncestr(genome, geneBank, para, orthos):
+def colorAncestr(esp, geneBank, para, orthos):
 
 	lstBlocs = {}
+	genome = geneBank.dicEspeces[esp]
 
 	for e in geneBank.dicEspecesDup:
 	
-		print >> sys.stderr, "Decoupage de", genome.nom, "avec", e, "",
+		print >> sys.stderr, "Decoupage de", esp, "avec", e, "",
 
 		nbOrthos = 0
 		lstBlocs[e] = []
@@ -119,9 +120,6 @@ def buildColorTable(lstBlocs, col, dicGenesAnc, chrAnc):
 		m = max(score.values())
 		return (m, [c for c in chrAnc if score[c] == m])
 
-
-	print >> sys.stderr, "Assignation des chromosomes ancestraux sur", "... ",
-	
 	for e in lstBlocs:
 		for b in lstBlocs[e]:
 			if len(b) == 0:
@@ -132,7 +130,6 @@ def buildColorTable(lstBlocs, col, dicGenesAnc, chrAnc):
 				for g in b:
 					col[dicGenesAnc[g[0]][1]].append( (r,len(b),c) )
 		
-	print >> sys.stderr, "OK"
 
 #
 # Affichage des chromosomes ancestraux
@@ -165,16 +162,11 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 			#  ou sans genes Tetraodon
 			continue
 		
-		if options["bestScore"]:
-			# Le meilleur score de purete
-			c = max(genesAncCol[i])[2]
-		else:
-			# Le chromosome le plus frequent
-			nb = dict([(x,[0,0,x]) for x in chrAncGenes])
-			for (s,l,c) in genesAncCol[i]:
-				nb[c][1] = max(nb[c][1], s)
-				nb[c][0] += 1
-			c = max(nb.values())[2]
+		# Le chromosome le plus frequent
+		nb = dict([(x,(0,0,0)) for x in chrAncGenes])
+		for (s,l,c) in genesAncCol[i]:
+			nb[c] = (nb[c][0]+1, max(nb[c][1], l), max(nb[c][2], s))
+		c = myMaths.sortDict(nb)[0]
 		
 		chrAncGenes[c].append(i)
 
@@ -208,7 +200,7 @@ def loadChrAncIni(nom):
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
 	["genesList.conf", "genesAncestraux.list", "genomePreDupApprox.conf"],
-	[("bestScore", bool, False), ("precisionChrAnc", int, 1000000)], \
+	[("precisionChrAnc", int, 1000000)], \
 	"Retrouve le genome pre-duplication grace aux alternances predites" \
 )
 
@@ -221,17 +213,21 @@ lstGenesAnc = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
 # On colorie les matrices actuelles
 blocs = {}
 for e in geneBank.dicEspecesNonDup:
-	blocs[e] = colorAncestr(geneBank.dicEspeces[e], geneBank, para, orthos)
+	blocs[e] = colorAncestr(e, geneBank, para, orthos)
 
 # On colorie les genes ancestraux
+print >> sys.stderr, "Synthese des genes ancestraux ",
 chrAnc = loadChrAncIni(noms_fichiers[2])
 col = [[] for i in range(len(lstGenesAnc))]
 for e in blocs:
 	buildColorTable(blocs[e], col, genesAnc.dicGenes, chrAnc)
+	sys.stderr.write(".")
 
 # On construit les chromosomes ancestraux
+print >> sys.stderr, " ...",
 chrAncGenes = dict([ (x,[]) for x in chrAnc])
 buildChrAnc(col, chrAncGenes)
+print >> sys.stderr, "OK"
 	
 # On affiche le resultat
 printColorAncestr(lstGenesAnc, chrAncGenes)

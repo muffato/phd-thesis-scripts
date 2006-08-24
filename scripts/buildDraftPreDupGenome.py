@@ -4,7 +4,10 @@
 #   les chromosomes pre-duplication de maniere appoximative.
 #   C'est a dire savoir sur quels chromosomes actuels ils se repartissent.
 
+
+##################
 # INITIALISATION #
+##################
 
 # Librairies
 import string
@@ -18,7 +21,11 @@ import myOrthos
 import myTools
 import myMaths
 
+
+
+#############
 # FONCTIONS #
+#############
 
 #
 # Construit les tables d'associations:
@@ -93,8 +100,27 @@ def countPara():
 			count[ (c1,c2) ] = count.get( (c1,c2), 0) + 1
 	return count
 
+#
+# Affiche sous forme de table les quantites de paralogues liant les chromosomes
+#
+def printNbParaTable():
+	dicNb = {}
+	for ((c1,c2), v) in countP.items():
+		if v in dicNb:
+			dicNb[v].append( (c1,c2) )
+		else:
+			dicNb[v] = [(c1,c2)]
+	
+	print "NbPara\tNbCouples\tCouples..."
+	lst = dicNb.keys()
+	lst.sort(reverse = True)
+	for v in lst:
+		print "%d\t%d\t" % (v,len(dicNb[v])), dicNb[v]
 
+
+########
 # MAIN #
+########
 
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
@@ -106,12 +132,13 @@ def countPara():
 # Chargement des fichiers
 geneBank = myOrthos.MyGeneBank(noms_fichiers[0])
 if options["especeDupliquee"] not in geneBank.dicEspecesDup:
-	print >> sys.stderr, "-ERREUR- Pas de -%s- dans la liste des especes dupliquees ..." % options["especeDupliquee"]
+	print >> sys.stderr, "-ERREUR- Pas de -%(especeDupliquee)s- dans la liste des especes dupliquees ..." % options
 	sys.exit(1)
 genomeDup = geneBank.dicEspeces[options["especeDupliquee"]]
 genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], False)
 lstGenesAnc = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
 (para,orthos) = buildParaOrtho(lstGenesAnc, genomeDup)
+
 
 # On initialise les calculs
 
@@ -129,21 +156,10 @@ print >> sys.stderr, " OK"
 countP = countPara()
 
 if options["nbMinParaloguesCoupleChr"] < 0:
-	dicNb = {}
-	for ((c1,c2), v) in countP.items():
-		if v in dicNb:
-			dicNb[v].append( (c1,c2) )
-		else:
-			dicNb[v] = [(c1,c2)]
-	
-	print "NbPara\tNbCouples\tCouples..."
-	lst = dicNb.keys()
-	lst.sort(reverse = True)
-	for v in lst:
-		print "%d\t%d\t" % (v,len(dicNb[v])), dicNb[v]
-	
+	printNbParaTable()
 	sys.exit(0)
 
+# On filtre les couples de paralogues
 r = []
 for ((c1,c2), v) in countP.items():
 	if v >= options["nbMinParaloguesCoupleChr"]:

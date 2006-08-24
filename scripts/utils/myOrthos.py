@@ -1,22 +1,7 @@
-#! /usr/bin/python
+#! /usr/bin/python2.4
 
-import os
 import sys
-from bz2 import BZ2File
-
 import myTools
-
-##################################################################
-# Cette classe ouvre le fichier en le decompressant s'il le faut #
-#   Retourne l'objet FILE et le nom complet du fichier           #
-##################################################################
-def myOpenFile(nom):
-	nom = nom.replace("~", os.environ['HOME'])
-	if nom.endswith("bz2"):
-		f = BZ2File(nom, 'r')
-	else:
-		f = open(nom, 'r')
-	return f
 
 ##############################################################
 # Cette classe gere un fichier de liste de genes d'Ensembl   #
@@ -33,7 +18,7 @@ class EnsemblSpeciesGenes:
 		print >> sys.stderr, "Chargement de", nom, "...",
 		self.lstGenes = {}
 		
-		f = myOpenFile(nom)
+		f = myTools.myOpenFile(nom)
 		self.nom = nom
 		
 		# On lit chaque ligne
@@ -45,11 +30,12 @@ class EnsemblSpeciesGenes:
 				continue
 		
 			# On convertit en entier ce qui peut l'etre
-			for i in range(4):
-				try:
-					champs[i] = int(champs[i])
-				except ValueError:
-					pass
+			for i in range(1,4):
+				champs[i] = int(champs[i])
+			try:
+				champs[0] = int(champs[0])
+			except ValueError:
+				pass
 		
 			# On rajoute le gene
 			r = (champs[1], champs[2], champs[3], champs[4])
@@ -153,7 +139,7 @@ class AncestralGenome:
 		self.lstGenes = {}
 		i = 0
 		c = 0
-		f = myOpenFile(nom)
+		f = myTools.myOpenFile(nom)
 		self.nom = nom
 
 		for ligne in f:
@@ -285,7 +271,7 @@ class Ensembl2SpeciesOrtho:
 		j = 0
 
 		# On lit les lignes
-		f = myOpenFile(nom)
+		f = myTools.myOpenFile(nom)
 		self.nom = nom
 
 		for ligne in f:
@@ -423,32 +409,6 @@ class Ensembl2SpeciesOrtho:
 		self.info.append( ["", 0, 0, 0, self.nbGenes] )
 		self.nbGenes += 1
 		self.sort()
-
-
-	#
-	# Affiche les entetes necessaires pour le script awk qui cree l'image en postscript
-	#
-	def printGridHeader(self, dp = -1):
-		
-		nbGenK1 = dict([(k,0) for k in self.lstChr1])
-		nbGenK2 = dict([(k,0) for k in self.lstChr2])
-		
-		for i in range(self.nbGenes):
-			nbGenK1[self.tabGenes1[i][0]] += 1
-			nbGenK2[self.tabGenes2[i][0]] += 1
-		
-		print "# DEF 1 1 19 19 %f %d 0.00001" % (dp, self.nbGenes)
-
-		s = "# LH 0"
-		for i in self.lstChr1Sorted:
-			s += " " + str(nbGenK1[i])
-		print s
-
-		s = "# LV 0"
-		for i in self.lstChr2Sorted:
-			s += " " + str(nbGenK2[i])
-		print s
-
 
 
 

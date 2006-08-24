@@ -1,50 +1,71 @@
-#!/usr/bin/python2.4
+#! /usr/bin/python2.4
 
-# Entree : fichier d'orthologues a 12 champs
-
-# INITIALISATION
+##################
+# INITIALISATION #
+##################
 
 # Librairies
 import string
 import sys
 import os
 
-sys.path.append(os.environ['HOME'] + "/M2/scripts/utils")
+sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
 import myOrthos
 import myTools
+import myPsOutput
+
+
+
+########
+# MAIN #
+########
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs(["data/genes_E", "GENOME_ANCESTR"], [("ancestralColors", bool, True)])
+(noms_fichiers, options) = myTools.checkArgs( \
+	["GenomeADessiner", "GenomeReference"], \
+	[], \
+	"Dessine un genome en coloriant ses genes a partir d'un autre genome reference" \
+)
 
 
-genome = myOrthos.EnsemblSpeciesGenes(noms_fichiers[0])
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], True)
-
-if options["ancestralColors"]:
-	tabC = genome.lstChr
-	tabG = genome.lstGenes
+if "genes" in noms_fichiers[0]:
+	genome = myOrthos.EnsemblSpeciesGenes(noms_fichiers[0])
 else:
-	tabC = genesAnc.lstChr
-	tabG = genesAnc.lstGenes
+	genome = myOrthos.AncestralGenome(noms_fichiers[0], True)
+	
+if "genes" in noms_fichiers[1]:
+	genesAnc = myOrthos.EnsemblSpeciesGenes(noms_fichiers[1])
+else:
+	genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], True)
+	
+dx = (19.*3.)/(5.*len(genome.lstChr)-2.)
+dy = 60.
 
-x = (20.*3.)/(5.*(2+len(tabC))-2.)
-print ">Z 0.5 3 %f %f 50" % (x, 2.*x/3.)
-print
+# On ecrit le PostScipt
+myPsOutput.printPsHeader()
+myPsOutput.loadColorTable()
+myPsOutput.initColor()
 
 
-for c in tabC:
-	s = str(c)
+xx = 1
+y0 = 1.
+
+for c in genome.lstChr:
+	
+	myPsOutput.drawText(xx, y0, str(c), "black")
+	y = y0 + 1
+	
 	last = ""
 	nb = 0
-	for x in tabG[c]:
-		if options["ancestralColors"]:
+	for x in genome.lstGenes[c]:
+		if type(x) == tuple:
 			if x[3] not in genesAnc.dicGenes:
 				continue
 			col = genesAnc.dicGenes[x[3]][0]
 		else:
 			for g in x:
-				if g in genome.dicGenes:
-					(col,_) = genome.dicGenes[g]
+				if g in genesAnc.dicGenes:
+					(col,_) = genesAnc.dicGenes[g]
 					break
 			else:
 				continue
@@ -53,11 +74,14 @@ for c in tabC:
 			nb += 1
 		else:
 			if nb != 0:
-				s += " " + last + " " + str(nb)
+				c = myPsOutput.getColor(last, 0)
+				myPsOutput.drawBox(xx, y, dx, nb/dy, c, c)
+				y += nb/dy
 			last = str(col)
 			nb = 1
 	if nb != 0:
-		s += " " + last + " " + str(nb)
-	print s
+		c = myPsOutput.getColor(last, 0)
+		myPsOutput.drawBox(xx, y, dx, nb/dy, c, c)
+	xx += (5.*dx)/3.
 
-
+myPsOutput.printPsFooter()
