@@ -49,7 +49,6 @@ nb2 = sum([len(genome2.lstGenes[x]) for x in genome2.lstGenes])
 
 # On ecrit le PostScipt
 myPsOutput.printPsHeader()
-myPsOutput.loadColorTable()
 myPsOutput.initColor()
 
 if options["taillePoint"] < 0:

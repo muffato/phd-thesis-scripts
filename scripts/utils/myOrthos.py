@@ -2,6 +2,7 @@
 
 import sys
 import myTools
+import myMaths
 
 ##############################################################
 # Cette classe gere un fichier de liste de genes d'Ensembl   #
@@ -238,7 +239,7 @@ class PhylogeneticTree:
 		if anc not in self.items:
 			return []
 			
-		return [myTools.flatten(self.getDescendants(e)) for (e,_) in self.items[anc]]
+		return [myMaths.flatten(self.getDescendants(e)) for (e,_) in self.items[anc]]
 	
 	def getFils(self, anc):
 		if anc not in self.items:

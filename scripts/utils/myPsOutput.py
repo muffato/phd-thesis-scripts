@@ -8,18 +8,6 @@ import myTools
 colorTable = {}
 color = {}
 
-#
-# Charge le fichier de definitions des couleurs en RGB
-#
-def loadColorTable():
-
-	f = myTools.myOpenFile("~/work/scripts/utils/rgb.txt")
-	for l in f:
-		c = l.split()
-		colorTable["".join(c[6:])] = " ".join(c[:3])
-
-	f.close()
-
 
 #
 # L'en-tete PostScript
@@ -65,93 +53,40 @@ def printColorDefinitionLine(C):
 	print "/%s [%s] def" % (C, colorTable[C])
 
 #
+# Charge le fichier de definitions des couleurs en RGB
 # Initialise toutes les couleurs couramment utilisees
 #
 def initColor():
 
-	color["0"] = "black"
-	color["1"] = "purple4"
-	color["2"] = "magenta2"
-	color["3"] = "grey62"
-	color["4"] = "coral2"
-	color["5"] = "firebrick4"
-	color["6"] = "yellow4"
-	color["7"] = "LightSalmon"
-	color["8"] = "DarkSeaGreen4"
-	color["9"] = "turquoise2"
-	color["10"] = "blue2"
-	color["11"] = "PeachPuff2"
-	color["12"] = "DarkViolet"
-	color["13"] = "OliveDrab2"
-	color["14"] = "MediumAquamarine"
-	color["16"] = "DarkSlateBlue"
-	color["15"] = "yellow"
-	color["17"] = "DarkGreen"
-	color["18"] = "gold"
-	color["19"] = "HotPink4"
-	color["20"] = "red1"
-	color["21"] = "orange"
-	color["22"] = "PaleTurquoise2"
-	color["23"] = "khaki1"
-	color["24"] = "DarkSeaGreen1"
-	color["25"] = "PaleTurquoise2"
-	color["26"] = "DarkOliveGreen1"
-	color["27"] = "khaki1"
-	color["28"] = "lavender"
-	color["29"] = "LightBlue"
-	color["30"] = "salmon"
-	color["31"] = "SkyBlue1"
-	color["32"] = "LightGoldenrod3"
-	color["33"] = "wheat1"
-	color["34"] = "thistle2"
-	color["35"] = "PeachPuff"
+	f = myTools.myOpenFile("~/work/scripts/utils/rgb.txt")
+	for l in f:
+		c = l.split()
+		colorTable["".join(c[6:])] = " ".join(c[:3])
 
-	color["41"] = "coral2"
-	color["51"] = "firebrick4"
-	color["61"] = "yellow4"
-	color["71"] = "LightSalmon"
-	color["81"] = "DarkSeaGreen4"
-	color["90"] = "turquoise2"
-	color["91"] = "purple4"
-	color["100"] = "magenta2"
-	color["101"] = "grey62"
-	color["120"] = "DarkViolet"
-	color["121"] = "OliveDrab2"
-	color["130"] = "MediumAquamarine"
-	color["131"] = "DarkSlateBlue"
-	color["140"] = "yellow"
-	color["141"] = "DarkGreen"
+	f.close()
 
-	color["A"] = "DarkSeaGreen1"
-	color["B"] = "PaleTurquoise2"
-	color["C"] = "DarkOliveGreen1"
-	color["D"] = "khaki1"
-	color["E"] = "wheat1"
-	color["F"] = "thistle2"
-	color["G"] = "PeachPuff"
-	color["H"] = "lavender"
-	color["I"] = "LightBlue"
-	color["J"] = "salmon"
-	color["K"] = "LightGoldenrod3"
-	color["L"] = "SkyBlue1"
 
-	color["A"] = "red1"
-	color["B"] = "turquoise2"
-	color["C"] = "DarkGreen"
-	color["D"] = "yellow"
-	color["E"] = "coral2"
-	color["F"] = "OliveDrab2"
-	color["G"] = "orange"
-	color["H"] = "MediumAquamarine"
-	color["I"] = "blue2"
-	color["J"] = "firebrick4"
-	color["L"] = "DarkViolet"
-	color["K"] = "gold"
-	color["M"] = "firebrick"
-	color["N"] = "lavender"
+	lightColors = ["PaleTurquoise2", "khaki1", "DarkSeaGreen1", "PaleTurquoise2", "DarkOliveGreen1", "khaki1", "lavender", "LightBlue", "salmon", "SkyBlue1", "LightGoldenrod3", "wheat1", "thistle2", "PeachPuff"]
+	
+	darkColors = ["red1", "turquoise2", "DarkGreen", "yellow", "coral2", "OliveDrab2", "orange", "MediumAquamarine", "blue2", "firebrick4", "LightSalmon", "DarkViolet", "magenta2", "DarkSeaGreen4", "DarkSlateBlue", "yellow4", "grey62", "gold", "PeachPuff2", "HotPink4", "firebrick", "purple4"]
+	
+	for i in range(len(lightColors)):
+		color[str(-(i+1))] = lightColors[i]
+		color[chr(97+i)] = lightColors[i]
+		color[str((i+1+len(darkColors)))] = lightColors[i]
+		color[chr(65+i+len(darkColors))] = lightColors[i]
+		printColorDefinitionLine(lightColors[i])
+	
+	for i in range(len(darkColors)):
+		color[str(i+1)] = darkColors[i]
+		color[chr(65+i)] = darkColors[i]
+		color[str(-(i+1+len(lightColors)))] = darkColors[i]
+		color[chr(97+i+len(lightColors))] = darkColors[i]
+		printColorDefinitionLine(darkColors[i])
+	
+	printColorDefinitionLine("black")
+	printColorDefinitionLine("white")
 
-	for c in color:
-		printColorDefinitionLine(color[c])
 	print
 
 

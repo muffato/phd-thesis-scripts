@@ -25,14 +25,154 @@ import myMaths
 
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
-	["genes_list.conf", "genomeOutgroup"], \
-	[("seuilLongueurMin", float, 0.1), ("seuilIdentiteMin", float, 33), ("espece1", str, 'H'), ("espece2", str, 'P')], \
+	["genesList.conf", "listeOrthologues"], \
+	[], \
 	"" \
 )
 
 
-# 1. On lit tous les fichiers
-geneBank = myOrthos.MyGeneBank(noms_fichiers[0], [options["espece1"], options["espece2"]])
+geneBank = myOrthos.MyGeneBank(noms_fichiers[0])
+orthologues = myOrthos.AncestralGenome(noms_fichiers[1], False)
+
+genomeH = geneBank.dicEspeces['H']
+genomeD = geneBank.dicEspeces['D']
+genomeM = geneBank.dicEspeces['M']
+genomeO = geneBank.dicEspeces['O']
+genomeC = geneBank.dicEspeces['C']
+
+
+def compareGenomes(genome1, genome2):
+
+	lst = []
+	for c1 in genome1.lstChr:
+		
+		l = []
+		lastC2 = 0
+		
+		for (_,_,_,g1) in genome1.lstGenes[c1]:
+		
+			if g1 not in orthologues.dicGenes:
+				continue
+			(c,i) = orthologues.dicGenes[g1]
+			t = orthologues.lstGenes[c][i]
+
+			newC2 = [genome2.dicGenes[g][0] for g in t if g in genome2.dicGenes]
+			
+			if len(newC2) == 0:
+				continue
+			
+			if newC2[0] != lastC2:
+				if len(l) >= 1:
+					lst.append(l)
+				l = [i]
+				lastC2 = newC2[0]
+			else:
+				l.append(i)
+
+		lst.append(l)
+	return lst
+
+superLst = []
+for x in geneBank.dicEspecesNonDup:
+	for y in geneBank.dicEspecesNonDup:
+		if x != y:
+			l = compareGenomes(geneBank.dicEspeces[x], geneBank.dicEspeces[y])
+			superLst.append(l)
+			print x, y, len(l), sum([len(p) for p in l])
+
+chrom = superLst[0]
+
+for lst in superLst[1:]:
+	
+	dic = {}
+	for i in range(len(chrom)):
+		for g in chrom[i]:
+			dic[g] = i
+
+	for l in lst:
+		l0 = []
+		for g in l:
+			if g in dic:
+				i = dic[g]
+				l0.extend(chrom[i])
+				chrom[i] = []
+			else:
+				l0.append(g)
+		chrom.append(l0)
+
+newChrom = [x for x in chrom if len(x) > 0]
+print len(dic), len(newChrom), len([x for x in chrom if len(x) >= 10]), len([x for x in chrom if len(x) >= 50]), len([x for x in chrom if len(x) >= 100])
+l = [len(x) for x in newChrom]
+print sum(l), l
+
+sys.exit(0)
+
+
+
+
+
+
+
+
+
+
+
+for cH in genomeH.lstChr:
+	
+	#cH = 1
+	print cH,
+	
+	l = 0
+	lastCD = 0
+	lastCM = 0
+	lastCO = 0
+	
+	for (_,_,_,gH) in genomeH.lstGenes[cH]:
+	
+		if gH not in orthologues.dicGenes:
+			continue
+		(c,i) = orthologues.dicGenes[gH]
+		t = orthologues.lstGenes[c][i]
+
+		newCD = [genomeD.dicGenes[g][0] for g in t if g in genomeD.dicGenes]
+		if len(newCD) != 0:
+			newCD = newCD[0]
+		else:
+			newCD = lastCD
+
+		newCO = [genomeO.dicGenes[g][0] for g in t if g in genomeO.dicGenes]
+		if len(newCO) != 0:
+			newCO = newCO[0]
+		else:
+			newCO = lastCO
+
+		newCM = [genomeM.dicGenes[g][0] for g in t if g in genomeM.dicGenes]
+		if len(newCM) != 0:
+			newCM = newCM[0]
+		else:
+			newCM = lastCM
+		
+		nbChgt = [lastCD != newCD, lastCO != newCO, lastCM != newCM].count(True)
+
+		if nbChgt >= 1:
+			if l >= 1:
+				print "*%d (%s-%s-%s)" % (l, lastCD, lastCM, lastCO),
+				#print "%s %s %s" % (lastCD, lastCM, lastCO)
+			l = 1
+			lastCD = newCD
+			lastCO = newCO
+			lastCM = newCM
+		else:
+			l += 1
+
+
+	print "*%d (%s-%s-%s)" % (l, lastCD, lastCM, lastCO)
+	#print "%s %s %s" % (lastCD, lastCM, lastCO)
+	#sys.exit(1)
+
+
+
+sys.exit(0)
 if len(geneBank.dicEspeces) != 2:
 	print >> sys.stderr, "Can't retrieve %s and %s in %s" % (options["espece1"], options["espece2"], noms_fichiers[0])
 	sys.exit(1)
