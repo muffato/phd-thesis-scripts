@@ -97,7 +97,11 @@ def getColor(s, d):
 
 	if s in color:
 		return color[s]
-		
+
+	elif s in colorTable:
+		printColorDefinitionLine(s)
+		return s
+
 	elif s[0] == '#':
 		r = float(s[1:4])
 		g = float(s[5:8])

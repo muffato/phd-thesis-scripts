@@ -102,7 +102,7 @@ for c in genesAnc.lstGenes:
 				yy = 1 + (lstNum1[x]*19.)/float(nb1) - dp/2.
 
 				if options["useColors"]:
-					cc = myPsOutput.getColor(c, "black")
+					cc = myPsOutput.getColor(str(c), "black")
 				else:
 					cc = "black"
 				myPsOutput.drawBox( xx, yy, dp, dp, cc, cc)
