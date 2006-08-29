@@ -116,7 +116,8 @@ for c in genesAnc.lstGenes:
 	
 	lstTot = []
 	for i in range(options["nbConcorde"]):
-		os.system('/users/ldog/muffato/work/scripts/concorde -x ' + nom + ' > /dev/null')
+		#os.system('/users/ldog/muffato/work/scripts/concorde -x ' + nom + ' > /dev/null')
+		os.system('/users/ldog/muffato/work/scripts/concorde -x ' + nom + ' >&2')
 		lstTot.append(myOrthos.ConcordeFile(nom + ".sol"))
 		os.remove(nom + ".sol")
 		if os.access(nom + ".res", os.W_OK):

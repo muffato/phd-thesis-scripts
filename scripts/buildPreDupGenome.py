@@ -34,11 +34,11 @@ import myMaths
 #  des paralogues et des orthologues
 #
 def buildParaOrtho(lstGenesAnc, geneBank):
-	para = dict([(e,{}) for e in geneBank.dicEspecesDup])
-	ortho = dict([(e,{}) for e in geneBank.dicEspecesDup])
+	para = dict([(e,{}) for e in geneBank.lstEspecesDup])
+	ortho = dict([(e,{}) for e in geneBank.lstEspecesDup])
 	
 	for g in lstGenesAnc:
-		for e in geneBank.dicEspecesDup:
+		for e in geneBank.lstEspecesDup:
 			genomeDup = geneBank.dicEspeces[e]
 			gT = [x for x in g if x in genomeDup.dicGenes]
 			if len(gT) == 0:
@@ -60,7 +60,7 @@ def colorAncestr(esp, geneBank, para, orthos):
 	lstBlocs = {}
 	genome = geneBank.dicEspeces[esp]
 
-	for e in geneBank.dicEspecesDup:
+	for e in geneBank.lstEspecesDup:
 	
 		print >> sys.stderr, "Decoupage de", esp, "avec", e, "",
 
@@ -212,7 +212,7 @@ lstGenesAnc = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
 
 # On colorie les matrices actuelles
 blocs = {}
-for e in geneBank.dicEspecesNonDup:
+for e in geneBank.lstEspecesNonDup:
 	blocs[e] = colorAncestr(e, geneBank, para, orthos)
 
 # On colorie les genes ancestraux

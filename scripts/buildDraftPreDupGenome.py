@@ -144,12 +144,12 @@ lstGenesAnc = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
 
 print >> sys.stderr, "Calculs des 3-alternances ",
 count3 = {}
-for e in geneBank.dicEspecesNonDup:
+for e in geneBank.lstsEspecesNonDup:
 	countAltern3(geneBank.dicEspeces[e], orthos, count3)
 	sys.stderr.write(".")
 
 for c in count3:
-	count3[c] /= len(geneBank.dicEspecesNonDup)
+	count3[c] /= len(geneBank.lstEspecesNonDup)
 print >> sys.stderr, " OK"
 
 

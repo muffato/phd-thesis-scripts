@@ -25,307 +25,14 @@ import myMaths
 
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
-	["genesList.conf", "listeOrthologues"], \
-	[("seuilCoupure", int, 10)], \
+	["genes_list.conf", "genomeOutgroup"], \
+	[("seuilLongueurMin", float, 0.1), ("seuilIdentiteMin", float, 33), ("espece1", str, 'H'), ("espece2", str, 'P')], \
 	"" \
 )
 
 
-geneBank = myOrthos.MyGeneBank(noms_fichiers[0])
-orthologues = myOrthos.AncestralGenome(noms_fichiers[1], True)
-
-genomeH = geneBank.dicEspeces['H']
-genomeD = geneBank.dicEspeces['D']
-genomeM = geneBank.dicEspeces['M']
-genomeO = geneBank.dicEspeces['O']
-genomeC = geneBank.dicEspeces['C']
-
-
-def compareGenomes(genome1, genome2):
-
-	lst = []
-	for c1 in genome1.lstChr:
-		
-		l = []
-		lastC2 = 0
-		
-		for (_,_,_,g1) in genome1.lstGenes[c1]:
-		
-			if g1 not in orthologues.dicGenes:
-				continue
-			(c,i) = orthologues.dicGenes[g1]
-			t = orthologues.lstGenes[c][i]
-
-			newC2 = [genome2.dicGenes[g][0] for g in t if g in genome2.dicGenes]
-			
-			if len(newC2) == 0:
-				continue
-			
-			if newC2[0] != lastC2:
-				if len(l) >= 1:
-					lst.append( (c1,lastC2,l) )
-				l = [(c,i)]
-				lastC2 = newC2[0]
-			else:
-				l.append((c,i))
-
-		lst.append( (c1,lastC2,l) )
-	return lst
-
-def essai():
-
-	lst = compareGenomes(genomeH, genomeM)
-
-	s = {}
-	for (c1,c2,l) in lst:
-		if (c1,c2) not in s:
-			s[ (c1,c2) ] = []
-		s[ (c1,c2) ].extend(l)
-		#print len(l)
-
-	print >> sys.stderr, len(s)
-	#print >> sys.stderr, s
-
-	ss = {}
-	for (c1,c2) in s:
-		score = dict( [(x,0) for x in orthologues.lstChr] )
-		for (c,i) in s[(c1,c2)]:
-			score[c] += 1
-		t = myMaths.sortDict(score)
-		ss[ (c1,c2) ] = t[0]
-
-	#print ss
-
-	print >> sys.stderr, len(ss)
-	chrom = []
-
-	for (c1,c2) in s:
-		c = ss[(c1,c2)]
-		for i in range(len(chrom)):
-			(cc, cc1, cc2) = chrom[i]
-			if c in cc and (c1 in cc1 or c2 in cc2):
-				cc.add(c)
-				cc1.add(c1)
-				cc2.add(c2)
-				break
-		else:
-			chrom.append( (set([c]),set([c1]),set([c2])) )
-	print >> sys.stderr, len(chrom)
-
-	print chrom
-
-
-def doIt(g1, g2):
-	l1 = compareGenomes(g1, g2)
-	poubelle = []
-	chrom = []
-
-	for c1 in g1.lstChr:
-		print >> sys.stderr, "newChr", c1,
-		lastLen = 0
-		curChrom = []
-		for (_,c2,l) in [x for x in l1 if x[0] == c1]:
-			
-			if len(l) < options["seuilCoupure"]:
-				poubelle.append(l)
-			elif lastLen >= options["seuilCoupure"]:
-				print >> sys.stderr, "*", c2
-				chrom.append(curChrom)
-				curChrom = l
-			else:
-				if len(curChrom) == 0:
-					print >> sys.stderr, c2
-				curChrom.extend(l)
-			
-			lastLen = len(l)
-		chrom.append(curChrom)
-		
-	print >> sys.stderr, len(l1), len(poubelle), sum([len(x) for x in poubelle]), len(chrom), sum([len(x) for x in chrom])
-	return chrom
-
-lst = compareGenomes(genomeH, genomeC)
-print >> sys.stderr, "1:", len(lst), sum([len(x[2]) for x in lst])
-
-newLst = []
-for x in lst:
-	if len(x[2]) < options["seuilCoupure"]:
-		continue
-	score = dict( [(y,0) for y in orthologues.lstChr] )
-	for (c,_) in x[2]:
-		score[c] += 1
-	t = myMaths.sortDict(score)
-	newLst.append((tuple(t[:3]), x[0], x[1], x[2]))
-
-print >> sys.stderr, "2:", len(newLst), sum([len(x[3]) for x in newLst])
-
-common = []
-for i in range(len(newLst)):
-	(anc,c1,c2,_) = newLst[i]
-	for j in range(i):
-		(ancc,cc1,cc2,_) = newLst[j]
-		if cc1 == c1 and cc2 == c2:
-			common.append( (i,j) )
-		elif (cc1 == c1 or cc2 == c2) and len(set(anc).intersection(set(ancc))) >= 2:
-			common.append( (i,j) )
-
-newNewLst = [set(x[3]) for x in newLst]
-
-#print newNewLst
-
-utile = True
-while utile:
-	utile = False
-	for (i,j) in common:
-		x = len(newNewLst[i])
-		newNewLst[i].update(newNewLst[j])
-		if len(newNewLst[i]) != x:
-			utile = True
-		newNewLst[j].update(newNewLst[i])
-	a = myMaths.unique(newNewLst)
-	t = set([])
-	for x in a:
-		t.update(x)
-	print >> sys.stderr, "*:", len(a), len(t)
-	
-newNewLst = myMaths.unique(newNewLst)
-print >> sys.stderr, "3:", len(newNewLst), sum([len(x) for x in newNewLst])
-
-for j in range(len(newNewLst)):
-	for (c,i) in newNewLst[j]:
-		print j+1,
-		for g in orthologues.lstGenes[c][i]:
-			print g,
-		print
-	
-sys.exit(0)
-
-
-
-superLst = []
-superLst.append(doIt(genomeH, genomeM))
-#superLst.append(doIt(genomeH, genomeD))
-#superLst.append(doIt(genomeH, genomeO))
-#superLst.append(compareGenomes(genomeH, genomeM))
-#superLst.append(compareGenomes(genomeH, genomeD))
-#superLst.append(compareGenomes(genomeH, genomeO))
-#doIt(genomeM, genomeH)
-
-
-#sys.exit(0)
-
-#superLst = []
-#for x in geneBank.dicEspecesNonDup:
-#	for y in geneBank.dicEspecesNonDup:
-#		if x != y:
-#			l = compareGenomes(geneBank.dicEspeces[x], geneBank.dicEspeces[y])
-#			superLst.append(l)
-#			print x, y, len(l), sum([len(p) for (_,_,p) in l])
-
-#chrom = [l for (c1,c2,l) in superLst[0]]
-chrom = superLst[0]
-
-for lst in superLst[1:]:
-	
-	dic = {}
-	for i in range(len(chrom)):
-		for g in chrom[i]:
-			dic[g] = i
-
-	for l in lst:
-	#for (c1,c2,l) in lst:
-		l0 = []
-		for g in l:
-			if g in dic:
-				i = dic[g]
-				l0.extend(chrom[i])
-				chrom[i] = []
-			else:
-				l0.append(g)
-		chrom.append(l0)
-
-newChrom = [x for x in chrom if len(x) > 100]
-#print >> sys.stderr, len(dic), len(newChrom), len([x for x in chrom if len(x) >= 10]), len([x for x in chrom if len(x) >= 50]), len([x for x in chrom if len(x) >= 100])
-l = [len(x) for x in newChrom]
-print >> sys.stderr, sum(l), l
-
-for j in range(len(newChrom)):
-	for i in newChrom[j]:
-		print j+1,
-		for g in orthologues.lstGenes[myOrthos.AncestralGenome.defaultChr][i]:
-			print g,
-		print
-		
-
-sys.exit(0)
-
-
-
-
-
-
-
-
-
-
-
-
-
-for cH in genomeH.lstChr:
-	
-	#cH = 1
-	print cH,
-	
-	l = 0
-	lastCD = 0
-	lastCM = 0
-	lastCO = 0
-	
-	for (_,_,_,gH) in genomeH.lstGenes[cH]:
-	
-		if gH not in orthologues.dicGenes:
-			continue
-		(c,i) = orthologues.dicGenes[gH]
-		t = orthologues.lstGenes[c][i]
-
-		newCD = [genomeD.dicGenes[g][0] for g in t if g in genomeD.dicGenes]
-		if len(newCD) != 0:
-			newCD = newCD[0]
-		else:
-			newCD = lastCD
-
-		newCO = [genomeO.dicGenes[g][0] for g in t if g in genomeO.dicGenes]
-		if len(newCO) != 0:
-			newCO = newCO[0]
-		else:
-			newCO = lastCO
-
-		newCM = [genomeM.dicGenes[g][0] for g in t if g in genomeM.dicGenes]
-		if len(newCM) != 0:
-			newCM = newCM[0]
-		else:
-			newCM = lastCM
-		
-		nbChgt = [lastCD != newCD, lastCO != newCO, lastCM != newCM].count(True)
-
-		if nbChgt >= 1:
-			if l >= 1:
-				print "*%d (%s-%s-%s)" % (l, lastCD, lastCM, lastCO),
-				#print "%s %s %s" % (lastCD, lastCM, lastCO)
-			l = 1
-			lastCD = newCD
-			lastCO = newCO
-			lastCM = newCM
-		else:
-			l += 1
-
-
-	print "*%d (%s-%s-%s)" % (l, lastCD, lastCM, lastCO)
-	#print "%s %s %s" % (lastCD, lastCM, lastCO)
-	#sys.exit(1)
-
-
-
-sys.exit(0)
+# 1. On lit tous les fichiers
+geneBank = myOrthos.MyGeneBank(noms_fichiers[0], [options["espece1"], options["espece2"]])
 if len(geneBank.dicEspeces) != 2:
 	print >> sys.stderr, "Can't retrieve %s and %s in %s" % (options["espece1"], options["espece2"], noms_fichiers[0])
 	sys.exit(1)
@@ -363,7 +70,7 @@ for chrAnc in genomeAnc.lstChr:
 			if len(yy) < tailleMin:
 				continue
 			zz = xx & yy
-			print float(len(zz))*100./float(len(xx)), float(len(zz))*100./float(len(yy))
+			#print float(len(zz))*100./float(len(xx)), float(len(zz))*100./float(len(yy))
 			if len(zz) > options["seuilIdentiteMin"]*len(xx) and len(zz) > options["seuilIdentiteMin"]*len(yy):
 			#if len(zz) > options["seuilIdentiteMin"]:
 				if x in bl:
@@ -392,7 +99,7 @@ for chrAnc in genomeAnc.lstChr:
 		lst.append( (chrAnc, l1,l2) )
 		print >> sys.stderr, l1, l2
 
-	for j in range(00):
+	for j in range(100):
 		# On place les blocs vides
 		for x in blocs1:
 			s = 0
@@ -444,11 +151,8 @@ for chrAnc in genomeAnc.lstChr:
 			xP.update(blocs2[cP])
 
 		lstTout.append( (c,l1,l2,xH,xP) )
-	#lstTout.extend(lst)
-	#print lst
 	print >> sys.stderr, len(lst), "blocs chez l'ancetre %(espece1)s/%(espece2)s" % options
 
-#print lstTout
 print >> sys.stderr, len(lstTout)
 print >> sys.stderr, len(lstTout), "blocs chez l'ancetre %(espece1)s/%(espece2)s" % options
 
@@ -469,7 +173,7 @@ print >> sys.stderr, len(lst), "chromosomes chez l'ancetre %(espece1)s/%(espece2
 cc = 0
 for (l,l1,l2,g1,g2) in lst:
 	print >> sys.stderr, l,l1,l2
-	continue
+	#continue
 	for i in range(len(l)):
 		c = l[i]
 		g = g1[i] | g2[i]
