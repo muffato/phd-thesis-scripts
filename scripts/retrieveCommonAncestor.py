@@ -6,7 +6,6 @@
 ##################
 
 # Librairies
-import string
 import sys
 import math
 import random
@@ -25,7 +24,7 @@ import myMaths
 
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
-	["genes_list.conf", "genomeOutgroup"], \
+	["genesList.conf", "genomeOutgroup"], \
 	[("seuilLongueurMin", float, 0.1), ("seuilIdentiteMin", float, 33), ("espece1", str, 'H'), ("espece2", str, 'P')], \
 	"" \
 )
@@ -71,8 +70,8 @@ for chrAnc in genomeAnc.lstChr:
 				continue
 			zz = xx & yy
 			#print float(len(zz))*100./float(len(xx)), float(len(zz))*100./float(len(yy))
-			if len(zz) > options["seuilIdentiteMin"]*len(xx) and len(zz) > options["seuilIdentiteMin"]*len(yy):
-			#if len(zz) > options["seuilIdentiteMin"]:
+			#if len(zz) > options["seuilIdentiteMin"]*len(xx) and len(zz) > options["seuilIdentiteMin"]*len(yy):
+			if len(zz) > options["seuilIdentiteMin"]:
 				if x in bl:
 					bl[x].add(y)
 				else:
@@ -172,15 +171,16 @@ print >> sys.stderr, len(lst), "chromosomes chez l'ancetre %(espece1)s/%(espece2
 
 cc = 0
 for (l,l1,l2,g1,g2) in lst:
-	print >> sys.stderr, l,l1,l2
-	#continue
+	nb = 0
 	for i in range(len(l)):
 		c = l[i]
 		g = g1[i] | g2[i]
 		for x in g:
+			nb += 1
 			print chr(97+cc),
 			for y in genomeAnc.lstGenes[c][x]:
 				print y,
 			print
+	print >> sys.stderr, l, nb, l1,l2
 	cc += 1
 

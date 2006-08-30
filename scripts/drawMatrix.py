@@ -86,7 +86,7 @@ lstNum2 = prepareGenome(genome2, nb2, lambda x: myPsOutput.drawLine(x, 1, 0, 19,
 print >> sys.stderr, ". OK"
 
 print >> sys.stderr, "Affichage des points ",
-for c in genesAnc.lstGenes:
+for c in genesAnc.lstChr:
 	for g in genesAnc.lstGenes[c]:
 		if genome1 == genesAnc:
 			g1 = [g[0]]

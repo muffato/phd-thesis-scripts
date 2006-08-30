@@ -60,7 +60,7 @@ def distInterGenes(tg1, tg2):
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
 	["genesList.conf", "genomeAncestral", "phylTree.conf"], \
-	[("nomAncetre", str, ""), ("seuilMaxDistInterGenes", int, 0), ("nbConcorde", int, 1), ("nbDecimales", int, 2), ("penalite", int, 1000000)], \
+	[("nomAncetre", str, ""), ("seuilMaxDistInterGenes", int, 0), ("nbConcorde", int, -1), ("nbDecimales", int, 2), ("penalite", int, 1000000)], \
 	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
 )
 
@@ -74,6 +74,7 @@ if options["nomAncetre"] not in phylTree.items and options["nomAncetre"] not in 
 
 
 nom = "mat"+str(os.getpid())
+nbConcorde = max(1, options["nbConcorde"])
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
 for c in genesAnc.lstGenes:
@@ -135,7 +136,10 @@ for c in genesAnc.lstGenes:
 
 	for i in range(n):
 		q = set([s.res[i] for s in lstTot])
-		print "%c %d " % (c, len(q)),
+		if options["nbConcorde"] < 1:
+			print "%c " % c,
+		else:
+			print "%c %d " % (c, len(q)),
 		for x in tab[lstTot[0].res[i]-1]:
 			print x,
 		print

@@ -9,7 +9,7 @@ import myMaths
 #   "Chr Debut Fin Brin Nom"                                 #
 # Le filtre correspond a une liste de chromosomes a eliminer #
 ##############################################################
-class EnsemblSpeciesGenes:
+class EnsemblGenome:
 
 	#
 	# Constructeur
@@ -75,7 +75,7 @@ class EnsemblSpeciesGenes:
 # Le format des lignes est "Nom_Espece nom_fichier_genes chr1 chr2 ..." #
 #    avec une liste de chromosomes a ne pas prendre en compte           #
 #########################################################################
-class MyGeneBank:
+class GeneBank:
 
 	def __init__(self, nom, only = []):
 
@@ -106,7 +106,7 @@ class MyGeneBank:
 			if s not in only and len(only) > 0:
 				continue
 
-			g = EnsemblSpeciesGenes(champs[1], champs[2:])
+			g = EnsemblGenome(champs[1], champs[2:])
 			
 			if dup == "":
 				self.lstEspecesNonDup.append(s)
@@ -256,7 +256,7 @@ class PhylogeneticTree:
 #    "Khumain start stop brin gene_HS gene_Tn KTn start stop ortho_type %ID %cov"                #
 #    "1 914833  920104  1  ENSG00000187634 GSTENG00028217001.1  9  2679651 2687663 UBRH  86  58" #
 ##################################################################################################
-class Ensembl2SpeciesOrtho:
+class EnsemblTwoSpeciesOrthos:
 
 	def __init__(self, nom):
 

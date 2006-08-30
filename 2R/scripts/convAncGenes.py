@@ -26,12 +26,15 @@ for s in sys.stdin:
 			t.add(genesAnc.dicGenes[g])
 	if len(t) >= 2:
 		nb += 1
-	
+
 	for (c,i) in t:
+		#print c,
+		#continue
 		for (k,j) in t:
 			if c<k or (c==k and i<j):
 				if (c,i,k,j) not in lst:
 					print c,i,k,j
 					lst.add( (c,i,k,j) )
+	#print
 
 print >> sys.stderr, nb, "familles pour", len(lst), "couples conservees"
