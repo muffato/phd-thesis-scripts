@@ -27,6 +27,9 @@ for s in sys.stdin:
 	if len(t) >= 2:
 		nb += 1
 
+	if 'x' not  in [c for (c,i) in t]:
+		continue
+	
 	for (c,i) in t:
 		#print c,
 		#continue

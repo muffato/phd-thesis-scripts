@@ -50,7 +50,8 @@ def printPsFooter():
 # Definit une nouvelle couleur dans le fichier PostScript
 #
 def printColorDefinitionLine(C):
-	print "/%s [%s] def" % (C, colorTable[C])
+	(r,g,b) = colorTable[C]
+	print "/%s [%f %f %f] def" % (C, r,g,b)
 
 #
 # Charge le fichier de definitions des couleurs en RGB
@@ -61,12 +62,12 @@ def initColor():
 	f = myTools.myOpenFile("~/work/scripts/utils/rgb.txt")
 	for l in f:
 		c = l.split()
-		colorTable["".join(c[6:])] = " ".join(c[:3])
+		colorTable["".join(c[6:])] = tuple([float(x) for x in c[:3]])
 
 	f.close()
 
 
-	lightColors = ["PaleTurquoise2", "khaki1", "DarkSeaGreen1", "PaleTurquoise2", "DarkOliveGreen1", "khaki1", "lavender", "LightBlue", "salmon", "SkyBlue1", "LightGoldenrod3", "wheat1", "thistle2", "PeachPuff"]
+	lightColors = ["PaleTurquoise2", "khaki1", "DarkSeaGreen1", "DarkOliveGreen1", "lavender", "LightBlue", "salmon", "SkyBlue1", "LightGoldenrod3", "wheat1", "thistle2", "PeachPuff"]
 	
 	darkColors = ["red1", "turquoise2", "DarkGreen", "yellow", "coral2", "OliveDrab2", "orange", "MediumAquamarine", "blue2", "firebrick4", "LightSalmon", "DarkViolet", "magenta2", "DarkSeaGreen4", "DarkSlateBlue", "yellow4", "grey62", "gold", "PeachPuff2", "HotPink4", "firebrick", "purple4"]
 	
@@ -107,7 +108,7 @@ def getColor(s, d):
 		g = float(s[5:8])
 		b = float(s[9:12])
 		
-		colorTable["tmp"] = "%f %f %f" % (r/255., g/255., b/255.)
+		colorTable["tmp"] = (r/255., g/255., b/255.)
 		printColorDefinitionLine("tmp")
 		return "tmp"
 	else:
@@ -122,7 +123,7 @@ def getColor(s, d):
 def drawLine(X, Y, L, H, C):
 	print "newpath"
 	if C in colorTable:
-		print colorTable[C], " setrgbcolor"
+		print "%f %f %f setrgbcolor" % colorTable[C]
 		
 	print X, "cm", Y, "cm", "moveto"
 	print L, "cm", H, "cm", "rlineto"
@@ -133,7 +134,7 @@ def drawLine(X, Y, L, H, C):
 def drawBox(X, Y, L, H, Cb, Cr):
 	print "newpath"
 	if Cb in colorTable:
-		print colorTable[Cb], " setrgbcolor"
+		print "%f %f %f setrgbcolor" % colorTable[Cb]
 		
 	print X, "cm", Y, "cm", "moveto"
 	print L, "cm", 0, "cm", "rlineto"
