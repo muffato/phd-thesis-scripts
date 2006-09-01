@@ -70,6 +70,8 @@ def initColor():
 	lightColors = ["PaleTurquoise2", "khaki1", "DarkSeaGreen1", "DarkOliveGreen1", "lavender", "LightBlue", "salmon", "SkyBlue1", "LightGoldenrod3", "wheat1", "thistle2", "PeachPuff"]
 	
 	darkColors = ["red1", "turquoise2", "DarkGreen", "yellow", "coral2", "OliveDrab2", "orange", "MediumAquamarine", "blue2", "firebrick4", "LightSalmon", "DarkViolet", "magenta2", "DarkSeaGreen4", "DarkSlateBlue", "yellow4", "grey62", "gold", "PeachPuff2", "HotPink4", "firebrick", "purple4"]
+
+	greekLetters = ["ALPHA", "BETA", "GAMMA", "DELTA", "EPSILON", "PHI"]
 	
 	for i in range(len(lightColors)):
 		color[str(-(i+1))] = lightColors[i]
@@ -85,6 +87,9 @@ def initColor():
 		color[chr(97+i+len(lightColors))] = darkColors[i]
 		printColorDefinitionLine(darkColors[i])
 	
+	for i in range(len(greekLetters)):
+		color[greekLetters[i]] = darkColors[i]
+
 	printColorDefinitionLine("black")
 	printColorDefinitionLine("white")
 

@@ -14,35 +14,23 @@ import myOrthos
 import myTools
 import myPsOutput
 
-
-def loadGenome(nom):
-	
-	f = open(nom, 'r')
-	c = f.readline().split()
-	f.close()
-	try:
-		x = int(c[1]) + int(c[2]) + int(c[3])
-		return myOrthos.EnsemblGenome(nom)
-	except Exception:
-		return myOrthos.AncestralGenome(nom, True)
-
-
 ########
 # MAIN #
 ########
 
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
-	["GenomeADessiner", "GenomeReference"], \
+	["GenomeADessiner", "GenomeReference", "orthologues"], \
 	[("includeGaps", bool, False), ("defaultColor", str, "black")], \
 	"Dessine un genome en coloriant ses genes a partir d'un autre genome reference" \
 )
 
-genome = loadGenome(noms_fichiers[0])
-genesAnc = loadGenome(noms_fichiers[1])
+genome = myOrthos.EnsemblGenome(noms_fichiers[0])
+genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], True)
+orthologues = myOrthos.AncestralGenome(noms_fichiers[2], False)
 	
 dx = (19.*3.)/(5.*len(genome.lstChr)-2.)
-dy = 60.
+dy = 50.
 
 # On ecrit le PostScipt
 myPsOutput.printPsHeader()
@@ -60,31 +48,30 @@ for c in genome.lstChr:
 	last = ""
 	nb = 0
 	for x in genome.lstGenes[c]:
-		if type(x) == tuple:
-			if x[3] not in genesAnc.dicGenes:
-				if not options["includeGaps"]:
-					continue
-				col = options["defaultColor"]
-			else:
-				col = genesAnc.dicGenes[x[3]][0]
-				col = myPsOutput.getColor(str(col), options["defaultColor"])
+		if x[3] not in orthologues.dicGenes:
+			if not options["includeGaps"]:
+				continue
+			col = options["defaultColor"]
 		else:
-			for g in x:
-				if g in genesAnc.dicGenes:
-					col = genesAnc.dicGenes[g][0]
+			(cc,ii) = orthologues.dicGenes[x[3]]
+			t = orthologues.lstGenes[cc][ii]
+			for s in t:
+				if s in genesAnc.dicGenes:
+					col = genesAnc.dicGenes[s][0]
 					col = myPsOutput.getColor(str(col), options["defaultColor"])
 					break
 			else:
 				if not options["includeGaps"]:
 					continue
 				col = options["defaultColor"]
+		col = str(col)
 		if col == last:
 			nb += 1
 		else:
 			if nb != 0:
 				myPsOutput.drawBox(xx, y, dx, nb/dy, last, last)
 				y += nb/dy
-			last = str(col)
+			last = col
 			nb = 1
 	if nb != 0:
 		myPsOutput.drawBox(xx, y, dx, nb/dy, last, last)

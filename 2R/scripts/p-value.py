@@ -5,6 +5,7 @@
 # Librairies
 import sys
 import os
+import math
 
 sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
 import myOrthos
@@ -17,6 +18,15 @@ def proba(pi, l, ll):
 	for i in range(l):
 		p *= float(ll-i)/float(i+1)
 	return p
+
+def probaLog(pi, l, ll):
+	p = 0.
+	for i in range(l):
+		p += math.log10(ll-i) - math.log10(i+1)
+	#print >> sys.stderr, p, pi, l, ll
+	p += l*math.log10(pi) + (ll-l)*math.log10(1-pi)
+	return p
+
 
 
 # Arguments
@@ -51,8 +61,8 @@ for c1 in lstChr:
 		else:
 			p *= float(sum(para[c2].values()))
 		p /= float(nbPara*(nbPara-1))
-		x = proba(p, para[c1].get(c2, 0), nbPara/2)
-		if para[c1].get(c2, 0) < p*nbPara:
+		x = probaLog(p, para[c1].get(c2, 0), nbPara/2)
+		if para[c1].get(c2, 0) > p*nbPara:
 			x *= -1
 		print "\t%g" % x,
 	print

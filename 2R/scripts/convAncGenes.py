@@ -24,20 +24,25 @@ for s in sys.stdin:
 	for g in s.split():
 		if g in genesAnc.dicGenes:
 			t.add(genesAnc.dicGenes[g])
-	if len(t) >= 2:
-		nb += 1
+	#print len(t)
+	#continue
 
-	if 'x' not  in [c for (c,i) in t]:
+	if len(t) < 2:
 		continue
+		
+
+	nb += 1
+	#s = [c for (c,i) in t]
+	#if not ('x' in s or 'w' in s):
+	#	continue
 	
 	for (c,i) in t:
-		#print c,
+		#print "PHI", " ".join(genesAnc.lstGenes[c][i])
 		#continue
 		for (k,j) in t:
 			if c<k or (c==k and i<j):
 				if (c,i,k,j) not in lst:
 					print c,i,k,j
 					lst.add( (c,i,k,j) )
-	#print
 
 print >> sys.stderr, nb, "familles pour", len(lst), "couples conservees"
