@@ -40,25 +40,17 @@ def loadGenome(nom):
 
 genome = loadGenome(noms_fichiers[0])
 genesAnc = loadGenome(noms_fichiers[1])
-	
-dx = (19.*3.)/(5.*len(genome.lstChr)-2.)
-dy = 60.
 
 # On ecrit le PostScipt
 myPsOutput.printPsHeader()
 myPsOutput.initColor()
 
-
-xx = 1
-y0 = 1.
-
+# On construit les couleurs
+res = {}
 for c in genome.lstChr:
+
+	res[c] = []
 	
-	myPsOutput.drawText(xx, y0, str(c), "black")
-	y = y0 + 1
-	
-	last = ""
-	nb = 0
 	for x in genome.lstGenes[c]:
 		if type(x) == tuple:
 			if x[3] not in genesAnc.dicGenes:
@@ -78,13 +70,29 @@ for c in genome.lstChr:
 				if not options["includeGaps"]:
 					continue
 				col = options["defaultColor"]
+		res[c].append(col)
+
+# On dessine
+dx = (19.*3.)/(5.*len(genome.lstChr)-2.)
+dy = float(max([len(x) for x in res.values()])) / 26.
+xx = 1
+y0 = 1.
+
+for c in genome.lstChr:
+	
+	myPsOutput.drawText(xx, y0, str(c), "black")
+	y = y0 + 1
+	
+	last = ""
+	nb = 0
+	for col in res[c]:
 		if col == last:
 			nb += 1
 		else:
 			if nb != 0:
 				myPsOutput.drawBox(xx, y, dx, nb/dy, last, last)
 				y += nb/dy
-			last = str(col)
+			last = col
 			nb = 1
 	if nb != 0:
 		myPsOutput.drawBox(xx, y, dx, nb/dy, last, last)

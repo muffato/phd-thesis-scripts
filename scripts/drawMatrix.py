@@ -27,7 +27,7 @@ import myPsOutput
 )
 
 
-geneBank = myOrthos.MyGeneBank(noms_fichiers[0], [options["espece1"], options["espece2"]])
+geneBank = myOrthos.GeneBank(noms_fichiers[0], [options["espece1"], options["espece2"]])
 
 if len(geneBank.dicEspeces) == 0 or (len(geneBank.dicEspeces) == 1 and not options["ancestralGenome"]):
 	print >> sys.stderr, "Can't retrieve -%(espece1)s- and -%(espece2)s- in the species list" % options

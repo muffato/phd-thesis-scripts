@@ -64,7 +64,7 @@ def distInterGenes(tg1, tg2):
 	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
 )
 
-geneBank = myOrthos.MyGeneBank(noms_fichiers[0])
+geneBank = myOrthos.GeneBank(noms_fichiers[0])
 genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], True)
 phylTree = myOrthos.PhylogeneticTree(noms_fichiers[2])
 
@@ -116,7 +116,7 @@ for c in genesAnc.lstGenes:
 	f.close()
 	
 	lstTot = []
-	for i in range(options["nbConcorde"]):
+	for i in range(nbConcorde):
 		#os.system('/users/ldog/muffato/work/scripts/concorde -x ' + nom + ' > /dev/null')
 		os.system('/users/ldog/muffato/work/scripts/concorde -x ' + nom + ' >&2')
 		lstTot.append(myOrthos.ConcordeFile(nom + ".sol"))
@@ -130,16 +130,16 @@ for c in genesAnc.lstGenes:
 	print >> sys.stderr
 
 	# On remet chaque liste dans le meme sens que la premiere
-	for i in range(1, options["nbConcorde"]):
+	for i in range(1, nbConcorde):
 		if not lstTot[i].isMemeSens(lstTot[0]):
 			lstTot[i].reverse()
 
 	for i in range(n):
 		q = set([s.res[i] for s in lstTot])
 		if options["nbConcorde"] < 1:
-			print "%c " % c,
+			print c,
 		else:
-			print "%c %d " % (c, len(q)),
+			print c, len(q),
 		for x in tab[lstTot[0].res[i]-1]:
 			print x,
 		print

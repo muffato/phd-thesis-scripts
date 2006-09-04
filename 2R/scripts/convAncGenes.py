@@ -20,21 +20,20 @@ lst = set([])
 nb = 0
 for s in sys.stdin:
 	t = set([])
-	#print "*"
 	for g in s.split():
 		if g in genesAnc.dicGenes:
 			t.add(genesAnc.dicGenes[g])
-	#print len(t)
-	#continue
-
+	
 	if len(t) < 2:
 		continue
-		
 
 	nb += 1
-	#s = [c for (c,i) in t]
-	#if not ('x' in s or 'w' in s):
-	#	continue
+	s = [c for (c,i) in t]
+	#non = set(['n', 'y', 'z', 'u', 'l', 'i', 'j', 'm', 'k', 'g', 'c', 'f', 'd'])
+	oui = set(['y', 'z'])
+	#if len(non.intersection(s)) > 0:
+	if len(oui.intersection(s)) == 0:
+		continue
 	
 	for (c,i) in t:
 		#print "PHI", " ".join(genesAnc.lstGenes[c][i])
