@@ -17,7 +17,7 @@ import myPsOutput
 
 def loadGenome(nom):
 	
-	f = open(nom, 'r')
+	f = myTools.myOpenFile(nom)
 	c = f.readline().split()
 	f.close()
 	try:
@@ -70,6 +70,7 @@ for c in genome.lstChr:
 				if not options["includeGaps"]:
 					continue
 				col = options["defaultColor"]
+		#print c, x, col
 		res[c].append(col)
 
 # On dessine

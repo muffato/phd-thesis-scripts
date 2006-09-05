@@ -177,6 +177,7 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 def loadChrAncIni(nom):
 
 	chrAnc = {}
+	espUtil = set([])
 	f = open(nom, 'r')
 	for ligne in f:
 		c = ligne.split()
@@ -185,6 +186,7 @@ def loadChrAncIni(nom):
 			if x[0] == '*':
 				e = x[1:]
 				dic[e] = []
+				espUtil.add(e)
 			else:
 				try:
 					x = int(x)
@@ -193,19 +195,19 @@ def loadChrAncIni(nom):
 				dic[e].append(x)
 		chrAnc[c[0]] = dic
 	f.close()
-	return chrAnc
+	return (chrAnc, espUtil)
 
 # MAIN #
 
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
-	["genesList.conf", "genesAncestraux.list", "genomePreDupApprox.conf"],
+	["genesList.conf", "genesAncestraux.list", "draftPreDupGenome.conf"],
 	[("precisionChrAnc", int, 1000000)], \
 	"Retrouve le genome pre-duplication grace aux alternances predites" \
 )
 
 # Chargement des fichiers
-geneBank = myOrthos.MyGeneBank(noms_fichiers[0])
+geneBank = myOrthos.GeneBank(noms_fichiers[0])
 genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], False)
 lstGenesAnc = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
 (para,orthos) = buildParaOrtho(lstGenesAnc, geneBank)
@@ -217,7 +219,7 @@ for e in geneBank.lstEspecesNonDup:
 
 # On colorie les genes ancestraux
 print >> sys.stderr, "Synthese des genes ancestraux ",
-chrAnc = loadChrAncIni(noms_fichiers[2])
+(chrAnc, especesDupliqueesUtilisees) = loadChrAncIni(noms_fichiers[2])
 col = [[] for i in range(len(lstGenesAnc))]
 for e in blocs:
 	buildColorTable(blocs[e], col, genesAnc.dicGenes, chrAnc)
