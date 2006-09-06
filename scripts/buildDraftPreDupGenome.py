@@ -130,8 +130,8 @@ def printNbParaTable():
 )
 
 # Chargement des fichiers
-geneBank = myOrthos.MyGeneBank(noms_fichiers[0])
-if options["especeDupliquee"] not in geneBank.dicEspecesDup:
+geneBank = myOrthos.GeneBank(noms_fichiers[0])
+if options["especeDupliquee"] not in geneBank.lstEspecesDup:
 	print >> sys.stderr, "-ERREUR- Pas de -%(especeDupliquee)s- dans la liste des especes dupliquees ..." % options
 	sys.exit(1)
 genomeDup = geneBank.dicEspeces[options["especeDupliquee"]]
@@ -144,7 +144,7 @@ lstGenesAnc = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
 
 print >> sys.stderr, "Calculs des 3-alternances ",
 count3 = {}
-for e in geneBank.lstsEspecesNonDup:
+for e in geneBank.lstEspecesNonDup:
 	countAltern3(geneBank.dicEspeces[e], orthos, count3)
 	sys.stderr.write(".")
 
