@@ -31,7 +31,7 @@ import myMaths
 
 
 # 1. On lit tous les fichiers
-geneBank = myOrthos.MyGeneBank(noms_fichiers[0], [options["espece1"], options["espece2"]])
+geneBank = myOrthos.GeneBank(noms_fichiers[0], [options["espece1"], options["espece2"]])
 if len(geneBank.dicEspeces) != 2:
 	print >> sys.stderr, "Can't retrieve %s and %s in %s" % (options["espece1"], options["espece2"], noms_fichiers[0])
 	sys.exit(1)

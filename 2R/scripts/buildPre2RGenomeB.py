@@ -22,6 +22,8 @@ chroms = { "ALPHA":['n','y','z'], "BETA":['u','l','i'], "GAMMA":['j','m','k'], \
 lstChroms = chroms.keys()
 lstChroms.sort()
 
+newGenome = dict( [(c,[]) for c in genesAnc.lstChr] )
+
 for s in sys.stdin:
 	t = set([])
 	ss = s.split()[1:]
@@ -39,8 +41,26 @@ for s in sys.stdin:
 			break
 	else:
 		continue
-		
-	print res,
+	
 	for (c,i) in t:
-		print " ".join(genesAnc.lstGenes[c][i]),
-	print
+		newGenome[c].append( (i,res) )
+
+for c in genesAnc.lstChr:
+	lastP = 0
+	lastV = 0
+	newGenome[c].sort()
+	for (i,res) in newGenome[c]:
+		if lastP != 0:
+			for j in range(lastP, (lastP+i)/2):
+				print lastV, " ".join(genesAnc.lstGenes[c][j])
+		else:
+			lastP = -i
+		for j in range((lastP+i)/2, i):
+			print res, " ".join(genesAnc.lstGenes[c][j])
+		lastP = i
+		lastV = res
+	for j in range(lastP, len(genesAnc.lstGenes[c])):
+		print lastV, " ".join(genesAnc.lstGenes[c][j])
+
+
+

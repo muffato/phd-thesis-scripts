@@ -30,7 +30,7 @@ def printPsHeader():
 	print "setfont"
 	# style de trait (coins ronds)
 	print "1 setlinejoin"
-	print "0.00001 cm setlinewidth"
+	print "0.005 cm setlinewidth"
 
 	# definition des couleurs dns l'en-tete du Postscript
 	print
@@ -67,11 +67,11 @@ def initColor():
 	f.close()
 
 
-	lightColors = ["PaleTurquoise2", "khaki1", "DarkSeaGreen1", "DarkOliveGreen1", "lavender", "LightBlue", "salmon", "SkyBlue1", "LightGoldenrod3", "wheat1", "thistle2", "PeachPuff"]
+	lightColors = ["salmon", "PaleTurquoise2", "DarkSeaGreen1","khaki1", "thistle2", "PeachPuff","LightBlue", "SkyBlue1","LightGoldenrod3", "wheat1",  "DarkOliveGreen1", "lavender"]
 	
 	darkColors = ["red1", "turquoise2", "DarkGreen", "yellow", "coral2", "OliveDrab2", "orange", "MediumAquamarine", "blue2", "firebrick4", "LightSalmon", "DarkViolet", "magenta2", "DarkSeaGreen4", "DarkSlateBlue", "yellow4", "grey62", "gold", "PeachPuff2", "HotPink4", "firebrick", "purple4"]
 
-	greekLetters = ["ALPHA", "BETA", "GAMMA", "DELTA", "EPSILON", "PHI"]
+	greekLetters = ["ALPHA", "BETA", "DELTA", "EPSILON", "GAMMA", "PHI"]
 	
 	for i in range(len(lightColors)):
 		color[str(-(i+1))] = lightColors[i]
@@ -88,7 +88,7 @@ def initColor():
 		printColorDefinitionLine(darkColors[i])
 	
 	for i in range(len(greekLetters)):
-		color[greekLetters[i]] = darkColors[i]
+		color[greekLetters[i]] = lightColors[i]
 
 	printColorDefinitionLine("black")
 	printColorDefinitionLine("white")

@@ -131,7 +131,7 @@ def flatten(lst):
 # Fait la liste de tous les genes de tab1 en diagonale avec ceux de tab2
 #  (eventuellement des singletons)
 #
-def extractDiags(t1, t2, byCouple = False, largeurTrou = 0):
+def extractDiags(t1, t2, byCouple, largeurTrou):
 	diag = []
 	cour = []
 	lastI2 = -2

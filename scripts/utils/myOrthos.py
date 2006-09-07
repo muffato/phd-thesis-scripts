@@ -4,6 +4,100 @@ import sys
 import myTools
 import myMaths
 
+class Genome:
+
+	#
+	# Constructeur
+	#
+	def __init__(self, nom):
+
+		# la liste des genes par chromosome
+		self.lstGenes = {}
+		# le nom	
+		self.nom = nom
+		# Associer un nom de gene a sa position sur le genome
+		self.dicGenes = {}
+		# La liste triee des chromosomes
+		self.lstChr = []
+		
+	#
+	# Rajoute un gene au genome
+	#
+	def addGene(self, names, chromosome, beg, end, strand):
+	
+		if chromosome not in self.lstGenes:
+			self.lstChr.append(chromosome)
+			self.lstGenes[chromosome] = []
+
+		n = len(self.lstGenes[chromosome])
+		self.lstGenes[chromosome].append( (beg, end, strand, tuple(names)) )
+		#self.lstGenes[chromosome].append( (beg, end, strand, names) )
+		
+		for s in names:
+			self.dicGenes[s] = (chromosome, n)
+		#self.dicGenes[names] = (chromosome, n)
+
+	
+	#
+	# Trie les chromsomoses
+	#
+	def sortGenome(self):
+		
+		self.dicGenes = {}
+		for c in self.lstGenes:
+			self.lstGenes[c].sort()
+			for i in range(len(self.lstGenes[c])):
+				#s = self.lstGenes[c][i][3]
+				for s in self.lstGenes[c][i][3]:
+					self.dicGenes[s] = (c, i)
+		
+		# La liste triee des chromosomes
+		self.lstChr = self.lstGenes.keys()
+		self.lstChr.sort()
+
+	#
+	# Renvoie les noms des genes presents sur le chromosome donne a certaines positions
+	#	
+	def getGenesAt(self, chr, beg = 0, end = sys.maxint):
+		return [s for (x1,x2,_,s) in self.lstGenes[chr] if x2 >= beg and x1 <= end]
+
+
+class EnsemblGenome2(Genome):
+
+	#
+	# Constructeur
+	#
+	def __init__(self, nom, filtre = []):
+		
+		Genome.__init__(self, nom)
+		
+		print >> sys.stderr, "Chargement de", nom, "...",
+		
+		f = myTools.myOpenFile(nom)
+		
+		# On lit chaque ligne
+		for ligne in f:
+			champs = ligne.split()
+			
+			# On elimine certains chromosomes
+			if True in [fl in champs[0] for fl in filtre]:
+				continue
+		
+			# On convertit en entier le nom du chromosome si possible
+			try:
+				champs[0] = int(champs[0])
+			except ValueError:
+				pass
+	
+			self.addGene(champs[4:], champs[0], int(champs[1]), int(champs[2]), int(champs[3]))
+		
+		f.close()
+
+		self.sortGenome()
+		
+		print >> sys.stderr, "OK"
+
+
 ##############################################################
 # Cette classe gere un fichier de liste de genes d'Ensembl   #
 #   "Chr Debut Fin Brin Nom"                                 #

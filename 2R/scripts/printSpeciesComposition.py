@@ -36,5 +36,6 @@ for s in sys.stdin:
 		if g in geneBank.dicGenes:
 			(e,_,_) = geneBank.dicGenes[g]
 			score[e] += 1
-	#if score['H'] > 1 or score['C'] > 1 or score['M'] > 1 or score['O'] > 1 or score['D'] > 1 or score['W'] > 1:
-	print score['H']
+	if score['H'] > 1 or score['C'] > 1 or score['M'] > 1 or score['O'] > 1 or score['D'] > 1 or score['W'] > 1:
+		print score
+	#print score['H']

@@ -27,7 +27,7 @@ lstChroms.sort()
 
 for s in sys.stdin:
 	t = set([])
-	ss = s.split()[1:]
+	ss = s.split()
 	for g in ss:
 		if g in genesAnc.dicGenes:
 			t.add(genesAnc.dicGenes[g])
@@ -48,5 +48,5 @@ for s in sys.stdin:
 	print res,
 	for (c,i) in t:
 		print " ".join(genesAnc.lstGenes[c][i]),
-	print
+	print s,
 
