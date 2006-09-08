@@ -14,19 +14,6 @@ import myOrthos
 import myTools
 import myPsOutput
 
-
-def loadGenome(nom):
-	
-	f = myTools.myOpenFile(nom)
-	c = f.readline().split()
-	f.close()
-	try:
-		x = int(c[1]) + int(c[2]) + int(c[3])
-		return myOrthos.EnsemblGenome(nom)
-	except Exception:
-		return myOrthos.AncestralGenome(nom, True)
-
-
 ########
 # MAIN #
 ########
@@ -34,12 +21,20 @@ def loadGenome(nom):
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
 	["GenomeADessiner", "GenomeReference"], \
-	[("includeGaps", bool, False), ("defaultColor", str, "black")], \
+	[("includeGaps", bool, False), ("defaultColor", str, "black"), ("orthologuesList", str, "")], \
 	"Dessine un genome en coloriant ses genes a partir d'un autre genome reference" \
 )
 
-genome = loadGenome(noms_fichiers[0])
-genesAnc = loadGenome(noms_fichiers[1])
+myOrthos.AncestralGenome2(noms_fichiers[0], True)
+#myOrthos.afficheurDeBonjour()
+#myOrthos.printBonjour()
+
+sys.exit(0)
+
+genome1 = myOrthos.loadGenome(noms_fichiers[0])
+#genome2 = myOrthos.loadGenome(noms_fichiers[1])
+if options["orthologuesList"] != "":
+	genesAnc = myOrthos.AncestralGenome(options["orthologuesList"], False)
 
 # On ecrit le PostScipt
 myPsOutput.printPsHeader()
@@ -47,30 +42,23 @@ myPsOutput.initColor()
 
 # On construit les couleurs
 res = {}
-for c in genome.lstChr:
+for c in genome1.lstChr:
 
 	res[c] = []
+	for (_,_,_,tg) in genome1.lstGenes[c]:
 	
-	for x in genome.lstGenes[c]:
-		if type(x) == tuple:
-			if x[3] not in genesAnc.dicGenes:
-				if not options["includeGaps"]:
-					continue
-				col = options["defaultColor"]
-			else:
-				col = genesAnc.dicGenes[x[3]][0]
+		if options["orthologuesList"] != "":
+			tg = myMaths.flatten([genesAnc.dicGenes[g] for g in tg if g in genesAnc.dicGenes])
+			
+		for g in tg:
+			if g in genome2.dicGenes:
+				col = genesAnc.dicGenes[g][0]
 				col = myPsOutput.getColor(str(col), options["defaultColor"])
+				break
 		else:
-			for g in x:
-				if g in genesAnc.dicGenes:
-					col = genesAnc.dicGenes[g][0]
-					col = myPsOutput.getColor(str(col), options["defaultColor"])
-					break
-			else:
-				if not options["includeGaps"]:
-					continue
-				col = options["defaultColor"]
-		#print c, x, col
+			if not options["includeGaps"]:
+				continue
+			col = options["defaultColor"]
 		res[c].append(col)
 
 # On dessine
@@ -79,7 +67,7 @@ dy = float(max([len(x) for x in res.values()])) / 26.
 xx = 1
 y0 = 1.
 
-for c in genome.lstChr:
+for c in genome1.lstChr:
 	
 	myPsOutput.drawText(xx, y0, str(c), "black")
 	y = y0 + 1
@@ -100,3 +88,4 @@ for c in genome.lstChr:
 	xx += (5.*dx)/3.
 
 myPsOutput.printPsFooter()
+

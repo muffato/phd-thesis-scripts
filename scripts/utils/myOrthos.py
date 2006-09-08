@@ -1,9 +1,30 @@
 #! /usr/bin/python2.4
 
 import sys
+import string
 import myTools
 import myMaths
 
+
+#######################################################################################
+# Cette fonction determine le type du fichier de genome a partir de la premiere ligne #
+#######################################################################################
+def loadGenome(nom):
+	
+	f = myTools.myOpenFile(nom)
+	c = f.readline().split()
+	f.close()
+	try:
+		x = int(c[1]) + int(c[2]) + int(c[3])
+		return EnsemblGenome(nom)
+	except Exception:
+		c = nom.split('/')
+		return AncestralGenome(nom, c[-1][0] in string.uppercase)
+
+
+##########################################
+# Classe generale pour stocker un genome #
+##########################################
 class Genome:
 
 	#
@@ -31,12 +52,9 @@ class Genome:
 
 		n = len(self.lstGenes[chromosome])
 		self.lstGenes[chromosome].append( (beg, end, strand, tuple(names)) )
-		#self.lstGenes[chromosome].append( (beg, end, strand, names) )
 		
 		for s in names:
 			self.dicGenes[s] = (chromosome, n)
-		#self.dicGenes[names] = (chromosome, n)
-
 	
 	#
 	# Trie les chromsomoses
@@ -62,12 +80,18 @@ class Genome:
 		return [s for (x1,x2,_,s) in self.lstGenes[chr] if x2 >= beg and x1 <= end]
 
 
-class EnsemblGenome2(Genome):
+
+##############################################################
+# Cette classe gere un fichier de liste de genes d'Ensembl   #
+#   "Chr Debut Fin Brin Nom"                                 #
+# Le filtre correspond a une liste de chromosomes a eliminer #
+##############################################################
+class EnsemblGenome(Genome):
 
 	#
 	# Constructeur
 	#
-	def __init__(self, nom, filtre = []):
+	def __init__(self, nom):
 		
 		Genome.__init__(self, nom)
 		
@@ -79,10 +103,6 @@ class EnsemblGenome2(Genome):
 		for ligne in f:
 			champs = ligne.split()
 			
-			# On elimine certains chromosomes
-			if True in [fl in champs[0] for fl in filtre]:
-				continue
-		
 			# On convertit en entier le nom du chromosome si possible
 			try:
 				champs[0] = int(champs[0])
@@ -98,70 +118,93 @@ class EnsemblGenome2(Genome):
 		print >> sys.stderr, "OK"
 
 
-##############################################################
-# Cette classe gere un fichier de liste de genes d'Ensembl   #
-#   "Chr Debut Fin Brin Nom"                                 #
-# Le filtre correspond a une liste de chromosomes a eliminer #
-##############################################################
-class EnsemblGenome:
 
-	#
-	# Constructeur
-	#
-	def __init__(self, nom, filtre = []):
+####################################################################################
+# Cette classe gere un fichier de genome ancestral                                 #
+# il s'agit d'une liste de lignes de la forme "CHROMOSOME GENE_ESP1 GENE_ESP2 ..." #
+####################################################################################
+class AncestralGenome(Genome):
 
-		print >> sys.stderr, "Chargement de", nom, "...",
-		self.lstGenes = {}
+	defaultChr = "-"
+	
+	def __init__(self, nom, chromPresents):
+
+		Genome.__init__(self, nom)
 		
+		if chromPresents:
+			print >> sys.stderr, "Chargement du genome ancestral de", nom, "... ",
+		else:
+			print >> sys.stderr, "Chargement des genes ancestraux de", nom, "... ",
+		
+		# On initialise tout
 		f = myTools.myOpenFile(nom)
-		self.nom = nom
-		
-		# On lit chaque ligne
+
 		for ligne in f:
 			champs = ligne.split()
+
+			# Le chromosome du gene lu
+			if not chromPresents:
+				c = AncestralGenome.defaultChr
+			else:
+				try:
+					c = int(champs[0])
+				except ValueError:
+					c = champs[0]
+				del champs[0]
 			
-			# On elimine certains chromosomes
-			if True in [fl in champs[0] for fl in filtre]:
-				continue
-		
-			# On convertit en entier ce qui peut l'etre
-			for i in range(1,4):
-				champs[i] = int(champs[i])
+			# On efface un entier s'il y en a un
+			# C'est le cas des fichiers de genomes ancestraux avec score de Concorde
 			try:
-				champs[0] = int(champs[0])
+				int(champs[0])
+				del champs[0]
 			except ValueError:
 				pass
-		
-			# On rajoute le gene
-			r = (champs[1], champs[2], champs[3], champs[4])
-			if champs[0] in self.lstGenes:
-				self.lstGenes[champs[0]].append(r)
+			
+			# La position du gene lu
+			if c in self.lstChr:
+				i = len(self.lstGenes[c])
 			else:
-				self.lstGenes[champs[0]] = [r]
+				i = 0
+			
+			# On ajoute le gene
+			self.addGene(champs[1:], c, 0, i, 0)
 		
 		f.close()
-
-		# On doit trier chaque chromosome selon l'ordre genomique
-		# On remplit en meme temps la liste des noms des genes
-		print >> sys.stderr, "Tri ...",
-		self.dicGenes = {}
-		for c in self.lstGenes:
-			self.lstGenes[c].sort()
-			for i in range(len(self.lstGenes[c])):
-				self.dicGenes[self.lstGenes[c][i][3]] = (c, i)
-		
-		# La liste triee des chromosomes
-		self.lstChr = self.lstGenes.keys()
-		self.lstChr.sort()
 		
 		print >> sys.stderr, "OK"
 
 	#
-	# Renvoie les noms des genes presents sur le chromosome donne a certaines positions
-	#	
-	def getGenesAt(self, chr, beg = 0, end = sys.maxint):
-		return [s for (x1,x2,_,s) in self.lstGenes[chr] if x2 >= beg and x1 <= end]
+	# Cette fonction separe un genome ancestral en blocs dans chaque
+	# chromosome de chaque espece
+	#
+	def splitChr(self, geneBank, chrAnc):
+		
+		# 1ere etape: separer pour chaque espece en chromosomes
+		blocsAnc = {}
+		j = 0
+		for x in self.lstGenes[chrAnc]:
+			for s in x:
+				if s not in geneBank.dicGenes:
+					continue
+				(e,c,i) = geneBank.dicGenes[s]
+				if e not in blocsAnc:
+					blocsAnc[e] = {}
+				if c not in blocsAnc[e]:
+					blocsAnc[e][c] = []
+				blocsAnc[e][c].append( (i,s,j) )
+			j += 1
 
+		# 2eme etape: trier chacun de ces ensembles et creer un
+		# dictionnaire qui pemet de retrouver la position de chaque gene
+		dico = {}
+		for e in blocsAnc:
+			for c in blocsAnc[e]:
+				blocsAnc[e][c].sort()
+				for i in range(len(blocsAnc[e][c])):
+					(_,s,j) = blocsAnc[e][c][i]
+					dico[s] = (e,c,i,j)
+		
+		return (blocsAnc, dico)
 
 
 #########################################################################
@@ -200,7 +243,7 @@ class GeneBank:
 			if s not in only and len(only) > 0:
 				continue
 
-			g = EnsemblGenome(champs[1], champs[2:])
+			g = EnsemblGenome(champs[1])
 			
 			if dup == "":
 				self.lstEspecesNonDup.append(s)
@@ -215,97 +258,6 @@ class GeneBank:
 
 		f.close()
 
-
-
-####################################################################################
-# Cette classe gere un fichier de genome ancestral                                 #
-# il s'agit d'une liste de lignes de la forme "CHROMOSOME GENE_ESP1 GENE_ESP2 ..." #
-####################################################################################
-class AncestralGenome:
-
-	defaultChr = "-"
-	
-	def __init__(self, nom, chromPresents):
-
-		if chromPresents:
-			print >> sys.stderr, "Chargement du genome ancestral de", nom, "... ",
-		else:
-			print >> sys.stderr, "Chargement des genes ancestraux de", nom, "... ",
-		
-		# On initialise tout
-		self.dicGenes = {}
-		self.lstGenes = {}
-		i = 0
-		c = 0
-		f = myTools.myOpenFile(nom)
-		self.nom = nom
-
-		for ligne in f:
-			champs = ligne.split()
-			
-			if not chromPresents:
-				champs.insert(0, AncestralGenome.defaultChr)
-			
-			try:
-				champs[0] = int(champs[0])
-			except ValueError:
-				pass
-			
-			if champs[0] == c:
-				# On continue dans le meme chromosome
-				i += 1
-			else:
-				# On commence un nouveau chromosome
-				i = 0
-				c = champs[0]
-			
-			for s in champs[1:]:
-				self.dicGenes[s] = (c,i)
-			
-			if c in self.lstGenes:
-				self.lstGenes[c].append( champs[1:] )
-			else:
-				self.lstGenes[c] = [champs[1:]]
-		
-		f.close()
-		
-		self.lstChr = self.lstGenes.keys()
-		self.lstChr.sort()
-		
-		print >> sys.stderr, "OK"
-
-	#
-	# Cette fonction separe un genome ancestral en blocs dans chaque
-	# chromosome de chaque espece
-	#
-	def splitChr(self, geneBank, chrAnc):
-		
-		# 1ere etape: separer pour chaque espece en chromosomes
-		blocsAnc = {}
-		j = 0
-		for x in self.lstGenes[chrAnc]:
-			for s in x:
-				if s not in geneBank.dicGenes:
-					continue
-				(e,c,i) = geneBank.dicGenes[s]
-				if e not in blocsAnc:
-					blocsAnc[e] = {}
-				if c not in blocsAnc[e]:
-					blocsAnc[e][c] = []
-				blocsAnc[e][c].append( (i,s,j) )
-			j += 1
-
-		# 2eme etape: trier chacun de ces ensembles et creer un
-		# dictionnaire qui pemet de retrouver la position de chaque gene
-		dico = {}
-		for e in blocsAnc:
-			for c in blocsAnc[e]:
-				blocsAnc[e][c].sort()
-				for i in range(len(blocsAnc[e][c])):
-					(_,s,j) = blocsAnc[e][c][i]
-					dico[s] = (e,c,i,j)
-		
-		return (blocsAnc, dico)
 
 
 

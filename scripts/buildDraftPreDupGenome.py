@@ -57,7 +57,10 @@ def countAltern3(genome, orthos, count):
 
 	for c in genome.lstGenes:
 		grp3Tet = []
-		for (_,_,_,g) in genome.lstGenes[c]:
+		for tg in genome.lstGenes[c]:
+			
+			g = tg[0]
+			
 			# Il faut un orthologue avec Tetraodon
 			if g not in orthos:
 				continue

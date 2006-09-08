@@ -72,7 +72,9 @@ def colorAncestr(esp, geneBank, para, orthos):
 		for c in genome.lstGenes:
 			lastOrig = set([])
 			bloc = []
-			for (_,_,_,g) in genome.lstGenes[c]:
+			for tg in genome.lstGenes[c]:
+				g = tg[0]
+
 				# Il faut un orthologue avec Tetraodon
 				if g not in orthos[e]:
 					continue

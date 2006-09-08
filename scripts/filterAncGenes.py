@@ -41,4 +41,5 @@ for l in sys.stdin:
 		t = [score[x] for x in 'HCM']
 		tt = [score[x] for x in 'IE']
 		if max(t) == 2 and max(tt) == 1:
+		#if sum(t) < 13 and sum(tt) < 6:
 			print l,

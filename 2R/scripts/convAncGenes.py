@@ -14,8 +14,8 @@ import myMaths
 
 (noms_fichiers, options) = myTools.checkArgs(["GENOME_ANCESTRAL"], [], "")
 
-#genesAnc = myOrthos.AncestralGenome(noms_fichiers[0], True)
-genesAnc = myOrthos.EnsemblGenome(noms_fichiers[0])
+genesAnc = myOrthos.AncestralGenome(noms_fichiers[0], True)
+#genesAnc = myOrthos.EnsemblGenome(noms_fichiers[0])
 
 lst = set([])
 nb = 0
@@ -38,12 +38,15 @@ for s in sys.stdin:
 
 	#print s,
 	#continue
+	#if len(t) == 2:
+	#	print s,
+	#continue
 	for (c,i) in t:
 		#print "%s.%d" % (c,i)
 		#print "PHI", " ".join(genesAnc.lstGenes[c][i])
 		#continue
 		for (k,j) in t:
-			if c<k: # or (c==k and i<j):
+			if c<k or (c==k and i<j):
 				if (c,i,k,j) not in lst:
 					print c,i,k,j
 					lst.add( (c,i,k,j) )

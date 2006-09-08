@@ -55,14 +55,8 @@ orthos2 = dict( [(K2,[]) for K2 in genome2.lstChr] )
 ii = 0
 for c in genesAnc.lstChr:
 	for g in genesAnc.lstGenes[c]:
-		if genome1 == genesAnc:
-			g1 = [g[0]]
-		else:
-			g1 = [x for x in g if x in genome1.dicGenes]
-		if genome2 == genesAnc:
-			g2 = [g[0]]
-		else:
-			g2 = [x for x in g if x in genome2.dicGenes]
+		g1 = [x for x in g if x in genome1.dicGenes]
+		g2 = [x for x in g if x in genome2.dicGenes]
 		for x in g1:
 			(K1,i1) = genome1.dicGenes[x]
 			for y in g2:
