@@ -167,7 +167,7 @@ class AncestralGenome(Genome):
 				i = 0
 			
 			# On ajoute le gene
-			self.addGene(champs[1:], c, 0, i, 0)
+			self.addGene(champs, c, 0, i, 0)
 		
 		f.close()
 		
