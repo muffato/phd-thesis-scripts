@@ -24,17 +24,21 @@ for s in sys.stdin:
 	t = s.split()
 	s = set(t[1:])
 	Kcraniate = t[0]
+	autres = set([])
 	
 	Gamn = set([])
 	for g in s:
 		if g in genomeAmn.dicGenes:
 			Gamn.add(genomeAmn.dicGenes[g])
+		else:
+			autres.add(g)
 
 	if len(Gamn) < 2:
 		continue
 	
 	nb += 1
 	print "***** FAMILLE %d *****" % nb
+	print "++ %s ++" % " ".join(autres)
 	for (Kamn,Iamn) in Gamn:
 		s = genomeAmn.lstGenes[Kamn][Iamn][-1]
 		Ghum = set([])
