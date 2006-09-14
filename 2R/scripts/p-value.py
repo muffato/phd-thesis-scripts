@@ -12,25 +12,25 @@ import myOrthos
 import myTools
 import myMaths
 
-
+# Calcule la proba
 def proba(pi, l, ll):
 	p = pow(pi, l) * pow(1.-pi, ll-l)
 	for i in range(l):
 		p *= float(ll-i)/float(i+1)
 	return p
 
+
+# Calcule le log de la proba
 def probaLog(pi, l, ll):
-	p = 0.
+	p = l*math.log10(pi) + (ll-l)*math.log10(1-pi)
 	for i in range(l):
 		p += math.log10(ll-i) - math.log10(i+1)
-	#print >> sys.stderr, p, pi, l, ll
-	p += l*math.log10(pi) + (ll-l)*math.log10(1-pi)
 	return p
 
 
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( [], [], "")
+(noms_fichiers, options) = myTools.checkArgs( [], [("seuilPValue",int,5)], "Lit une liste de paralogues (comme generee par convAncGenes.py et calcule une table de p-values")
 
 para = {}
 nbPara = 0
@@ -48,12 +48,14 @@ for l in sys.stdin:
 lstChr = para.keys()
 lstChr.sort()
 
-for c1 in lstChr:
-	print "\t%s" % c1,
-print
+#for c1 in lstChr:
+#	print "\t%s" % c1,
+#print
 
+pvalues = {}
 for c1 in lstChr:
-	print c1,
+	#print c1,
+	pvalues[c1] = {}
 	for c2 in lstChr:
 		p = float(sum(para[c1].values()))
 		if c1 == c2:
@@ -64,105 +66,31 @@ for c1 in lstChr:
 		x = probaLog(p, para[c1].get(c2, 0), nbPara/2)
 		if para[c1].get(c2, 0) > p*nbPara:
 			x *= -1
-		print "\t%g" % x,
-	print
+		#print "\t%g" % x,
+		pvalues[c1][c2] = x
+	#print
 
 
-sys.exit(0)
+s0 = [set(x) for x in lstChr]
+ss = [s0]
 
-genomeOutgroup = myOrthos.AncestralGenome(noms_fichiers[0], True)
-genomePostDup = myOrthos.AncestralGenome(noms_fichiers[1], True)
+while True:
+	newS = []
+	for x in lstChr:
+		for s in ss[-1]:
+			if x in s:
+				continue
+			m = 0.
+			for c in s:
+				m += pvalues[x][c]
+			m /= len(s)
+			if m >= options["seuilPValue"]:
+				s2 = s.union([x])
+				newS.append(s2)
+	if len(newS) == 0:
+		break
+	ss.append(myMaths.unique(newS))
+print ss
+		
 
-# On genere toutes les tetrades
-tetrades = myTools.buildSubsets(genomePostDup.lstChr, 4)
-#tetrades.extend( myTools.buildSubsets(genomePostDup.lstChr, 3) )
-#tetrades.extend( myTools.buildSubsets(genomePostDup.lstChr, 5) )
-#tetrades.extend( myTools.buildSubsets(genomePostDup.lstChr, 6) )
-print >> sys.stderr, len(tetrades), "tetrades"
-
-# Un petit test, la somme des probabilites doit faire 1
-s = 0.
-for i in range(1001):
-	s += proba(4./25., i, 1000)
-print >> sys.stderr, "test des p-values:", s
-
-# On fait la liste des orthologues et le tableau des comptes
-count = {}
-countChr = {}
-totalCount = dict([ (k,0) for k in genomePostDup.lstChr ])
-for c in genomeOutgroup.lstChr:
-	count[c] = dict([ (k,0) for k in genomePostDup.lstChr ])
-	countChr[c] = 0
-	orthos = set([])
-	for x in genomeOutgroup.lstGenes[c]:
-		for g in x:
-			if g in genomePostDup.dicGenes:
-				orthos.add(genomePostDup.dicGenes[g])
-	for (col,_) in orthos:
-		count[c][col] += 1
-		totalCount[col] += 1
-		countChr[c] += 1
-nbOrthos = sum(totalCount.values())
-scoreTet = []
-for tet in tetrades:
-	nb = 0
-	for k in tet:
-		nb += totalCount[k]
-	scoreTet.append( float(nb)/float(nbOrthos) )
-print >> sys.stderr, nbOrthos, "orthologues"
-print >> sys.stderr, totalCount
-
-# On genere les probas
-lstValue = {}
-for c in genomeOutgroup.lstChr:
-	cc = count[c]
-	l = len(genomeOutgroup.lstGenes[c])
-	lst = []
-	for i in range(len(tetrades)):
-		nb = 0
-		for k in tetrades[i]:
-			nb += cc[k]
-		p = math.log10(proba(scoreTet[i], nb, l))
-		lst.append(p)
-		print int(100.*p)/100., c,
-		for k in tetrades[i]:
-			print k,
-		print
-	lstValue[c] = lst
-	print >> sys.stderr, c, ":", countChr[c], "orthologues, log10(p-value) (min/max/moyenne):", min(lst), max(lst), myMaths.moyenne(lst)
-
-sys.exit(0)
-hist = {}
-for i in range(len(tetrades)):
-	lst = [lstValue[c][i] for c in genomeOutgroup.lstChr]
-	for c in genomeOutgroup.lstChr:
-	#lst2 = [math.log10(x) for x in lst]
-	#if len([x for x in lst2 if x > -1.8]) != 0:
-	#	continue
-	
-		x = lstValue[c][i]
-		y = int(100.*math.log10(x))/100.
-		print y, c,
-		for k in tetrades[i]:
-			print k,
-		print
-	continue
-	#print lst2
-	print 
-	continue
-	x = max(lst)
-	y = int(100.*math.log10(x))/100.
-	#y = myMaths.moyenne([int(100.*math.log10(x))/100. for x in lst])
-	print y
-	continue
-	for c in genomeOutgroup.lstChr:
-		x = lstValue[c][i]
-		y = int(10.*math.log10(x))/10.
-		if y in hist:
-			hist[y] += 1
-		else:
-			hist[y] = 1
-
-for y in hist:
-	#print y, hist[y]
-	print y, math.log10(hist[y])
+#print >> sys.stderr, pvalues

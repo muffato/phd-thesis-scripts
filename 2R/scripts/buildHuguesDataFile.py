@@ -12,10 +12,9 @@ import myOrthos
 import myTools
 import myMaths
 
-#(noms_fichiers, options) = myTools.checkArgs(["GENOME_CRANIATE", "GENOME_AMNIOTES","GENOME_HUMAIN"], [], "")
-(noms_fichiers, options) = myTools.checkArgs(["GENOME_AMNIOTES","GENOME_HUMAIN"], [], "")
+(noms_fichiers, options) = myTools.checkArgs(["genomeAmniotes","genomeHumain"], [], \
+	"Affiche toutes les familles de genes craniates separement avec les chromsoomes amniotes et humains sur lesquels ces genes se trouvent")
 
-#genomeCran = myOrthos.AncestralGenome(noms_fichiers[0], True)
 genomeAmn = myOrthos.AncestralGenome(noms_fichiers[0], True)
 genomeH = myOrthos.EnsemblGenome(noms_fichiers[1])
 
