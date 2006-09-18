@@ -48,13 +48,13 @@ for l in sys.stdin:
 lstChr = para.keys()
 lstChr.sort()
 
-#for c1 in lstChr:
-#	print "\t%s" % c1,
-#print
+for c1 in lstChr:
+	print >> sys.stderr, "\t%s" % c1,
+print >> sys.stderr
 
 pvalues = {}
 for c1 in lstChr:
-	#print c1,
+	print >> sys.stderr, c1,
 	pvalues[c1] = {}
 	for c2 in lstChr:
 		p = float(sum(para[c1].values()))
@@ -66,9 +66,9 @@ for c1 in lstChr:
 		x = probaLog(p, para[c1].get(c2, 0), nbPara/2)
 		if para[c1].get(c2, 0) > p*nbPara:
 			x *= -1
-		#print "\t%g" % x,
+		print >> sys.stderr, "\t%g" % x,
 		pvalues[c1][c2] = x
-	#print
+	print >> sys.stderr
 
 
 s0 = [set(x) for x in lstChr]
@@ -80,17 +80,28 @@ while True:
 		for s in ss[-1]:
 			if x in s:
 				continue
-			m = 0.
+			#m = 0.
 			for c in s:
-				m += pvalues[x][c]
-			m /= len(s)
-			if m >= options["seuilPValue"]:
+				#m += pvalues[x][c]
+				if pvalues[x][c] < options["seuilPValue"]:
+					break
+			#m /= len(s)
+			#if m >= options["seuilPValue"]:
+			else:
 				s2 = s.union([x])
-				newS.append(s2)
+				if s2 not in newS:
+					newS.append(s2)
 	if len(newS) == 0:
 		break
-	ss.append(myMaths.unique(newS))
-print ss
+	ss.append(newS)
+
+newSS = []
+for i in range(len(ss)-1):
+	newSS.append([x for x in ss[i] if True not in [y.issuperset(x) for y in ss[i+1]]])
+newSS.append(ss[-1])
+
+for ts in newSS:
+	print ts
 		
 
 #print >> sys.stderr, pvalues

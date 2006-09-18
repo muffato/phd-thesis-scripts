@@ -25,14 +25,8 @@ import myPsOutput
 	"Dessine un genome en coloriant ses genes a partir d'un autre genome reference" \
 )
 
-myOrthos.AncestralGenome2(noms_fichiers[0], True)
-#myOrthos.afficheurDeBonjour()
-#myOrthos.printBonjour()
-
-sys.exit(0)
-
 genome1 = myOrthos.loadGenome(noms_fichiers[0])
-#genome2 = myOrthos.loadGenome(noms_fichiers[1])
+genome2 = myOrthos.loadGenome(noms_fichiers[1])
 if options["orthologuesList"] != "":
 	genesAnc = myOrthos.AncestralGenome(options["orthologuesList"], False)
 
@@ -52,7 +46,7 @@ for c in genome1.lstChr:
 			
 		for g in tg:
 			if g in genome2.dicGenes:
-				col = genesAnc.dicGenes[g][0]
+				col = genome2.dicGenes[g][0]
 				col = myPsOutput.getColor(str(col), options["defaultColor"])
 				break
 		else:
@@ -62,7 +56,7 @@ for c in genome1.lstChr:
 		res[c].append(col)
 
 # On dessine
-dx = (19.*3.)/(5.*len(genome.lstChr)-2.)
+dx = (19.*3.)/(5.*len(genome1.lstChr)-2.)
 dy = float(max([len(x) for x in res.values()])) / 26.
 xx = 1
 y0 = 1.
