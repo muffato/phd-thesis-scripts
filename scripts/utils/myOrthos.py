@@ -48,6 +48,7 @@ class Genome:
 	
 		if chromosome not in self.lstGenes:
 			self.lstChr.append(chromosome)
+			self.lstChr.sort()
 			self.lstGenes[chromosome] = []
 
 		n = len(self.lstGenes[chromosome])
@@ -182,7 +183,7 @@ class AncestralGenome(Genome):
 		# 1ere etape: separer pour chaque espece en chromosomes
 		blocsAnc = {}
 		j = 0
-		for x in self.lstGenes[chrAnc]:
+		for (_,_,_,x) in self.lstGenes[chrAnc]:
 			for s in x:
 				if s not in geneBank.dicGenes:
 					continue

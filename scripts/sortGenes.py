@@ -80,7 +80,6 @@ nbConcorde = max(1, options["nbConcorde"])
 for c in genesAnc.lstGenes:
 
 	tab = [[g for g in t if g in geneBank.dicGenes] for t in genesAnc.lstGenes[c]]
-	#tab = genesAnc.lstGenes[c]
 	n = len(tab)
 	
 	print >> sys.stderr
@@ -142,9 +141,6 @@ for c in genesAnc.lstGenes:
 		else:
 			print c, len(q),
 		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1])
-		#for x in tab[lstTot[0].res[i]-1]:
-		#	print x,
-		#print
 
 os.remove(nom)
 

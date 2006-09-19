@@ -41,7 +41,8 @@ for l in sys.stdin:
 	else:
 		t = [score[x] for x in 'HCMDOW']
 		tt = [score[x] for x in 'TSZF']
-		if max(t) > 0 and max(tt) > 0:
+		if score['H'] == 1 and score['C'] == 1:
+		#if max(t) > 0 and max(tt) > 0:
 		#if max(t) == 2 and max(tt) == 1:
 		#if sum(t) < 13 and sum(tt) < 6:
 			print l,

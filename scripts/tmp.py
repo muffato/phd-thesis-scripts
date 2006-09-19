@@ -25,17 +25,17 @@ import myMaths
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
 	["genesList.conf", "genomeOutgroup"], \
-	[("seuilLongueurMin", float, 0.1), ("seuilIdentiteMin", float, 33), ("espece1", str, 'H'), ("espece2", str, 'P')], \
+	[("seuilLongueurMin", float, 0.1), ("seuilIdentiteMin", float, 33), ("espece1", str, 'H'), ("espece2", str, 'C')], \
 	"" \
 )
 
 
 # 1. On lit tous les fichiers
 geneBank = myOrthos.GeneBank(noms_fichiers[0], [options["espece1"], options["espece2"]])
-if len(geneBank.dicEspeces) != 2:
-	print >> sys.stderr, "Can't retrieve %s and %s in %s" % (options["espece1"], options["espece2"], noms_fichiers[0])
-	sys.exit(1)
-genomeAnc = myOrthos.AncestralGenome(noms_fichiers[1], True)
+#if len(geneBank.dicEspeces) != 2:
+#	print >> sys.stderr, "Can't retrieve %s and %s in %s" % (options["espece1"], options["espece2"], noms_fichiers[0])
+#	sys.exit(1)
+genomeAnc = myOrthos.loadGenome(noms_fichiers[1])
 
 #options["seuilIdentiteMin"] = float(options["seuilIdentiteMin"]) / 100.
 
@@ -47,13 +47,16 @@ for chrAnc in genomeAnc.lstChr:
 	
 	print >> sys.stderr, "Chromosome %s (%d genes) ... " % (chrAnc, n),
 	
-	if options["seuilLongueurMin"] >= 1:
-		tailleMin = options["seuilLongueurMin"]
-	else:
-		tailleMin = options["seuilLongueurMin"] * n
+	#if options["seuilLongueurMin"] >= 1:
+	#	tailleMin = options["seuilLongueurMin"]
+	#else:
+	#	tailleMin = options["seuilLongueurMin"] * n
 	
 	(blocsAnc, _) = genomeAnc.splitChr(geneBank, chrAnc)
-	
+
+	print dict([ (x,len(blocsAnc['C'][x])) for x in blocsAnc['C']])
+	continue
+	sys.exit(0)
 	blocs1 = dict([(y,[x[2] for x in blocsAnc[options["espece1"]][y]]) for y in blocsAnc[options["espece1"]]])
 	blocs2 = dict([(y,[x[2] for x in blocsAnc[options["espece2"]][y]]) for y in blocsAnc[options["espece2"]]])
 	
@@ -72,7 +75,6 @@ for chrAnc in genomeAnc.lstChr:
 			#print float(len(zz))*100./float(len(xx)), float(len(zz))*100./float(len(yy))
 			#if len(zz) > options["seuilIdentiteMin"]*len(xx) and len(zz) > options["seuilIdentiteMin"]*len(yy):
 			if len(zz) > options["seuilIdentiteMin"]:
-			#if len(zz) > options["seuilIdentiteMin"]*len(xx) or len(zz) > options["seuilIdentiteMin"]*len(yy):
 				if x in bl:
 					bl[x].add(y)
 				else:
@@ -97,8 +99,8 @@ for chrAnc in genomeAnc.lstChr:
 		for x in l1:
 			bl.pop(x)
 		lst.append( (chrAnc, l1,l2) )
-		print >> sys.stderr, l1, l2, sum([len(blocsAnc[options['espece1']][x]) for x in l1]), sum([len(blocsAnc[options['espece2']][x]) for x in l2])
-	continue
+		print >> sys.stderr, l1, l2
+
 	for j in range(100):
 		# On place les blocs vides
 		for x in blocs1:
@@ -153,8 +155,9 @@ for chrAnc in genomeAnc.lstChr:
 		lstTout.append( (c,l1,l2,xH,xP) )
 	print >> sys.stderr, len(lst), "blocs chez l'ancetre %(espece1)s/%(espece2)s" % options
 
-print >> sys.stderr, len(lstTout), "blocs chez l'ancetre %(espece1)s/%(espece2)s" % options
 sys.exit(0)
+print >> sys.stderr, len(lstTout)
+print >> sys.stderr, len(lstTout), "blocs chez l'ancetre %(espece1)s/%(espece2)s" % options
 
 lst = []
 for (c,l1,l2,g1,g2) in lstTout:

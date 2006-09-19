@@ -22,12 +22,12 @@ import myPsOutput
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
 	["genesList.conf"],\
-	[], \
+	[("speciesList",str,"")], \
 	"Lit des familles de genes et affiche la composition de chaque famille en terme de nombre de genes par espece" \
 )
 
 
-geneBank = myOrthos.GeneBank(noms_fichiers[0])
+geneBank = myOrthos.GeneBank(noms_fichiers[0], [e for e in options["speciesList"]])
 
 for s in sys.stdin:
 	c = s.split()
@@ -36,6 +36,6 @@ for s in sys.stdin:
 		if g in geneBank.dicGenes:
 			(e,_,_) = geneBank.dicGenes[g]
 			score[e] += 1
-	if score['H'] > 1 or score['C'] > 1 or score['M'] > 1 or score['O'] > 1 or score['D'] > 1 or score['W'] > 1:
-		print score
-	#print score['H']
+	for e in options["speciesList"]:
+		print "%d\t" % score[e],
+	print

@@ -12,6 +12,7 @@ import os
 sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
 import myOrthos
 import myTools
+import myMaths
 import myPsOutput
 
 ########
@@ -42,8 +43,9 @@ for c in genome1.lstChr:
 	for (_,_,_,tg) in genome1.lstGenes[c]:
 	
 		if options["orthologuesList"] != "":
-			tg = myMaths.flatten([genesAnc.dicGenes[g] for g in tg if g in genesAnc.dicGenes])
-			
+			tg = myMaths.flatten([genesAnc.lstGenes[cc][ii][-1] for (cc,ii) in [genesAnc.dicGenes[g] for g in tg if g in genesAnc.dicGenes]])
+		print >> sys.stderr, tg
+		
 		for g in tg:
 			if g in genome2.dicGenes:
 				col = genome2.dicGenes[g][0]
