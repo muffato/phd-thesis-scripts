@@ -24,57 +24,101 @@ import myMaths
 
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
-	["genesList.conf", "genomeOutgroup"], \
+	["genome1", "genome2", "genomeOutgroup", "orthologuesList"], \
 	[("seuilLongueurMin", float, 0.1), ("seuilIdentiteMin", float, 33), ("espece1", str, 'H'), ("espece2", str, 'C')], \
-	"" \
+	"Reconstruit le genome de l'ancetre de 1 et 2 a partir de l'outgroup et des genes de cet ancetre" \
 )
 
 
 # 1. On lit tous les fichiers
-geneBank = myOrthos.GeneBank(noms_fichiers[0], [options["espece1"], options["espece2"]])
-#if len(geneBank.dicEspeces) != 2:
-#	print >> sys.stderr, "Can't retrieve %s and %s in %s" % (options["espece1"], options["espece2"], noms_fichiers[0])
-#	sys.exit(1)
-genomeAnc = myOrthos.loadGenome(noms_fichiers[1])
+genome1 = myOrthos.loadGenome(noms_fichiers[0])
+genome2 = myOrthos.loadGenome(noms_fichiers[1])
+genomeOutgroup = myOrthos.loadGenome(noms_fichiers[2])
+lstGenes = myOrthos.AncestralGenome(noms_fichiers[3], False)
 
-#options["seuilIdentiteMin"] = float(options["seuilIdentiteMin"]) / 100.
 
+# La table d'association geneAncestral -> genetOugroup
+assocGeneOutgroup = {}
+for (i,_,_,ts)in lstGenes.lstGenes[myOrthos.AncestralGenome.defaultChr]:
+	a = set([])
+	for s in ts:
+		if s in genomeOutgroup.dicGenes:
+			a.add(genomeOutgroup.dicGenes[s])
+
+	if len(a) >= 1:
+		assocGeneOutgroup[i] = a.pop()
+
+
+# On construit les blocs ancestraux
+# Pour chaque chromosome de l'outgroup, c'est la liste des genes du genome qui se trouvent dessus
+# Ces genes sont regroupes selon leur chromosome dans l'espece
+# Les genes sont des indices dans lstGenes
+
+def makeAncRegions(genome, outgroup, lstGenes):
+	blocsAncs = dict([(ca, dict([(c,set([])) for c in genome.lstChr])) for ca in genomeOutgroup.lstChr])
+	for c in genome.lstChr:
+		for (_,_,_,(s,)) in genome.lstGenes[c]:
+			if s not in lstGenes.dicGenes or s not in outgroup.dicGenes:
+				continue
+			(_,i) = lstGenes.dicGenes[s]
+			(ca,_) = outgroup.dicGenes[s]
+			blocsAncs[ca][c].add(i)
+	return blocsAncs
+
+blocsAnc1 = makeAncRegions(genome1, genomeOutgroup, lstGenes)
+blocsAnc2 = makeAncRegions(genome2, genomeOutgroup, lstGenes)
+
+
+
+
+
+
+
+
+
+
+
+
+#sys.exit(0)
 lstTout = []
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
-for chrAnc in genomeAnc.lstChr:
 
-	n = len(genomeAnc.lstGenes[chrAnc])
+#print "graph {"
+for chrAnc in genomeOutgroup.lstChr:
+
+	n = len(genomeOutgroup.lstGenes[chrAnc])
 	
 	print >> sys.stderr, "Chromosome %s (%d genes) ... " % (chrAnc, n),
 	
-	#if options["seuilLongueurMin"] >= 1:
-	#	tailleMin = options["seuilLongueurMin"]
-	#else:
-	#	tailleMin = options["seuilLongueurMin"] * n
+	if options["seuilLongueurMin"] >= 1:
+		tailleMin = options["seuilLongueurMin"]
+	else:
+		tailleMin = options["seuilLongueurMin"] * n
 	
-	(blocsAnc, _) = genomeAnc.splitChr(geneBank, chrAnc)
-
-	print dict([ (x,len(blocsAnc['C'][x])) for x in blocsAnc['C']])
-	continue
-	sys.exit(0)
-	blocs1 = dict([(y,[x[2] for x in blocsAnc[options["espece1"]][y]]) for y in blocsAnc[options["espece1"]]])
-	blocs2 = dict([(y,[x[2] for x in blocsAnc[options["espece2"]][y]]) for y in blocsAnc[options["espece2"]]])
+	blocs1 = blocsAnc1[chrAnc]
+	blocs2 = blocsAnc2[chrAnc]
 	
 	bl = {}
 	bl2 = {}
+	#print "{"
 	# On extrait les blocs avec s% d'identite
 	for x in blocs1:
-		xx = set(blocs1[x])
+		xx = blocs1[x]
 		if len(xx) < tailleMin:
 			continue
 		for y in blocs2:
-			yy = set(blocs2[y])
+			yy = blocs2[y]
 			if len(yy) < tailleMin:
 				continue
 			zz = xx & yy
+			if len(zz) == 0:
+				continue
+			#print len(zz)
+			#continue
 			#print float(len(zz))*100./float(len(xx)), float(len(zz))*100./float(len(yy))
-			#if len(zz) > options["seuilIdentiteMin"]*len(xx) and len(zz) > options["seuilIdentiteMin"]*len(yy):
-			if len(zz) > options["seuilIdentiteMin"]:
+			#if len(zz) >= options["seuilIdentiteMin"]*len(xx) and len(zz) >= options["seuilIdentiteMin"]*len(yy):
+			if len(zz) >= options["seuilIdentiteMin"]:
+				#print "\"%s.H.%s (%d)\" -- \"%s.P.%s (%d)\" [label=\"%d\"]" % (chrAnc,x,len(xx), chrAnc,y,len(yy), len(zz))
 				if x in bl:
 					bl[x].add(y)
 				else:
@@ -84,7 +128,8 @@ for chrAnc in genomeAnc.lstChr:
 				else:
 					bl2[y] = set([x])
 	
-	
+	#print "}"
+	#break
 	# On rassemble les liens	
 	lst = []
 	while len(bl) > 0:
@@ -117,6 +162,8 @@ for chrAnc in genomeAnc.lstChr:
 					s = len(r)
 					best = l1
 			else:
+				#print >> sys.stderr, "Rien trouve pour", x, "H", blocs1[x]
+				#continue
 				if best != -1:
 					print >> sys.stderr, "Ajout de", x, "H a", best
 					best.add(x)
@@ -138,6 +185,8 @@ for chrAnc in genomeAnc.lstChr:
 					s = len(r)
 					best = l2
 			else:
+				#print >> sys.stderr, "Rien trouve pour", y, "P", blocs2[y]
+				#continue
 				if best != -1:
 					print >> sys.stderr, "Ajout de", y, "P a", best
 					best.add(y)
@@ -153,16 +202,17 @@ for chrAnc in genomeAnc.lstChr:
 			xP.update(blocs2[cP])
 
 		lstTout.append( (c,l1,l2,xH,xP) )
-	print >> sys.stderr, len(lst), "blocs chez l'ancetre %(espece1)s/%(espece2)s" % options
+	#print >> sys.stderr, len(lst), "blocs chez l'ancetre %(espece1)s/%(espece2)s" % options
 
-sys.exit(0)
-print >> sys.stderr, len(lstTout)
 print >> sys.stderr, len(lstTout), "blocs chez l'ancetre %(espece1)s/%(espece2)s" % options
+#print "}"
+#sys.exit(0)
 
 lst = []
 for (c,l1,l2,g1,g2) in lstTout:
 	for (cc,x,y,gg1,gg2) in lst:
-		if (x.issubset(l1) or x.issuperset(l1)) and (y.issubset(l2) or y.issuperset(l2)):
+		#if (x.issubset(l1) or x.issuperset(l1)) and (y.issubset(l2) or y.issuperset(l2)):
+		if False:
 			x.update(l1)
 			y.update(l2)
 			cc.append(c)
@@ -172,7 +222,7 @@ for (c,l1,l2,g1,g2) in lstTout:
 	else:
 		lst.append( ([c],l1,l2,[g1],[g2]) )
 print >> sys.stderr, len(lst), "chromosomes chez l'ancetre %(espece1)s/%(espece2)s" % options
-
+#sys.exit(1)
 cc = 0
 for (l,l1,l2,g1,g2) in lst:
 	nb = 0
@@ -181,10 +231,10 @@ for (l,l1,l2,g1,g2) in lst:
 		g = g1[i] | g2[i]
 		for x in g:
 			nb += 1
-			print chr(97+cc),
-			for y in genomeAnc.lstGenes[c][x]:
-				print y,
-			print
+			#print chr(97+cc),
+			#for y in genomeOutgroup.lstGenes[c][x]:
+			#	print y,
+			print x
 	print >> sys.stderr, l, nb, l1,l2
 	cc += 1
 

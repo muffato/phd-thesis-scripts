@@ -6,6 +6,19 @@ import myTools
 import myMaths
 
 
+##############
+# Un gene :) #
+##############
+class Gene:
+
+	def __init__(self, names, chromosome, beg, end, strand):
+	
+		self.names = names
+		self.chromosome = chromosome
+		self.beg = beg
+		self.end = end
+		self.strand = stand
+
 #######################################################################################
 # Cette fonction determine le type du fichier de genome a partir de la premiere ligne #
 #######################################################################################
@@ -168,7 +181,7 @@ class AncestralGenome(Genome):
 				i = 0
 			
 			# On ajoute le gene
-			self.addGene(champs, c, 0, i, 0)
+			self.addGene(champs, c, i, i, 0)
 		
 		f.close()
 		

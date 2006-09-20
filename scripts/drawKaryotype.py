@@ -44,7 +44,6 @@ for c in genome1.lstChr:
 	
 		if options["orthologuesList"] != "":
 			tg = myMaths.flatten([genesAnc.lstGenes[cc][ii][-1] for (cc,ii) in [genesAnc.dicGenes[g] for g in tg if g in genesAnc.dicGenes]])
-		print >> sys.stderr, tg
 		
 		for g in tg:
 			if g in genome2.dicGenes:
