@@ -10,7 +10,6 @@ import os
 sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
 import myOrthos
 import myTools
-import myMaths
 
 (noms_fichiers, options) = myTools.checkArgs(["GENOME_ANCESTRAL"], [], "")
 
@@ -25,7 +24,7 @@ for s in sys.stdin:
 			t.add(genesAnc.dicGenes[g])
 	
 	for (c,i) in t:
-		print " ".join(genesAnc.lstGenes[c][i]),
+		print " ".join(genesAnc.lstGenes[c][i].names),
 	print s,
 
 print >> sys.stderr, nb, "familles pour", len(lst), "couples conservees"

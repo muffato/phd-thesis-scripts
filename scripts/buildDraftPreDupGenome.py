@@ -36,14 +36,14 @@ def buildParaOrtho(lstGenesAnc, genomeDup):
 	para = {}
 	ortho = {}
 	for g in lstGenesAnc:
-		gT = [x for x in g if x in genomeDup.dicGenes]
+		gT = [x for x in g.names if x in genomeDup.dicGenes]
 		if len(gT) == 0:
 			continue
 		for x in gT:
 			for y in gT:
 				if x != y:
 					para[x] = y
-		gNT = [x for x in g if x not in genomeDup.dicGenes]
+		gNT = [x for x in g.names if x not in genomeDup.dicGenes]
 		for x in gNT:
 			ortho[x] = genomeDup.dicGenes[gT[0]]
 	return (para, ortho)
@@ -59,7 +59,7 @@ def countAltern3(genome, orthos, count):
 		grp3Tet = []
 		for tg in genome.lstGenes[c]:
 			
-			g = tg[0]
+			g = tg.names[0]
 			
 			# Il faut un orthologue avec Tetraodon
 			if g not in orthos:

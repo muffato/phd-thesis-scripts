@@ -47,6 +47,6 @@ for s in sys.stdin:
 		
 	print res,
 	for (c,i) in t:
-		print " ".join(genesAnc.lstGenes[c][i]),
+		print " ".join(genesAnc.lstGenes[c][i].names),
 	print s,
 

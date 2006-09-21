@@ -8,9 +8,7 @@ import os
 import math
 
 sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
 import myTools
-import myMaths
 
 # Calcule la proba
 def proba(pi, l, ll):

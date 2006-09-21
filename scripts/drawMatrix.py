@@ -62,9 +62,9 @@ def prepareGenome(genome, nb, func):
 	for c in genome.lstChr:
 		y += (19. * len(genome.lstGenes[c])) / float(nb)
 		func(y)
-		for (_,_,_,tg) in genome.lstGenes[c]:
+		for gene in genome.lstGenes[c]:
 
-			for g in tg:
+			for g in gene.names:
 				lstNum[g] = i
 			i += 1
 	return lstNum
@@ -81,16 +81,16 @@ print >> sys.stderr, ". OK"
 
 print >> sys.stderr, "Affichage des points ",
 for c in genome1.lstChr:
-	for (_,_,_,tg) in genome1.lstGenes[c]:
-		for g in tg:
+	for gene in genome1.lstGenes[c]:
+		for g in gene.names:
 			x = lstNum1[g]
 			if g in genome2.dicGenes:
 				(cc,ii) = genome2.dicGenes[g]
-				gg = genome2.lstGenes[cc][ii][-1]
+				gg = genome2.lstGenes[cc][ii].names
 			elif options["orthologuesList"] != "":
 				if g in genesAnc.dicGenes:
 					(cc,ii) = genesAnc.dicGenes[g]
-					gg = genesAnc.lstGenes[cc][ii][-1]
+					gg = genesAnc.lstGenes[cc][ii].names
 				else:
 					continue
 			else:

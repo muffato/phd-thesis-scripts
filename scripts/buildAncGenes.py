@@ -12,7 +12,7 @@ import os
 sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
 import myTools
 
-(noms_fichiers, options) = myTools.checkArgs([], [], "Lit sur l'entree standard des familles de genes et les regroupe")
+(noms_fichiers, options) = myTools.checkArgs([], [("showStats", bool, False)], "Lit sur l'entree standard des familles de genes et les regroupe")
 
 # MAIN #
 
@@ -22,6 +22,8 @@ dic = {}
 # On scanne toutes les lignes
 for l in sys.stdin:
 	cc = l.split()
+	if len(cc) == 0:
+		continue
 	c1 = cc[0]
 	for c2 in cc[1:]:
 		if c1 in dic:
@@ -65,4 +67,6 @@ for x in lst:
 	for g in x:
 		print g,
 	print
+	if options["showStats"]:
+		print >> sys.stderr, len(x)
 

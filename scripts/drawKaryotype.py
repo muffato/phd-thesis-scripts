@@ -40,10 +40,11 @@ res = {}
 for c in genome1.lstChr:
 
 	res[c] = []
-	for (_,_,_,tg) in genome1.lstGenes[c]:
-	
+	for gene in genome1.lstGenes[c]:
+		
+		tg = gene.names
 		if options["orthologuesList"] != "":
-			tg = myMaths.flatten([genesAnc.lstGenes[cc][ii][-1] for (cc,ii) in [genesAnc.dicGenes[g] for g in tg if g in genesAnc.dicGenes]])
+			tg = myMaths.flatten([genesAnc.lstGenes[cc][ii].names for (cc,ii) in [genesAnc.dicGenes[g] for g in tg if g in genesAnc.dicGenes]])
 		
 		for g in tg:
 			if g in genome2.dicGenes:

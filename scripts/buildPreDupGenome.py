@@ -40,14 +40,14 @@ def buildParaOrtho(lstGenesAnc, geneBank):
 	for g in lstGenesAnc:
 		for e in geneBank.lstEspecesDup:
 			genomeDup = geneBank.dicEspeces[e]
-			gT = [x for x in g if x in genomeDup.dicGenes]
+			gT = [x for x in g.names if x in genomeDup.dicGenes]
 			if len(gT) == 0:
 				continue
 			for x in gT:
 				for y in gT:
 					if x != y:
 						para[e][x] = y
-			gNT = [x for x in g if x not in genomeDup.dicGenes]
+			gNT = [x for x in g.names if x not in genomeDup.dicGenes]
 			for x in gNT:
 				ortho[e][x] = genomeDup.dicGenes[gT[0]]
 	return (para, ortho)
@@ -73,7 +73,7 @@ def colorAncestr(esp, geneBank, para, orthos):
 			lastOrig = set([])
 			bloc = []
 			for tg in genome.lstGenes[c]:
-				g = tg[0]
+				g = tg.names[0]
 
 				# Il faut un orthologue avec Tetraodon
 				if g not in orthos[e]:

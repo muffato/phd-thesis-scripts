@@ -39,7 +39,7 @@ for s in sys.stdin:
 	print "***** FAMILLE %d *****" % nb
 	print "++ %s ++" % " ".join(autres)
 	for (Kamn,Iamn) in Gamn:
-		s = genomeAmn.lstGenes[Kamn][Iamn][-1]
+		s = genomeAmn.lstGenes[Kamn][Iamn].names
 		Ghum = set([])
 		for g in s:
 			if g in genomeH.dicGenes:

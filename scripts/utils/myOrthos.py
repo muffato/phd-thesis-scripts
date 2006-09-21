@@ -15,9 +15,9 @@ class Gene:
 	
 		self.names = names
 		self.chromosome = chromosome
-		self.beg = beg
+		self.beginning = beg
 		self.end = end
-		self.strand = stand
+		self.strand = strand
 
 #######################################################################################
 # Cette fonction determine le type du fichier de genome a partir de la premiere ligne #
@@ -57,18 +57,19 @@ class Genome:
 	#
 	# Rajoute un gene au genome
 	#
-	def addGene(self, names, chromosome, beg, end, strand):
+	def addGene(self, gene):
 	
-		if chromosome not in self.lstGenes:
-			self.lstChr.append(chromosome)
+		c = gene.chromosome
+		if c not in self.lstGenes:
+			self.lstChr.append(c)
 			self.lstChr.sort()
-			self.lstGenes[chromosome] = []
+			self.lstGenes[c] = []
 
-		n = len(self.lstGenes[chromosome])
-		self.lstGenes[chromosome].append( (beg, end, strand, tuple(names)) )
+		n = len(self.lstGenes[c])
+		self.lstGenes[c].append( gene )
 		
-		for s in names:
-			self.dicGenes[s] = (chromosome, n)
+		for s in gene.names:
+			self.dicGenes[s] = (c, n)
 	
 	#
 	# Trie les chromsomoses
@@ -79,8 +80,7 @@ class Genome:
 		for c in self.lstGenes:
 			self.lstGenes[c].sort()
 			for i in range(len(self.lstGenes[c])):
-				#s = self.lstGenes[c][i][3]
-				for s in self.lstGenes[c][i][3]:
+				for s in self.lstGenes[c][i].names:
 					self.dicGenes[s] = (c, i)
 		
 		# La liste triee des chromosomes
@@ -91,7 +91,7 @@ class Genome:
 	# Renvoie les noms des genes presents sur le chromosome donne a certaines positions
 	#	
 	def getGenesAt(self, chr, beg = 0, end = sys.maxint):
-		return [s for (x1,x2,_,s) in self.lstGenes[chr] if x2 >= beg and x1 <= end]
+		return [s for g in self.lstGenes[chr] if g.end >= beg and g.beginning <= end]
 
 
 
@@ -123,8 +123,7 @@ class EnsemblGenome(Genome):
 			except ValueError:
 				pass
 	
-			self.addGene(champs[4:], champs[0], int(champs[1]), int(champs[2]), int(champs[3]))
-		
+			self.addGene( Gene(tuple(champs[4:]), champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
 		f.close()
 
 		self.sortGenome()
@@ -181,7 +180,7 @@ class AncestralGenome(Genome):
 				i = 0
 			
 			# On ajoute le gene
-			self.addGene(champs, c, i, i, 0)
+			self.addGene( Gene(champs, c, i, i, 0) )
 		
 		f.close()
 		
@@ -196,8 +195,8 @@ class AncestralGenome(Genome):
 		# 1ere etape: separer pour chaque espece en chromosomes
 		blocsAnc = {}
 		j = 0
-		for (_,_,_,x) in self.lstGenes[chrAnc]:
-			for s in x:
+		for g in self.lstGenes[chrAnc]:
+			for s in g.names:
 				if s not in geneBank.dicGenes:
 					continue
 				(e,c,i) = geneBank.dicGenes[s]
