@@ -72,23 +72,21 @@ def initColor():
 	darkColors = ["red1", "turquoise2", "DarkGreen", "yellow", "coral2", "OliveDrab2", "orange", "MediumAquamarine", "blue2", "firebrick4", "LightSalmon", "DarkViolet", "magenta2", "DarkSeaGreen4", "DarkSlateBlue", "yellow4", "grey62", "gold", "PeachPuff2", "HotPink4", "firebrick", "purple4"]
 
 	greekLetters = ["ALPHA", "BETA", "DELTA", "EPSILON", "GAMMA", "PHI"]
-	
-	for i in range(len(lightColors)):
-		color[str(-(i+1))] = lightColors[i]
-		color[chr(97+i)] = lightColors[i]
-		color[str((i+1+len(darkColors)))] = lightColors[i]
-		color[chr(65+i+len(darkColors))] = lightColors[i]
-		printColorDefinitionLine(lightColors[i])
-	
-	for i in range(len(darkColors)):
-		color[str(i+1)] = darkColors[i]
-		color[chr(65+i)] = darkColors[i]
-		color[str(-(i+1+len(lightColors)))] = darkColors[i]
-		color[chr(97+i+len(lightColors))] = darkColors[i]
-		printColorDefinitionLine(darkColors[i])
-	
+	craniateColors = ["DarkOrange", "RoyalBlue4", "chartreuse4", "gold", "DarkOrchid4", "red3"]
+
+	ordre = lightColors + craniateColors + darkColors
+	for i in range(len(ordre)):
+		printColorDefinitionLine(ordre[i])
+		color[str(-(i+1))] = ordre[i]
+		color[chr(i+97)] = ordre[i]
+
+	ordre = darkColors + lightColors + craniateColors
+	for i in range(len(ordre)):
+		color[str(i+1)] = ordre[i]
+		color[chr(i+65)] = ordre[i]
+		
 	for i in range(len(greekLetters)):
-		color[greekLetters[i]] = lightColors[i]
+		color[greekLetters[i]] = craniateColors[i]
 
 	printColorDefinitionLine("black")
 	printColorDefinitionLine("white")

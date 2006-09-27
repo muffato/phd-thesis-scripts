@@ -36,196 +36,7 @@ genomeOutgroup = myOrthos.loadGenome(noms_fichiers[-2])
 genesAnc = myOrthos.AncestralGenome(noms_fichiers[-1], False)
 
 
-# La table d'association geneAncestral -> genetOugroup
-assocGeneOutgroup = {}
-for g in genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]:
-	a = set([])
-	for s in g.names:
-		if s in genomeOutgroup.dicGenes:
-			a.add(genomeOutgroup.dicGenes[s])
-
-	if len(a) >= 1:
-		assocGeneOutgroup[g.beginning] = a.pop()
-
-
-# On construit les blocs ancestraux
-# Pour chaque chromosome de l'outgroup, c'est la liste des genes du genome qui se trouvent dessus
-# Ces genes sont regroupes selon leur chromosome dans l'espece
-# Les genes sont des indices dans genesAnc
-
-def makeAncRegions(genome, outgroup, genesAnc):
-	blocsAncs = dict([(ca, dict([(c,set([])) for c in genome.lstChr])) for ca in genomeOutgroup.lstChr])
-	for c in genome.lstChr:
-		for g in genome.lstGenes[c]:
-			s = g.names[0]
-			if s not in genesAnc.dicGenes or s not in outgroup.dicGenes:
-				continue
-			(_,i) = genesAnc.dicGenes[s]
-			(ca,_) = outgroup.dicGenes[s]
-			blocsAncs[ca][c].add(i)
-	return blocsAncs
-
-#blocsAnc1 = makeAncRegions(genome1, genomeOutgroup, genesAnc)
-#blocsAnc2 = makeAncRegions(genome2, genomeOutgroup, genesAnc)
-
-
-
-
-
-
-
-
-
-
-
-
-#sys.exit(0)
-lstTout = []
-# 2. On cree les blocs ancestraux tries et on extrait les diagonales
-
-#print "graph {"
-for chrAnc in genomeOutgroup.lstChr:
-	continue
-
-	n = len(genomeOutgroup.lstGenes[chrAnc])
-	
-	print >> sys.stderr, "Chromosome %s (%d genes) ... " % (chrAnc, n),
-	
-	if options["seuilLongueurMin"] >= 1:
-		tailleMin = options["seuilLongueurMin"]
-	else:
-		tailleMin = options["seuilLongueurMin"] * n
-	
-	blocs1 = blocsAnc1[chrAnc]
-	blocs2 = blocsAnc2[chrAnc]
-	
-	bl = {}
-	bl2 = {}
-	#print "{"
-	# On extrait les blocs avec s% d'identite
-	for x in blocs1:
-		xx = blocs1[x]
-		if len(xx) < tailleMin:
-			continue
-		for y in blocs2:
-			yy = blocs2[y]
-			if len(yy) < tailleMin:
-				continue
-			zz = xx & yy
-			if len(zz) == 0:
-				continue
-			#print (100*len(zz))/len(xx)
-			#print (100*len(zz))/len(yy)
-			#continue
-			#print float(len(zz))*100./float(len(xx)), float(len(zz))*100./float(len(yy))
-			if options["seuilIdentiteMin"] >= 1:
-				test = (len(zz) >= options["seuilIdentiteMin"])
-			else:
-				test = (len(zz) >= options["seuilIdentiteMin"]*len(xx)) and (len(zz) >= options["seuilIdentiteMin"]*len(yy))
-			if test:
-				#print "\"%s.H.%s (%d)\" -- \"%s.P.%s (%d)\" [label=\"%d\"]" % (chrAnc,x,len(xx), chrAnc,y,len(yy), len(zz))
-				if x in bl:
-					bl[x].add(y)
-				else:
-					bl[x] = set([y])
-				if y in bl2:
-					bl2[y].add(x)
-				else:
-					bl2[y] = set([x])
-	
-	#print "}"
-	#break
-	# On rassemble les liens	
-	lst = []
-	while len(bl) > 0:
-		(c,v) = bl.items()[0]
-		l1 = set([c])
-		l2 = v
-		for j in range(100):
-			for x in l1:
-				l2.update(bl[x])
-			for y in l2:
-				l1.update(bl2[y])
-		for x in l1:
-			bl.pop(x)
-		lst.append( (chrAnc, l1,l2) )
-		print >> sys.stderr, l1, l2
-
-	for j in range(00):
-		# On place les blocs vides
-		for x in blocs1:
-			s = 0
-			best = -1
-			xx = set(blocs1[x])
-			for (_,l1,l2) in lst:
-				if x in l1:
-					break
-				r = set([])
-				for y in l2:
-					r.update(xx & set(blocs2[y]))
-				if len(r) > s:
-					s = len(r)
-					best = l1
-			else:
-				#print >> sys.stderr, "Rien trouve pour", x, "H", blocs1[x]
-				#continue
-				if best != -1:
-					print >> sys.stderr, "Ajout de", x, "H a", best
-					best.add(x)
-				elif j == 99:
-					print >> sys.stderr, "Rien trouve pour", x, "H", blocs1[x]
-
-		# On place les blocs vides
-		for y in blocs2:
-			s = 0
-			best = -1
-			yy = set(blocs2[y])
-			for (_,l1,l2) in lst:
-				if y in l2:
-					break
-				r = set([])
-				for x in l1:
-					r.update(yy & set(blocs1[x]))
-				if len(r) > s:
-					s = len(r)
-					best = l2
-			else:
-				#print >> sys.stderr, "Rien trouve pour", y, "P", blocs2[y]
-				#continue
-				if best != -1:
-					print >> sys.stderr, "Ajout de", y, "P a", best
-					best.add(y)
-				elif j == 99:
-					print >> sys.stderr, "Rien trouve pour", y, "P", blocs2[y]
-				
-	for (c,l1,l2) in lst:
-		xH = set([])
-		for cH in l1:
-			xH.update(blocs1[cH])
-		xP = set([])
-		for cP in l2:
-			xP.update(blocs2[cP])
-
-		lstTout.append( (c,l1,l2,xH,xP) )
-		aaa = xH | xP
-		#print " ".join(myMaths.flatten([genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr][u].names for u in aaa]))
-	#print >> sys.stderr, len(lst), "blocs chez l'ancetre"
-
-print >> sys.stderr, len(lstTout), "blocs chez l'ancetre"
-#print "}"
-#sys.exit(0)
-
-
-
-
-
-
-
-
-
-
-
-def rassembleSyntenies(g1, g2, genesAnc):
+def extractSyntenies(g1, g2, genesAnc):
 
 	# On construit les couleurs
 	res = []
@@ -256,41 +67,130 @@ def rassembleSyntenies(g1, g2, genesAnc):
 	print >> sys.stderr, g1.nom, g2.nom, len(res), sum([len(a) for a in res])
 	return res
 
+class combinator:
+
+	def __init__(self):
+		self.dic = {}
+		self.grp = []
+	
+	def addObj(self, obj):
+		if len(obj) == 0:
+			return
+		
+		# Le 1er objet de la liste
+		a = obj[0]
+		if a in self.dic:
+			i = self.dic[a]
+		else:
+			i = len(self.grp)
+			self.grp.append([i])
+			self.dic[a] = i
+
+		for x in obj[1:]:
+			if x in self.dic:
+				j = self.dic[x]
+				if i == j:
+					continue
+				tmp = self.grp[j]
+				for b in self.grp[j]:
+					self.grp[i].append(b)
+					self.dic[b] = i
+			else:
+				self.grp[i].append(x)
+				self.dic[x] = i
+
+	def getGrp(self):
+		return [g for g in self.grp if len(g) > 0]
+
+
+def combineSynt(synt1, synt2, seuil):
+
+	assoc = []
+	for a in synt1:
+		tmp = set([])
+		
+		for j in range(len(synt2)):
+			b = synt2[j]
+			z = a & b
+
+			if seuil >= 1:
+				test = (len(z) >= seuil)
+			else:
+				test = (len(z) >= seuil*len(b)) and (len(z) >= seuil*len(a))
+			if test:
+				tmp.add(j)
+		assoc.append(tmp)
+	
+	ens = range(len(synt1))
+	res = []
+	
+	while len(ens) > 0:
+		i = ens.pop()
+		a = synt1[i]
+		used = True
+		while used:
+			used = False
+			j = 0
+			while j < len(ens):
+				if len(assoc[i] & assoc[ens[j]]) != 0:
+					a.update(synt1[ens[j]])
+					del ens[j]
+					used = True
+				else:
+					j += 1
+		res.append(a)
+	return res
+
+def combineSynt2(synt1, synt2, seuil):
+
+	assoc = combinator()
+	
+	for i in range(len(synt1)):
+		a = synt1[i]
+		
+		for j in range(len(synt2)):
+			b = synt2[j]
+			z = a & b
+
+			if seuil >= 1:
+				test = (len(z) >= seuil)
+			else:
+				test = (len(z) >= seuil*len(b)) and (len(z) >= seuil*len(a))
+			if test:
+				assoc.addObj([i,str(j)])
+	
+	res = []
+	print >> sys.stderr, len(assoc.getGrp())
+	for grp in assoc.getGrp():
+		for u in [x for x in grp if type(x) == int]:
+			print u
+		lst = set(myMaths.flatten([synt1[x] for x in grp if type(x) == int]))
+		res.append(lst)
+	
+	return res
+
+
+
+
 newEns = []
 for i in range(len(geneBank.dicEspeces.values())):
 	for j in range(len(geneBank.dicEspeces.values())):
 		if j <= i:
 			continue
-		ens1 = rassembleSyntenies(geneBank.dicEspeces.values()[i], geneBank.dicEspeces.values()[j], genesAnc)
-		ens2 = rassembleSyntenies(geneBank.dicEspeces.values()[j], geneBank.dicEspeces.values()[i], genesAnc)
+		ens1 = extractSyntenies(geneBank.dicEspeces.values()[i], geneBank.dicEspeces.values()[j], genesAnc)
+		ens2 = extractSyntenies(geneBank.dicEspeces.values()[j], geneBank.dicEspeces.values()[i], genesAnc)
 		#for a in ens:
 		#	if len(a) < options["seuilLongueurMin"]:
 		#		continue
 		#	print " ".join(myMaths.flatten([genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr][u].names for u in a]))
 
-		tmp = ens1 + ens2
-		res = []
-		while len(tmp) > 0:
-			a = tmp.pop()
-			used = True
-			while used:
-				used = False
-				j = 0
-				while j < len(tmp):
-					b = tmp[j]
-					z = a & b
-
-					if len(z) >= 1:
-						a.update(b)
-						del tmp[j]
-						used = True
-					else:
-						j += 1
-			res.append(a)
+		res = combineSynt2(ens1, ens2, 1)
 		newEns.extend(res)
 		print >> sys.stderr, ">", len(res), sum([len(a) for a in res])
+		res = combineSynt2(ens2, ens1, 1)
+		print >> sys.stderr, ">", len(res), sum([len(a) for a in res])
 
-#sys.exit(0)
+sys.exit(0)
 
 print >> sys.stderr, len(newEns), sum([len(a) for a in newEns])
 
@@ -329,20 +229,24 @@ while len(newEns) > 0:
 print >> sys.stderr, len(lst), "presque-chromosomes chez l'ancetre"
 
 
+#print "RESULTAT"
 c = 0
+n = 0
 for aa in lst:
 	a = set(aa)
-	#if len(a) < 100:
-	#	continue
-	print len(a)
-	#for i in a:
-	#	print i
-	#	print chr(97+c), " ".join(genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr][i].names)
-	c += len(a)
-	#c += 1
+	if len(a) < 10:
+		#print >> sys.stderr, len(a),
+		continue
+	#print len(a)
+	#print a
+	for i in a:
+		#print i
+		print chr(97+c), " ".join(genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr][i].names)
+	n += len(a)
+	c += 1
 
-
-print >> sys.stderr, c, "genes repartis"
+print >> sys.stderr
+print >> sys.stderr, n, "genes repartis sur", c, "chromosomes"
 
 sys.exit(1)
 res = []

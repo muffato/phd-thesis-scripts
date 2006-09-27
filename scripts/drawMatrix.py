@@ -103,6 +103,9 @@ for c in genome1.lstChr:
 			else:
 				continue
 			
+			#if c == "X":
+			#	print >> sys.stderr, g, gt, genome2.dicGenes[gt][0]
+			
 			if type(colors) == str:
 				cc = colors
 			else:
