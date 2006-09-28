@@ -55,12 +55,15 @@ def buildParaOrtho(lstGenesAnc, geneBank):
 #
 # Cree les regions de chromosomes ancestraux dans la classe d'orthologues
 #
-def colorAncestr(esp, geneBank, para, orthos):
+def colorAncestr(esp, geneBank, para, orthos, dupEspLst):
 
 	lstBlocs = {}
 	genome = geneBank.dicEspeces[esp]
 
 	for e in geneBank.lstEspecesDup:
+
+		if e not in dupEspLst:
+			continue
 	
 		print >> sys.stderr, "Decoupage de", esp, "avec", e, "",
 
@@ -80,7 +83,8 @@ def colorAncestr(esp, geneBank, para, orthos):
 					continue
 				nbOrthos += 1
 				(cT,i) = orthos[e][g]
-				(x1,x2,_,_) = genomeDup.lstGenes[cT][i]
+				x1 = genomeDup.lstGenes[cT][i].beginning
+				x2 = genomeDup.lstGenes[cT][i].end
 				orig = set([cT])
 				lstT = genomeDup.getGenesAt(cT, x1-options["precisionChrAnc"], x2+options["precisionChrAnc"])
 				for gT in lstT:
@@ -143,10 +147,7 @@ def printColorAncestr(genesAnc, chrAncGenes):
 
 	for c in chrAncGenes:
 		for i in chrAncGenes[c]:
-			r = c
-			for s in genesAnc[i]:
-				r += " " + s
-			print r
+			print c, " ".join(genesAnc[i].names)
 		nb += len(chrAncGenes[c])
 		
 	print >> sys.stderr, nb, "genes dans le genome ancestral"
@@ -213,15 +214,15 @@ geneBank = myOrthos.GeneBank(noms_fichiers[0])
 genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], False)
 lstGenesAnc = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
 (para,orthos) = buildParaOrtho(lstGenesAnc, geneBank)
+(chrAnc, especesDupliqueesUtilisees) = loadChrAncIni(noms_fichiers[2])
 
 # On colorie les matrices actuelles
 blocs = {}
 for e in geneBank.lstEspecesNonDup:
-	blocs[e] = colorAncestr(e, geneBank, para, orthos)
+	blocs[e] = colorAncestr(e, geneBank, para, orthos, especesDupliqueesUtilisees)
 
 # On colorie les genes ancestraux
 print >> sys.stderr, "Synthese des genes ancestraux ",
-(chrAnc, especesDupliqueesUtilisees) = loadChrAncIni(noms_fichiers[2])
 col = [[] for i in range(len(lstGenesAnc))]
 for e in blocs:
 	buildColorTable(blocs[e], col, genesAnc.dicGenes, chrAnc)

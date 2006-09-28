@@ -78,7 +78,7 @@ class Genome:
 		
 		self.dicGenes = {}
 		for c in self.lstGenes:
-			self.lstGenes[c].sort()
+			self.lstGenes[c].sort(lambda g1, g2: cmp(g1.beginning, g2.beginning))
 			for i in range(len(self.lstGenes[c])):
 				for s in self.lstGenes[c][i].names:
 					self.dicGenes[s] = (c, i)
@@ -91,7 +91,7 @@ class Genome:
 	# Renvoie les noms des genes presents sur le chromosome donne a certaines positions
 	#	
 	def getGenesAt(self, chr, beg = 0, end = sys.maxint):
-		return [s for g in self.lstGenes[chr] if g.end >= beg and g.beginning <= end]
+		return [g.names for g in self.lstGenes[chr] if g.end >= beg and g.beginning <= end]
 
 
 

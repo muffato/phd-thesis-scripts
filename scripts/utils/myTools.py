@@ -18,12 +18,54 @@ def myOpenFile(nom):
 		f = open(nom, 'r')
 	return f
 
+########################################################################
+# Cette classe permet de regrouper une liste d'elements                #
+# Partant d'une liste initiale, on ajoute des liens entre des elements #
+#  de la liste et la classe les regroupe                               #
+########################################################################
+class myCombinator:
 
-#
-# Verifie que les arguments obligatoires de la ligne de commande sont presents
-# Recupere les valeurs des parametres optionnels
-# -options- est un tableau de triplets (nom, constructeur, val_defaut)
-#
+	def __init__(self, ini):
+		self.grp = ini
+		self.dic = dict([(ini[x],x) for x in range(len(ini))])
+	
+	def addLink(self, obj):
+		if len(obj) == 0:
+			return
+		
+		# Le 1er objet de la liste
+		a = obj[0]
+		if a in self.dic:
+			i = self.dic[a]
+		else:
+			i = len(self.grp)
+			self.grp.append([a])
+			self.dic[a] = i
+
+		for x in obj[1:]:
+			if x in self.dic:
+				j = self.dic[x]
+				if i == j:
+					continue
+				for b in self.grp[j]:
+					self.grp[i].append(b)
+					self.dic[b] = i
+				self.grp[j] = []
+			else:
+				self.grp[i].append(x)
+				self.dic[x] = i
+
+	def getGrp(self):
+		return [g for g in self.grp if len(g) > 0]
+
+
+#################################################################################
+# Lit la ligne de commande et parse les arguments                               #
+#  1. les arguments obligatoires (des noms de fichiers)                         #
+#  2. des options sous la forme -opt=val                                        #
+# En cas d'erreur, affiche la syntaxe demandee et une courte description (info) #
+# -options- est un tableau de triplets (nom, constructeur, val_defaut)          #
+#################################################################################
 def checkArgs(args, options, info):
 
 	#
@@ -39,7 +81,7 @@ def checkArgs(args, options, info):
 				invite = "+/-"
 			else:
 				invite = "-"
-			print >> sys.stderr, "  ", invite + "%s [%s] (%s)" % t
+			print >> sys.stderr, "\t", invite + "%s [%s] (%s)" % t
 		if info != "":
 			print >> sys.stderr, "\n", info
 		sys.exit(1)
@@ -52,7 +94,7 @@ def checkArgs(args, options, info):
 	for t in sys.argv[1:]:
 
 		# Un petit peu d'aide
-		if t == '-h' or t == '--help':
+		if t == '-h' or t == '--help' or t == '-help':
 			error_usage()
 			
 		# Un argument optionnel

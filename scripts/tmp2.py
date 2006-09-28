@@ -67,83 +67,9 @@ def extractSyntenies(g1, g2, genesAnc):
 	print >> sys.stderr, g1.nom, g2.nom, len(res), sum([len(a) for a in res])
 	return res
 
-class combinator:
-
-	def __init__(self):
-		self.dic = {}
-		self.grp = []
-	
-	def addObj(self, obj):
-		if len(obj) == 0:
-			return
-		
-		# Le 1er objet de la liste
-		a = obj[0]
-		if a in self.dic:
-			i = self.dic[a]
-		else:
-			i = len(self.grp)
-			self.grp.append([i])
-			self.dic[a] = i
-
-		for x in obj[1:]:
-			if x in self.dic:
-				j = self.dic[x]
-				if i == j:
-					continue
-				tmp = self.grp[j]
-				for b in self.grp[j]:
-					self.grp[i].append(b)
-					self.dic[b] = i
-			else:
-				self.grp[i].append(x)
-				self.dic[x] = i
-
-	def getGrp(self):
-		return [g for g in self.grp if len(g) > 0]
-
-
 def combineSynt(synt1, synt2, seuil):
 
-	assoc = []
-	for a in synt1:
-		tmp = set([])
-		
-		for j in range(len(synt2)):
-			b = synt2[j]
-			z = a & b
-
-			if seuil >= 1:
-				test = (len(z) >= seuil)
-			else:
-				test = (len(z) >= seuil*len(b)) and (len(z) >= seuil*len(a))
-			if test:
-				tmp.add(j)
-		assoc.append(tmp)
-	
-	ens = range(len(synt1))
-	res = []
-	
-	while len(ens) > 0:
-		i = ens.pop()
-		a = synt1[i]
-		used = True
-		while used:
-			used = False
-			j = 0
-			while j < len(ens):
-				if len(assoc[i] & assoc[ens[j]]) != 0:
-					a.update(synt1[ens[j]])
-					del ens[j]
-					used = True
-				else:
-					j += 1
-		res.append(a)
-	return res
-
-def combineSynt2(synt1, synt2, seuil):
-
-	assoc = combinator()
+	assoc = myTools.myCombinator([])
 	
 	for i in range(len(synt1)):
 		a = synt1[i]
@@ -157,82 +83,86 @@ def combineSynt2(synt1, synt2, seuil):
 			else:
 				test = (len(z) >= seuil*len(b)) and (len(z) >= seuil*len(a))
 			if test:
-				assoc.addObj([i,str(j)])
+				assoc.addLink([i,str(j)])
 	
-	res = []
-	print >> sys.stderr, len(assoc.getGrp())
+	res1 = []
+	res2 = []
 	for grp in assoc.getGrp():
-		for u in [x for x in grp if type(x) == int]:
-			print u
-		lst = set(myMaths.flatten([synt1[x] for x in grp if type(x) == int]))
-		res.append(lst)
+		res1.append(set(myMaths.flatten([synt1[x] for x in grp if type(x) == int])))
+		res2.append(set(myMaths.flatten([synt2[int(x)] for x in grp if type(x) == str])))
 	
-	return res
+	print >> sys.stderr, ">", len(res1), sum([len(x) for x in res1])
+	return res1
+
+	if seuil == 1:
+		return res1
+
+	dic = {}
+	for k in range(len(res2)):
+		for x in res2[k]:
+			dic[x] = k
+	for g in res1:
+		tmp = set([])
+		for x in g:
+			if x in dic:
+				tmp.update(res2[dic[x]])
+		g.update(tmp)
+	print >> sys.stderr, ">", len(res1), sum([len(x) for x in res1])
+
+	return res1
 
 
-
-
+# D'abord les syntenies par couples (seuil=1)
 newEns = []
-for i in range(len(geneBank.dicEspeces.values())):
-	for j in range(len(geneBank.dicEspeces.values())):
+esp = geneBank.dicEspeces.values()
+for i in range(len(esp)):
+	for j in range(len(esp)):
 		if j <= i:
 			continue
-		ens1 = extractSyntenies(geneBank.dicEspeces.values()[i], geneBank.dicEspeces.values()[j], genesAnc)
-		ens2 = extractSyntenies(geneBank.dicEspeces.values()[j], geneBank.dicEspeces.values()[i], genesAnc)
+		ens1 = extractSyntenies(esp[i], esp[j], genesAnc)
+		ens2 = extractSyntenies(esp[j], esp[i], genesAnc)
 		#for a in ens:
 		#	if len(a) < options["seuilLongueurMin"]:
 		#		continue
 		#	print " ".join(myMaths.flatten([genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr][u].names for u in a]))
 
-		res = combineSynt2(ens1, ens2, 1)
-		newEns.extend(res)
-		print >> sys.stderr, ">", len(res), sum([len(a) for a in res])
-		res = combineSynt2(ens2, ens1, 1)
-		print >> sys.stderr, ">", len(res), sum([len(a) for a in res])
+		res = combineSynt(ens1, ens2, 1)
+		newEns.append( (esp[i].nom+esp[j].nom,res) )
+		#print >> sys.stderr, ">", len(res), sum([len(a) for a in res])
+		a = [len(x) for x in res]
+		a.sort()
+		print >> sys.stderr, a
+
 
 sys.exit(0)
 
-print >> sys.stderr, len(newEns), sum([len(a) for a in newEns])
+# Ensuite, on remonte l'arbre
+#res = combineSynt(newEns[1][1], newEns[4][1], options["seuilIdentiteMin2"])
+#a = [len(x) for x in res]
+#print >> sys.stderr, ">>", len(res), sum(a)
+#a.sort()
+#print >> sys.stderr, a
 
-lst = []
-while len(newEns) > 0:
-	a = newEns.pop()
-	used = True
-	while used:
-		used = False
-		j = 0
-		while j < len(newEns):
-			b = newEns[j]
-			z = a & b
-
-			#print (100*len(z))/len(a)
-			#print (100*len(z))/len(b)
-			#print len(z)
-			#j += 1
-			#continue
-			
-			if options["seuilIdentiteMin2"] >= 1:
-				test = (len(z) >= options["seuilIdentiteMin2"])
-			else:
-				test = (len(z) >= options["seuilIdentiteMin2"]*len(b))
-				test = test or (len(z) >= options["seuilIdentiteMin2"]*len(a))
-			if test:
-				del newEns[j]
-				a.update(b)
-				used = True
-			else:
-				j += 1
-	lst.append(a)
+#newEns2 = []
+#for i in range(len(newEns)):
+#	for j in range(len(newEns)):
+#		if j <= i:
+#			continue
+#		a = newEns[i]
+#		b = newEns[j]
+#		res = combineSynt(a[1], b[1], options["seuilIdentiteMin2"])
+#		newEns2.append(res)
+#		print >> sys.stderr, "%s/%s" % (a[0],b[0]), ">>", len(res), sum([len(x) for x in res])
 
 #sys.exit(0)
 
-print >> sys.stderr, len(lst), "presque-chromosomes chez l'ancetre"
+#print >> sys.stderr, len(lst), "presque-chromosomes chez l'ancetre"
 
 
 #print "RESULTAT"
 c = 0
 n = 0
-for aa in lst:
+for aa in res:
 	a = set(aa)
 	if len(a) < 10:
 		#print >> sys.stderr, len(a),
@@ -248,7 +178,8 @@ for aa in lst:
 print >> sys.stderr
 print >> sys.stderr, n, "genes repartis sur", c, "chromosomes"
 
-sys.exit(1)
+sys.exit(0)
+
 res = []
 for (l,l1,l2,g1,g2) in lst:
 
