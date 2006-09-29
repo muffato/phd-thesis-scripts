@@ -44,23 +44,24 @@ def calcDist(dic, lst1, anc):
 
 def distInterGenes(tg1, tg2):
 	
-	lst1 = set([])
 	dic = {}
-	for g1 in tg1:
-		(e1,c1,i1) = geneBank.dicGenes[g1]
-		for g2 in tg2:
-			(e2,c2,i2) = geneBank.dicGenes[g2]
+	for (e1,c1,i1) in tg1:
+		for (e2,c2,i2) in tg2:
 			if e1 == e2 and c1 == c2:
-				dic[e1] = float(abs(i1-i2))
-				if abs(i1-i2) == 1:
-					lst1.add(e1)
+				x = float(abs(i1-i2))
+				if e1 in dic:
+					dic[e1] = min(dic[e1], x)
+				else:
+					dic[e1] = x
+	
+	lst1 = set([e for e in dic if dic[e] == 1])
 		
 	return calcDist(dic, lst1, options["nomAncetre"])
 
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
 	["genesList.conf", "genomeAncestral", "phylTree.conf"], \
-	[("nomAncetre", str, ""), ("seuilMaxDistInterGenes", int, 0), ("nbConcorde", int, -1), ("nbDecimales", int, 2), ("penalite", int, 1000000)], \
+	[("nomAncetre", str, ""), ("seuilMaxDistInterGenes", int, 0), ("nbConcorde", int, -1), ("nbDecimales", int, 2), ("penalite", int, 100000000)], \
 	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
 )
 
@@ -79,7 +80,7 @@ nbConcorde = max(1, options["nbConcorde"])
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
 for c in genesAnc.lstGenes:
 
-	tab = [[g for g in t if g in geneBank.dicGenes] for t in genesAnc.lstGenes[c]]
+	tab = [[geneBank.dicGenes[s] for s in g.names if s in geneBank.dicGenes] for g in genesAnc.lstGenes[c]]
 	n = len(tab)
 	
 	print >> sys.stderr
@@ -114,12 +115,12 @@ for c in genesAnc.lstGenes:
 	print >> sys.stderr, "OK"
 	print >> sys.stderr, "Lancement de concorde ",
 	f.close()
-	
 	lstTot = []
 	for i in range(nbConcorde):
 		#os.system('/users/ldog/muffato/work/scripts/concorde -x ' + nom + ' > /dev/null')
 		os.system('/users/ldog/muffato/work/scripts/concorde -x ' + nom + ' >&2')
 		lstTot.append(myOrthos.ConcordeFile(nom + ".sol"))
+		print >> sys.stderr, ('rm -f *' + nom + '*')
 		os.remove(nom + ".sol")
 		if os.access(nom + ".res", os.W_OK):
 			os.remove(nom + ".res")
@@ -140,7 +141,7 @@ for c in genesAnc.lstGenes:
 			print c,
 		else:
 			print c, len(q),
-		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1])
+		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 
 os.remove(nom)
 

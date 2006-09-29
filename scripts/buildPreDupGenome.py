@@ -88,8 +88,8 @@ def colorAncestr(esp, geneBank, para, orthos, dupEspLst):
 				orig = set([cT])
 				lstT = genomeDup.getGenesAt(cT, x1-options["precisionChrAnc"], x2+options["precisionChrAnc"])
 				for gT in lstT:
-					if gT in para[e]:
-						(cT2,_) = genomeDup.dicGenes[para[e][gT]]
+					if gT[0] in para[e]:
+						(cT2,_) = genomeDup.dicGenes[para[e][gT[0]]]
 						orig.add(cT2)
 				
 				nouvOrig = lastOrig & orig
@@ -104,7 +104,7 @@ def colorAncestr(esp, geneBank, para, orthos, dupEspLst):
 			lstBlocs[e].append(bloc)
 			sys.stderr.write(".")
 		print >> sys.stderr, "", len(lstBlocs[e]), "blocs, pour", nbOrthos, "genes orthologues"
-	
+
 	return lstBlocs
 
 #

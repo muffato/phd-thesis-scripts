@@ -40,12 +40,12 @@ for l in sys.stdin:
 		score[e] += 1
 	else:
 		t = [score[x] for x in 'HMDWOC']
-		tt = [score[x] for x in 'TSZF']
+		tt = [score[x] for x in 'TS']
 		#if score['H'] == 1 and score['C'] == 1:
 		#if max(t) > 0 and max(tt) > 0:
 		#if max(t) == 2 and max(tt) == 1:
 		#if sum(t) < 13 and sum(tt) < 6:
 		#if len(t) == 1 and 1 in t:
-		if max(t) == 1 and max(tt) == 2:
+		if max(t) <= 1: # and max(tt) <= 2:
 		#if max(t) == 1 and min(t) == 1:
 			print l,
