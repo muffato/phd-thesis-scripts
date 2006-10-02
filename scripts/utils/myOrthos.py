@@ -13,7 +13,7 @@ class Gene:
 
 	def __init__(self, names, chromosome, beg, end, strand):
 	
-		self.names = names
+		self.names = tuple(names)
 		self.chromosome = chromosome
 		self.beginning = beg
 		self.end = end
@@ -28,11 +28,15 @@ def loadGenome(nom):
 	c = f.readline().split()
 	f.close()
 	try:
+		# Si les trois champs du milieu sont des nombres
 		x = int(c[1]) + int(c[2]) + int(c[3])
 		return EnsemblGenome(nom)
 	except Exception:
-		c = nom.split('/')
-		return AncestralGenome(nom, c[-1][0] in string.uppercase)
+		# Si le permier champ est un nom de chromosome
+		realGenome = len(c[0]) < 4
+		realGenome |= c[0] in ["ALPHA", "BETA", "DELTA", "EPSILON", "GAMMA", "PHI"]
+		realGenome |= c[0].startswith('scaffold_')
+		return AncestralGenome(nom, realGenome)
 
 
 ##########################################
@@ -83,10 +87,6 @@ class Genome:
 				for s in self.lstGenes[c][i].names:
 					self.dicGenes[s] = (c, i)
 		
-		# La liste triee des chromosomes
-		self.lstChr = self.lstGenes.keys()
-		self.lstChr.sort()
-
 	#
 	# Renvoie les noms des genes presents sur le chromosome donne a certaines positions
 	#	
@@ -123,7 +123,7 @@ class EnsemblGenome(Genome):
 			except ValueError:
 				pass
 	
-			self.addGene( Gene(tuple(champs[4:]), champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
+			self.addGene( Gene(champs[4:], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
 		f.close()
 
 		self.sortGenome()
@@ -220,11 +220,14 @@ class AncestralGenome(Genome):
 		return (blocsAnc, dico)
 
 
-#########################################################################
-# Cette classe gere une liste de fichiers de genes.                     #
-# Le format des lignes est "Nom_Espece nom_fichier_genes chr1 chr2 ..." #
-#    avec une liste de chromosomes a ne pas prendre en compte           #
-#########################################################################
+###########################################################
+# Cette classe gere une liste de fichiers de genes.       #
+# Le format des lignes est "Nom_Espece nom_fichier_genes" #
+# Un symbole indique le type de l'espece                  #
+#   Rien -> Vertebre non duplique                         #
+#    . -> Vertebre duplique                               #
+#    * -> Non vertebre = outgroup                         #
+###########################################################
 class GeneBank:
 
 	def __init__(self, nom, only = []):
@@ -285,29 +288,20 @@ class PhylogeneticTree:
 		print >> sys.stderr, "Chargement de l'arbre phylogenique de %s ..." % nom,
 		
 		self.items = {}
+		self.parent = {}
 		f = open(nom, 'r')
 		for ligne in f.readlines():
-			# On separe la ligne
-			i = ligne.index('=')
-			# A gauche, le nom du resultat
-			nom = ligne[:i].strip()
-			# A droite, les descendants
-			self.items[nom] = eval(ligne[i+1:])
+			c = ligne.split('=')
+			if len(c) != 2:
+				continue
+			nom = c[0].strip()
+			self.items[nom] = eval(c[1].strip())
+			for (e,_) in self.items[nom]:
+				self.parent[e] = nom
+				
+		self.root = nom
 		
 		print >> sys.stderr, "OK"
-		
-	def getDescendants(self, anc):
-	
-		if anc not in self.items:
-			return []
-			
-		return [myMaths.flatten(self.getDescendants(e)) for (e,_) in self.items[anc]]
-	
-	def getFils(self, anc):
-		if anc not in self.items:
-			return []
-			
-		return [e for (e,_) in self.items[anc]]
 		
 
 ##################################################################################################

@@ -116,19 +116,96 @@ def mixGenomes(g1, g2):
 	ens1 = extractSyntenies(g1, g2, genesAnc)
 	ens2 = extractSyntenies(g2, g1, genesAnc)
 	return combineSynt(ens1, ens2, 1)
-	
 
-resDW = mixGenomes(geneBank.dicEspeces['D'], geneBank.dicEspeces['W'])
-resHM = mixGenomes(geneBank.dicEspeces['H'], geneBank.dicEspeces['M'])
-resCO = mixGenomes(geneBank.dicEspeces['C'], geneBank.dicEspeces['O'])
-resCT = mixGenomes(geneBank.dicEspeces['C'], genomeOutgroup)
-resHC = mixGenomes(geneBank.dicEspeces['H'], geneBank.dicEspeces['C'])
 
-resMam = combineSynt(resHM, resDW, options["seuilIdentiteMin2"])
-resAmn = combineSynt(resMam, resCO, options["seuilIdentiteMin2"])
-resAmn2 = combineSynt(resHM, resCT, options["seuilIdentiteMin2"])
+def buildAncestrGenome(genomesList, lstGenes):
 
-res = resHC
+	tabE = [{} for _ in genomesList]
+	for i in xrange(len(tab)):
+		g = tab[i]
+		for s in g.names:
+			for j in range(len(genomesList)):
+				if s in genomesList[j].dicGenes:
+					(c,_) = genomesList[j].dicGenes[s]
+					tabE[j][i] = c
+					break
+
+	assoc = myTools.myCombinator([[u] for u in range(len(lstGenes))])
+	for i in xrange(len(lstGenes)):
+		for j in xrange(i):
+			# Si les deux genes sont deja rassembles,
+			#   on peut passer a la suite
+			if assoc.dic[i] == assoc.dic[j]:
+				continue
+			nbOK = 0
+			nbNO = 0
+			for e in geneBank.dicEspeces:
+				if (i not in tabE[e]) or (j not in tabE[e]):
+					continue
+				if tabE[e][i] == tabE[e][j]:
+					nbOK += 1
+				else:
+					nbNO += 1
+			if nbOK >= 3:
+			#if nbOK >= 3 and nbNO == 0:
+			#if nbNO == 0:
+				assoc.addLink([i,j])
+
+
+
+tab = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
+tabE = dict([(e,{}) for e in geneBank.dicEspeces])
+for i in range(len(tab)):
+	g = tab[i]
+	for s in g.names:
+		if s in geneBank.dicGenes:
+			(e,c,_) = geneBank.dicGenes[s]
+			tabE[e][i] = c
+
+assoc = myTools.myCombinator([[u] for u in range(len(tab))])
+for i in range(len(tab)):
+	for j in range(i):
+		# Si les deux genes sont deja rassembles,
+		#   on peut passer a la suite
+		if assoc.dic[i] == assoc.dic[j]:
+			continue
+		nbOK = 0
+		nbNO = 0
+		for e in geneBank.dicEspeces:
+			if (i not in tabE[e]) or (j not in tabE[e]):
+				continue
+			if tabE[e][i] == tabE[e][j]:
+				nbOK += 1
+			else:
+				nbNO += 1
+		if nbOK >= 3:
+		#if nbOK >= 3 and nbNO == 0:
+		#if nbNO == 0:
+			assoc.addLink([i,j])
+
+for e1 in geneBank.dicEspeces:
+	continue
+	for e2 in geneBank.dicEspeces:
+		if e1 == e2:
+			continue
+		ens = extractSyntenies(geneBank.dicEspeces[e1], geneBank.dicEspeces[e2], genesAnc)
+		for x in ens:
+			assoc.addLink([u for u in x])
+
+
+res = assoc.getGrp()
+
+#resDW = mixGenomes(geneBank.dicEspeces['D'], geneBank.dicEspeces['W'])
+#resHM = mixGenomes(geneBank.dicEspeces['H'], geneBank.dicEspeces['M'])
+#resCO = mixGenomes(geneBank.dicEspeces['C'], geneBank.dicEspeces['O'])
+#resCT = mixGenomes(geneBank.dicEspeces['C'], genomeOutgroup)
+#resHC = mixGenomes(geneBank.dicEspeces['H'], geneBank.dicEspeces['C'])
+
+#resMam = combineSynt(resHM, resDW, options["seuilIdentiteMin2"])
+#resAmn = combineSynt(resMam, resCO, options["seuilIdentiteMin2"])
+#resAmn2 = combineSynt(resHM, resCT, options["seuilIdentiteMin2"])
+
+#res = resHC
 
 # D'abord les syntenies par couples (seuil=1)
 newEns = []
@@ -148,6 +225,7 @@ for i in range(len(esp)):
 		a = [len(x) for x in res]
 		a.sort()
 		print >> sys.stderr, a
+
 
 #res = combineSynt(newEns[0], newEns[1], 1)
 
@@ -175,9 +253,6 @@ for i in range(len(esp)):
 
 #print >> sys.stderr, len(lst), "presque-chromosomes chez l'ancetre"
 
-
-#print "RESULTAT"
-
 #res = newEns[0][1]
 c = 0
 n = 0
@@ -197,26 +272,3 @@ for aa in res:
 print >> sys.stderr
 print >> sys.stderr, n, "genes repartis sur", c, "chromosomes"
 
-sys.exit(0)
-
-res = []
-for (l,l1,l2,g1,g2) in lst:
-
-	a = g1 | g2
-	if len(a) < 150:
-		continue
-	res.append( (len(a), l, l1, l2, a) )
-
-print >> sys.stderr, len(res), "presque-chromosomes chez l'ancetre"
-res.sort()
-res.reverse()
-c = 0
-nbTMP = 0
-for (nb,l,l1,l2,a) in res:
-	print >> sys.stderr, l, nb, l1,l2
-	for i in a:
-		#continue
-		print chr(97+c), " ".join(genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr][i].names)
-	nbTMP += nb
-	c += 1
-print >> sys.stderr, "Total nb genes:", nbTMP

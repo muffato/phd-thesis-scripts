@@ -15,31 +15,47 @@ import myMaths
 
 # FONCTIONS #
 
-def calcDist(dic, lst1, anc):
+def buildDistTree(arbre, distEsp):
+		
+	def calcDist(anc):
 
-	if anc in dic:
-		return dic[anc]
-	if anc not in phylTree.items:
-		return 0
+		s = 0.
+		n = 0.
+		for (e,p) in arbre.items[anc]:
+			if e not in distAnc:
+				if e in distEsp:
+					val = distEsp[e]
+				else:
+					val = 0
+			else:
+				if distAnc[e] != 0:
+					val = distAnc[e]
+				else:
+					val = calcDist(e)
+			if val > 0  and (val <= options["seuilMaxDistInterGenes"] or options["seuilMaxDistInterGenes"] == 0):
+				poids = 1./float(p)
+				s += val*poids
+				n += poids
+		if n != 0:
+			s /= n
+		distAnc[anc] = s
+		return s
+
+
+	distAnc = dict( [(a,0) for a in arbre.items] )
 	
-	# Est-ce que les genes sont cote a cote dans deux especes de deux
-	#  sous-arbres differents
-	desc = phylTree.getDescendants(anc)
-	cote = [len(set(x) & lst1) != 0 for x in desc]
-	if cote.count(True) >= 2:
-		return 1
+	# On met les 1 dans l'arbre
+	lst1 = set([e for e in distEsp if distEsp[e] == 1])
+	while len(lst1) >= 2:
+		lst1b = set([arbre.parent[e] for e in lst1 if e in arbre.parent])
+		for e in lst1b:
+			distAnc[e] = 1
+		lst1 = lst1b
+		
+	# On calcule par une moyenne les autres distances
+	calcDist(arbre.root)
+	return distAnc
 	
-	s = 0.
-	n = 0.
-	for (e,p) in phylTree.items[anc]:
-		val = calcDist(dic, lst1, e)
-		if val > 0  and (val <= options["seuilMaxDistInterGenes"] or options["seuilMaxDistInterGenes"] == 0):
-			poids = 1./float(p)
-			s += val*poids
-			n += poids
-	if n == 0:
-		return 0.
-	return s/n
 
 
 def distInterGenes(tg1, tg2):
@@ -48,15 +64,13 @@ def distInterGenes(tg1, tg2):
 	for (e1,c1,i1) in tg1:
 		for (e2,c2,i2) in tg2:
 			if e1 == e2 and c1 == c2:
-				x = float(abs(i1-i2))
+				x = abs(i1-i2)
 				if e1 in dic:
 					dic[e1] = min(dic[e1], x)
 				else:
 					dic[e1] = x
 	
-	lst1 = set([e for e in dic if dic[e] == 1])
-		
-	return calcDist(dic, lst1, options["nomAncetre"])
+	return buildDistTree(phylTree, dic)[options["nomAncetre"]]
 
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
@@ -78,7 +92,7 @@ nom = "mat"+str(os.getpid())
 nbConcorde = max(1, options["nbConcorde"])
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
-for c in genesAnc.lstGenes:
+for c in genesAnc.lstChr:
 
 	tab = [[geneBank.dicGenes[s] for s in g.names if s in geneBank.dicGenes] for g in genesAnc.lstGenes[c]]
 	n = len(tab)
@@ -117,15 +131,9 @@ for c in genesAnc.lstGenes:
 	f.close()
 	lstTot = []
 	for i in range(nbConcorde):
-		#os.system('/users/ldog/muffato/work/scripts/concorde -x ' + nom + ' > /dev/null')
 		os.system('/users/ldog/muffato/work/scripts/concorde -x ' + nom + ' >&2')
 		lstTot.append(myOrthos.ConcordeFile(nom + ".sol"))
-		print >> sys.stderr, ('rm -f *' + nom + '*')
-		os.remove(nom + ".sol")
-		if os.access(nom + ".res", os.W_OK):
-			os.remove(nom + ".res")
-		if os.access("O" + nom + ".res", os.W_OK):
-			os.remove("O" + nom + ".res")
+		os.system('rm -f *' + nom + '*')
 		sys.stderr.write(".")
 
 	print >> sys.stderr
@@ -142,7 +150,5 @@ for c in genesAnc.lstGenes:
 		else:
 			print c, len(q),
 		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
-
-os.remove(nom)
 
 

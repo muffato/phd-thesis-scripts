@@ -27,7 +27,10 @@ class myCombinator:
 
 	def __init__(self, ini):
 		self.grp = ini
-		self.dic = dict([(ini[x],x) for x in range(len(ini))])
+		self.dic = {}
+		for i in range(len(ini)):
+			for x in ini[i]:
+				self.dic[x] = i
 	
 	def addLink(self, obj):
 		if len(obj) == 0:
@@ -48,8 +51,8 @@ class myCombinator:
 				if i == j:
 					continue
 				for b in self.grp[j]:
-					self.grp[i].append(b)
 					self.dic[b] = i
+				self.grp[i].extend(self.grp[j])
 				self.grp[j] = []
 			else:
 				self.grp[i].append(x)
