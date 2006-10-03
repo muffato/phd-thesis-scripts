@@ -120,80 +120,64 @@ def mixGenomes(g1, g2):
 
 def buildAncestrGenome(genomesList, lstGenes):
 
+	print >> sys.stderr, "1.",
 	tabE = [{} for _ in genomesList]
-	for i in xrange(len(tab)):
-		g = tab[i]
+	for i in xrange(len(lstGenes)):
+		g = lstGenes[i]
 		for s in g.names:
-			for j in range(len(genomesList)):
+			for j in xrange(len(genomesList)):
 				if s in genomesList[j].dicGenes:
 					(c,_) = genomesList[j].dicGenes[s]
 					tabE[j][i] = c
 					break
 
-	assoc = myTools.myCombinator([[u] for u in range(len(lstGenes))])
+	print >> sys.stderr, "2.",
+	assoc = myTools.myCombinator([set([u]) for u in xrange(len(lstGenes))])
 	for i in xrange(len(lstGenes)):
 		for j in xrange(i):
 			# Si les deux genes sont deja rassembles,
 			#   on peut passer a la suite
 			if assoc.dic[i] == assoc.dic[j]:
 				continue
-			nbOK = 0
-			nbNO = 0
-			for e in geneBank.dicEspeces:
+			nbOK = set([])
+			nbNO = set([])
+			for e in xrange(len(genomesList)):
 				if (i not in tabE[e]) or (j not in tabE[e]):
 					continue
 				if tabE[e][i] == tabE[e][j]:
-					nbOK += 1
+					nbOK.add(e)
 				else:
-					nbNO += 1
-			if nbOK >= 3:
+					nbNO.add(e)
+			#if len(nbOK) >= 3:
 			#if nbOK >= 3 and nbNO == 0:
 			#if nbNO == 0:
+			
+			# Les trois branches: DW/HM/O
+			if (1 in nbOK or 2 in nbOK) and (3 in nbOK or 0 in nbOK) and 4 in nbOK:
 				assoc.addLink([i,j])
+			# Les quatre mammiferes eutheriens
+			#elif (1 in nbOK and 2 in nbOK) and (3 in nbOK and 0 in nbOK):
+			#elif len(nbOK) >= 4
+			#	assoc.addLink([i,j])
+			# 3 mammiferes eutheriens parmi les 4
+			elif len(nbOK) >= 3 and 4 not in nbOK:
+				assoc.addLink([i,j])
+			#elif (1 in nbOK and 2 in nbOK) and (3 in nbOK or 0 in nbOK):
+			#	assoc.addLink([i,j])
+			#elif (1 in nbOK or 2 in nbOK) and (3 in nbOK and 0 in nbOK):
+			#	assoc.addLink([i,j])
+			#elif (1 in nbOK or 2 in nbOK) and (3 in nbOK or 0 in nbOK):
+			#	assoc.addLink([i,j])
+	
+	print >> sys.stderr, "OK"
+	return assoc
 
 
-
-tab = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
-tabE = dict([(e,{}) for e in geneBank.dicEspeces])
-for i in range(len(tab)):
-	g = tab[i]
-	for s in g.names:
-		if s in geneBank.dicGenes:
-			(e,c,_) = geneBank.dicGenes[s]
-			tabE[e][i] = c
-
-assoc = myTools.myCombinator([[u] for u in range(len(tab))])
-for i in range(len(tab)):
-	for j in range(i):
-		# Si les deux genes sont deja rassembles,
-		#   on peut passer a la suite
-		if assoc.dic[i] == assoc.dic[j]:
-			continue
-		nbOK = 0
-		nbNO = 0
-		for e in geneBank.dicEspeces:
-			if (i not in tabE[e]) or (j not in tabE[e]):
-				continue
-			if tabE[e][i] == tabE[e][j]:
-				nbOK += 1
-			else:
-				nbNO += 1
-		if nbOK >= 3:
-		#if nbOK >= 3 and nbNO == 0:
-		#if nbNO == 0:
-			assoc.addLink([i,j])
-
-for e1 in geneBank.dicEspeces:
-	continue
-	for e2 in geneBank.dicEspeces:
-		if e1 == e2:
-			continue
-		ens = extractSyntenies(geneBank.dicEspeces[e1], geneBank.dicEspeces[e2], genesAnc)
-		for x in ens:
-			assoc.addLink([u for u in x])
+assoc = buildAncestrGenome(geneBank.dicEspeces.values(), genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr])
+#res = buildAncestrGenome(geneBank.dicEspeces.values(), genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr])
 
 
-res = assoc.getGrp()
+#res = assoc.getGrp()
 
 #resDW = mixGenomes(geneBank.dicEspeces['D'], geneBank.dicEspeces['W'])
 #resHM = mixGenomes(geneBank.dicEspeces['H'], geneBank.dicEspeces['M'])
@@ -208,8 +192,8 @@ res = assoc.getGrp()
 #res = resHC
 
 # D'abord les syntenies par couples (seuil=1)
-newEns = []
-esp = geneBank.dicEspeces.values() + [genomeOutgroup]
+#newEns = []
+esp = geneBank.dicEspeces.values() # + [genomeOutgroup]
 for i in range(len(esp)):
 	continue
 	for j in range(len(esp)):
@@ -221,13 +205,17 @@ for i in range(len(esp)):
 		#		continue
 		#	print " ".join(myMaths.flatten([genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr][u].names for u in a]))
 		#newEns.append( (esp[i].nom+esp[j].nom,res) )
-		newEns.append(res)
-		a = [len(x) for x in res]
-		a.sort()
-		print >> sys.stderr, a
+		for x in res:
+			assoc.addLink([u for u in x])
+		#newEns.append(res)
+		#a = [len(x) for x in res]
+		#a.sort()
+		#print >> sys.stderr, a
 
 
 #res = combineSynt(newEns[0], newEns[1], 1)
+
+res = assoc.getGrp()
 
 #sys.exit(0)
 
@@ -256,8 +244,7 @@ for i in range(len(esp)):
 #res = newEns[0][1]
 c = 0
 n = 0
-for aa in res:
-	a = set(aa)
+for a in res:
 	if len(a) < 10:
 		#print >> sys.stderr, len(a),
 		continue

@@ -104,19 +104,16 @@ for c in genesAnc.lstChr:
 	print >> sys.stderr, "Ecriture de la matrice ... ",
 	f = open(nom, 'w')
 	
-	print >> f, "NAME: CHRANC_%s" % c
+	print >> f, "NAME: CHRANC"
 	print >> f, "TYPE: TSP"
 	print >> f, "DIMENSION: %d" % (n+1)
 	print >> f, "EDGE_WEIGHT_TYPE: EXPLICIT"
 	print >> f, "EDGE_WEIGHT_FORMAT: UPPER_ROW"
 	print >> f, "EDGE_WEIGHT_SECTION"
+	print >> f, "0 " * n
 	
-	for i in range(n):
-		print >> f, 0,
-	print >> f
-	
-	for i in range(n-1):
-		for j in range(i+1,n):
+	for i in xrange(n-1):
+		for j in xrange(i+1,n):
 			y = distInterGenes(tab[i], tab[j])
 			if y == 0:
 				print >> f, options["penalite"],
@@ -126,9 +123,9 @@ for c in genesAnc.lstChr:
 				print >> f, int(pow(10, options["nbDecimales"])*y),
 		print >> f
 	print >> f, "EOF"
+	f.close()
 	print >> sys.stderr, "OK"
 	print >> sys.stderr, "Lancement de concorde ",
-	f.close()
 	lstTot = []
 	for i in range(nbConcorde):
 		os.system('/users/ldog/muffato/work/scripts/concorde -x ' + nom + ' >&2')
@@ -143,7 +140,7 @@ for c in genesAnc.lstChr:
 		if not lstTot[i].isMemeSens(lstTot[0]):
 			lstTot[i].reverse()
 
-	for i in range(n):
+	for i in xrange(n):
 		q = set([s.res[i] for s in lstTot])
 		if options["nbConcorde"] < 1:
 			print c,

@@ -83,7 +83,7 @@ class Genome:
 		self.dicGenes = {}
 		for c in self.lstGenes:
 			self.lstGenes[c].sort(lambda g1, g2: cmp(g1.beginning, g2.beginning))
-			for i in range(len(self.lstGenes[c])):
+			for i in xrange(len(self.lstGenes[c])):
 				for s in self.lstGenes[c][i].names:
 					self.dicGenes[s] = (c, i)
 		
@@ -213,7 +213,7 @@ class AncestralGenome(Genome):
 		for e in blocsAnc:
 			for c in blocsAnc[e]:
 				blocsAnc[e][c].sort()
-				for i in range(len(blocsAnc[e][c])):
+				for i in xrange(len(blocsAnc[e][c])):
 					(_,s,j) = blocsAnc[e][c][i]
 					dico[s] = (e,c,i,j)
 		
@@ -440,7 +440,7 @@ class EnsemblTwoSpeciesOrthos:
 		# Permet d'associer les indices reels aux indices tries
 		self.indGenes1 = range(self.nbGenes)
 		self.indGenes2 = range(self.nbGenes)
-		for i in range(self.nbGenes):
+		for i in xrange(self.nbGenes):
 			self.indGenes1[self.tabGenes1[i][4]] = i
 			self.indGenes2[self.tabGenes2[i][4]] = i
 
@@ -521,12 +521,12 @@ class ConcordeFile:
 
 	def buildIndex(self):
 		self.dic = {}
-		for i in range(len(self.res)):
+		for i in xrange(len(self.res)):
 			self.dic[self.res[i]] = i
 	
 	def isMemeSens(self, other):
 		s = 0
-		for i in range(len(self.res)-1):
+		for i in xrange(len(self.res)-1):
 			if other.dic[self.res[i]] < other.dic[self.res[i+1]]:
 				s += 1
 			else:
