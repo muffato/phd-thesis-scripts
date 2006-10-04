@@ -24,7 +24,7 @@ import myMaths
 
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
-	["genesList.conf","genomeOutgroup", "orthologuesList"], \
+	["geneList.conf","genomeOutgroup", "orthologuesList"], \
 	[("especesUtilisees",str,"HDWM"), ("seuilLongueurMin",float,0.1), ("seuilIdentiteMin",float,33), ("seuilIdentiteMin2",float,33)], \
 	"Reconstruit le genome de l'ancetre de 1 et 2 a partir de l'outgroup et des genes de cet ancetre" \
 )
@@ -118,7 +118,7 @@ def mixGenomes(g1, g2):
 	return combineSynt(ens1, ens2, 1)
 
 
-def buildAncestrGenome(genomesList, lstGenes):
+def buildAncestrGenome(genomesList, lstGenes, assoc):
 
 	print >> sys.stderr, "1.",
 	tabE = dict([(e,{}) for e in genomesList])
@@ -132,7 +132,6 @@ def buildAncestrGenome(genomesList, lstGenes):
 					break
 
 	print >> sys.stderr, "2.",
-	assoc = myTools.myCombinator([set([u]) for u in xrange(len(lstGenes))])
 	for (i,j) in myTools.myMatrixIterator(len(lstGenes), len(lstGenes), myTools.myMatrixIterator.StrictUpperMatrix):
 		# Si les deux genes sont deja rassembles,
 		#   on peut passer a la suite
@@ -150,19 +149,74 @@ def buildAncestrGenome(genomesList, lstGenes):
 		
 		# Les trois branches: DW/HM/OC
 		if ('H' in nbOK or 'M' in nbOK) and ('D' in nbOK or 'W' in nbOK) and ('O' in nbOK or 'C' in nbOK):
-		#if len(nbOK) >= 4:
 			assoc.addLink([i,j])
-		# 3 mammiferes eutheriens parmi les 4
-		#elif len(nbOK & set([x for x in 'HDMW'])) >= 3:
-		#	assoc.addLink([i,j])
+		elif 'H' in nbOK and 'M' in nbOK and 'D' in nbOK and 'W' in nbOK:
+			assoc.addLink([i,j])
 
 	print >> sys.stderr, "OK"
-	return assoc
+	#return assoc
 
 
-assoc = buildAncestrGenome(geneBank.dicEspeces, genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr])
 
-#res = assoc.getGrp()
+def translateGenome(genome, genesAnc, default):
+
+	# On construit les couleurs
+	newGen = {}
+	for c in genome.lstChr:
+
+		newChr = []
+		for gene in genome.lstGenes[c]:
+			
+			for g in gene.names:
+				if g in genesAnc.dicGenes:
+					newChr.append( genesAnc.dicGenes[g][1] )
+					break
+			else:
+				newChr.append(default)
+		newGen[c] = newChr
+	return newGen
+
+
+genomeH = translateGenome(geneBank.dicEspeces['H'], genesAnc, 'H')
+genomeM = translateGenome(geneBank.dicEspeces['M'], genesAnc, 'M')
+genomeD = translateGenome(geneBank.dicEspeces['D'], genesAnc, 'D')
+genomeW = translateGenome(geneBank.dicEspeces['W'], genesAnc, 'W')
+genomeO = translateGenome(geneBank.dicEspeces['O'], genesAnc, 'O')
+genomeC = translateGenome(geneBank.dicEspeces['C'], genesAnc, 'C')
+
+
+def useDiags(genome1, genome2, assoc):
+
+	for c1 in genome1:
+		for c2 in genome2:
+			diags = myMaths.extractDiags(genome1[c1], genome2[c2], False, 0)
+			for d in diags:
+				if len(d) >= 2:
+					assoc.addLink(d)
+	print >> sys.stderr, "*", len(assoc.getGrp())
+	
+#assoc = myTools.myCombinator([])
+lstGenes = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
+assoc = myTools.myCombinator([set([u]) for u in xrange(len(lstGenes))])
+useDiags(genomeH, genomeD, assoc)
+useDiags(genomeH, genomeW, assoc)
+useDiags(genomeM, genomeD, assoc)
+useDiags(genomeM, genomeW, assoc)
+useDiags(genomeH, genomeO, assoc)
+useDiags(genomeM, genomeO, assoc)
+useDiags(genomeD, genomeO, assoc)
+useDiags(genomeW, genomeO, assoc)
+useDiags(genomeH, genomeC, assoc)
+useDiags(genomeM, genomeC, assoc)
+useDiags(genomeD, genomeC, assoc)
+useDiags(genomeW, genomeC, assoc)
+buildAncestrGenome(geneBank.dicEspeces, lstGenes, assoc)
+
+#assoc = buildAncestrGenome(geneBank.dicEspeces.values(), genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr])
+#res = buildAncestrGenome(geneBank.dicEspeces.values(), genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr])
+
+
+res = assoc.getGrp()
 
 #resDW = mixGenomes(geneBank.dicEspeces['D'], geneBank.dicEspeces['W'])
 #resHM = mixGenomes(geneBank.dicEspeces['H'], geneBank.dicEspeces['M'])
@@ -200,7 +254,7 @@ for i in range(len(esp)):
 
 #res = combineSynt(newEns[0], newEns[1], 1)
 
-res = assoc.getGrp()
+#res = assoc.getGrp()
 
 #sys.exit(0)
 
@@ -230,16 +284,17 @@ res = assoc.getGrp()
 c = 0
 n = 0
 for a in res:
-	if len(a) < 10:
+	if len(a) < 2:
 		#print >> sys.stderr, len(a),
 		continue
-	#print len(a)
+	n += len(a)
+	c += 1
+	print len(a)
 	#print a
+	continue
 	for i in a:
 		#print i
 		print chr(97+c), " ".join(genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr][i].names)
-	n += len(a)
-	c += 1
 
 print >> sys.stderr
 print >> sys.stderr, n, "genes repartis sur", c, "chromosomes"

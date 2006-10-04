@@ -18,6 +18,57 @@ def myOpenFile(nom):
 		f = open(nom, 'r')
 	return f
 
+###################################################################
+# Une classe pour avoir un iterateur a deux dimensions rapidement #
+# Cela equivaut donc a un parcours de matrice                     #
+###################################################################
+class myMatrixIterator:
+
+	WholeMatrix = 1
+	UpperMatrix = 2
+	StrictUpperMatrix = 3
+	OnlyDiag = 4
+	WholeWithoutDiag = 5
+
+	def __init__(self, n, p, mode):
+		self.n = n
+		self.p = p
+		self.mode = mode
+
+	def __iter__(self):
+		class __InternalIterator:
+			def __init__(self, mat):
+				self.mat = mat
+				self.i = -1
+				if mat.mode == myMatrixIterator.StrictUpperMatrix or mat.mode == myMatrixIterator.WholeWithoutDiag:
+					self.i = 0
+				self.j = mat.p
+			def next(self):
+				if self.mat.mode != myMatrixIterator.OnlyDiag:
+					self.j += 1
+					if self.mat.mode == myMatrixIterator.WholeWithoutDiag and self.i == self.j:
+						self.j += 1
+						
+					if self.mat.mode == myMatrixIterator.UpperMatrix:
+						borne = min(self.i + 1, self.mat.p)
+					elif self.mat.mode == myMatrixIterator.StrictUpperMatrix:
+						borne = min(self.i, self.mat.p)
+					else:
+						borne = self.mat.p
+					
+					if self.j >= borne:
+						self.j = 0
+						self.i += 1
+						if self.i >= self.mat.n:
+							raise StopIteration
+				else:
+					self.i += 1
+					self.j = self.i
+					if self.j == self.mat.p or self.i == self.mat.n:
+						raise StopIteration
+				return (self.i, self.j)
+		return __InternalIterator(self)
+			
 ########################################################################
 # Cette classe permet de regrouper une liste d'elements                #
 # Partant d'une liste initiale, on ajoute des liens entre des elements #

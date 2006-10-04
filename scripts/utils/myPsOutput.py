@@ -14,10 +14,12 @@ color = {}
 #
 def printPsHeader():
 	print "%!PS-Adobe-3.0"
-	print "%%DocumentData: Clean8bit"
+	print "%%DocumentData: Clean7bit"
+	print "%%Creator: myPsOutput"
 	print "%%PageOrder: Ascend"
 	print "%%Pages: 1"
 	print "%%DocumentFonts: Helvetica"
+	print "%%LanguageLevel: 1"
 	print "%%EndComments"
 	
 	print "%%Page: 1 1"
@@ -30,7 +32,7 @@ def printPsHeader():
 	print "setfont"
 	# style de trait (coins ronds)
 	print "1 setlinejoin"
-	print "0.005 cm setlinewidth"
+	print "0.001 cm setlinewidth"
 
 	# definition des couleurs dns l'en-tete du Postscript
 	print

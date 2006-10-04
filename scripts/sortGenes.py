@@ -130,7 +130,7 @@ for c in genesAnc.lstChr:
 	for i in range(nbConcorde):
 		os.system('/users/ldog/muffato/work/scripts/concorde -x ' + nom + ' >&2')
 		lstTot.append(myOrthos.ConcordeFile(nom + ".sol"))
-		os.system('rm -f *' + nom + '*')
+		os.system('rm -f 0%s* %s.*' % (nom,nom) )
 		sys.stderr.write(".")
 
 	print >> sys.stderr

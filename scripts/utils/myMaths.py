@@ -5,7 +5,7 @@
 #
 
 import math
-
+import sys
 
 #
 # Renvoie les cles d'un dictionnaire, triees suivant les valeurs associees
@@ -132,23 +132,32 @@ def flatten(lst):
 #  (eventuellement des singletons)
 #
 def extractDiags(t1, t2, byCouple, largeurTrou):
-	diag = []
-	cour = []
-	lastI2 = -2
 	
 	# Permet de ne considerer que la case seule, et donc de supprimer les
 	# trous induits par de genes qui ont saute sur d'autre chromosomes
+	s = set(t1) & set(t2)
 	if byCouple:
-		s = [u for u in set(t1) & set(t2) if t1.count(u) == 1 and t2.count(u) == 1]
 		(tab1,tab2) = ([x for x in t1 if x in s], [x for x in t2 if x in s])
 	else:
 		(tab1,tab2) = (t1, t2)
 	
+	dic1 = {}
+	for i in range(len(tab1)):
+		dic1[tab1[i]] = i
+	dic2 = {}
+	for i in range(len(tab2)):
+		dic2[tab2[i]] = i
+	#print >> sys.stderr, len(tab1), len(tab1), len(tab2), len(tab2), len(set(tab1) & set(tab2))
+
 	# Recherche simple de diagonale
+	diag = []
+	cour = []
+	lastI2 = -2
 	for g1 in tab1:
-		if g1 not in tab2:
-			continue
-		i2 = tab2.index(g1)
+		try:
+			i2 = dic2[g1]
+		except KeyError:
+			i2 = lastI2 + 5
 		# Le point d'apres doit se trouver a une distance de 1
 		if abs(i2-lastI2) > 1:
 			if len(cour) > 0:
@@ -159,21 +168,29 @@ def extractDiags(t1, t2, byCouple, largeurTrou):
 	if len(cour) > 0:
 		diag.append(cour)
 
-	if len(diag) == 0:
+	diag2 = [d for d in diag if len(d) == len(s & set(d))]
+	
+	if len(diag2) == 0:
 		return []
-		
+
 	# On rassemble des diagonales separees par une espace pas trop large
-	diag2 = []
-	cour = diag.pop()
-	while len(diag) > 0:
-		c2 = diag.pop()
-		if abs(tab1.index(cour[-1]) - tab1.index(c2[0])) <= (largeurTrou+1):
+	diag3 = []
+	cour = diag2.pop()
+	while len(diag2) > 0:
+		c2 = diag2.pop()
+		(x1,x2) = getMinMax([dic1[x] for x in cour])
+		(y1,y2) = getMinMax([dic2[x] for x in cour])
+		(xx1,xx2) = getMinMax([dic1[x] for x in c2])
+		(yy1,yy2) = getMinMax([dic2[x] for x in c2])
+		
+		a = max(min(abs(x1-xx2), abs(xx1-x2)), min(abs(y1-yy2), abs(yy1-y2)))
+		if a <= (largeurTrou+1):
 			cour.extend(c2)
 		else:
-			diag2.append(cour)
+			diag3.append(cour)
 			cour = c2
-	diag2.append(cour)
-	return diag2
+	diag3.append(cour)
+	return diag3
 
 
 
