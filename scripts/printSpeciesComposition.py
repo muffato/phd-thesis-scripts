@@ -1,5 +1,9 @@
 #! /usr/bin/python2.4
 
+__doc__ = """
+Lit des familles de genes et affiche la composition de chaque famille en terme de nombre de genes par espece.
+"""
+
 ##################
 # INITIALISATION #
 ##################
@@ -23,9 +27,8 @@ import myPsOutput
 (noms_fichiers, options) = myTools.checkArgs( \
 	["genesList.conf"],\
 	[("speciesList",str,"")], \
-	"Lit des familles de genes et affiche la composition de chaque famille en terme de nombre de genes par espece" \
+	__doc__ \
 )
-
 
 geneBank = myOrthos.GeneBank(noms_fichiers[0], [e for e in options["speciesList"]])
 
@@ -36,6 +39,4 @@ for s in sys.stdin:
 		if g in geneBank.dicGenes:
 			(e,_,_) = geneBank.dicGenes[g]
 			score[e] += 1
-	for e in options["speciesList"]:
-		print "%d\t" % score[e],
-	print
+	print "\t".join([score[e] for e in options["speciesList"]])

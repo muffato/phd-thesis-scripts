@@ -1,17 +1,11 @@
 #! /usr/bin/python2.4
 
-# Ce script prend en entree les paralogues tetraodon, les orthologues d'une
-#    espece avec tetraodon et assigne pour chaque orthologue ses origines
-#    possibles chez tetraodon en regardant a quels paralogues il correspond
-
-# On scanne le genome de l'espece
-# Pour chaque orthologue, on dresse une liste des origines possibles des
-#    genes en fonction des paralogues
-# On regroupe les orthologues en faisant des suites des genes qui ont une 
-#    origine commune
-# Une autre solution est de rassembler les suites de genes qui s'autorisent
-#    mutuellement
-
+__doc__ = """
+Ce script scanne chaque genome d'espece non dupliquee en le comparant a chaque genome duplique.
+Pour chaque gene, on dresse une liste de ses origines possibles en utilisant son orthologue chez l'espece dupliquee puis en etudiant les paralogues autour.
+On regroupe les genes en faisant des suites qui ont une origine commune.
+Chaque gene ancestral recoit son chromosome ancestral par un vote a la majorite en fonction de chaque annotation.
+"""
 
 # INITIALISATION #
 
@@ -206,7 +200,7 @@ def loadChrAncIni(nom):
 (noms_fichiers, options) = myTools.checkArgs( \
 	["genesList.conf", "genesAncestraux.list", "draftPreDupGenome.conf"],
 	[("precisionChrAnc", int, 1000000)], \
-	"Retrouve le genome pre-duplication grace aux alternances predites" \
+	__doc__ \
 )
 
 # Chargement des fichiers

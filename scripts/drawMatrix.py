@@ -1,5 +1,9 @@
 #! /usr/bin/python2.4
 
+__doc__ = """
+Dessine la matrice des genes orthologues entre deux genomes.
+"""
+
 ##################
 # INITIALISATION #
 ##################
@@ -24,7 +28,7 @@ import myPsOutput
 (noms_fichiers, options) = myTools.checkArgs( \
 	["GenomeADessiner", "GenomeReference"], \
 	[("taillePoint", float, -1), ("useColor", str, "black"), ("orthologuesList", str, "")], \
-	"Dessine la matrice des genes orthologues entre deux genomes" \
+	__doc__
 )
 
 # Chargement des fichiers

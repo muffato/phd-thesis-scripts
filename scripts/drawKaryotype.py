@@ -1,5 +1,9 @@
 #! /usr/bin/python2.4
 
+__doc__ = """
+Dessine un genome en coloriant ses genes a partir d'un autre genome reference.
+"""
+
 ##################
 # INITIALISATION #
 ##################
@@ -23,7 +27,7 @@ import myPsOutput
 (noms_fichiers, options) = myTools.checkArgs( \
 	["GenomeADessiner", "GenomeReference"], \
 	[("includeGaps", bool, False), ("defaultColor", str, "black"), ("orthologuesList", str, "")], \
-	"Dessine un genome en coloriant ses genes a partir d'un autre genome reference" \
+	__doc__ \
 )
 
 genome1 = myOrthos.loadGenome(noms_fichiers[0])

@@ -128,7 +128,7 @@ for c in genesAnc.lstChr:
 	print >> sys.stderr, "Lancement de concorde ",
 	lstTot = []
 	for i in range(nbConcorde):
-		os.system('/users/ldog/muffato/work/scripts/concorde -x ' + nom + ' >&2')
+		os.system('/users/ldog/muffato/work/scripts/concorde -m -x ' + nom + ' >&2')
 		lstTot.append(myOrthos.ConcordeFile(nom + ".sol"))
 		os.system('rm -f 0%s* %s.*' % (nom,nom) )
 		sys.stderr.write(".")
@@ -149,3 +149,4 @@ for c in genesAnc.lstChr:
 		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 
 
+os.system('rm -f *%s*' % nom )

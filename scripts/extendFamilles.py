@@ -1,5 +1,10 @@
 #! /usr/bin/python2.4
 
+__doc__ = """
+Lit des familles de genes sur l'entree standard.
+Rajoute a chaque famille les genes associes dans le genome ancestral passe en argument.
+"""
+
 
 # INITIALISATION #
 
@@ -11,9 +16,9 @@ sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
 import myOrthos
 import myTools
 
-(noms_fichiers, options) = myTools.checkArgs(["GENOME_ANCESTRAL"], [], "")
+(noms_fichiers, options) = myTools.checkArgs(["genesAncestraux"], [], __doc__)
 
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[0], True)
+genesAnc = myOrthos.loadGenome(noms_fichiers[0])
 
 lst = set([])
 nb = 0

@@ -1,8 +1,11 @@
 #! /usr/bin/python2.4
 
-# Ce script scanne les paralogues d'une espece et essaie de reconstruire
-#   les chromosomes pre-duplication de maniere appoximative.
-#   C'est a dire savoir sur quels chromosomes actuels ils se repartissent.
+__doc__ = """
+Ce script scanne les paralogues d'une espece et essaie de reconstruire les chromosomes pre-duplication de maniere appoximative.
+C'est a dire savoir sur quels chromosomes actuels ils se repartissent, et donc les alternances que l'on devra observer.
+
+TODO: Réparer en reprenant la version du M2 !!!
+"""
 
 
 ##################
@@ -129,7 +132,7 @@ def printNbParaTable():
 (noms_fichiers, options) = myTools.checkArgs( \
 	["genesList.conf", "genesAncestraux.list"],
 	[("especeDupliquee", str, ""), ("nbMinParaloguesCoupleChr", int, -1), ("coefMinAltern3", float, -1.)], \
-	"Analyse les genes paralogues d'une espece et decrit les alternances que l'on devra observer" \
+	__doc__ \
 )
 
 # Chargement des fichiers

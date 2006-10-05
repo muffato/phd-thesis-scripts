@@ -131,15 +131,9 @@ def flatten(lst):
 # Fait la liste de tous les genes de tab1 en diagonale avec ceux de tab2
 #  (eventuellement des singletons)
 #
-def extractDiags(t1, t2, byCouple, largeurTrou):
+def extractDiags(tab1, tab2, largeurTrou):
 	
-	# Permet de ne considerer que la case seule, et donc de supprimer les
-	# trous induits par de genes qui ont saute sur d'autre chromosomes
-	s = set(t1) & set(t2)
-	if byCouple:
-		(tab1,tab2) = ([x for x in t1 if x in s], [x for x in t2 if x in s])
-	else:
-		(tab1,tab2) = (t1, t2)
+	s = set(tab1) & set(tab2)
 	
 	dic1 = {}
 	for i in range(len(tab1)):
@@ -147,7 +141,6 @@ def extractDiags(t1, t2, byCouple, largeurTrou):
 	dic2 = {}
 	for i in range(len(tab2)):
 		dic2[tab2[i]] = i
-	#print >> sys.stderr, len(tab1), len(tab1), len(tab2), len(tab2), len(set(tab1) & set(tab2))
 
 	# Recherche simple de diagonale
 	diag = []
@@ -168,27 +161,31 @@ def extractDiags(t1, t2, byCouple, largeurTrou):
 	if len(cour) > 0:
 		diag.append(cour)
 
-	diag2 = [d for d in diag if len(d) == len(s & set(d))]
-	
+	diag2 = [(d,getMinMax([dic1[x] for x in d]),getMinMax([dic2[x] for x in d])) for d in diag if len(d) == len(s & set(d))]
+
 	if len(diag2) == 0:
 		return []
 
 	# On rassemble des diagonales separees par une espace pas trop large
 	diag3 = []
-	cour = diag2.pop()
+	(cour,(x1,x2),(y1,y2)) = diag2.pop()
 	while len(diag2) > 0:
-		c2 = diag2.pop()
-		(x1,x2) = getMinMax([dic1[x] for x in cour])
-		(y1,y2) = getMinMax([dic2[x] for x in cour])
-		(xx1,xx2) = getMinMax([dic1[x] for x in c2])
-		(yy1,yy2) = getMinMax([dic2[x] for x in c2])
+		(c2,(xx1,xx2),(yy1,yy2)) = diag2.pop()
 		
 		a = max(min(abs(x1-xx2), abs(xx1-x2)), min(abs(y1-yy2), abs(yy1-y2)))
 		if a <= (largeurTrou+1):
 			cour.extend(c2)
+			x1 = min(x1,xx1)
+			y1 = max(y1,yy1)
+			x2 = min(x2,xx2)
+			y2 = max(y2,yy2)
 		else:
 			diag3.append(cour)
 			cour = c2
+			x1 = xx1
+			y1 = yy1
+			x2 = xx2
+			y2 = yy2
 	diag3.append(cour)
 	return diag3
 

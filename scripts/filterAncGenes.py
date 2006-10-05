@@ -1,5 +1,9 @@
 #! /usr/bin/python2.4
 
+__doc__ = """
+Lit des familles de genes sur l'entree standard et les filtre.
+"""
+
 ##################
 # INITIALISATION #
 ##################
@@ -20,8 +24,8 @@ import myTools
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
 	["genesList.conf"],\
-	[], \
-	"Lit des familles de genes sur l'entree standard et les filtre" \
+	[("breakWhenFamilyNotComplete",bool,False)], \
+	__doc__ \
 )
 
 
@@ -34,8 +38,10 @@ for l in sys.stdin:
 
 	for g in c:
 		if g not in geneBank.dicGenes:
-			continue
-			#break
+			if options["breakWhenFamilyNotComplete"]:
+				break
+			else:
+				continue
 		(e,_,_) = geneBank.dicGenes[g]
 		score[e] += 1
 	else:
