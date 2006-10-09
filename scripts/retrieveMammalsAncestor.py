@@ -43,11 +43,12 @@ for ligne in sys.stdin:
 		# On a un couple de genes
 		i = int(c[0])
 		j = int(c[1])
-		OK = eval(c[2])
+		OK = set([x for x in eval(c[2])])
 		NO = eval(c[3])
+		#if len(OK & set(['H','D','M','W'])) >= 3 and ('O' in OK or 'C' in OK):
 		if len(OK) >= 4:
 			assoc.addLink([i,j])
-	except Exception:
+	except ValueError:
 		# On a une diagonale
 		if c[0] not in ["CO", "HM", "DW"]:
 			d = eval(c[1])
@@ -63,8 +64,8 @@ res = assoc.getGrp()
 c = 0
 n = 0
 for a in res:
-	if len(a) < 100:
-		#print >> sys.stderr, len(a),
+	if len(a) < 5:
+		print >> sys.stderr, len(a),
 		continue
 	n += len(a)
 	c += 1
@@ -72,7 +73,7 @@ for a in res:
 	#print a
 	#continue
 	for i in a:
-		#print i
+		#print chr(96+c), i
 		print chr(96+c), " ".join(genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr][i].names)
 
 print >> sys.stderr
