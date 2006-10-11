@@ -12,8 +12,10 @@ from bz2 import BZ2File
 ##################################################################
 def myOpenFile(nom):
 	nom = nom.replace("~", os.environ['HOME'])
-	if nom.endswith("bz2"):
+	if nom.endswith(".bz2"):
 		f = BZ2File(nom, 'r')
+	elif nom.endswith(".gz"):
+		f = GzipFile(nom, 'r')
 	else:
 		f = open(nom, 'r')
 	return f
