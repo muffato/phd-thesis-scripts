@@ -1,11 +1,7 @@
 package genome;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
-import java.text.ParseException;
+import java.util.Iterator;
 import java.util.List;
-import java.util.zip.GZIPOutputStream;
 
 import org.ensembl.datamodel.Gene;
 import org.ensembl.datamodel.Location;
@@ -33,10 +29,19 @@ public class EnsemblGenome {
 			CoreDriver coreDriver = CoreDriverFactory.createCoreDriverUsingDatabasePrefix("ensembldb.ensembl.org", 3306, species.toLowerCase().replaceAll(" ", "_") + "_core", "anonymous", null);
 			GeneAdaptor ad = coreDriver.getGeneAdaptor();
 			System.out.print(".");
-			Location loc = null;
-			try {
+			//Location loc = null;
+			int nb = 0;
+			Iterator it = ad.fetchIterator(true);
+			while (it.hasNext()) {
+				nb++;
+				//it.next();
+				System.err.println(species + " - " + ((Gene) it.next()).getLocation().getSeqRegionName());
+			}
+			System.out.println(nb);
+			/*try {
 				loc = new Location("chromosome");
 				genome = ad.fetch(loc);
+				
 			} catch (NullPointerException e1) {
 				try {
 					loc = new Location("group");
@@ -49,7 +54,7 @@ public class EnsemblGenome {
 			System.out.print(".");
 		} catch (ParseException e) {
 			System.out.println(" Echec");
-			throw new AdaptorException();
+			throw new AdaptorException();*/
 		} catch (NullPointerException e3) {
 			System.out.println(" Echec");
 			throw new AdaptorException();
@@ -59,19 +64,19 @@ public class EnsemblGenome {
 		}
 		
 		name = species;
-		System.out.println(" OK (" + genome.size() + " genes)");
+		//System.out.println(" OK (" + genome.size() + " genes)");
 	}
 	
 	// Export du genome dans un fichier tabulaire avec compression GZIP au vol
 	public void printData(String fileName) {
 		System.out.print("Enregistrement du genome de '" + name + "' ... ");
-		PrintStream output = null;
+		/*PrintStream output = null;
 		try {
 			output = new PrintStream(new GZIPOutputStream(new FileOutputStream(fileName)), true);
 		} catch (IOException e) {
 			System.out.println("Echec");
 			return;
-		}
+		}*/
 		int nbGenes = 0;
 		Gene g = null;
 		Location loc = null;
@@ -92,10 +97,10 @@ public class EnsemblGenome {
 			  continue;
 		  if (loc.getSeqRegionName().endsWith("_random"))
 			  continue;
-		  output.println(loc.getSeqRegionName() + "\t" + loc.getStart() + "\t" + loc.getEnd() + "\t" + loc.getStrand() + "\t" + g.getAccessionID());
+		  //output.println(loc.getSeqRegionName() + "\t" + loc.getStart() + "\t" + loc.getEnd() + "\t" + loc.getStrand() + "\t" + g.getAccessionID());
 		  nbGenes ++;
 		}
-		output.close();
+		//output.close();
 		System.out.println("OK (" + nbGenes + " genes gardes)");
 	}
 }

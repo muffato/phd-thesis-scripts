@@ -92,6 +92,7 @@ def initColor():
 
 	printColorDefinitionLine("black")
 	printColorDefinitionLine("white")
+	color["Z"] = "white"
 
 	print
 
