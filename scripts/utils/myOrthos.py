@@ -290,12 +290,13 @@ class PhylogeneticTree:
 		self.items = {}
 		self.parent = {}
 		f = open(nom, 'r')
-		for ligne in f.readlines():
-			c = ligne.split('=')
-			if len(c) != 2:
+		for ligne in f:
+			c = ligne.split('\t')
+			if len(c) < 3:
 				continue
 			nom = c[0].strip()
-			self.items[nom] = eval(c[1].strip())
+			fils = [(c[1],int(c[2])),(c[3],int(c[4]))]
+			self.items[nom] = fils
 			for (e,_) in self.items[nom]:
 				self.parent[e] = nom
 				
@@ -303,6 +304,30 @@ class PhylogeneticTree:
 		
 		print >> sys.stderr, "OK"
 		
+"""
+def loadChrAncIni(nom):
+
+	chrAnc = {}
+	espUtil = set([])
+	f = open(nom, 'r')
+	for ligne in f:
+		c = ligne.split()
+		dic = {}
+		for x in c[1:]:
+			if x[0] == '*':
+				e = x[1:]
+				dic[e] = []
+				espUtil.add(e)
+			else:
+				try:
+					x = int(x)
+				except Exception:
+					pass
+				dic[e].append(x)
+		chrAnc[c[0]] = dic
+	f.close()
+	return (chrAnc, espUtil)
+"""
 
 ##################################################################################################
 # Cette classe gere un fichier d'orthologues d'Ensembl                                           #

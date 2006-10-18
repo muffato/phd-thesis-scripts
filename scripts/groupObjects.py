@@ -1,6 +1,9 @@
 #! /usr/bin/python2.4
 
-# Interface pour la classe myCombinator qui permet de regrouper des objets
+__doc__ = """
+Lit sur l'entree standard des familles d'objets et les regroupe.
+Il ne s'agit que d'une interface pour l'objet myCombinator.
+"""
 
 import sys
 import os
@@ -8,7 +11,7 @@ import os
 sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
 import myTools
 
-(noms_fichiers, options) = myTools.checkArgs([], [("showStats", bool, False)], "Lit sur l'entree standard des familles d'objets et les regroupe")
+(noms_fichiers, options) = myTools.checkArgs([], [("showStats", bool, False)], __doc__)
 
 # MAIN #
 

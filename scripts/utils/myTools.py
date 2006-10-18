@@ -10,14 +10,14 @@ from bz2 import BZ2File
 # Cette classe ouvre le fichier en le decompressant s'il le faut #
 #   Retourne l'objet FILE et le nom complet du fichier           #
 ##################################################################
-def myOpenFile(nom):
+def myOpenFile(nom, mode):
 	nom = nom.replace("~", os.environ['HOME'])
 	if nom.endswith(".bz2"):
-		f = BZ2File(nom, 'r')
+		f = BZ2File(nom, mode)
 	elif nom.endswith(".gz"):
-		f = GzipFile(nom, 'r')
+		f = GzipFile(nom, mode)
 	else:
-		f = open(nom, 'r')
+		f = open(nom, mode)
 	return f
 
 ###################################################################
