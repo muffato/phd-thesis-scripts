@@ -24,7 +24,7 @@ class Gene:
 #######################################################################################
 def loadGenome(nom):
 	
-	f = myTools.myOpenFile(nom)
+	f = myTools.myOpenFile(nom, 'r')
 	c = f.readline().split()
 	f.close()
 	try:
@@ -111,7 +111,7 @@ class EnsemblGenome(Genome):
 		
 		print >> sys.stderr, "Chargement de", nom, "...",
 		
-		f = myTools.myOpenFile(nom)
+		f = myTools.myOpenFile(nom, 'r')
 		
 		# On lit chaque ligne
 		for ligne in f:
@@ -150,7 +150,7 @@ class AncestralGenome(Genome):
 			print >> sys.stderr, "Chargement des genes ancestraux de", nom, "... ",
 		
 		# On initialise tout
-		f = myTools.myOpenFile(nom)
+		f = myTools.myOpenFile(nom, 'r')
 
 		for ligne in f:
 			champs = ligne.split()
@@ -237,20 +237,23 @@ class GeneBank:
 		self.lstEspecesNonDup = []
 		self.lstEspecesDup = []
 		self.lstEspecesOutgroup = []
-		f = open(nom, 'r')
+		f = myTools.myOpenFile(nom, 'r')
 		
 		for ligne in f:
 
 			champs = ligne.split()
 			
+			if len(champs) != 2:
+				continue
+
 			# Un commentaire
 			if ligne[0] == '#':
 				continue
 
 			# Le nom de l'espece
-			if champs[0][-1] in ['.', '*']:
-				s = champs[0][:-1]
-				dup = champs[0][-1]
+			if champs[0][0] in ['.', '-']:
+				s = champs[0][1:]
+				dup = champs[0][0]
 			else:
 				s = champs[0]
 				dup = ""
@@ -265,7 +268,7 @@ class GeneBank:
 				self.lstEspecesNonDup.append(s)
 			elif dup == '.':
 				self.lstEspecesDup.append(s)
-			elif dup == '*':
+			elif dup == '-':
 				self.lstEspecesOutgroup.append(s)
 			self.dicEspeces[s] = g
 			
@@ -289,45 +292,34 @@ class PhylogeneticTree:
 		
 		self.items = {}
 		self.parent = {}
-		f = open(nom, 'r')
+		ages = {}
+		f = myTools.myOpenFile(nom, 'r')
 		for ligne in f:
-			c = ligne.split('\t')
-			if len(c) < 3:
+			c = ligne.split()
+			if len(c) < 4:
 				continue
 			nom = c[0].strip()
-			fils = [(c[1],int(c[2])),(c[3],int(c[4]))]
-			self.items[nom] = fils
-			for (e,_) in self.items[nom]:
+			age = int(c[1])
+			ages[nom] = age
+			self.items[nom] = []
+			for e in c[2:]:
 				self.parent[e] = nom
-				
+				if e in ages:
+					self.items[nom].append( (e,age-ages[e]) )
+				else:
+					self.items[nom].append( (e,age) )
 		self.root = nom
 		
 		print >> sys.stderr, "OK"
-		
-"""
-def loadChrAncIni(nom):
+	
+	def getSpecies(self, anc):
 
-	chrAnc = {}
-	espUtil = set([])
-	f = open(nom, 'r')
-	for ligne in f:
-		c = ligne.split()
-		dic = {}
-		for x in c[1:]:
-			if x[0] == '*':
-				e = x[1:]
-				dic[e] = []
-				espUtil.add(e)
-			else:
-				try:
-					x = int(x)
-				except Exception:
-					pass
-				dic[e].append(x)
-		chrAnc[c[0]] = dic
-	f.close()
-	return (chrAnc, espUtil)
-"""
+		if anc not in self.items:
+			return [anc]
+		else:
+			return myMaths.flatten([self.getSpecies(e) for (e,_) in self.items[anc]])
+
+	
 
 ##################################################################################################
 # Cette classe gere un fichier d'orthologues d'Ensembl                                           #
@@ -353,7 +345,7 @@ class EnsemblTwoSpeciesOrthos:
 		j = 0
 
 		# On lit les lignes
-		f = myTools.myOpenFile(nom)
+		f = myTools.myOpenFile(nom, 'r')
 		self.nom = nom
 
 		for ligne in f:
@@ -534,7 +526,7 @@ class ConcordeFile:
 
 	def __init__(self, nom):
 		tmp = []
-		f = open(nom)
+		f = myTools.myOpenFile(nom, 'r')
 		for ligne in f:
 			for x in ligne.split():
 				tmp.append(int(x))

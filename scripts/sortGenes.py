@@ -79,9 +79,9 @@ def distInterGenes(tg1, tg2):
 	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
 )
 
-geneBank = myOrthos.GeneBank(noms_fichiers[0])
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], True)
 phylTree = myOrthos.PhylogeneticTree(noms_fichiers[2])
+geneBank = myOrthos.GeneBank(noms_fichiers[0], phylTree.getSpecies(phylTree.root))
+genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], True)
 
 if options["nomAncetre"] not in phylTree.items and options["nomAncetre"] not in geneBank.dicEspeces:
 	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["nomAncetre"]

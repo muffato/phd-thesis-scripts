@@ -61,7 +61,7 @@ def printColorDefinitionLine(C):
 #
 def initColor():
 
-	f = myTools.myOpenFile("~/work/scripts/utils/rgb.txt")
+	f = myTools.myOpenFile("~/work/scripts/utils/rgb.txt", 'r')
 	for l in f:
 		c = l.split()
 		colorTable["".join(c[6:])] = tuple([float(x) for x in c[:3]])

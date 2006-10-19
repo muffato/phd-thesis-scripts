@@ -174,7 +174,6 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 def loadChrAncIni(nom):
 
 	chrAnc = {}
-	espUtil = set([])
 	f = open(nom, 'r')
 	for ligne in f:
 		c = ligne.split()
@@ -183,7 +182,6 @@ def loadChrAncIni(nom):
 			if x[0] == '*':
 				e = x[1:]
 				dic[e] = []
-				espUtil.add(e)
 			else:
 				try:
 					x = int(x)
@@ -192,28 +190,30 @@ def loadChrAncIni(nom):
 				dic[e].append(x)
 		chrAnc[c[0]] = dic
 	f.close()
-	return (chrAnc, espUtil)
+	return chrAnc
 
 # MAIN #
 
 # Arguments
 (noms_fichiers, options) = myTools.checkArgs( \
 	["genesList.conf", "genesAncestraux.list", "draftPreDupGenome.conf"],
-	[("precisionChrAnc", int, 1000000)], \
+	[("precisionChrAnc", int, 1000000), ("especesNonDup",str,""), ("especesDup",str,"")], \
 	__doc__ \
 )
 
 # Chargement des fichiers
-geneBank = myOrthos.GeneBank(noms_fichiers[0])
+especesNonDup = options["especesNonDup"].split(',')
+especesDup = options["especesDup"].split(',')
+geneBank = myOrthos.GeneBank(noms_fichiers[0], especesNonDup+especesDup)
 genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], False)
 lstGenesAnc = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
 (para,orthos) = buildParaOrtho(lstGenesAnc, geneBank)
-(chrAnc, especesDupliqueesUtilisees) = loadChrAncIni(noms_fichiers[2])
+chrAnc = loadChrAncIni(noms_fichiers[2])
 
 # On colorie les matrices actuelles
 blocs = {}
 for e in geneBank.lstEspecesNonDup:
-	blocs[e] = colorAncestr(e, geneBank, para, orthos, especesDupliqueesUtilisees)
+	blocs[e] = colorAncestr(e, geneBank, para, orthos, geneBank.lstEspecesDup)
 
 # On colorie les genes ancestraux
 print >> sys.stderr, "Synthese des genes ancestraux ",

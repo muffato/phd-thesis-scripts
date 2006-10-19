@@ -4,7 +4,7 @@ __doc__ = """
 Ce script scanne les paralogues d'une espece et essaie de reconstruire les chromosomes pre-duplication de maniere appoximative.
 C'est a dire savoir sur quels chromosomes actuels ils se repartissent, et donc les alternances que l'on devra observer.
 
-TODO: Réparer en reprenant la version du M2 !!!
+TODO: Reparer en reprenant la version du M2 !!!
 """
 
 
@@ -136,7 +136,7 @@ def printNbParaTable():
 )
 
 # Chargement des fichiers
-geneBank = myOrthos.GeneBank(noms_fichiers[0])
+geneBank = myOrthos.GeneBank(noms_fichiers[0], [options["especeDupliquee"]])
 if options["especeDupliquee"] not in geneBank.lstEspecesDup:
 	print >> sys.stderr, "-ERREUR- Pas de -%(especeDupliquee)s- dans la liste des especes dupliquees ..." % options
 	sys.exit(1)
