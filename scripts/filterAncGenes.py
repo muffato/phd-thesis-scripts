@@ -11,10 +11,8 @@ Lit des familles de genes sur l'entree standard et les filtre.
 # Librairies
 import sys
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
+import utils.myGenomes
+import utils.myTools
 
 
 ########
@@ -22,14 +20,14 @@ import myTools
 ########
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( \
+(noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf"],\
 	[("breakWhenFamilyNotComplete",bool,False)], \
 	__doc__ \
 )
 
 
-geneBank = myOrthos.GeneBank(noms_fichiers[0])
+geneBank = utils.myGenomes.GeneBank(noms_fichiers[0])
 
 for l in sys.stdin:
 	c = l.split()

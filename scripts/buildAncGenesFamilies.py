@@ -1,7 +1,8 @@
 #! /usr/bin/python2.4
 
 __doc__ = """
-Construit les fichiers de genes ancestraux pour tous les noeuds de l'arbre.
+Lit l'arbre phylogenetique et construit les fichiers de genes ancestraux
+ pour tous les noeuds en utilisant les fichiers d'orthologues de Biomart
 """
 
 ##################
@@ -11,11 +12,9 @@ Construit les fichiers de genes ancestraux pour tous les noeuds de l'arbre.
 # Librairies
 import sys
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
-import myMaths
+import utils.myGenomes
+import utils.myTools
+import utils.myMaths
 
 
 ########
@@ -23,17 +22,16 @@ import myMaths
 ########
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( \
-	["genesList.conf", "phylTree.conf"],\
+(noms_fichiers, options) = utils.myTools.checkArgs( \
+	["genesList.conf", "phylTree.conf"], \
 	[("orthoFile",str,"/users/ldog/muffato/work/data/orthos/orthos.%s.%s.list.bz2"), \
 	("ancGenesFile",str,"/users/ldog/muffato/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("one2oneFile",str,"/users/ldog/muffato/work/data/ancGenes/one2one.%s.list.bz2")], \
 	__doc__ \
 )
 
-geneBank = myOrthos.GeneBank(noms_fichiers[0])
-phylTree = myOrthos.PhylogeneticTree(noms_fichiers[1])
-
+phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers[1])
+geneBank = utils.myGenomes.GeneBank(noms_fichiers[0], phylTree.getSpecies(phylTree.root))
 
 for anc in phylTree.items:
 	esp = phylTree.getSpecies(anc)
@@ -46,12 +44,12 @@ for anc in phylTree.items:
 	ligne += " | awk '{print $1, $4}' | /users/ldog/muffato/work/scripts/groupObjects.py | bzip2 > " + (options["ancGenesFile"] % anc)
 	
 	print "Familles d'orthologues de", anc, ":", esp
-	#os.system(ligne)
+	os.system(ligne)
 	
 	print "Familles de one2one de", anc, ":", esp
 
-	f = myTools.myOpenFile(options["ancGenesFile"] % anc, 'r')
-	ff = myTools.myOpenFile(options["one2oneFile"] % anc, 'w')
+	f = utils.myTools.myOpenFile(options["ancGenesFile"] % anc, 'r')
+	ff = utils.myTools.myOpenFile(options["one2oneFile"] % anc, 'w')
 	
 	for l in f:
 		c = l.split()

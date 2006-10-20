@@ -15,11 +15,9 @@ import sys
 import math
 import random
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
-import myMaths
+import utils.myGenomes
+import utils.myTools
+import utils.myMaths
 
 # FONCTIONS #
 
@@ -163,7 +161,7 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 		nb = dict([(x,(0,0,0)) for x in chrAncGenes])
 		for (s,l,c) in genesAncCol[i]:
 			nb[c] = (nb[c][0]+1, max(nb[c][1], l), max(nb[c][2], s))
-		c = myMaths.sortDict(nb)[0]
+		c = utils.myMaths.sortDict(nb)[0]
 		
 		chrAncGenes[c].append(i)
 
@@ -195,7 +193,7 @@ def loadChrAncIni(nom):
 # MAIN #
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( \
+(noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "genesAncestraux.list", "draftPreDupGenome.conf"],
 	[("precisionChrAnc", int, 1000000), ("especesNonDup",str,""), ("especesDup",str,"")], \
 	__doc__ \
@@ -204,9 +202,9 @@ def loadChrAncIni(nom):
 # Chargement des fichiers
 especesNonDup = options["especesNonDup"].split(',')
 especesDup = options["especesDup"].split(',')
-geneBank = myOrthos.GeneBank(noms_fichiers[0], especesNonDup+especesDup)
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], False)
-lstGenesAnc = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
+geneBank = utils.myGenomes.GeneBank(noms_fichiers[0], especesNonDup+especesDup)
+genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers[1], False)
+lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
 (para,orthos) = buildParaOrtho(lstGenesAnc, geneBank)
 chrAnc = loadChrAncIni(noms_fichiers[2])
 

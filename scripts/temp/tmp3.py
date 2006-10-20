@@ -10,11 +10,9 @@ import sys
 import math
 import random
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
-import myMaths
+import utils.myOrthos
+import utils.myTools
+import utils.myMaths
 
 
 ########
@@ -23,7 +21,7 @@ import myMaths
 
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( \
+(noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf","genomeOutgroup", "orthologuesList"], \
 	[("especesUtilisees",str,"HDWM"), ("seuilLongueurMin",float,0.1), ("seuilIdentiteMin",float,33), ("seuilIdentiteMin2",float,33)], \
 	"Reconstruit le genome de l'ancetre de 1 et 2 a partir de l'outgroup et des genes de cet ancetre" \
@@ -31,9 +29,9 @@ import myMaths
 
 
 # 1. On lit tous les fichiers
-geneBank = myOrthos.GeneBank(noms_fichiers[0], options["especesUtilisees"])
-genomeOutgroup = myOrthos.loadGenome(noms_fichiers[-2])
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[-1], False)
+geneBank = utils.myOrthos.GeneBank(noms_fichiers[0], options["especesUtilisees"])
+genomeOutgroup = utils.myOrthos.loadGenome(noms_fichiers[-2])
+genesAnc = utils.myOrthos.AncestralGenome(noms_fichiers[-1], False)
 
 
 def extractSyntenies(g1, g2, genesAnc):
@@ -45,7 +43,7 @@ def extractSyntenies(g1, g2, genesAnc):
 		tmp = []
 		for i in range(len(g1.lstGenes[c])):
 		
-			tg = myMaths.flatten([genesAnc.lstGenes[cc][ii].names for (cc,ii) in [genesAnc.dicGenes[g] for g in g1.lstGenes[c][i].names if g in genesAnc.dicGenes]])
+			tg = utils.myMaths.flatten([genesAnc.lstGenes[cc][ii].names for (cc,ii) in [genesAnc.dicGenes[g] for g in g1.lstGenes[c][i].names if g in genesAnc.dicGenes]])
 			
 			for g in tg:
 				if g in g2.dicGenes:
@@ -69,7 +67,7 @@ def extractSyntenies(g1, g2, genesAnc):
 
 def combineSynt(synt1, synt2, seuil):
 
-	assoc = myTools.myCombinator([])
+	assoc = utils.myTools.myCombinator([])
 	
 	for i in range(len(synt1)):
 		a = synt1[i]
@@ -88,8 +86,8 @@ def combineSynt(synt1, synt2, seuil):
 	res1 = []
 	res2 = []
 	for grp in assoc.getGrp():
-		res1.append(set(myMaths.flatten([synt1[x] for x in grp if type(x) == int])))
-		res2.append(set(myMaths.flatten([synt2[int(x)] for x in grp if type(x) == str])))
+		res1.append(set(utils.myMaths.flatten([synt1[x] for x in grp if type(x) == int])))
+		res2.append(set(utils.myMaths.flatten([synt2[int(x)] for x in grp if type(x) == str])))
 	
 	res = res1 #[x for x in res1 if len(x) >= 10]
 	print >> sys.stderr, ">", len(res), sum([len(x) for x in res])
@@ -132,8 +130,8 @@ def buildAncestrGenome(genomesList, lstGenes):
 					break
 
 	print >> sys.stderr, "2.",
-	assoc = myTools.myCombinator([set([u]) for u in xrange(len(lstGenes))])
-	for (i,j) in myTools.myMatrixIterator(len(lstGenes), len(lstGenes), myTools.myMatrixIterator.StrictUpperMatrix):
+	assoc = utils.myTools.myCombinator([set([u]) for u in xrange(len(lstGenes))])
+	for (i,j) in utils.myTools.myMatrixIterator(len(lstGenes), len(lstGenes), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 		# Si les deux genes sont deja rassembles,
 		#   on peut passer a la suite
 		if assoc.dic[i] == assoc.dic[j]:
@@ -160,7 +158,7 @@ def buildAncestrGenome(genomesList, lstGenes):
 	return assoc
 
 
-assoc = buildAncestrGenome(geneBank.dicEspeces, genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr])
+assoc = buildAncestrGenome(geneBank.dicEspeces, genesAnc.lstGenes[utils.myOrthos.AncestralGenome.defaultChr])
 
 #res = assoc.getGrp()
 
@@ -237,7 +235,7 @@ for a in res:
 	#print a
 	for i in a:
 		#print i
-		print chr(97+c), " ".join(genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr][i].names)
+		print chr(97+c), " ".join(genesAnc.lstGenes[utils.myOrthos.AncestralGenome.defaultChr][i].names)
 	n += len(a)
 	c += 1
 

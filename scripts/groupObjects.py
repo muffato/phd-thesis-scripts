@@ -7,15 +7,13 @@ Il ne s'agit que d'une interface pour l'objet myCombinator.
 
 import sys
 import os
+import utils.myTools
 
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myTools
-
-(noms_fichiers, options) = myTools.checkArgs([], [("showStats", bool, False)], __doc__)
+(noms_fichiers, options) = utils.myTools.checkArgs([], [("showStats", bool, False)], __doc__)
 
 # MAIN #
 
-comb = myTools.myCombinator([])
+comb = utils.myTools.myCombinator([])
 
 # On scanne toutes les lignes
 for l in sys.stdin:

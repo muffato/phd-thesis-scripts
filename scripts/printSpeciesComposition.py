@@ -12,11 +12,9 @@ Lit des familles de genes et affiche la composition de chaque famille en terme d
 import string
 import sys
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
-import myPsOutput
+import utils.myGenomes
+import utils.myTools
+import mutils.yPsOutput
 
 
 ########
@@ -24,13 +22,13 @@ import myPsOutput
 ########
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( \
+(noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf"],\
 	[("speciesList",str,"")], \
 	__doc__ \
 )
 
-geneBank = myOrthos.GeneBank(noms_fichiers[0], [e for e in options["speciesList"]])
+geneBank = utils.myGenomes.GeneBank(noms_fichiers[0], [e for e in options["speciesList"]])
 
 for s in sys.stdin:
 	c = s.split()

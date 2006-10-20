@@ -12,32 +12,30 @@ Dessine un genome en coloriant ses genes a partir d'un autre genome reference.
 import string
 import sys
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
-import myMaths
-import myPsOutput
+import utils.myGenomes
+import utils.myTools
+import utils.myMaths
+import utils.myPsOutput
 
 ########
 # MAIN #
 ########
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( \
+(noms_fichiers, options) = utils.myTools.checkArgs( \
 	["GenomeADessiner", "GenomeReference"], \
 	[("includeGaps", bool, False), ("defaultColor", str, "black"), ("orthologuesList", str, "")], \
 	__doc__ \
 )
 
-genome1 = myOrthos.loadGenome(noms_fichiers[0])
-genome2 = myOrthos.loadGenome(noms_fichiers[1])
+genome1 = utils.myGenomes.loadGenome(noms_fichiers[0])
+genome2 = utils.myGenomes.loadGenome(noms_fichiers[1])
 if options["orthologuesList"] != "":
-	genesAnc = myOrthos.AncestralGenome(options["orthologuesList"], False)
+	genesAnc = utils.myGenomes.AncestralGenome(options["orthologuesList"], False)
 
 # On ecrit le PostScipt
-myPsOutput.printPsHeader()
-myPsOutput.initColor()
+utils.myPsOutput.printPsHeader()
+utils.myPsOutput.initColor()
 
 # On construit les couleurs
 res = {}
@@ -48,17 +46,18 @@ for c in genome1.lstChr:
 		
 		tg = gene.names
 		if options["orthologuesList"] != "":
-			tg = myMaths.flatten([genesAnc.lstGenes[cc][ii].names for (cc,ii) in [genesAnc.dicGenes[g] for g in tg if g in genesAnc.dicGenes]])
+			tg = mutils.yMaths.flatten([genesAnc.lstGenes[cc][ii].names for (cc,ii) in [genesAnc.dicGenes[g] for g in tg if g in genesAnc.dicGenes]])
 		
 		for g in tg:
 			if g in genome2.dicGenes:
 				col = genome2.dicGenes[g][0]
-				col = myPsOutput.getColor(str(col), options["defaultColor"])
+				col = utils.myPsOutput.getColor(str(col), options["defaultColor"])
 				break
 		else:
 			if not options["includeGaps"]:
 				continue
 			col = options["defaultColor"]
+			#print >> sys.stderr, gene.names
 		res[c].append(col)
 
 # On dessine
@@ -69,7 +68,7 @@ y0 = 1.
 
 for c in genome1.lstChr:
 	
-	myPsOutput.drawText(xx, y0, str(c), "black")
+	utils.myPsOutput.drawText(xx, y0, str(c), "black")
 	y = y0 + 1
 	
 	last = ""
@@ -79,13 +78,13 @@ for c in genome1.lstChr:
 			nb += 1
 		else:
 			if nb != 0:
-				myPsOutput.drawBox(xx, y, dx, nb/dy, last, last)
+				utils.myPsOutput.drawBox(xx, y, dx, nb/dy, last, last)
 				y += nb/dy
 			last = col
 			nb = 1
 	if nb != 0:
-		myPsOutput.drawBox(xx, y, dx, nb/dy, last, last)
+		utils.myPsOutput.drawBox(xx, y, dx, nb/dy, last, last)
 	xx += (5.*dx)/3.
 
-myPsOutput.printPsFooter()
+utils.myPsOutput.printPsFooter()
 

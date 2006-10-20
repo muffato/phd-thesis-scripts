@@ -10,11 +10,9 @@ import sys
 import math
 import random
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
-import myMaths
+import utils.myOrthos
+import utils.myTools
+import utils.myMaths
 
 
 ########
@@ -23,7 +21,7 @@ import myMaths
 
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( \
+(noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genome1", "genome2", "genomeOutgroup", "orthologuesList"], \
 	[("seuilLongueurMin", float, 0.1), ("seuilIdentiteMin", float, 33), ("seuilIdentiteMin2", float, 33), ("espece1", str, 'H'), ("espece2", str, 'C')], \
 	"Reconstruit le genome de l'ancetre de 1 et 2 a partir de l'outgroup et des genes de cet ancetre" \
@@ -31,15 +29,15 @@ import myMaths
 
 
 # 1. On lit tous les fichiers
-genome1 = myOrthos.loadGenome(noms_fichiers[0])
-genome2 = myOrthos.loadGenome(noms_fichiers[1])
-genomeOutgroup = myOrthos.loadGenome(noms_fichiers[2])
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[3], False)
+genome1 = utils.myOrthos.loadGenome(noms_fichiers[0])
+genome2 = utils.myOrthos.loadGenome(noms_fichiers[1])
+genomeOutgroup = utils.myOrthos.loadGenome(noms_fichiers[2])
+genesAnc = utils.myOrthos.AncestralGenome(noms_fichiers[3], False)
 
 
 # La table d'association geneAncestral -> genetOugroup
 assocGeneOutgroup = {}
-for g in genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]:
+for g in genesAnc.lstGenes[utils.myOrthos.AncestralGenome.defaultChr]:
 	a = set([])
 	for s in g.names:
 		if s in genomeOutgroup.dicGenes:

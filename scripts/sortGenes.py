@@ -6,11 +6,9 @@
 # Librairies
 import sys
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
-import myMaths
+import utils.myGenomes
+import utils.myTools
+import utils.myMaths
 
 
 # FONCTIONS #
@@ -73,15 +71,15 @@ def distInterGenes(tg1, tg2):
 	return buildDistTree(phylTree, dic)[options["nomAncetre"]]
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( \
+(noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "genomeAncestral", "phylTree.conf"], \
 	[("nomAncetre", str, ""), ("seuilMaxDistInterGenes", int, 0), ("nbConcorde", int, -1), ("nbDecimales", int, 2), ("penalite", int, 100000000)], \
 	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
 )
 
-phylTree = myOrthos.PhylogeneticTree(noms_fichiers[2])
-geneBank = myOrthos.GeneBank(noms_fichiers[0], phylTree.getSpecies(phylTree.root))
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], True)
+phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers[2])
+geneBank = utils.myGenomes.GeneBank(noms_fichiers[0], phylTree.getSpecies(phylTree.root))
+genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers[1], True)
 
 if options["nomAncetre"] not in phylTree.items and options["nomAncetre"] not in geneBank.dicEspeces:
 	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["nomAncetre"]
@@ -129,7 +127,7 @@ for c in genesAnc.lstChr:
 	lstTot = []
 	for i in range(nbConcorde):
 		os.system('/users/ldog/muffato/work/scripts/concorde -m -x ' + nom + ' >&2')
-		lstTot.append(myOrthos.ConcordeFile(nom + ".sol"))
+		lstTot.append(utils.myBioObjects.ConcordeFile(nom + ".sol"))
 		os.system('rm -f 0%s* %s.*' % (nom,nom) )
 		sys.stderr.write(".")
 

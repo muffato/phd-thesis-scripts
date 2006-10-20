@@ -10,10 +10,8 @@ import sys
 import math
 import random
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
+import utils.myOrthos
+import utils.myTools
 
 
 ########
@@ -22,7 +20,7 @@ import myTools
 
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( \
+(noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "genomeOutgroup"], \
 	[("seuilLongueurMin", float, 0.1), ("seuilIdentiteMin", float, 33), ("espece1", str, 'H'), ("espece2", str, 'P')], \
 	"" \
@@ -30,11 +28,11 @@ import myTools
 
 
 # 1. On lit tous les fichiers
-geneBank = myOrthos.GeneBank(noms_fichiers[0], [options["espece1"], options["espece2"]])
+geneBank = utils.myOrthos.GeneBank(noms_fichiers[0], [options["espece1"], options["espece2"]])
 if len(geneBank.dicEspeces) != 2:
 	print >> sys.stderr, "Can't retrieve %s and %s in %s" % (options["espece1"], options["espece2"], noms_fichiers[0])
 	sys.exit(1)
-genomeAnc = myOrthos.AncestralGenome(noms_fichiers[1], True)
+genomeAnc = utils.myOrthos.AncestralGenome(noms_fichiers[1], True)
 
 #options["seuilIdentiteMin"] = float(options["seuilIdentiteMin"]) / 100.
 

@@ -10,11 +10,9 @@ import sys
 import math
 import random
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
-import myMaths
+import utils.myGenomes
+import utils.myTools
+import utils.myMaths
 
 
 ########
@@ -23,7 +21,7 @@ import myMaths
 
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( \
+(noms_fichiers, options) = utils.myTools.checkArgs( \
 	["geneList.conf", "genomeMammals", "genomeOutgroup", "orthologuesList"], \
 	[], \
 	"Extrait tous les groupes de genes qui sont sur un meme chromosome de maniere tres stringente" \
@@ -31,10 +29,10 @@ import myMaths
 
 
 # 1. On lit tous les fichiers
-geneBank = myOrthos.GeneBank(noms_fichiers[0], "OC")
-genomeMammals = myOrthos.AncestralGenome(noms_fichiers[1], True)
-genomeOutgroup = myOrthos.AncestralGenome(noms_fichiers[2], True)
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[3], False)
+geneBank = utils.myGenomes.GeneBank(noms_fichiers[0], "OC")
+genomeMammals = utils.myGenomes.AncestralGenome(noms_fichiers[1], True)
+genomeOutgroup = utils.myGenomes.AncestralGenome(noms_fichiers[2], True)
+genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers[3], False)
 
 def buildAncestrGenome(genomesList, lstGenes):
 
@@ -55,7 +53,7 @@ def buildAncestrGenome(genomesList, lstGenes):
 					break
 
 	print >> sys.stderr, "2.",
-	for (i,j) in myTools.myMatrixIterator(len(lstGenes), len(lstGenes), myTools.myMatrixIterator.StrictUpperMatrix):
+	for (i,j) in utils.myTools.myMatrixIterator(len(lstGenes), len(lstGenes), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 		#nbOK = set([])
 		#nbNO = set([])
 		#for e in genomesList:
@@ -78,7 +76,7 @@ def buildAncestrGenome(genomesList, lstGenes):
 
 	print >> sys.stderr, "OK"
 
-lstGenes = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
+lstGenes = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
 geneBank.dicEspeces['T'] = genomeOutgroup
 geneBank.dicEspeces['A'] = genomeMammals
 buildAncestrGenome(geneBank.dicEspeces, lstGenes)

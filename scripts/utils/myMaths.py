@@ -53,6 +53,8 @@ def ecartType(lst):
 # Min et max
 #
 def getMinMax(lst):
+	if len(lst) == 0:
+		return (None, None)
 	mn = lst[0]
 	mx = mn
 	for x in lst:
@@ -131,46 +133,50 @@ def flatten(lst):
 # Fait la liste de tous les genes de tab1 en diagonale avec ceux de tab2
 #  (eventuellement des singletons)
 #
-def extractDiags(tab1, tab2, largeurTrou):
+def extractDiags(tab1, dic2, largeurTrou):
 	
-	s = set(tab1) & set(tab2)
-	
-	dic1 = {}
-	for i in range(len(tab1)):
-		dic1[tab1[i]] = i
-	dic2 = {}
-	for i in range(len(tab2)):
-		dic2[tab2[i]] = i
+	#dic2 = {}
+	#for i in range(len(tab2)):
+	#	x = tab2[i]
+	#	if x in dic2:
+	#		dic2[x].append(i)
+	#	else:
+	#		dic2[x] = [i]
 
-	# Recherche simple de diagonale
 	diag = []
 	cour = []
-	lastI2 = -2
-	for g1 in tab1:
-		try:
-			i2 = dic2[g1]
-		except KeyError:
-			i2 = lastI2 + 5
-		# Le point d'apres doit se trouver a une distance de 1
-		if abs(i2-lastI2) > 1:
-			if len(cour) > 0:
-				diag.append(cour)
+	lastI2 = []
+	listI2 = []
+	for i1 in xrange(len(tab1)):
+		g1 = tab1[i1]
+		presI2 = dic2.get(g1, [])
+		
+		for i2 in presI2:
+			# Est-ce qu'on est dans le prolongement d'une diagonale
+			if ((i2+1) in lastI2) or ((i2-1) in lastI2):
+				listI2.append(i2)
+				break
+		else:
+			# On n'a pas trouve de i2 satisfaisant, c'est la fin de la diagonale
+			if len(cour) > 0 and len(listI2) > 0:
+				diag.append( (cour,(deb1,fin1),getMinMax(listI2)) )
+			deb1 = i1
 			cour = []
-		lastI2 = i2
+			listI2 = presI2
 		cour.append(g1)
-	if len(cour) > 0:
-		diag.append(cour)
-
-	diag2 = [(d,getMinMax([dic1[x] for x in d]),getMinMax([dic2[x] for x in d])) for d in diag if len(d) == len(s & set(d))]
-
-	if len(diag2) == 0:
+		lastI2 = presI2
+		fin1 = i1
+	
+	if len(cour) > 0 and len(listI2) > 0:
+		diag.append( (cour,(deb1,fin1),getMinMax(listI2)) )
+	elif len(diag) == 0:
 		return []
 
 	# On rassemble des diagonales separees par une espace pas trop large
-	diag3 = []
-	(cour,(x1,x2),(y1,y2)) = diag2.pop()
-	while len(diag2) > 0:
-		(c2,(xx1,xx2),(yy1,yy2)) = diag2.pop()
+	combiDiag = []
+	(cour,(x1,x2),(y1,y2)) = diag.pop()
+	while len(diag) > 0:
+		(c2,(xx1,xx2),(yy1,yy2)) = diag.pop()
 		
 		a = max(min(abs(x1-xx2), abs(xx1-x2)), min(abs(y1-yy2), abs(yy1-y2)))
 		if a <= (largeurTrou+1):
@@ -180,15 +186,63 @@ def extractDiags(tab1, tab2, largeurTrou):
 			x2 = min(x2,xx2)
 			y2 = max(y2,yy2)
 		else:
-			diag3.append(cour)
+			combiDiag.append(cour)
 			cour = c2
 			x1 = xx1
 			y1 = yy1
 			x2 = xx2
 			y2 = yy2
-	diag3.append(cour)
-	return diag3
+	combiDiag.append(cour)
+	return combiDiag
 
+
+def translateGenome(genome, default, genesAnc):
+
+	# On construit les couleurs
+	newGen = {}
+	for c in genome.lstChr:
+
+		newChr = []
+		for gene in genome.lstGenes[c]:
+			
+			for g in gene.names:
+				if g in genesAnc.dicGenes:
+					newChr.append( genesAnc.dicGenes[g][1] )
+					break
+			else:
+				newChr.append(default)
+		newGen[c] = newChr
+	return newGen
+
+
+def iterateDiags(genome1, genome2, keepGaps, threshold, callBackFunc):
+
+	#genome1 = translateGenome(g1, "genome1")
+	#genome2 = translateGenome(g2, "genome2")
+
+	for c1 in genome1:
+	
+		tab1 = genome1[c1]
+		dic1 = {}
+		for i in range(len(tab1)):
+			x = tab1[i]
+			if x in dic1:
+				dic1[x].append(i)
+			else:
+				dic1[x] = [i]
+
+		for c2 in genome2:
+			if not keepGaps:
+				s1 = set(genome1[c1])
+				s2 = set(genome2[c2])
+				t1 = [x for x in genome1[c1] if x in s2]
+				t2 = [x for x in genome2[c2] if x in s1]
+			else:
+				t1 = genome1[c1]
+				t2 = genome2[c2]
+			diags = extractDiags(t2, dic1, threshold)
+			for d in diags:
+				callBackFunc(c1, c2, len(diags), d)
 
 
 def unique(s):

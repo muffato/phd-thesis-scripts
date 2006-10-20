@@ -5,7 +5,6 @@
 import myTools
 
 # Les definitions des couleurs
-colorTable = {}
 color = {}
 
 
@@ -52,7 +51,7 @@ def printPsFooter():
 # Definit une nouvelle couleur dans le fichier PostScript
 #
 def printColorDefinitionLine(C):
-	(r,g,b) = colorTable[C]
+	(r,g,b) = {}[C]
 	print "/%s [%f %f %f] def" % (C, r,g,b)
 
 #
@@ -64,7 +63,7 @@ def initColor():
 	f = myTools.myOpenFile("~/work/scripts/utils/rgb.txt", 'r')
 	for l in f:
 		c = l.split()
-		colorTable["".join(c[6:])] = tuple([float(x) for x in c[:3]])
+		{}["".join(c[6:])] = tuple([float(x) for x in c[:3]])
 
 	f.close()
 
@@ -105,7 +104,7 @@ def getColor(s, d):
 	if s in color:
 		return color[s]
 
-	elif s in colorTable:
+	elif s in {}:
 		printColorDefinitionLine(s)
 		return s
 
@@ -114,7 +113,7 @@ def getColor(s, d):
 		g = float(s[5:8])
 		b = float(s[9:12])
 		
-		colorTable["tmp"] = (r/255., g/255., b/255.)
+		{}["tmp"] = (r/255., g/255., b/255.)
 		printColorDefinitionLine("tmp")
 		return "tmp"
 	else:
@@ -128,8 +127,8 @@ def getColor(s, d):
 
 def drawLine(X, Y, L, H, C):
 	print "newpath"
-	if C in colorTable:
-		print "%f %f %f setrgbcolor" % colorTable[C]
+	if C in {}:
+		print "%f %f %f setrgbcolor" % {}[C]
 		
 	print X, "cm", Y, "cm", "moveto"
 	print L, "cm", H, "cm", "rlineto"
@@ -139,8 +138,8 @@ def drawLine(X, Y, L, H, C):
 
 def drawBox(X, Y, L, H, Cb, Cr):
 	print "newpath"
-	if Cb in colorTable:
-		print "%f %f %f setrgbcolor" % colorTable[Cb]
+	if Cb in {}:
+		print "%f %f %f setrgbcolor" % {}[Cb]
 		
 	print X, "cm", Y, "cm", "moveto"
 	print L, "cm", 0, "cm", "rlineto"

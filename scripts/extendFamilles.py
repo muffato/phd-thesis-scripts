@@ -11,14 +11,12 @@ Rajoute a chaque famille les genes associes dans le genome ancestral passe en ar
 # Librairies
 import sys
 import os
+import utils.myGenomes
+import utils.myTools
 
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
+(noms_fichiers, options) = utils.myTools.checkArgs(["genesAncestraux"], [], __doc__)
 
-(noms_fichiers, options) = myTools.checkArgs(["genesAncestraux"], [], __doc__)
-
-genesAnc = myOrthos.loadGenome(noms_fichiers[0])
+genesAnc = utils.myGenomes.loadGenome(noms_fichiers[0])
 
 lst = set([])
 nb = 0

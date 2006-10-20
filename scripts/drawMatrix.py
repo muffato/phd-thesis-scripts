@@ -12,11 +12,9 @@ Dessine la matrice des genes orthologues entre deux genomes.
 import string
 import sys
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
-import myPsOutput
+import utils.myGenomes
+import utils.myTools
+import utils.myPsOutput
 
 
 ########
@@ -25,21 +23,21 @@ import myPsOutput
 
 # Arguments
 # TODO Couleurs
-(noms_fichiers, options) = myTools.checkArgs( \
+(noms_fichiers, options) = utils.myTools.checkArgs( \
 	["GenomeADessiner", "GenomeReference"], \
 	[("taillePoint", float, -1), ("useColor", str, "black"), ("orthologuesList", str, "")], \
 	__doc__
 )
 
 # Chargement des fichiers
-genome1 = myOrthos.loadGenome(noms_fichiers[0])
-genome2 = myOrthos.loadGenome(noms_fichiers[1])
+genome1 = utils.myGenomes.loadGenome(noms_fichiers[0])
+genome2 = utils.myGenomes.loadGenome(noms_fichiers[1])
 if options["orthologuesList"] != "":
-	genesAnc = myOrthos.AncestralGenome(options["orthologuesList"], False)
+	genesAnc = utils.myGenomes.AncestralGenome(options["orthologuesList"], False)
 else:
 	genesAnc = genome2
 try:
-	colors = myOrthos.loadGenome(options["useColor"])
+	colors = utils.myGenomes.loadGenome(options["useColor"])
 except Exception:
 	colors = options["useColor"]
 
@@ -54,8 +52,8 @@ else:
 
 
 # On ecrit l'entete du PostScipt
-myPsOutput.printPsHeader()
-myPsOutput.initColor()
+utils.myPsOutput.printPsHeader()
+utils.myPsOutput.initColor()
 
 
 def prepareGenome(genome, nb, func):
@@ -76,9 +74,9 @@ def prepareGenome(genome, nb, func):
 
 # On affiche la grille et on associe "nom de gene" <-> "position sur la grille"
 print >> sys.stderr, "Tri des genomes ",
-lstNum1 = prepareGenome(genome1, nb1, lambda y: myPsOutput.drawLine(1, y, 19, 0, "black"))
+lstNum1 = prepareGenome(genome1, nb1, lambda y: utils.myPsOutput.drawLine(1, y, 19, 0, "black"))
 sys.stderr.write(".")
-lstNum2 = prepareGenome(genome2, nb2, lambda x: myPsOutput.drawLine(x, 1, 0, 19, "black"))
+lstNum2 = prepareGenome(genome2, nb2, lambda x: utils.myPsOutput.drawLine(x, 1, 0, 19, "black"))
 print >> sys.stderr, ". OK"
 
 
@@ -121,11 +119,11 @@ for c in genome1.lstChr:
 					continue
 			xx = 1 + (y*19.)/float(nb2) - dp/2.
 			yy = 1 + (x*19.)/float(nb1) - dp/2.
-			cc = myPsOutput.getColor(str(cc), "black")
-			myPsOutput.drawBox( xx, yy, dp, dp, cc, cc)
+			cc = utils.myPsOutput.getColor(str(cc), "black")
+			utils.myPsOutput.drawBox( xx, yy, dp, dp, cc, cc)
 			break
 
-myPsOutput.printPsFooter()
+utils.myPsOutput.printPsFooter()
 print >> sys.stderr, " OK"
 
 

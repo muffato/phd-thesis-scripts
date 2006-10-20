@@ -18,11 +18,9 @@ import sys
 import math
 import random
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
-import myMaths
+import utils.myGenomes
+import utils.myTools
+import utils.myMaths
 
 
 
@@ -129,20 +127,20 @@ def printNbParaTable():
 ########
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( \
+(noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "genesAncestraux.list"],
 	[("especeDupliquee", str, ""), ("nbMinParaloguesCoupleChr", int, -1), ("coefMinAltern3", float, -1.)], \
 	__doc__ \
 )
 
 # Chargement des fichiers
-geneBank = myOrthos.GeneBank(noms_fichiers[0], [options["especeDupliquee"]])
+geneBank = utils.myGenomes.GeneBank(noms_fichiers[0], [options["especeDupliquee"]])
 if options["especeDupliquee"] not in geneBank.lstEspecesDup:
 	print >> sys.stderr, "-ERREUR- Pas de -%(especeDupliquee)s- dans la liste des especes dupliquees ..." % options
 	sys.exit(1)
 genomeDup = geneBank.dicEspeces[options["especeDupliquee"]]
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[1], False)
-lstGenesAnc = genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr]
+genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers[1], False)
+lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
 (para,orthos) = buildParaOrtho(lstGenesAnc, genomeDup)
 
 

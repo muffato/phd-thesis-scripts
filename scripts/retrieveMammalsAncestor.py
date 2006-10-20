@@ -10,11 +10,9 @@ import sys
 import math
 import random
 import os
-
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
-import myTools
-import myMaths
+import utils.myGenomes
+import utils.myTools
+import utils.myMaths
 
 
 ########
@@ -23,18 +21,18 @@ import myMaths
 
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( \
+(noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesAncestraux"], \
 	[], \
 	"Reconstruit le genome de l'ancetre de 1 et 2 a partir de l'outgroup et des genes de cet ancetre" \
 )
 
-genesAnc = myOrthos.loadGenome(noms_fichiers[0])
+genesAnc = utils.myGenomes.loadGenome(noms_fichiers[0])
 
 # On lit toutes les donnees en filtrant celles qui nous permettent d'arriver a l'ancetre des mammiferes
 # Il faut integrer les diagonales et les coller bout a bout
 
-assoc = myTools.myCombinator([])
+assoc = utils.myTools.myCombinator([])
 
 nb = 0
 for ligne in sys.stdin:
@@ -74,7 +72,7 @@ for a in res:
 	#continue
 	for i in a:
 		#print chr(96+c), i
-		print chr(96+c), " ".join(genesAnc.lstGenes[myOrthos.AncestralGenome.defaultChr][i].names)
+		print chr(96+c), " ".join(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr][i].names)
 
 print >> sys.stderr
 print >> sys.stderr, n, "genes repartis sur", c, "chromosomes"
