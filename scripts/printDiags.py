@@ -10,12 +10,9 @@ Extrait toutes les diagonales de genes entre deux especes
 
 # Librairies
 import sys
-import math
-import random
-import os
 import utils.myGenomes
 import utils.myTools
-import utils.myMaths
+import utils.myDiags
 
 
 ########
@@ -26,34 +23,49 @@ import utils.myMaths
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genome1", "genome2", "orthologuesList"], \
-	[("keepGaps",bool,True), ("fusionThreshold",int,-1)], \
+	[("onAncGenes",bool,False), ("fusionThreshold",int,-1)], \
 	__doc__ \
 )
 
 
 # 1. On lit tous les fichiers
-genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers[2], False)
-genome1 = utils.myMaths.translateGenome(utils.myGenomes.loadGenome(noms_fichiers[0]), "genome1", genesAnc)
-genome2 = utils.myMaths.translateGenome(utils.myGenomes.loadGenome(noms_fichiers[1]), "genome2", genesAnc)
+genome1 = utils.myGenomes.loadGenome(noms_fichiers["genome1"])
+genome2 = utils.myGenomes.loadGenome(noms_fichiers["genome2"])
+genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["orthologuesList"], False)
+lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
+
+print >> sys.stderr, "Preparation ...",
+transGenome1 = utils.myDiags.translateGenome(genome1, genesAnc)
+locations = [[] for x in lstGenesAnc]
+for ianc in xrange(len(lstGenesAnc)):
+	for g in lstGenesAnc[ianc].names:
+		if g not in genome2.dicGenes:
+				continue
+		locations[ianc].append( genome2.dicGenes[g] )
 
 nbDiag = 0
 nbDiag2 = 0
 lenDiag = 0
 lenDiag2 = 0
 
-def mkStats(c1, c2, nbTot, d):
+def mkStats(c1, c2, d1, d2):
 	global nbDiag, nbDiag2, lenDiag, lenDiag2
+	d = d1
+	
+	if options["onAncGenes"]:
+		d = [transGenome1[c1][i] for i in d1]
+	else:
+		d = [genome1.lstGenes[c1][i].names[0] for i in d1]
 	print " ".join([str(x) for x in d])
+	
 	nbDiag += 1
 	lenDiag += len(d)
 	if len(d) >= 2:
 		nbDiag2 += 1
 		lenDiag2 += len(d)
-	#for g in d:
-	#	print 1, " ".join(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr][g].names)
 
 print >> sys.stderr, "Extraction des diagonales ...",
-utils.myMaths.iterateDiags(genome1, genome2, options["keepGaps"], options["fusionThreshold"], mkStats)
+utils.myDiags.iterateDiags(transGenome1, locations, options["fusionThreshold"], mkStats)
 print >> sys.stderr, "OK"
 print >> sys.stderr, nbDiag, nbDiag2, lenDiag, lenDiag2
 print >> sys.stderr, float(lenDiag)/nbDiag

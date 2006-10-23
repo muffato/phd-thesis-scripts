@@ -113,6 +113,11 @@ class myCombinator:
 
 	def getGrp(self):
 		return [g for g in self.grp if len(g) > 0]
+		
+	def __iter__(self):
+		for g in self.grp:
+			if len(g) > 0:
+				yield g
 
 
 #################################################################################
@@ -184,6 +189,6 @@ def checkArgs(args, options, info):
 	if len(valArg) != len(args):
 		error_usage()
 	
-	return (valArg, valOpt)
+	return (dict([(args[i],valArg[i]) for i in range(len(args))]), valOpt)
 
 

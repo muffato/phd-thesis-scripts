@@ -30,8 +30,8 @@ import utils.myPsOutput
 )
 
 # Chargement des fichiers
-genome1 = utils.myGenomes.loadGenome(noms_fichiers[0])
-genome2 = utils.myGenomes.loadGenome(noms_fichiers[1])
+genome1 = utils.myGenomes.loadGenome(noms_fichiers["GenomeADessiner"])
+genome2 = utils.myGenomes.loadGenome(noms_fichiers["GenomeReference"])
 if options["orthologuesList"] != "":
 	genesAnc = utils.myGenomes.AncestralGenome(options["orthologuesList"], False)
 else:
@@ -104,9 +104,6 @@ for c in genome1.lstChr:
 					break
 			else:
 				continue
-			
-			#if c == "X":
-			#	print >> sys.stderr, g, gt, genome2.dicGenes[gt][0]
 			
 			if type(colors) == str:
 				cc = colors
