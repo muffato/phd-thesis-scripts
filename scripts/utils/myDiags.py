@@ -36,6 +36,14 @@ def extractDiags(tab1, dic2, largeurTrou):
 		for (c2,i2) in presI2:
 			# Est-ce qu'on est dans le prolongement d'une diagonale
 			if c2 in lastC2 and (((i2+1) in lastI2) or ((i2-1) in lastI2)):
+				# Cas special: la diagonale commence avec un g1 qui a plusieurs orthologues
+				# Il faut corriger listI2 et lastI2 avec les bons orthologues
+				if len(listI1) == 1 and len(lastI2) > 1:
+					listI2 = [lastI2[lastC2.index(c2)]]
+					#if (i2+1) in lastI2:
+					#	listI2 = [i2+1]
+					#else:
+					#	listI2 = [i2-1]
 				listI2.append(i2)
 				lastI2 = [i2]
 				lastC2 = [c2]
@@ -47,7 +55,7 @@ def extractDiags(tab1, dic2, largeurTrou):
 			deb1 = i1
 			listI1 = []
 			lastI2 = [i for (_,i) in presI2]
-			listI2 = [i for (_,i) in presI2]
+			listI2 = [i for (_,i) in presI2[:1]]
 			lastC2 = [c for (c,_) in presI2]
 		listI1.append(i1)
 		fin1 = i1

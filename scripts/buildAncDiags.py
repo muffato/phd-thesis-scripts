@@ -58,7 +58,7 @@ for e in fils:
 # Liste des positions des genes ancestraux dans les genomes modernes
 print >> sys.stderr, "Extraction des positions des genes de %s ..." % phylTree.root,
 locationsRoot = utils.myDiags.buildAncGenesLocations(geneBank, genesAncRoot)
-print >> sys.stderr, "de %s..." % options["ancetre"],
+print >> sys.stderr, "de %s ..." % options["ancetre"],
 locationsNode = utils.myDiags.buildAncGenesLocations(geneBank, genesAncNode)
 print >> sys.stderr, "OK"
 
@@ -73,6 +73,17 @@ def combinDiag(c1, c2, d1, d2):
 			d = [genomesNode[e1][c1][i] for i in d1]
 		else:
 			d = [genomesNode[e2][c2][i] for i in d2]
+		#if e1 in fils and e2 in fils:
+		#if True:
+		#	print >> sys.stderr, "TMP", e1,c1,d1, e2,c2,d2,
+		#	#dodo1 = [genomesNode[e1][c1][i] for i in d1]
+		#	dodo1 = [genomesRoot[e1][c1][i] for i in d1]
+		#	#dodo2 = [genomesNode[e2][c2][i] for i in d2]
+		#	dodo2 = [genomesRoot[e2][c2][i] for i in d2]
+		#	print >> sys.stderr, dodo1, dodo2
+		#	if set(dodo1) != set(dodo2):
+		#		print >> sys.stderr, "PROBLEME"
+			
 	else:
 		if e1 == options["output"]:
 			d = [geneBank.dicEspeces[e1].lstGenes[c1][i].names[0] for i in d1]
