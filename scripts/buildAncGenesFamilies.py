@@ -24,14 +24,14 @@ import utils.myMaths
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
-	[("orthoFile",str,"/users/ldog/muffato/work/data/orthos/orthos.%s.%s.list.bz2"), \
+	[("orthoFile",str,"/users/ldog/muffato/work/data/orthologs/orthos.%s.%s.list.bz2"), \
 	("ancGenesFile",str,"/users/ldog/muffato/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("one2oneFile",str,"/users/ldog/muffato/work/data/ancGenes/one2one.%s.list.bz2")], \
 	__doc__ \
 )
 
-phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers[1])
-geneBank = utils.myGenomes.GeneBank(noms_fichiers[0], phylTree.getSpecies(phylTree.root))
+phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.getSpecies(phylTree.root))
 
 for anc in phylTree.items:
 	esp = phylTree.getSpecies(anc)
@@ -58,6 +58,7 @@ for anc in phylTree.items:
 		
 		for g in c:
 			if g not in geneBank.dicGenes:
+				print >> sys.stderr, "ERREUR:", g
 				continue
 			(e,_,_) = geneBank.dicGenes[g]
 			score[e].append(g)

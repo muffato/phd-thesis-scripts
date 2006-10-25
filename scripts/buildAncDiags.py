@@ -67,28 +67,40 @@ def combinDiag(c1, c2, d1, d2):
 	global combin, options
 	global e1, e2, fils
 
+	if len(d1) != len(d2):
+		print >> sys.stderr, "PROBLEME.L"
+	if e1 in fils:
+		dodo1 = [genomesNode[e1][c1][i] for i in d1]
+	dada1 = [genomesRoot[e1][c1][i] for i in d1]
+	didi1 = [geneBank.dicEspeces[e1].lstGenes[c1][i].names[0] for i in d1]
+	if e2 in fils:
+		dodo2 = [genomesNode[e2][c2][i] for i in d2]
+	dada2 = [genomesRoot[e2][c2][i] for i in d2]
+	didi2 = [geneBank.dicEspeces[e2].lstGenes[c2][i].names[0] for i in d2]
+	if e1 in fils and e2 in fils:
+		if set(dodo1) != set(dodo2):
+			print >> sys.stderr, "PROBLEME.O"
+			sys.exit(0)
+	elif e1 not in fils and not e2 in fils:
+		if set(dada1) != set(dada2):
+			print >> sys.stderr, "PROBLEME.A"
+			sys.exit(0)
+
+
+	
 	# Si on a demande les diagonales projetees sur un genome particulier
 	if options["output"] == "":
 		if e1 in fils:
 			d = [genomesNode[e1][c1][i] for i in d1]
 		else:
 			d = [genomesNode[e2][c2][i] for i in d2]
-		#if e1 in fils and e2 in fils:
-		#if True:
-		#	print >> sys.stderr, "TMP", e1,c1,d1, e2,c2,d2,
-		#	#dodo1 = [genomesNode[e1][c1][i] for i in d1]
-		#	dodo1 = [genomesRoot[e1][c1][i] for i in d1]
-		#	#dodo2 = [genomesNode[e2][c2][i] for i in d2]
-		#	dodo2 = [genomesRoot[e2][c2][i] for i in d2]
-		#	print >> sys.stderr, dodo1, dodo2
-		#	if set(dodo1) != set(dodo2):
-		#		print >> sys.stderr, "PROBLEME"
-			
 	else:
 		if e1 == options["output"]:
 			d = [geneBank.dicEspeces[e1].lstGenes[c1][i].names[0] for i in d1]
 		elif e2 == options["output"]:
 			d = [geneBank.dicEspeces[e2].lstGenes[c2][i].names[0] for i in d2]
+		else:
+			d = []
 
 	if len(d) >= options["minimalLength"]:
 		combin.addLink(d)
@@ -104,6 +116,7 @@ for (i,j) in utils.myTools.myMatrixIterator(len(groupes), len(groupes), utils.my
 			print >> sys.stderr, "OK"
 
 for g in groupes:
+	continue
 	for e1 in g:
 		for e2 in outgroup:
 			print >> sys.stderr, "Extraction des diagonales (outgroup) entre %s et %s ..." % (e1,e2),
