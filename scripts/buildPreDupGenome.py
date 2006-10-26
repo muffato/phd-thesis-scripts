@@ -202,11 +202,11 @@ def loadChrAncIni(nom):
 # Chargement des fichiers
 especesNonDup = options["especesNonDup"].split(',')
 especesDup = options["especesDup"].split(',')
-geneBank = utils.myGenomes.GeneBank(noms_fichiers[0], especesNonDup+especesDup)
-genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers[1], False)
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], especesNonDup+especesDup)
+genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAncestraux.list"], False)
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
 (para,orthos) = buildParaOrtho(lstGenesAnc, geneBank)
-chrAnc = loadChrAncIni(noms_fichiers[2])
+chrAnc = loadChrAncIni(noms_fichiers["draftPreDupGenome.conf"])
 
 # On colorie les matrices actuelles
 blocs = {}

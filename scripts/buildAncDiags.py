@@ -1,7 +1,10 @@
 #! /usr/bin/python2.4
 
 __doc__ = """
-Extrait toutes les diagonales de genes entre deux especes
+Etant donne un ancetre dans l'arbre phylogenetique:
+  Extrait toutes les diagonales de genes entre deux especes filles de branches differentes
+  et d'une espece fille et d'une espece outgroup
+  On reconstruit donc les ensembles de genes presents cote a cote chez l'ancetre.
 """
 
 ##################
@@ -62,38 +65,41 @@ print >> sys.stderr, "de %s ..." % options["ancetre"],
 locationsNode = utils.myDiags.buildAncGenesLocations(geneBank, genesAncNode)
 print >> sys.stderr, "OK"
 
+
 # La fonction qui permet de traiter les diagonales
 def combinDiag(c1, c2, d1, d2):
 	global combin, options
 	global e1, e2, fils
 
-	if len(d1) != len(d2):
-		print >> sys.stderr, "PROBLEME.L"
-	if e1 in fils:
-		dodo1 = [genomesNode[e1][c1][i] for i in d1]
-	dada1 = [genomesRoot[e1][c1][i] for i in d1]
-	didi1 = [geneBank.dicEspeces[e1].lstGenes[c1][i].names[0] for i in d1]
-	if e2 in fils:
-		dodo2 = [genomesNode[e2][c2][i] for i in d2]
-	dada2 = [genomesRoot[e2][c2][i] for i in d2]
-	didi2 = [geneBank.dicEspeces[e2].lstGenes[c2][i].names[0] for i in d2]
-	if e1 in fils and e2 in fils:
-		if set(dodo1) != set(dodo2):
-			print >> sys.stderr, "PROBLEME.O"
-			sys.exit(0)
-	elif e1 not in fils and not e2 in fils:
-		if set(dada1) != set(dada2):
-			print >> sys.stderr, "PROBLEME.A"
-			sys.exit(0)
-
+#	if len(d1) != len(d2):
+#		print >> sys.stderr, "PROBLEME.L"
+#	if e1 in fils:
+#		dodo1 = [genomesNode[e1][c1][i] for i in d1]
+#	dada1 = [genomesRoot[e1][c1][i] for i in d1]
+#	didi1 = [geneBank.dicEspeces[e1].lstGenes[c1][i].names[0] for i in d1]
+#	if e2 in fils:
+#		dodo2 = [genomesNode[e2][c2][i] for i in d2]
+#	dada2 = [genomesRoot[e2][c2][i] for i in d2]
+#	didi2 = [geneBank.dicEspeces[e2].lstGenes[c2][i].names[0] for i in d2]
+#	if e1 in fils and e2 in fils:
+#		if dodo1 != dodo2:
+#			print >> sys.stderr, "PROBLEME.O"
+#			sys.exit(0)
+#	if dada1 != dada2:
+#		print >> sys.stderr, "PROBLEME.A"
+#		sys.exit(0)
+	
+	
 
 	
 	# Si on a demande les diagonales projetees sur un genome particulier
 	if options["output"] == "":
+		tmp = set([])
 		if e1 in fils:
-			d = [genomesNode[e1][c1][i] for i in d1]
-		else:
-			d = [genomesNode[e2][c2][i] for i in d2]
+			tmp.update([genomesNode[e1][c1][i] for i in d1])
+		if e2 in fils:
+			tmp.update([genomesNode[e2][c2][i] for i in d2])
+		d = [i for i in tmp if i != -1]
 	else:
 		if e1 == options["output"]:
 			d = [geneBank.dicEspeces[e1].lstGenes[c1][i].names[0] for i in d1]
@@ -116,7 +122,6 @@ for (i,j) in utils.myTools.myMatrixIterator(len(groupes), len(groupes), utils.my
 			print >> sys.stderr, "OK"
 
 for g in groupes:
-	continue
 	for e1 in g:
 		for e2 in outgroup:
 			print >> sys.stderr, "Extraction des diagonales (outgroup) entre %s et %s ..." % (e1,e2),

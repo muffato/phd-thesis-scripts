@@ -29,10 +29,10 @@ import utils.myMaths
 
 
 # 1. On lit tous les fichiers
-geneBank = utils.myGenomes.GeneBank(noms_fichiers[0], "OC")
-genomeMammals = utils.myGenomes.AncestralGenome(noms_fichiers[1], True)
-genomeOutgroup = utils.myGenomes.AncestralGenome(noms_fichiers[2], True)
-genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers[3], False)
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["geneList.conf"], "OC")
+genomeMammals = utils.myGenomes.AncestralGenome(noms_fichiers["genomeMammals"], True)
+genomeOutgroup = utils.myGenomes.AncestralGenome(noms_fichiers["genomeOutgroup"], True)
+genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["orthologuesList"], False)
 
 def buildAncestrGenome(genomesList, lstGenes):
 

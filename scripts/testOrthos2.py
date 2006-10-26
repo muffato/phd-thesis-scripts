@@ -22,19 +22,29 @@ import cPickle
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["ancGenesFile"], \
+	["genesList.conf"], \
 	[("ancetre",str,""), ("output",str,""), ("fusionThreshold",int,-1), ("minimalLength",int,1), \
 	("ancGenesFile",str,"/users/ldog/muffato/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
-genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["ancGenesFile"], False)
+#genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["ancGenesFile"], False)
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"])
 
-nb = 1
+#f = utils.myTools.myOpenFile(noms_fichiers["genesList.conf"], "rb")
+#geneBank = cPickle.load(f)
+#f.close()
+
+print geneBank.dicEspeces.keys()
+
+sys.exit(0)
+
 for l in sys.stdin:
 	c = l.split()
-	for i in c:
-		print nb, " ".join(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr][int(i)].names)
-	nb += 1
+	for i in range(len(c)):
+		for j in range(i):
+			(e1,_,_) = geneBank.dicGenes[c[i]]
+			(e2,_,_) = geneBank.dicGenes[c[j]]
+	os.system("bzgrep %s /users/ldog/muffato/work/data/orthologs/orthos.%s.%s.list.bz2" % (c[i],e1,e2))
 
 

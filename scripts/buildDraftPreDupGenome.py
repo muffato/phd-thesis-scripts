@@ -134,12 +134,12 @@ def printNbParaTable():
 )
 
 # Chargement des fichiers
-geneBank = utils.myGenomes.GeneBank(noms_fichiers[0], [options["especeDupliquee"]])
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], [options["especeDupliquee"]])
 if options["especeDupliquee"] not in geneBank.lstEspecesDup:
 	print >> sys.stderr, "-ERREUR- Pas de -%(especeDupliquee)s- dans la liste des especes dupliquees ..." % options
 	sys.exit(1)
 genomeDup = geneBank.dicEspeces[options["especeDupliquee"]]
-genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers[1], False)
+genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAncestraux.list"], False)
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
 (para,orthos) = buildParaOrtho(lstGenesAnc, genomeDup)
 

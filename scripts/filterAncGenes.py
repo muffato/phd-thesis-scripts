@@ -27,7 +27,7 @@ import utils.myTools
 )
 
 
-geneBank = utils.myGenomes.GeneBank(noms_fichiers[0])
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"])
 
 for l in sys.stdin:
 	c = l.split()

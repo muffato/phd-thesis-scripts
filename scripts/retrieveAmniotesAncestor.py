@@ -27,7 +27,7 @@ import utils.myMaths
 	"Reconstruit le genome de l'ancetre de 1 et 2 a partir de l'outgroup et des genes de cet ancetre" \
 )
 
-genesAnc = utils.myGenomes.loadGenome(noms_fichiers[0])
+genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genesAncestraux"])
 
 # On lit toutes les donnees en filtrant celles qui nous permettent d'arriver a l'ancetre des mammiferes
 # Il faut integrer les diagonales et les coller bout a bout

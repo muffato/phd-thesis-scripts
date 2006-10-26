@@ -28,8 +28,8 @@ import utils.myPsOutput
 	__doc__ \
 )
 
-genome1 = utils.myGenomes.loadGenome(noms_fichiers[0])
-genome2 = utils.myGenomes.loadGenome(noms_fichiers[1])
+genome1 = utils.myGenomes.loadGenome(noms_fichiers["GenomeADessiner"])
+genome2 = utils.myGenomes.loadGenome(noms_fichiers["GenomeReference"])
 if options["orthologuesList"] != "":
 	genesAnc = utils.myGenomes.AncestralGenome(options["orthologuesList"], False)
 

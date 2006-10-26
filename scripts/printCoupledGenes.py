@@ -30,8 +30,8 @@ import utils.myMaths
 
 # 1. On lit tous les fichiers
 genomesList = "HDMWOC"
-geneBank = utils.myGenomes.GeneBank(noms_fichiers[0], genomesList)
-genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers[1], False)
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["geneList.conf"], genomesList)
+genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["orthologuesList"], False)
 
 def buildAncestrGenome(genomesList, lstGenes):
 

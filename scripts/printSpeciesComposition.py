@@ -28,7 +28,8 @@ import mutils.yPsOutput
 	__doc__ \
 )
 
-geneBank = utils.myGenomes.GeneBank(noms_fichiers[0], [e for e in options["speciesList"]])
+esp = options["speciesList"].split(',')
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], esp)
 
 for s in sys.stdin:
 	c = s.split()
@@ -37,4 +38,4 @@ for s in sys.stdin:
 		if g in geneBank.dicGenes:
 			(e,_,_) = geneBank.dicGenes[g]
 			score[e] += 1
-	print "\t".join([score[e] for e in options["speciesList"]])
+	print "\t".join([score[e] for e in esp])
