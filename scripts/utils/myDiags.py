@@ -113,9 +113,9 @@ def translateGenome(genome, genesAnc):
 #
 # Construit la liste des positions des genes ancestraux dans les especes de la banque
 #
-def buildAncGenesLocations(geneBank, genesAnc):
+def buildAncGenesLocations(geneBank, genesAnc, lstGenomes):
 	lstGenesAnc = genesAnc.lstGenes[myGenomes.AncestralGenome.defaultChr]
-	locations = dict( [(e,[[] for x in lstGenesAnc]) for e in geneBank.dicEspeces] )
+	locations = dict( [(e,[[] for x in lstGenesAnc]) for e in lstGenomes] )
 	for ianc in xrange(len(lstGenesAnc)):
 		for g in lstGenesAnc[ianc].names:
 			if g not in geneBank.dicGenes:

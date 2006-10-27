@@ -95,7 +95,7 @@ class myCombinator:
 			i = self.dic[a]
 		else:
 			i = len(self.grp)
-			self.grp.append(set([a]))
+			self.grp.append([a])
 			self.dic[a] = i
 
 		for x in obj[1:]:
@@ -105,10 +105,10 @@ class myCombinator:
 					continue
 				for b in self.grp[j]:
 					self.dic[b] = i
-				self.grp[i].update(self.grp[j])
-				self.grp[j] = set([])
+				self.grp[i].extend(self.grp[j])
+				self.grp[j] = []
 			else:
-				self.grp[i].add(x)
+				self.grp[i].append(x)
 				self.dic[x] = i
 
 	def getGrp(self):

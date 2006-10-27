@@ -1,10 +1,9 @@
 #! /usr/bin/python2.4
 
 __doc__ = """
-Etant donne un ancetre dans l'arbre phylogenetique:
-  Extrait toutes les diagonales de genes entre deux especes filles de branches differentes
-  et d'une espece fille et d'une espece outgroup
-  On reconstruit donc les ensembles de genes presents cote a cote chez l'ancetre.
+Extrait toutes les diagonales entre chaque paire d'especes.
+Les diagonales apportent les genes qui etaient sur un meme chromosome
+  depuis leur ancetre commun dans les deux lignees.
 """
 
 ##################
@@ -26,7 +25,7 @@ import utils.myDiags
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
 	[("ancetre",str,""), ("output",str,""), ("fusionThreshold",int,-1), ("minimalLength",int,1), \
-	("ancGenesFile",str,"/users/ldog/muffato/work/data/ancGenes/ancGenes.%s.list.bz2")], \
+	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
@@ -34,6 +33,80 @@ import utils.myDiags
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 listEspeces = phylTree.getSpecies(phylTree.root)
 geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], listEspeces)
+
+# La structure qui accueillera les diagonales
+diagEntry = dict( [(anc, utils.myTools.myCombinator([])) for anc in phylTree.items] )
+
+# La fonction qui permet de traiter les diagonales
+def combinDiag2(c1, c2, d1, d2):
+	global diagEntry, options
+	global e1, e2, anc, genomes
+
+	if len(d1) < options["minimalLength"]:
+		return
+	
+	# On rajoute la diagonale a l'ancetre commun et a chaque ancetre intermediaire
+	
+	dd1 = [genomes[anc][e1][c1][i] for i in d1]
+	dd2 = [genomes[anc][e2][c2][i] for i in d2]
+	if dd1 != dd2:
+		print >> sys.stderr, "PB !!!", anc, e1, e2, d1, d2, dd1, dd2
+	diagEntry[anc].addLink(dd1)
+
+	for (tmp,_) in phylTree.items:
+		s = phylTree.getSpecies(tmp)
+		if ((e1 in s) and (e2 not in s)) or ((e1 not in s) and (e2 in s)):
+			dd1 = [genomes[tmp][e1][c1][i] for i in d1]
+			dd2 = [genomes[tmp][e2][c2][i] for i in d2]
+			if dd1 != dd2:
+				print >> sys.stderr, "PB !!!", tmp, e1, e2, d1, d2, dd1, dd2
+			diagEntry[tmp].addLink(dd1)
+			
+
+# 2. On prepare tous les genomes ancestraux, les genomes traduits ...
+genomes = {}
+locations = {}
+for anc in phylTree.items:
+	
+	genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc, False)
+
+	# Les listes des especes entre lesquelles on cherche des diagonales
+	groupes = [phylTree.getSpecies(e) for (e,_) in phylTree.items[anc]]
+	fils = utils.myMaths.flatten(groupes)
+	
+	# Traduction des genomes en liste des genes ancestraux
+	print >> sys.stderr, "Traduction avec les genes de", anc, "",
+	genomes[anc] = {}
+	for e in fils:
+		genomes[anc][e] = utils.myDiags.translateGenome(geneBank.dicEspeces[e], genesAnc)
+		sys.stderr.write(".")
+	print >> sys.stderr, " OK"
+	
+	# Liste des positions des genes ancestraux dans les genomes modernes
+	print >> sys.stderr, "Extraction des positions des genes de %s ..." % anc,
+	locations[anc] = utils.myDiags.buildAncGenesLocations(geneBank, genesAnc)
+	print >> sys.stderr, "OK"
+	
+	del genesAnc
+
+
+
+for anc in phylTree.items:
+
+	groupes = [phylTree.getSpecies(e) for (e,_) in phylTree.items[anc]]
+	print >> sys.stderr, "Extraction des diagonales de", anc,
+
+	for (i,j) in utils.myTools.myMatrixIterator(len(groupes), len(groupes), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		for e1 in groupes[i]:
+			for e2 in groupes[j]:
+				utils.myDiags.iterateDiags(genomes[anc][e1], locations[anc][e2], options["fusionThreshold"], combinDiag2)
+				sys.stderr.write(".")
+	print >> sys.stderr, " OK"
+
+
+
+sys.exit(0)
+
 genesAncRoot = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.root, False)
 genesAncNode = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % options["ancetre"], False)
 
