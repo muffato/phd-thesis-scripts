@@ -15,6 +15,7 @@ import utils.myMaths
 
 def buildDistTree(arbre, distEsp):
 		
+	global f
 	def calcDist(anc):
 
 		s = 0.
@@ -41,14 +42,22 @@ def buildDistTree(arbre, distEsp):
 
 
 	distAnc = dict( [(a,0) for a in arbre.items] )
+	lst1 = set([e for e in distEsp if distEsp[e] == 1])
 	
 	# On met les 1 dans l'arbre
-	lst1 = set([e for e in distEsp if distEsp[e] == 1])
-	while len(lst1) >= 2:
-		lst1b = set([arbre.parent[e] for e in lst1 if e in arbre.parent])
-		for e in lst1b:
-			distAnc[e] = 1
-		lst1 = lst1b
+	for anc in phylTree.items:
+		groupes = [phylTree.getSpecies(e) for (e,_) in phylTree.items[anc]]
+		if [len(lst1.intersection(g))>0 for g in groupes].count(True) >= 2:
+			distAnc[anc] = 1
+		
+	#fils = utils.myMaths.flatten(groupes)
+	#lst1 = set([e for e in distEsp if distEsp[e] == 1])
+	#while len(lst1) >= 2:
+	#	lst1b = set([arbre.parent[e] for e in lst1 if e in arbre.parent])
+	#	print >> f, lst1b,
+	#	for e in lst1b:
+	#		distAnc[e] = 1
+	#	lst1 = lst1b
 		
 	# On calcule par une moyenne les autres distances
 	calcDist(arbre.root)
@@ -68,7 +77,7 @@ def distInterGenes(tg1, tg2):
 				else:
 					dic[e1] = x
 	
-	return buildDistTree(phylTree, dic)[options["nomAncetre"]]
+	return (dic, buildDistTree(phylTree, dic)) #[options["nomAncetre"]]
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
@@ -110,9 +119,11 @@ for c in genesAnc.lstChr:
 	print >> f, "EDGE_WEIGHT_SECTION"
 	print >> f, "0 " * n
 	
-	for i in xrange(n-1):
-		for j in xrange(i+1,n):
+	for i in xrange(n):
+		for j in xrange(n):
 			y = distInterGenes(tab[i], tab[j])
+			print >> f, i, j, y
+			continue
 			if y == 0:
 				print >> f, options["penalite"],
 			elif y == 1:
@@ -147,4 +158,4 @@ for c in genesAnc.lstChr:
 		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 
 
-os.system('rm -f *%s*' % nom )
+#os.system('rm -f *%s*' % nom )

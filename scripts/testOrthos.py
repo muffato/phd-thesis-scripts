@@ -22,13 +22,32 @@ import cPickle
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["ancGenesFile"], \
+	["genesAnc"], \
 	[("ancetre",str,""), ("output",str,""), ("fusionThreshold",int,-1), ("minimalLength",int,1), \
 	("ancGenesFile",str,"/users/ldog/muffato/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
-genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["ancGenesFile"], False)
+
+f = open(noms_fichiers["genesAnc"], 'r')
+
+lst = f.readlines()[7:-1]
+f.close()
+
+for i in range(len(lst)):
+	c = lst[i].split()
+	#print len(lst), len(c)
+	#continue
+	for j in range(len(lst)):
+		if float(c[j]) > 0.5 and float(c[j]) < 1.5:
+			print i,j
+		
+
+
+sys.exit(0)
+
+
+genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAnc"], False)
 
 nb = 1
 for l in sys.stdin:
@@ -37,4 +56,15 @@ for l in sys.stdin:
 		print nb, " ".join(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr][int(i)].names)
 	nb += 1
 
+sys.exit(0)
+phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+nbEsp = len(phylTree.getSpecies(phylTree.root))
 
+for anc in phylTree.items:
+	groupes = [phylTree.getSpecies(e) for (e,_) in phylTree.items[anc]]
+	fils = utils.myMaths.flatten(groupes)
+
+	nbO = nbEsp-len(fils)
+	nbA = len(groupes[0])
+	nbB = len(groupes[1])
+	print anc, nbA*nbB + nbA*nbO + nbB*nbO
