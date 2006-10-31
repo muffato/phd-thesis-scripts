@@ -51,13 +51,31 @@ class PhylogeneticTree:
 		
 		print >> sys.stderr, "OK"
 	
+	def getBranches(self, anc):
+		if anc not in self.items:
+			return []
+		else:
+			return [e for (e,_) in self.items[anc]]
+			
+	def getBranchesSpecies(self, anc):
+		if anc not in self.items:
+			return []
+		else:
+			return [self.getSpecies(e) for (e,_) in self.items[anc]]
+	
 	def getSpecies(self, anc):
-
 		if anc not in self.items:
 			return [anc]
 		else:
 			return myMaths.flatten([self.getSpecies(e) for (e,_) in self.items[anc]])
 
+	def getFirstParent(self, anc1, anc2):
+		if anc1 in self.getSpecies(anc2):
+			return anc2
+		anc = anc1
+		while anc2 not in self.getSpecies(anc):
+			anc = self.parent[anc]
+		return anc
 
 
 #####################################################
@@ -174,16 +192,8 @@ class EnsemblTwoSpeciesOrthos:
 	# Renvoie un iterateur pour parcourir tous les orthologues
 	#
 	def __iter__(self):
-		class OrthoIterator:
-			def __init__(self, ortho):
-				self.ortho = ortho
-				self.index = -1
-			def next(self):
-				self.index += 1
-				if self.index >= self.ortho.nbGenes:
-					raise StopIteration
-				return (self.ortho.tabGenes1[self.ortho.indGenes1[self.index]], self.ortho.tabGenes2[self.ortho.indGenes2[self.index]], self.ortho.info[self.index], self.index)
-		return OrthoIterator(self)
+		for i in range(self.nbGenes):
+			yield (self.tabGenes1[self.indGenes1[i]], self.tabGenes2[self.indGenes2[i]], self.info[i], i)
 	
 	#
 	# Renvoie la liste des orthologues, tries sur le gene1

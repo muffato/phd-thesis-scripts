@@ -14,7 +14,7 @@ import myMaths
 
 (noms_fichiers, options) = myTools.checkArgs(["GENOME_ANCESTRAL"], [("filtreOK",str,""), ("filtreNO",str,"")], "")
 
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[0], True)
+genesAnc = myOrthos.AncestralGenome(noms_fichiers[0], True, False)
 
 lst = set([])
 oui = set([x for x in options["filtreOK"]])

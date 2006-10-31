@@ -12,16 +12,27 @@ def loadGenome(nom):
 	f = myTools.myOpenFile(nom, 'r')
 	c = f.readline().split()
 	f.close()
+	
+	# Fichier d'Ensembl: les trois champs du milieu sont des nombres
 	try:
-		# Si les trois champs du milieu sont des nombres
 		x = int(c[1]) + int(c[2]) + int(c[3])
 		return EnsemblGenome(nom)
 	except Exception:
-		# Si le permier champ est un nom de chromosome
-		realGenome = len(c[0]) < 4
-		realGenome |= c[0] in ["ALPHA", "BETA", "DELTA", "EPSILON", "GAMMA", "PHI"]
-		realGenome |= c[0].startswith('scaffold_')
-		return AncestralGenome(nom, realGenome)
+		# On a un genome ancestral
+		pass
+	
+	# 1. Noms de chromosomes ?
+	withChr = (len(c[0]) < 4)    # Les noms de genes font au minimum 4 caracteres
+	withChr |= c[0] in ["ALPHA", "BETA", "DELTA", "EPSILON", "GAMMA", "PHI"]
+
+	# 2. Facteur de qualite de concorde
+	try:
+		x = int(c[1])
+		conc = True
+	except Exception:
+		conc = False
+		
+	return AncestralGenome(nom, withChr, conc)
 
 
 ##########################################
@@ -78,6 +89,14 @@ class Genome:
 	def getGenesAt(self, chr, beg = 0, end = sys.maxint):
 		return [g.names for g in self.lstGenes[chr] if g.end >= beg and g.beginning <= end]
 
+	def iterOnChromosome(self, c):
+		for g in self.lstGenes[c]:
+			yield g
+	
+	def __iter__(self):
+		for c in self.lstChr:
+			for g in self.lstGenes[c]:
+				yield g
 
 
 ##############################################################
@@ -125,7 +144,7 @@ class AncestralGenome(Genome):
 
 	defaultChr = "-"
 	
-	def __init__(self, nom, chromPresents):
+	def __init__(self, nom, chromPresents, concordeQualityFactor):
 
 		Genome.__init__(self, nom)
 		
@@ -136,7 +155,7 @@ class AncestralGenome(Genome):
 		
 		# On initialise tout
 		f = myTools.myOpenFile(nom, 'r')
-
+		strand = 0
 		for ligne in f:
 			champs = ligne.split()
 
@@ -150,13 +169,11 @@ class AncestralGenome(Genome):
 					c = champs[0]
 				del champs[0]
 			
-			# On efface un entier s'il y en a un
-			# C'est le cas des fichiers de genomes ancestraux avec score de Concorde
-			try:
-				int(champs[0])
+			if concordeQualityFactor:
+				# Fichiers de genomes ancestraux avec score de Concorde
+				strand = int(champs[0])
 				del champs[0]
-			except ValueError:
-				pass
+				
 			
 			# La position du gene lu
 			if c in self.lstChr:
@@ -165,7 +182,7 @@ class AncestralGenome(Genome):
 				i = 0
 			
 			# On ajoute le gene
-			self.addGene( myBioObjects.Gene(champs, c, i, i, 0) )
+			self.addGene( myBioObjects.Gene(champs, c, i, i, strand) )
 		
 		f.close()
 		

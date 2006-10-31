@@ -33,7 +33,7 @@ import utils.myPsOutput
 genome1 = utils.myGenomes.loadGenome(noms_fichiers["GenomeADessiner"])
 genome2 = utils.myGenomes.loadGenome(noms_fichiers["GenomeReference"])
 if options["orthologuesList"] != "":
-	genesAnc = utils.myGenomes.AncestralGenome(options["orthologuesList"], False)
+	genesAnc = utils.myGenomes.AncestralGenome(options["orthologuesList"], False, False)
 else:
 	genesAnc = genome2
 try:

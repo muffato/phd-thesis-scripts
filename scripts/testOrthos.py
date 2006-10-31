@@ -36,11 +36,9 @@ f.close()
 
 for i in range(len(lst)):
 	c = lst[i].split()
-	#print len(lst), len(c)
-	#continue
-	for j in range(len(lst)):
+	for j in range(len(c)):
 		if float(c[j]) > 0.5 and float(c[j]) < 1.5:
-			print i,j
+			print i,j+i+1
 		
 
 

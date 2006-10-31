@@ -15,7 +15,6 @@ import utils.myMaths
 
 def buildDistTree(arbre, distEsp):
 		
-	global f
 	def calcDist(anc):
 
 		s = 0.
@@ -42,22 +41,25 @@ def buildDistTree(arbre, distEsp):
 
 
 	distAnc = dict( [(a,0) for a in arbre.items] )
-	lst1 = set([e for e in distEsp if distEsp[e] == 1])
+	lst1 = [e for e in distEsp if distEsp[e] == 1]
 	
 	# On met les 1 dans l'arbre
-	for anc in phylTree.items:
-		groupes = [phylTree.getSpecies(e) for (e,_) in phylTree.items[anc]]
-		if [len(lst1.intersection(g))>0 for g in groupes].count(True) >= 2:
-			distAnc[anc] = 1
-		
-	#fils = utils.myMaths.flatten(groupes)
-	#lst1 = set([e for e in distEsp if distEsp[e] == 1])
-	#while len(lst1) >= 2:
-	#	lst1b = set([arbre.parent[e] for e in lst1 if e in arbre.parent])
-	#	print >> f, lst1b,
-	#	for e in lst1b:
-	#		distAnc[e] = 1
-	#	lst1 = lst1b
+	for i in xrange(len(lst1)):
+		for j in xrange(i):
+			e1 = lst1[i]
+			e2 = lst1[j]
+			#(s1,s2) = trad[e1]
+			#if trad[e2] != (s1,s2) and trand[e2] != (-s2,-s1):
+			#	continue
+			anc = phylTree.getFirstParent(e1, e2)
+			tmp = e1
+			while tmp != anc:
+				tmp = phylTree.parent[tmp]
+				distAnc[tmp] = 1
+			tmp = e2
+			while tmp != anc:
+				tmp = phylTree.parent[tmp]
+				distAnc[tmp] = 1
 		
 	# On calcule par une moyenne les autres distances
 	calcDist(arbre.root)
@@ -77,36 +79,88 @@ def distInterGenes(tg1, tg2):
 				else:
 					dic[e1] = x
 	
-	return (dic, buildDistTree(phylTree, dic)) #[options["nomAncetre"]]
+	#trad = {}
+	#for e in dic:
+	#	if dic[e] != 1:
+	#		continue
+	#	# On verifie que les paires sont dans le meme sens de traduction
+	#	for (e1,c1,i1,s1) in tg1:
+	#		for (e2,c2,i2,s2) in tg2:
+	#			if e1 == e2 and c1 == c2:
+	#				if i1 == (i2+1):
+	#					trad[e] = (s2,s1)
+	#				elif i2 == (i1+1):
+	#					trad[e] = (s1,s2)
+	
+	#return (dic,buildDistTree(phylTree, dic))
+	return buildDistTree(phylTree, dic)[options["nomAncetre"]]
 
-# Arguments
+# Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "genomeAncestral", "phylTree.conf"], \
-	[("nomAncetre", str, ""), ("seuilMaxDistInterGenes", int, 0), ("nbConcorde", int, -1), ("nbDecimales", int, 2), ("penalite", int, 100000000)], \
+	[("nomAncetre", str, ""), ("seuilMaxDistInterGenes", int, 0), ("nbConcorde", int, -1), ("nbDecimales", int, 2), ("penalite", int, 100000000), \
+	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
 )
 
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.getSpecies(phylTree.root))
-genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genomeAncestral"], True)
-
-if options["nomAncetre"] not in phylTree.items and options["nomAncetre"] not in geneBank.dicEspeces:
+if options["nomAncetre"] not in phylTree.items and options["nomAncetre"] not in phylTree.getSpecies(phylTree.root):
 	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["nomAncetre"]
 	sys.exit(1)
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.getSpecies(phylTree.root))
+#del geneBank.dicEspeces
+genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genomeAncestral"], True, False)
 
+# On etend la liste des genes ancestraux pour utiliser les outgroup
+anc = options["nomAncetre"]
+dicOutgroupGenes = {}
+fils = set(phylTree.getSpecies(options["nomAncetre"]))
+while anc in phylTree.parent:
+	anc = phylTree.parent[anc]
+	tmpGenesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc, False, False)
+	for g in tmpGenesAnc:
+		ianc = set([])
+		newGenes = []
+		for s in g.names:
+			if s in genesAnc.dicGenes:
+				ianc.add(genesAnc.dicGenes[s][1])
+			elif s in geneBank.dicGenes:
+				newGenes.append(geneBank.dicGenes[s])
+		for i in ianc:
+			if i in dicOutgroupGenes:
+				dicOutgroupGenes[i].extend(newGenes)
+			else:
+				dicOutgroupGenes[i] = newGenes
+	del tmpGenesAnc
+	del ianc
+	del newGenes
+
+# On reecrit le genome en terme d'especes
+genome = {}
+for c in genesAnc.lstChr:
+	genome[c] = []
+	for i in xrange(len(genesAnc.lstGenes[c])):
+		g = genesAnc.lstGenes[c][i]
+		tmp = [geneBank.dicGenes[s] for s in g.names if s in geneBank.dicGenes]
+		if i in dicOutgroupGenes:
+			tmp.extend(dicOutgroupGenes[i])
+		#genome[c].append([(ee,cc,ii,geneBank.dicEspeces[ee].lstGenes[cc][ii].strand) for (ee,cc,ii) in tmp])
+		genome[c].append(tmp)
+del geneBank
+del dicOutgroupGenes
 
 nom = "mat"+str(os.getpid())
 nbConcorde = max(1, options["nbConcorde"])
+mult = pow(10, options["nbDecimales"])
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
 for c in genesAnc.lstChr:
 
-	tab = [[geneBank.dicGenes[s] for s in g.names if s in geneBank.dicGenes] for g in genesAnc.lstGenes[c]]
+	tab = genome[c]
 	n = len(tab)
 	
 	print >> sys.stderr
 	print >> sys.stderr, "- Chromosome %s (%d genes) -" % (c, n)
-	(blocsAnc, dico) = genesAnc.splitChr(geneBank, c)
 	
 	print >> sys.stderr, "Ecriture de la matrice ... ",
 	f = open(nom, 'w')
@@ -120,16 +174,18 @@ for c in genesAnc.lstChr:
 	print >> f, "0 " * n
 	
 	for i in xrange(n):
-		for j in xrange(n):
+		for j in xrange(i+1,n):
 			y = distInterGenes(tab[i], tab[j])
-			print >> f, i, j, y
-			continue
+			#yy = y[1][options["nomAncetre"]]
+			#if yy == 1:
+			#	print >> f, i, j, y, " ".join(genesAnc.lstGenes[c][i].names), "/", " ".join(genesAnc.lstGenes[c][j].names)
+			#continue
 			if y == 0:
 				print >> f, options["penalite"],
 			elif y == 1:
 				print >> f, 1,
 			else:
-				print >> f, int(pow(10, options["nbDecimales"])*y),
+				print >> f, int(mult*y),
 		print >> f
 	print >> f, "EOF"
 	f.close()

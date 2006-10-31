@@ -27,23 +27,20 @@ def extractDiags(tab1, dic2, largeurTrou):
 	
 	# Parcours du genome 1
 	for i1 in xrange(len(tab1)):
-		if tab1[i1] < 0:
+		(j1,s1) = tab1[i1]
+		if j1 < 0:
 			presI2 = []
 		else:
-			presI2 = dic2[tab1[i1]]
+			presI2 = dic2[j1]
 
 		# On regarde chaque orthologue du gene
-		for (c2,i2) in presI2:
+		for (c2,i2,s2) in presI2:
 			# Est-ce qu'on est dans le prolongement d'une diagonale
 			if c2 in lastC2 and (((i2+1) in lastI2) or ((i2-1) in lastI2)):
 				# Cas special: la diagonale commence avec un g1 qui a plusieurs orthologues
 				# Il faut corriger listI2 et lastI2 avec les bons orthologues
 				if len(listI1) == 1 and len(lastI2) > 1:
 					listI2 = [lastI2[lastC2.index(c2)]]
-					#if (i2+1) in lastI2:
-					#	listI2 = [i2+1]
-					#else:
-					#	listI2 = [i2-1]
 				listI2.append(i2)
 				lastI2 = [i2]
 				lastC2 = [c2]
@@ -54,9 +51,10 @@ def extractDiags(tab1, dic2, largeurTrou):
 				diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),myMaths.getMinMax(listI2)) )
 			deb1 = i1
 			listI1 = []
-			lastI2 = [i for (_,i) in presI2]
-			listI2 = [i for (_,i) in presI2[:1]]
-			lastC2 = [c for (c,_) in presI2]
+			lastI2 = [i for (_,i,_) in presI2]
+			listI2 = [i for (_,i,_) in presI2[:1]] # Pour que les diagonales de longueur 1 soient correctes
+			lastC2 = [c for (c,_,_) in presI2]
+			#expectedStrand = 
 		listI1.append(i1)
 		fin1 = i1
 	
@@ -105,8 +103,7 @@ def extractDiags(tab1, dic2, largeurTrou):
 def translateGenome(genome, genesAnc):
 	newGenome = {}
 	for c in genome.lstChr:
-		genes = genome.lstGenes[c]
-		newGenome[c] = [genesAnc.dicGenes.get(g.names[0], (0,-1))[1] for g in genes]
+		newGenome[c] = [(genesAnc.dicGenes.get(g.names[0], (0,-1))[1],g.strand) for g in genome.lstGenes[c]]
 
 	return newGenome
 
@@ -121,7 +118,7 @@ def buildAncGenesLocations(geneBank, genesAnc, lstGenomes):
 			if g not in geneBank.dicGenes:
 				continue
 			(e,c,i) = geneBank.dicGenes[g]
-			locations[e][ianc].append( (c,i) )
+			locations[e][ianc].append( (c,i,geneBank.dicEspeces[e].lstGenes[c][i].strand) )
 	
 	return locations
 

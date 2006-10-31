@@ -14,7 +14,7 @@ import myMaths
 
 (noms_fichiers, options) = myTools.checkArgs(["GENOME_ANCESTRAL"], [], "")
 
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[0], True)
+genesAnc = myOrthos.AncestralGenome(noms_fichiers[0], True, False)
 #genesAnc = myOrthos.EnsemblGenome(noms_fichiers[0])
 
 lst = set([])

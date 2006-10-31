@@ -15,7 +15,7 @@ import myMaths
 (noms_fichiers, options) = myTools.checkArgs(["GENOME_ANCESTRAL"], [], "")
 
 
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[0], True)
+genesAnc = myOrthos.AncestralGenome(noms_fichiers[0], True, False)
 
 chromsMain = { "ALPHA":['n','y','z'], "BETA":['u','l','i'], "GAMMA":['j','m','k'], \
 "DELTA":['g','c'], "EPSILON":['f','d'], "PHI":['w','x'] }

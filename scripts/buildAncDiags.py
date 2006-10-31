@@ -24,7 +24,7 @@ import utils.myDiags
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
-	[("ancetre",str,""), ("output",str,""), ("fusionThreshold",int,-1), ("minimalLength",int,1), \
+	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
@@ -71,7 +71,7 @@ genomes = {}
 locations = {}
 for anc in phylTree.items:
 	
-	genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc, False)
+	genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc, False, False)
 
 	# Les listes des especes entre lesquelles on cherche des diagonales
 	groupes = [phylTree.getSpecies(e) for (e,_) in phylTree.items[anc]]
