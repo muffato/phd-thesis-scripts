@@ -34,21 +34,21 @@ phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 listEspeces = phylTree.getSpecies(phylTree.root)
 geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], listEspeces)
 
-
 # Pour sauver de la memoire
 for esp in geneBank.dicEspeces:
 	del geneBank.dicEspeces[esp].dicGenes
 
 # La structure qui accueillera les diagonales
-diagEntry = dict( [(anc, utils.myTools.myCombinator([])) for anc in phylTree.items] )
+#diagEntry = dict( [(anc, utils.myTools.myCombinator([])) for anc in phylTree.items] )
+diagEntry = dict( [(anc, []) for anc in phylTree.items] )
 
 # La fonction qui permet de traiter les diagonales
 def combinDiag2(c1, c2, d1, d2):
 	global diagEntry, options, toStudy
 	global e1, e2, anc, genomes
 
-	if len(d1) < options["minimalLength"]:
-		return
+	#if len(d1) < options["minimalLength"]:
+	#	return
 	
 	# On rajoute la diagonale a l'ancetre commun et a chaque ancetre intermediaire
 	
@@ -60,10 +60,11 @@ def combinDiag2(c1, c2, d1, d2):
 
 	for (e, tmp) in toStudy:
 		if e == e1:
-			dd = [genomes[tmp][e][c1][i] for i in d1]
+			dd = [genomes[tmp][e][c1][i][0] for i in d1]
 		else:
-			dd = [genomes[tmp][e][c2][i] for i in d2]
-		diagEntry[tmp].addLink(dd)
+			dd = [genomes[tmp][e][c2][i][0] for i in d2]
+		#diagEntry[tmp].addLink(dd)
+		diagEntry[tmp].append(dd)
 			
 
 # 2. On prepare tous les genomes ancestraux, les genomes traduits ...
@@ -87,7 +88,15 @@ for anc in phylTree.items:
 	
 	# Liste des positions des genes ancestraux dans les genomes modernes
 	print >> sys.stderr, "Extraction des positions des genes de %s ..." % anc,
-	locations[anc] = utils.myDiags.buildAncGenesLocations(geneBank, genesAnc, fils)
+	lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
+	tmp = dict( [(e,[[] for x in lstGenesAnc]) for e in fils] )
+	for ianc in xrange(len(lstGenesAnc)):
+		for g in lstGenesAnc[ianc].names:
+			if g not in geneBank.dicGenes:
+				continue
+			(e,c,i) = geneBank.dicGenes[g]
+			tmp[e][ianc].append( (c,i,geneBank.dicEspeces[e].lstGenes[c][i].strand) )
+	locations[anc] = tmp
 	print >> sys.stderr, "OK"
 	
 	del genesAnc
@@ -111,7 +120,7 @@ for anc in phylTree.items:
 					elif (e2 in s) and (e1 not in s):
 						toStudy.append( (e2,tmp) )
 			
-				utils.myDiags.iterateDiags(genomes[anc][e1], locations[anc][e2], options["fusionThreshold"], combinDiag2)
+				utils.myDiags.iterateDiags(genomes[anc][e1], locations[anc][e2], options["fusionThreshold"], options["sameStrand"], combinDiag2)
 				sys.stderr.write(".")
 	del locations[anc]
 	print >> sys.stderr, " OK"
@@ -119,6 +128,25 @@ for anc in phylTree.items:
 del genomes
 
 for anc in diagEntry:
-	for g in diagEntry[anc]:
-		print anc, " ".join([str(x) for x in g])
+	count = {}
+	for d in diagEntry[anc]:
+		for x in d:
+			count[x] = count.get(x,0) + 1
+	combin = utils.myTools.myCombinator([])
+	for d in diagEntry[anc]:
+		curr = []
+		while len(d) > 0:
+			x = d.pop(0)
+			if count[x] < 3:
+				curr.append(x)
+			else:
+				if len(curr) > 0:
+					combin.addLink(curr)
+				curr = []
+		if len(curr) > 0:
+			combin.addLink(curr)
+	del count
+	for d in combin:
+		if len(d) >= options["minimalLength"]:
+			print anc, " ".join([str(x) for x in d])
 

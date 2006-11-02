@@ -72,10 +72,10 @@ def colorAncestr(genome, genomeDup, para, orthos):
 			(cT,i) = orthos[g]
 			(x1,x2,_,_) = genomeDup.lstGenes[cT][i]
 			orig = set([cT])
-			lstT = genomeDup.getGenesAt(cT, x1-options["precisionChrAnc"], x2+options["precisionChrAnc"])
-			for gT in lstT:
-				if gT in para:
-					(cT2,_) = genomeDup.dicGenes[para[gT]]
+			for gT in genomeDup.getGenesAt(cT, x1-options["precisionChrAnc"], x2+options["precisionChrAnc"]):
+				s = gT.names[0]
+				if s in para:
+					(cT2,_) = genomeDup.dicGenes[para[s]]
 					orig.add(cT2)
 			
 			nouvOrig = lastOrig & orig

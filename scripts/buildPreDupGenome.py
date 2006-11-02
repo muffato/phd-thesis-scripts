@@ -78,10 +78,10 @@ def colorAncestr(esp, geneBank, para, orthos, dupEspLst):
 				x1 = genomeDup.lstGenes[cT][i].beginning
 				x2 = genomeDup.lstGenes[cT][i].end
 				orig = set([cT])
-				lstT = genomeDup.getGenesAt(cT, x1-options["precisionChrAnc"], x2+options["precisionChrAnc"])
-				for gT in lstT:
-					if gT[0] in para[e]:
-						(cT2,_) = genomeDup.dicGenes[para[e][gT[0]]]
+				for gT in genomeDup.getGenesAt(cT, x1-options["precisionChrAnc"], x2+options["precisionChrAnc"]):
+					s = gT.names[0]
+					if s in para[e]:
+						(cT2,_) = genomeDup.dicGenes[para[e][s]]
 						orig.add(cT2)
 				
 				nouvOrig = lastOrig & orig
@@ -150,7 +150,7 @@ def printColorAncestr(genesAnc, chrAncGenes):
 #
 def buildChrAnc(genesAncCol, chrAncGenes):
 
-	for i in range(len(genesAncCol)):
+	for i in xrange(len(genesAncCol)):
 	
 		if len(genesAncCol[i]) == 0:
 			# Ce sont des groupes de genes uniquement Tetraodon
@@ -215,7 +215,7 @@ for e in geneBank.lstEspecesNonDup:
 
 # On colorie les genes ancestraux
 print >> sys.stderr, "Synthese des genes ancestraux ",
-col = [[] for i in range(len(lstGenesAnc))]
+col = [[] for i in xrange(len(lstGenesAnc))]
 for e in blocs:
 	buildColorTable(blocs[e], col, genesAnc.dicGenes, chrAnc)
 	sys.stderr.write(".")

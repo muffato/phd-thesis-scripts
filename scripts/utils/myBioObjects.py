@@ -149,7 +149,7 @@ class EnsemblTwoSpeciesOrthos:
 			champs = ligne.split()
 
 			# On convertit en nombre les chaines de caracteres
-			for i in range(len(champs)):
+			for i in xrange(len(champs)):
 				try:
 					champs[i] = int(champs[i])
 				except ValueError:
@@ -192,7 +192,7 @@ class EnsemblTwoSpeciesOrthos:
 	# Renvoie un iterateur pour parcourir tous les orthologues
 	#
 	def __iter__(self):
-		for i in range(self.nbGenes):
+		for i in xrange(self.nbGenes):
 			yield (self.tabGenes1[self.indGenes1[i]], self.tabGenes2[self.indGenes2[i]], self.info[i], i)
 	
 	#

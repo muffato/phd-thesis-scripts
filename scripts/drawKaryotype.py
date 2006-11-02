@@ -31,7 +31,7 @@ import utils.myPsOutput
 genome1 = utils.myGenomes.loadGenome(noms_fichiers["GenomeADessiner"])
 genome2 = utils.myGenomes.loadGenome(noms_fichiers["GenomeReference"])
 if options["orthologuesList"] != "":
-	genesAnc = utils.myGenomes.AncestralGenome(options["orthologuesList"], False)
+	genesAnc = utils.myGenomes.AncestralGenome(options["orthologuesList"], False, False)
 
 # On ecrit le PostScipt
 utils.myPsOutput.printPsHeader()
@@ -46,7 +46,7 @@ for c in genome1.lstChr:
 		
 		tg = gene.names
 		if options["orthologuesList"] != "":
-			tg = mutils.yMaths.flatten([genesAnc.lstGenes[cc][ii].names for (cc,ii) in [genesAnc.dicGenes[g] for g in tg if g in genesAnc.dicGenes]])
+			tg = utils.myMaths.flatten([genesAnc.lstGenes[cc][ii].names for (cc,ii) in [genesAnc.dicGenes[g] for g in tg if g in genesAnc.dicGenes]])
 		
 		for g in tg:
 			if g in genome2.dicGenes:

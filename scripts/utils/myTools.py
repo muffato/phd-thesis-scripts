@@ -11,7 +11,11 @@ from bz2 import BZ2File
 #   Retourne l'objet FILE et le nom complet du fichier           #
 ##################################################################
 def myOpenFile(nom, mode):
-	nom = nom.replace("~", os.environ['HOME'])
+	if "~" in nom:
+		if "_CONDOR_SCRATCH_DIR" in os.environ:
+			nom = nom.replace("~", "/users/ldog/muffato")
+		else:
+			nom = nom.replace("~", os.environ['HOME'])
 	if nom.endswith(".bz2"):
 		f = BZ2File(nom, mode)
 	elif nom.endswith(".gz"):
@@ -38,39 +42,29 @@ class myMatrixIterator:
 		self.mode = mode
 
 	def __iter__(self):
-		class __InternalIterator:
-			def __init__(self, mat):
-				self.mat = mat
-				self.i = -1
-				if mat.mode == myMatrixIterator.StrictUpperMatrix or mat.mode == myMatrixIterator.WholeWithoutDiag:
-					self.i = 0
-				self.j = mat.p
-			def next(self):
-				if self.mat.mode != myMatrixIterator.OnlyDiag:
-					self.j += 1
-					if self.mat.mode == myMatrixIterator.WholeWithoutDiag and self.i == self.j:
-						self.j += 1
-						
-					if self.mat.mode == myMatrixIterator.UpperMatrix:
-						borne = min(self.i + 1, self.mat.p)
-					elif self.mat.mode == myMatrixIterator.StrictUpperMatrix:
-						borne = min(self.i, self.mat.p)
-					else:
-						borne = self.mat.p
-					
-					if self.j >= borne:
-						self.j = 0
-						self.i += 1
-						if self.i >= self.mat.n:
-							raise StopIteration
-				else:
-					self.i += 1
-					self.j = self.i
-					if self.j == self.mat.p or self.i == self.mat.n:
-						raise StopIteration
-				return (self.i, self.j)
-		return __InternalIterator(self)
+	
+		for i in xrange(0, self.n):
+			for j in xrange(0, self.p):
 			
+				if self.mode == myMatrixIterator.OnlyDiag:
+					if i != j:
+						continue
+				elif self.mode == myMatrixIterator.WholeWithoutDiag:
+					if i == j:
+						continue
+				elif self.mode == myMatrixIterator.WholeMatrix:
+					continue
+				elif self.mode == myMatrixIterator.UpperMatrix:
+					if j < i:
+						continue
+				elif self.mode == myMatrixIterator.StrictUpperMatrix:
+					if j <= i:
+						continue
+				else:
+					continue
+				yield (i,j)
+		
+
 ########################################################################
 # Cette classe permet de regrouper une liste d'elements                #
 # Partant d'une liste initiale, on ajoute des liens entre des elements #
@@ -81,7 +75,7 @@ class myCombinator:
 	def __init__(self, ini):
 		self.grp = ini
 		self.dic = {}
-		for i in range(len(ini)):
+		for i in xrange(len(ini)):
 			for x in ini[i]:
 				self.dic[x] = i
 	
@@ -189,6 +183,6 @@ def checkArgs(args, options, info):
 	if len(valArg) != len(args):
 		error_usage()
 	
-	return (dict([(args[i],valArg[i]) for i in range(len(args))]), valOpt)
+	return (dict([(args[i],valArg[i]) for i in xrange(len(args))]), valOpt)
 
 

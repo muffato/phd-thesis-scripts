@@ -87,7 +87,9 @@ class Genome:
 	# Renvoie les noms des genes presents sur le chromosome donne a certaines positions
 	#	
 	def getGenesAt(self, chr, beg = 0, end = sys.maxint):
-		return [g.names for g in self.lstGenes[chr] if g.end >= beg and g.beginning <= end]
+		for g in self.lstGenes[chr]:
+			if g.end >= beg and g.beginning <= end:
+				yield g
 
 	def iterOnChromosome(self, c):
 		for g in self.lstGenes[c]:

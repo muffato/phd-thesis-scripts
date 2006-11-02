@@ -193,7 +193,7 @@ for c in genesAnc.lstChr:
 	print >> sys.stderr, "Lancement de concorde ",
 	lstTot = []
 	for i in range(nbConcorde):
-		os.system('/users/ldog/muffato/work/scripts/concorde -m -x ' + nom + ' >&2')
+		os.system('~/work/scripts/concorde -m -x ' + nom + ' >&2')
 		lstTot.append(utils.myBioObjects.ConcordeFile(nom + ".sol"))
 		os.system('rm -f 0%s* %s.*' % (nom,nom) )
 		sys.stderr.write(".")
