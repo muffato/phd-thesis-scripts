@@ -24,7 +24,7 @@ import utils.myDiags
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
-	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), \
+	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("cutNodes",bool,True),\
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
@@ -39,31 +39,21 @@ for esp in geneBank.dicEspeces:
 	del geneBank.dicEspeces[esp].dicGenes
 
 # La structure qui accueillera les diagonales
-#diagEntry = dict( [(anc, utils.myTools.myCombinator([])) for anc in phylTree.items] )
 diagEntry = dict( [(anc, []) for anc in phylTree.items] )
 
 # La fonction qui permet de traiter les diagonales
 def combinDiag2(c1, c2, d1, d2):
-	global diagEntry, options, toStudy
-	global e1, e2, anc, genomes
+	global diagEntry, toStudy, options
+	global e1, genomes
 
-	#if len(d1) < options["minimalLength"]:
-	#	return
+	if len(d1) < options["minimalLength"]:
+		return
 	
-	# On rajoute la diagonale a l'ancetre commun et a chaque ancetre intermediaire
-	
-	#dd1 = [genomes[anc][e1][c1][i] for i in d1]
-	#dd2 = [genomes[anc][e2][c2][i] for i in d2]
-	#if dd1 != dd2:
-	#	print >> sys.stderr, "PB !!!", anc, e1, e2, d1, d2, dd1, dd2
-	#diagEntry[anc].addLink(dd1)
-
 	for (e, tmp) in toStudy:
 		if e == e1:
 			dd = [genomes[tmp][e][c1][i][0] for i in d1]
 		else:
 			dd = [genomes[tmp][e][c2][i][0] for i in d2]
-		#diagEntry[tmp].addLink(dd)
 		diagEntry[tmp].append(dd)
 			
 
@@ -128,25 +118,40 @@ for anc in phylTree.items:
 del genomes
 
 for anc in diagEntry:
-	count = {}
-	for d in diagEntry[anc]:
-		for x in d:
-			count[x] = count.get(x,0) + 1
+
+	if options["cutNodes"]:
+		voisins = {}
+		for d in diagEntry[anc]:
+			for i in range(1,len(d)):
+				x = d[i-1]
+				y = d[i]
+				voisins[x] = voisins.get(x,[]) + [y]
+				voisins[y] = voisins.get(y,[]) + [x]
+			
+		for x in voisins:
+			voisins[x] = len(set(voisins[x]))
+
+		res = []
+		for d in diagEntry[anc]:
+			curr = []
+			while len(d) > 0:
+				x = d.pop(0)
+				if voisins[x] < 3:
+					curr.append(x)
+				else:
+					if len(curr) >= 2:
+						res.append(curr)
+					curr = []
+			if len(curr) >= 2:
+				res.append(curr)
+		del voisins
+	else:
+		res = diagEntry[anc]
+	
 	combin = utils.myTools.myCombinator([])
-	for d in diagEntry[anc]:
-		curr = []
-		while len(d) > 0:
-			x = d.pop(0)
-			if count[x] < 3:
-				curr.append(x)
-			else:
-				if len(curr) > 0:
-					combin.addLink(curr)
-				curr = []
-		if len(curr) > 0:
-			combin.addLink(curr)
-	del count
+	for d in res:
+		combin.addLink(d)
+		
 	for d in combin:
-		if len(d) >= options["minimalLength"]:
-			print anc, " ".join([str(x) for x in d])
+		print anc, " ".join([str(x) for x in d])
 

@@ -13,13 +13,13 @@ import utils.myMaths
 
 # FONCTIONS #
 
-def buildDistTree(arbre, distEsp):
-		
+def distInterGenes(tg1, tg2):
+
 	def calcDist(anc):
 
 		s = 0.
 		n = 0.
-		for (e,p) in arbre.items[anc]:
+		for (e,p) in phylTree.items[anc]:
 			if e not in distAnc:
 				if e in distEsp:
 					val = distEsp[e]
@@ -39,8 +39,19 @@ def buildDistTree(arbre, distEsp):
 		distAnc[anc] = s
 		return s
 
-
-	distAnc = dict( [(a,0) for a in arbre.items] )
+	#print >> sys.stderr, 0, len(tg1), len(tg2)
+	distEsp = {}
+	for (e1,c1,i1) in tg1:
+		for (e2,c2,i2) in tg2:
+			if e1 == e2 and c1 == c2:
+				x = abs(i1-i2)
+				if e1 in distEsp:
+					distEsp[e1] = min(distEsp[e1], x)
+				else:
+					distEsp[e1] = x
+	
+	#print >> sys.stderr, 1, distEsp
+	distAnc = dict( [(a,0) for a in phylTree.items] )
 	lst1 = [e for e in distEsp if distEsp[e] == 1]
 	
 	# On met les 1 dans l'arbre
@@ -48,9 +59,6 @@ def buildDistTree(arbre, distEsp):
 		for j in xrange(i):
 			e1 = lst1[i]
 			e2 = lst1[j]
-			#(s1,s2) = trad[e1]
-			#if trad[e2] != (s1,s2) and trand[e2] != (-s2,-s1):
-			#	continue
 			anc = phylTree.getFirstParent(e1, e2)
 			tmp = e1
 			while tmp != anc:
@@ -60,40 +68,16 @@ def buildDistTree(arbre, distEsp):
 			while tmp != anc:
 				tmp = phylTree.parent[tmp]
 				distAnc[tmp] = 1
-		
+			if distAnc[options["nomAncetre"]] == 1:
+				return 1
+	
+	#print >> sys.stderr, 2, distAnc
+			
 	# On calcule par une moyenne les autres distances
-	calcDist(arbre.root)
-	return distAnc
+	calcDist(options["nomAncetre"])
+	#print >> sys.stderr, 3, distAnc
+	return distAnc[options["nomAncetre"]]
 	
-
-
-def distInterGenes(tg1, tg2):
-	
-	dic = {}
-	for (e1,c1,i1) in tg1:
-		for (e2,c2,i2) in tg2:
-			if e1 == e2 and c1 == c2:
-				x = abs(i1-i2)
-				if e1 in dic:
-					dic[e1] = min(dic[e1], x)
-				else:
-					dic[e1] = x
-	
-	#trad = {}
-	#for e in dic:
-	#	if dic[e] != 1:
-	#		continue
-	#	# On verifie que les paires sont dans le meme sens de traduction
-	#	for (e1,c1,i1,s1) in tg1:
-	#		for (e2,c2,i2,s2) in tg2:
-	#			if e1 == e2 and c1 == c2:
-	#				if i1 == (i2+1):
-	#					trad[e] = (s2,s1)
-	#				elif i2 == (i1+1):
-	#					trad[e] = (s1,s2)
-	
-	#return (dic,buildDistTree(phylTree, dic))
-	return buildDistTree(phylTree, dic)[options["nomAncetre"]]
 
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
@@ -108,29 +92,30 @@ if options["nomAncetre"] not in phylTree.items and options["nomAncetre"] not in 
 	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["nomAncetre"]
 	sys.exit(1)
 geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.getSpecies(phylTree.root))
-#del geneBank.dicEspeces
+del geneBank.dicEspeces
 genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genomeAncestral"], True, False)
 
 # On etend la liste des genes ancestraux pour utiliser les outgroup
+
 anc = options["nomAncetre"]
 dicOutgroupGenes = {}
-fils = set(phylTree.getSpecies(options["nomAncetre"]))
 while anc in phylTree.parent:
 	anc = phylTree.parent[anc]
-	tmpGenesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc, False, False)
+	tmpGenesAnc = utils.myGenomes.loadGenome(options["ancGenesFile"] % anc)
+	del tmpGenesAnc.dicGenes
 	for g in tmpGenesAnc:
 		ianc = set([])
 		newGenes = []
 		for s in g.names:
 			if s in genesAnc.dicGenes:
-				ianc.add(genesAnc.dicGenes[s][1])
+				ianc.add(genesAnc.dicGenes[s])
 			elif s in geneBank.dicGenes:
 				newGenes.append(geneBank.dicGenes[s])
 		for i in ianc:
 			if i in dicOutgroupGenes:
-				dicOutgroupGenes[i].extend(newGenes)
+				dicOutgroupGenes[i].update(newGenes)
 			else:
-				dicOutgroupGenes[i] = newGenes
+				dicOutgroupGenes[i] = set(newGenes)
 	del tmpGenesAnc
 	del ianc
 	del newGenes
@@ -141,10 +126,9 @@ for c in genesAnc.lstChr:
 	genome[c] = []
 	for i in xrange(len(genesAnc.lstGenes[c])):
 		g = genesAnc.lstGenes[c][i]
-		tmp = [geneBank.dicGenes[s] for s in g.names if s in geneBank.dicGenes]
+		tmp = set([geneBank.dicGenes[s] for s in g.names if s in geneBank.dicGenes])
 		if i in dicOutgroupGenes:
 			tmp.extend(dicOutgroupGenes[i])
-		#genome[c].append([(ee,cc,ii,geneBank.dicEspeces[ee].lstGenes[cc][ii].strand) for (ee,cc,ii) in tmp])
 		genome[c].append(tmp)
 del geneBank
 del dicOutgroupGenes
@@ -176,10 +160,6 @@ for c in genesAnc.lstChr:
 	for i in xrange(n):
 		for j in xrange(i+1,n):
 			y = distInterGenes(tab[i], tab[j])
-			#yy = y[1][options["nomAncetre"]]
-			#if yy == 1:
-			#	print >> f, i, j, y, " ".join(genesAnc.lstGenes[c][i].names), "/", " ".join(genesAnc.lstGenes[c][j].names)
-			#continue
 			if y == 0:
 				print >> f, options["penalite"],
 			elif y == 1:
@@ -214,4 +194,4 @@ for c in genesAnc.lstChr:
 		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 
 
-#os.system('rm -f *%s*' % nom )
+os.system('rm -f *%s*' % nom )

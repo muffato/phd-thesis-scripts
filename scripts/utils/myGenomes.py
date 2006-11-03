@@ -62,7 +62,6 @@ class Genome:
 		c = gene.chromosome
 		if c not in self.lstGenes:
 			self.lstChr.append(c)
-			self.lstChr.sort()
 			self.lstGenes[c] = []
 
 		n = len(self.lstGenes[c])
@@ -132,6 +131,7 @@ class EnsemblGenome(Genome):
 			self.addGene( myBioObjects.Gene(champs[4:], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
 		f.close()
 
+		self.lstChr.sort()
 		self.sortGenome()
 		
 		print >> sys.stderr, "OK"
@@ -187,6 +187,7 @@ class AncestralGenome(Genome):
 			self.addGene( myBioObjects.Gene(champs, c, i, i, strand) )
 		
 		f.close()
+		self.lstChr.sort()
 		
 		print >> sys.stderr, "OK"
 

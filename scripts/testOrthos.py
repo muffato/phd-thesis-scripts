@@ -35,6 +35,7 @@ lst = f.readlines()[7:-1]
 f.close()
 
 for i in range(len(lst)):
+	continue
 	c = lst[i].split()
 	for j in range(len(c)):
 		if float(c[j]) > 0.5 and float(c[j]) < 1.5:
@@ -42,10 +43,10 @@ for i in range(len(lst)):
 		
 
 
-sys.exit(0)
+#sys.exit(0)
 
 
-genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAnc"], False)
+genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genesAnc"])
 
 nb = 1
 for l in sys.stdin:

@@ -10,11 +10,7 @@ Chaque gene ancestral recoit son chromosome ancestral par un vote a la majorite 
 # INITIALISATION #
 
 # Librairies
-import string
 import sys
-import math
-import random
-import os
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
@@ -203,7 +199,7 @@ def loadChrAncIni(nom):
 especesNonDup = options["especesNonDup"].split(',')
 especesDup = options["especesDup"].split(',')
 geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], especesNonDup+especesDup)
-genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAncestraux.list"], False)
+genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genesAncestraux.list"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
 (para,orthos) = buildParaOrtho(lstGenesAnc, geneBank)
 chrAnc = loadChrAncIni(noms_fichiers["draftPreDupGenome.conf"])
