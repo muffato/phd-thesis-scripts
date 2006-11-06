@@ -25,7 +25,8 @@ import utils.myMaths
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
-	[("orthoFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
+	[("homologyLevels",str,"ortholog_one2many,ortholog_many2many,apparent_ortholog_one2one,ortholog_one2one"), \
+	("orthoFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("one2oneFile",str,"~/work/data/ancGenes/one2one.%s.list.bz2")], \
 	__doc__ \
@@ -33,7 +34,7 @@ import utils.myMaths
 
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.getSpecies(phylTree.root))
-
+homologies = options["homologyLevels"].split(",")
 
 def buildAncFile(anc, lastComb):
 
@@ -45,6 +46,8 @@ def buildAncFile(anc, lastComb):
 		f = utils.myTools.myOpenFile(options["orthoFile"] % (esp[i],esp[j]), 'r')
 		for ligne in f:
 			c = ligne.split()
+			if c[6] not in homologies:
+				continue
 			comb.addLink([c[0], c[3]])
 		f.close()
 		sys.stderr.write('.')
@@ -101,6 +104,7 @@ def buildAncFile(anc, lastComb):
 
 	f.close()
 	ff.close()
+	
 	print >> sys.stderr, "OK (%d/%d)" % (nbA, nbO)
 	del comb
 	

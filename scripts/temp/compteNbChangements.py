@@ -65,33 +65,4 @@ for c in genome1.lstChr:
 			somme += 1
 
 print >> sys.stderr, somme, total
-sys.exit(0)
-# On dessine
-dx = (19.*3.)/(5.*len(genome1.lstChr)-2.)
-dy = float(max([len(x) for x in res.values()])) / 26.
-xx = 1
-y0 = 1.
-
-
-for c in genome1.lstChr:
-	
-	utils.myPsOutput.drawText(xx, y0, str(c), "black")
-	y = y0 + 1
-	
-	last = ""
-	nb = 0
-	for col in res[c]:
-		if col == last:
-			nb += 1
-		else:
-			if nb != 0:
-				utils.myPsOutput.drawBox(xx, y, dx, nb/dy, last, last)
-				y += nb/dy
-			last = col
-			nb = 1
-	if nb != 0:
-		utils.myPsOutput.drawBox(xx, y, dx, nb/dy, last, last)
-	xx += (5.*dx)/3.
-
-utils.myPsOutput.printPsFooter()
 

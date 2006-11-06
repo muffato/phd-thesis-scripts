@@ -42,11 +42,23 @@ def moyennePonderee(lst):
 
 #
 # Ecart type
+#
 def ecartType(lst):
 	if len(lst) == 0:
 		return 0
 	m = moyenne(lst)
 	return math.sqrt(moyenne([(x-m)*(x-m) for x in lst]))
+
+#
+# Mediane
+#
+def mediane(lst):
+	if len(lst) == 0:
+		return 0
+	l = lst[:]
+	l.sort()
+	return l[len(l)/2]
+
 
 
 #

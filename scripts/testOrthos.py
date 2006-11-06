@@ -13,6 +13,7 @@ import os
 import sys
 import utils.myGenomes
 import utils.myTools
+import utils.myMaths
 import utils.myDiags
 import cPickle
 
@@ -21,13 +22,43 @@ import cPickle
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genesAnc"], \
-	[("ancetre",str,""), ("output",str,""), ("fusionThreshold",int,-1), ("minimalLength",int,1), \
-	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
-	__doc__ \
-)
+#(noms_fichiers, options) = utils.myTools.checkArgs( \
+#	["genesAnc"], \
+#	[("ancetre",str,""), ("output",str,""), ("fusionThreshold",int,-1), ("minimalLength",int,1), \
+#	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
+#	__doc__ \
+#)
 
+lst = []
+for l in sys.stdin:
+	c = l.split()
+	for x in c:
+		lst.append(float(x))
+lst.sort()
+print utils.myMaths.moyenne(lst), utils.myMaths.mediane(lst), utils.myMaths.ecartType(lst)
+
+sys.exit(0)
+
+tabGenesAnc = []
+
+for nom in sys.argv[2:]:
+	tmp = utils.myGenomes.loadGenome(nom)
+	del tmp.lstGenes
+	tabGenesAnc.append(tmp)
+
+genomeAnc = utils.myGenomes.loadGenome(sys.argv[1])
+del genomeAnc.dicGenes
+print "\t\t%s" % "\t".join([str(x) for x in genomeAnc.lstChr])
+for g in genomeAnc:
+	score = dict([(c,0) for c in genomeAnc.lstChr])
+	for gen in tabGenesAnc:
+		s = g.names[0]
+		if s in gen.dicGenes:
+			score[gen.dicGenes[s][0]] += 1
+	print "%s\t%d\t%s" % (g.chromosome, g.beginning, "\t".join([str(score[x]) for x in score]))
+
+
+sys.exit(0)
 
 f = open(noms_fichiers["genesAnc"], 'r')
 

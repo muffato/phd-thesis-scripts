@@ -43,16 +43,13 @@ def buildParaOrtho(lstGenesAnc, geneBank):
 #
 # Cree les regions de chromosomes ancestraux dans la classe d'orthologues
 #
-def colorAncestr(esp, geneBank, para, orthos, dupEspLst):
+def colorAncestr(esp, geneBank, para, orthos):
 
 	lstBlocs = {}
 	genome = geneBank.dicEspeces[esp]
 
 	for e in geneBank.lstEspecesDup:
 
-		if e not in dupEspLst:
-			continue
-	
 		print >> sys.stderr, "Decoupage de", esp, "avec", e, "",
 
 		nbOrthos = 0
@@ -122,7 +119,7 @@ def buildColorTable(lstBlocs, col, dicGenesAnc, chrAnc):
 			r = float(s-1) / float(len(b))
 			for c in l:
 				for g in b:
-					col[dicGenesAnc[g[0]][1]].append( (r,len(b),c) )
+					col[dicGenesAnc[g[0]][1]].append( (r,len(b),c,e) )
 		
 
 #
@@ -133,10 +130,18 @@ def printColorAncestr(genesAnc, chrAncGenes):
 	print >> sys.stderr, "Impression des associations genes / chromosomes ancestraux ... ",
 	nb = 0	
 
-	for c in chrAncGenes:
+	lstChr = chrAncGenes.keys()
+	lstChr.sort()
+	if options["showStats"]:
+		print "\t\t%s" % "\t".join(lstChr)
+	
+	for c in lstChr:
 		for i in chrAncGenes[c]:
-			print c, " ".join(genesAnc[i].names)
-		nb += len(chrAncGenes[c])
+			nb += 1
+			if options["showStats"]:
+				print "%s\t%d\t%s\t%d" % (c, nb, "\t".join([str(col[i][x][0]) for x in lstChr]), (100*col[i][c][0])/sum([col[i][x][0] for x in lstChr]))
+			else:
+				print c, " ".join(genesAnc[i].names)
 		
 	print >> sys.stderr, nb, "genes dans le genome ancestral"
 
@@ -146,18 +151,22 @@ def printColorAncestr(genesAnc, chrAncGenes):
 #
 def buildChrAnc(genesAncCol, chrAncGenes):
 
+	lstChr = chrAncGenes.keys()
+	lstChr.sort()
+	
 	for i in xrange(len(genesAncCol)):
 	
 		if len(genesAncCol[i]) == 0:
-			# Ce sont des groupes de genes uniquement Tetraodon
-			#  ou sans genes Tetraodon
+			# Certains genes n'ont pas de chance !
 			continue
 		
 		# Le chromosome le plus frequent
-		nb = dict([(x,(0,0,0)) for x in chrAncGenes])
-		for (s,l,c) in genesAncCol[i]:
-			nb[c] = (nb[c][0]+1, max(nb[c][1], l), max(nb[c][2], s))
-		c = utils.myMaths.sortDict(nb)[0]
+		nb = dict([(x,(0,0,0,[])) for x in chrAncGenes])
+		for (s,l,c,e) in genesAncCol[i]:
+			nb[c] = (nb[c][0]+1, max(nb[c][1], l), max(nb[c][2], s), nb[c][3]+[e])
+		tmp = utils.myMaths.sortDict(nb)
+		c = tmp[0]
+		#genesAncCol[i] = nb
 		
 		chrAncGenes[c].append(i)
 
@@ -168,7 +177,7 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 def loadChrAncIni(nom):
 
 	chrAnc = {}
-	f = open(nom, 'r')
+	f = utils.myTools.myOpenFile(nom, 'r')
 	for ligne in f:
 		c = ligne.split()
 		dic = {}
@@ -191,7 +200,7 @@ def loadChrAncIni(nom):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "genesAncestraux.list", "draftPreDupGenome.conf"],
-	[("precisionChrAnc", int, 1000000), ("especesNonDup",str,""), ("especesDup",str,"")], \
+	[("precisionChrAnc", int, 1000000), ("especesNonDup",str,""), ("especesDup",str,""), ("showStats",bool,False)], \
 	__doc__ \
 )
 
@@ -207,7 +216,7 @@ chrAnc = loadChrAncIni(noms_fichiers["draftPreDupGenome.conf"])
 # On colorie les matrices actuelles
 blocs = {}
 for e in geneBank.lstEspecesNonDup:
-	blocs[e] = colorAncestr(e, geneBank, para, orthos, geneBank.lstEspecesDup)
+	blocs[e] = colorAncestr(e, geneBank, para, orthos)
 
 # On colorie les genes ancestraux
 print >> sys.stderr, "Synthese des genes ancestraux ",
