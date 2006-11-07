@@ -49,10 +49,21 @@ def combinDiag2(c1, c2, d1, d2):
 	if len(d1) < options["minimalLength"]:
 		return
 	
+	print >> sys.stderr, "reception de", c1, c2, d1, d2
+	
 	for (e, tmp) in toStudy:
+		print >> sys.stderr, "ecriture sur", e, tmp
 		if e == e1:
+			print >> sys.stderr, tmp in genomes,
+			print >> sys.stderr, e in genomes[tmp],
+			print >> sys.stderr, c1 in genomes[tmp][e],
+			print >> sys.stderr, len(genomes[tmp][e][c1])
 			dd = [genomes[tmp][e][c1][i][0] for i in d1]
 		else:
+			print >> sys.stderr, tmp in genomes,
+			print >> sys.stderr, e in genomes[tmp],
+			print >> sys.stderr, c2 in genomes[tmp][e],
+			print >> sys.stderr, len(genomes[tmp][e][c2])
 			dd = [genomes[tmp][e][c2][i][0] for i in d2]
 		diagEntry[tmp].append(dd)
 			
@@ -86,6 +97,7 @@ for anc in phylTree.items:
 				continue
 			(e,c,i) = geneBank.dicGenes[g]
 			tmp[e][ianc].append( (c,i,geneBank.dicEspeces[e].lstGenes[c][i].strand) )
+			#genomes[anc][e][c][i]
 	locations[anc] = tmp
 	print >> sys.stderr, "OK"
 	
