@@ -53,7 +53,7 @@ def __extractDiags(tab1, dic2, largeurTrou, sameStrand):
 		else:
 			# On n'a pas trouve de i2 satisfaisant, c'est la fin de la diagonale
 			if len(listI1) > 0 and len(listI2) > 0:
-				diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),myMaths.getMinMax(listI2),currentStrand) )
+				diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),myMaths.getMinMax(listI2)) )
 			deb1 = i1
 			listI1 = []
 			lastC2 = [c for (c,_,_) in presI2]
@@ -68,31 +68,31 @@ def __extractDiags(tab1, dic2, largeurTrou, sameStrand):
 		fin1 = i1
 	
 	if len(listI1) > 0 and len(listI2) > 0:
-		diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),myMaths.getMinMax(listI2),currentStrand) )
+		diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),myMaths.getMinMax(listI2)) )
 	
-	for d in diag:
-		print >> sys.stderr, d
-		yield d
+	#for d in diag:
+	#	#print >> sys.stderr, d
+	#	yield d
 
-	return
+	#return
 	#sys.exit(0)
 
 	# On rassemble des diagonales separees par une espace pas trop large
 	while len(diag) > 0:
-		print >> sys.stderr, "on est sur", diag[0]
-		(d1,d2,c2,(deb1,fin1),(deb2,fin2),s) = diag.pop(0)
+		#print >> sys.stderr, "on est sur", diag[0]
+		(d1,d2,c2,(deb1,fin1),(deb2,fin2)) = diag.pop(0)
 		i = 0
 		while i < len(diag):
-			(dd1,dd2,cc2,(debb1,finn1),(debb2,finn2),ss) = diag[i]
-			print >> sys.stderr, "test de", diag[i]
+			(dd1,dd2,cc2,(debb1,finn1),(debb2,finn2)) = diag[i]
+			#print >> sys.stderr, "test de", diag[i]
 
 			# Aucune chance de poursuivre la diagonale
 			if debb1 > (fin1+largeurTrou+1):
-				print >> sys.stderr, "meme pas la peine"
+				#print >> sys.stderr, "meme pas la peine"
 				break
 			a = min(abs(deb2-finn2), abs(debb2-fin2))
 			if a <= (largeurTrou+1) and c2==cc2:
-				print >> sys.stderr, "OK"
+				#print >> sys.stderr, "OK"
 				d1.extend(dd1)
 				d2.extend(dd2)
 				fin1 = finn1
@@ -100,9 +100,9 @@ def __extractDiags(tab1, dic2, largeurTrou, sameStrand):
 				fin2 = max(fin2,finn2)
 				del diag[i]
 			else:
-				print >> sys.stderr, "non"
+				#print >> sys.stderr, "non"
 				i += 1
-		print >> sys.stderr, "envoi"
+		#print >> sys.stderr, "envoi"
 		yield (d1,d2,c2,(deb1,fin1),(deb2,fin2))
 
 
@@ -120,11 +120,7 @@ def translateGenome(genome, genesAnc):
 def iterateDiags(genome1, dic2, threshold, sameStrand, callBackFunc):
 
 	for c1 in genome1:
-		for (d1,d2,c2,aa,bb,_) in __extractDiags(genome1[c1], dic2, threshold, sameStrand):
-			if aa != myMaths.getMinMax(d1):
-				print >> sys.stderr, "souci min/max sur", d1, aa
-			if bb != myMaths.getMinMax(d2):
-				print >> sys.stderr, "souci min/max sur", d2, bb
+		for (d1,d2,c2,aa,bb) in __extractDiags(genome1[c1], dic2, threshold, sameStrand):
 			callBackFunc(c1,c2,d1,d2)
 
 

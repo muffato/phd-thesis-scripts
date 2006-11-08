@@ -22,59 +22,48 @@ import cPickle
 ########
 
 # Arguments
-#(noms_fichiers, options) = utils.myTools.checkArgs( \
-#	["genesAnc"], \
-#	[("ancetre",str,""), ("output",str,""), ("fusionThreshold",int,-1), ("minimalLength",int,1), \
-#	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
-#	__doc__ \
-#)
+(noms_fichiers, options) = utils.myTools.checkArgs( \
+	["genesAnc"], \
+	[("ancetre",str,""), ("output",str,""), ("fusionThreshold",int,-1), ("minimalLength",int,1), \
+	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
+	__doc__ \
+)
 
-lst = []
-for l in sys.stdin:
-	c = l.split()
-	for x in c:
-		lst.append(float(x))
-lst.sort()
-print utils.myMaths.moyenne(lst), utils.myMaths.mediane(lst), utils.myMaths.ecartType(lst)
+def f1():
+	tabGenesAnc = []
 
-sys.exit(0)
+	for nom in sys.argv[2:]:
+		tmp = utils.myGenomes.loadGenome(nom)
+		del tmp.lstGenes
+		tabGenesAnc.append(tmp)
 
-tabGenesAnc = []
-
-for nom in sys.argv[2:]:
-	tmp = utils.myGenomes.loadGenome(nom)
-	del tmp.lstGenes
-	tabGenesAnc.append(tmp)
-
-genomeAnc = utils.myGenomes.loadGenome(sys.argv[1])
-del genomeAnc.dicGenes
-print "\t\t%s" % "\t".join([str(x) for x in genomeAnc.lstChr])
-for g in genomeAnc:
-	score = dict([(c,0) for c in genomeAnc.lstChr])
-	for gen in tabGenesAnc:
-		s = g.names[0]
-		if s in gen.dicGenes:
-			score[gen.dicGenes[s][0]] += 1
-	print "%s\t%d\t%s" % (g.chromosome, g.beginning, "\t".join([str(score[x]) for x in score]))
+	genomeAnc = utils.myGenomes.loadGenome(sys.argv[1])
+	del genomeAnc.dicGenes
+	print "\t\t%s" % "\t".join([str(x) for x in genomeAnc.lstChr])
+	for g in genomeAnc:
+		score = dict([(c,0) for c in genomeAnc.lstChr])
+		for gen in tabGenesAnc:
+			s = g.names[0]
+			if s in gen.dicGenes:
+				score[gen.dicGenes[s][0]] += 1
+		print "%s\t%d\t%s" % (g.chromosome, g.beginning, "\t".join([str(score[x]) for x in score]))
 
 
-sys.exit(0)
 
-f = open(noms_fichiers["genesAnc"], 'r')
+def f2():
+	f = open(noms_fichiers["genesAnc"], 'r')
 
-lst = f.readlines()[7:-1]
-f.close()
+	lst = f.readlines()[7:-1]
+	f.close()
 
-for i in range(len(lst)):
-	continue
-	c = lst[i].split()
-	for j in range(len(c)):
-		if float(c[j]) > 0.5 and float(c[j]) < 1.5:
-			print i,j+i+1
-		
+	for i in range(len(lst)):
+		continue
+		c = lst[i].split()
+		for j in range(len(c)):
+			if float(c[j]) > 0.5 and float(c[j]) < 1.5:
+				print i,j+i+1
+			
 
-
-#sys.exit(0)
 
 
 genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genesAnc"])

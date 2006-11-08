@@ -24,7 +24,7 @@ import utils.myDiags
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
-	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("cutNodes",bool,True),\
+	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("cutNodes",bool,True), ("combinSameChr",bool,False), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
@@ -44,28 +44,28 @@ diagEntry = dict( [(anc, []) for anc in phylTree.items] )
 # La fonction qui permet de traiter les diagonales
 def combinDiag2(c1, c2, d1, d2):
 	global diagEntry, toStudy, options
-	global e1, genomes
+	global e1, e2, genomes
 
 	if len(d1) < options["minimalLength"]:
 		return
 	
-	print >> sys.stderr, "reception de", c1, c2, d1, d2
+	#print >> sys.stderr, "reception de", c1, c2, d1, d2
 	
 	for (e, tmp) in toStudy:
-		print >> sys.stderr, "ecriture sur", e, tmp
+		#print >> sys.stderr, "ecriture sur", e, tmp
 		if e == e1:
-			print >> sys.stderr, tmp in genomes,
-			print >> sys.stderr, e in genomes[tmp],
-			print >> sys.stderr, c1 in genomes[tmp][e],
-			print >> sys.stderr, len(genomes[tmp][e][c1])
+			#print >> sys.stderr, tmp in genomes,
+			#print >> sys.stderr, e in genomes[tmp],
+			#print >> sys.stderr, c1 in genomes[tmp][e],
+			#print >> sys.stderr, len(genomes[tmp][e][c1])
 			dd = [genomes[tmp][e][c1][i][0] for i in d1]
 		else:
-			print >> sys.stderr, tmp in genomes,
-			print >> sys.stderr, e in genomes[tmp],
-			print >> sys.stderr, c2 in genomes[tmp][e],
-			print >> sys.stderr, len(genomes[tmp][e][c2])
+			#print >> sys.stderr, tmp in genomes,
+			#print >> sys.stderr, e in genomes[tmp],
+			#print >> sys.stderr, c2 in genomes[tmp][e],
+			#print >> sys.stderr, len(genomes[tmp][e][c2])
 			dd = [genomes[tmp][e][c2][i][0] for i in d2]
-		diagEntry[tmp].append(dd)
+		diagEntry[tmp].append( (dd,"%s.%s"%(e1,c1),"%s.%s"%(e2,c2)) )
 			
 
 # 2. On prepare tous les genomes ancestraux, les genomes traduits ...
@@ -97,7 +97,6 @@ for anc in phylTree.items:
 				continue
 			(e,c,i) = geneBank.dicGenes[g]
 			tmp[e][ianc].append( (c,i,geneBank.dicEspeces[e].lstGenes[c][i].strand) )
-			#genomes[anc][e][c][i]
 	locations[anc] = tmp
 	print >> sys.stderr, "OK"
 	
@@ -131,39 +130,64 @@ del genomes
 
 for anc in diagEntry:
 
+	print >> sys.stderr, "Traitement et impression de %s " % anc,
 	if options["cutNodes"]:
+		sys.stderr.write(".")
 		voisins = {}
-		for d in diagEntry[anc]:
-			for i in range(1,len(d)):
+		for (d,_,_) in diagEntry[anc]:
+			#print >> sys.stderr, d
+			if len(d) == 1 and d[0] not in voisins:
+				voisins[d[0]] = []
+				continue
+			for i in xrange(1,len(d)):
 				x = d[i-1]
 				y = d[i]
+				#print >> sys.stderr, x, y
 				voisins[x] = voisins.get(x,[]) + [y]
 				voisins[y] = voisins.get(y,[]) + [x]
-			
+		sys.stderr.write(".")
+		
 		for x in voisins:
+			#print >> sys.stderr, x
 			voisins[x] = len(set(voisins[x]))
+		sys.stderr.write(".")
 
 		res = []
-		for d in diagEntry[anc]:
+		for (d,o1,o2) in diagEntry[anc]:
 			curr = []
+			#print >> sys.stderr, d
 			while len(d) > 0:
 				x = d.pop(0)
+				#print >> sys.stderr, x
 				if voisins[x] < 3:
 					curr.append(x)
 				else:
 					if len(curr) >= 2:
-						res.append(curr)
+						res.append( (curr,o1,o2) )
 					curr = []
 			if len(curr) >= 2:
-				res.append(curr)
+				res.append( (curr,o1,o2) )
+		sys.stderr.write(".")
 		del voisins
 	else:
 		res = diagEntry[anc]
 	
+	sys.stderr.write(".")
+
 	combin = utils.myTools.myCombinator([])
-	for d in res:
-		combin.addLink(d)
+	if options["combinSameChr"]:
+		combin1 = utils.myTools.myCombinator([])
+		for i in xrange(len(res)):
+			(_,o1,o2) = res[i]
+			combin1.addLink( [o1+o2,i] )
+		for g in combin1:
+			combin.addLink(utils.myMaths.flatten([res[i][0] for i in g if type(i) == int]))
+	else:
+		for (d,_,_) in res:
+			combin.addLink(d)
+	sys.stderr.write(".")
 		
 	for d in combin:
 		print anc, " ".join([str(x) for x in d])
+	print >> sys.stderr, " OK"
 
