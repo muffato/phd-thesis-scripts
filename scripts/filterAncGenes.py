@@ -43,8 +43,9 @@ for l in sys.stdin:
 		(e,_,_) = geneBank.dicGenes[g]
 		score[e] += 1
 	else:
-		t = [score[x] for x in 'HMDWOC']
-		tt = [score[x] for x in 'TS']
+		t = score.values()
+		#t = [score[x] for x in 'HMDWOC']
+		#tt = [score[x] for x in 'TS']
 		#if score['H'] == 1 and score['C'] == 1:
 		#if max(t) > 0 and max(tt) > 0:
 		#if max(t) == 2 and max(tt) == 1:

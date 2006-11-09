@@ -6,6 +6,7 @@ Les diagonales apportent les genes qui etaient sur un meme chromosome
   depuis leur ancetre commun dans les deux lignees.
 """
 
+
 ##################
 # INITIALISATION #
 ##################
@@ -17,6 +18,25 @@ import utils.myTools
 import utils.myDiags
 
 
+#############
+# FONCTIONS #
+#############
+
+# La fonction qui permet de traiter les diagonales
+def combinDiag(c1, c2, d1, d2):
+	global diagEntry, toStudy, options
+	global e1, e2, genomes
+
+	if len(d1) < options["minimalLength"]:
+		return
+	
+	for (e, tmp) in toStudy:
+		if e == e1:
+			dd = [genomes[tmp][e][c1][i][0] for i in d1]
+		else:
+			dd = [genomes[tmp][e][c2][i][0] for i in d2]
+		diagEntry[tmp].append( (dd,"%s.%s"%(e1,c1),"%s.%s"%(e2,c2)) )
+	
 ########
 # MAIN #
 ########
@@ -30,6 +50,7 @@ import utils.myDiags
 )
 
 # 1. On lit tous les fichiers
+
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 listEspeces = phylTree.getSpecies(phylTree.root)
 geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], listEspeces)
@@ -40,52 +61,30 @@ for esp in geneBank.dicEspeces:
 
 # La structure qui accueillera les diagonales
 diagEntry = dict( [(anc, []) for anc in phylTree.items] )
-
-# La fonction qui permet de traiter les diagonales
-def combinDiag2(c1, c2, d1, d2):
-	global diagEntry, toStudy, options
-	global e1, e2, genomes
-
-	if len(d1) < options["minimalLength"]:
-		return
-	
-	#print >> sys.stderr, "reception de", c1, c2, d1, d2
-	
-	for (e, tmp) in toStudy:
-		#print >> sys.stderr, "ecriture sur", e, tmp
-		if e == e1:
-			#print >> sys.stderr, tmp in genomes,
-			#print >> sys.stderr, e in genomes[tmp],
-			#print >> sys.stderr, c1 in genomes[tmp][e],
-			#print >> sys.stderr, len(genomes[tmp][e][c1])
-			dd = [genomes[tmp][e][c1][i][0] for i in d1]
-		else:
-			#print >> sys.stderr, tmp in genomes,
-			#print >> sys.stderr, e in genomes[tmp],
-			#print >> sys.stderr, c2 in genomes[tmp][e],
-			#print >> sys.stderr, len(genomes[tmp][e][c2])
-			dd = [genomes[tmp][e][c2][i][0] for i in d2]
-		diagEntry[tmp].append( (dd,"%s.%s"%(e1,c1),"%s.%s"%(e2,c2)) )
-			
+		
 
 # 2. On prepare tous les genomes ancestraux, les genomes traduits ...
-genomes = {}
+genomes = dict( [(esp, {}) for anc in phylTree.items] )
 locations = {}
 for anc in phylTree.items:
 	
-	genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc, False, False)
+	genesAnc = utils.myGenomes.loadGenome(options["ancGenesFile"] % anc)
 
 	# Les listes des especes entre lesquelles on cherche des diagonales
-	groupes = [phylTree.getSpecies(e) for (e,_) in phylTree.items[anc]]
+	groupes = phylTree.getBranchesSpecies(anc)
 	fils = utils.myMaths.flatten(groupes)
 	
 	# Traduction des genomes en liste des genes ancestraux
 	print >> sys.stderr, "Traduction avec les genes de", anc, "",
-	genomes[anc] = {}
 	for e in fils:
-		genomes[anc][e] = utils.myDiags.translateGenome(geneBank.dicEspeces[e], genesAnc)
+		genome = geneBank.dicEspeces[e]
+		newGenome = {}
+		for c in genome.lstChr:
+			newGenome[c] = [(genesAnc.dicGenes.get(g.names[0], (0,-1))[1],g.strand) for g in genome.lstGenes[c]]
+		genomes[anc][e] = newGenome
 		sys.stderr.write(".")
 	print >> sys.stderr, " OK"
+	del genesAnc.dicGenes
 	
 	# Liste des positions des genes ancestraux dans les genomes modernes
 	print >> sys.stderr, "Extraction des positions des genes de %s ..." % anc,
@@ -99,7 +98,8 @@ for anc in phylTree.items:
 			tmp[e][ianc].append( (c,i,geneBank.dicEspeces[e].lstGenes[c][i].strand) )
 	locations[anc] = tmp
 	print >> sys.stderr, "OK"
-	
+
+	del lstGenesAnc
 	del genesAnc
 
 del geneBank
@@ -121,12 +121,17 @@ for anc in phylTree.items:
 					elif (e2 in s) and (e1 not in s):
 						toStudy.append( (e2,tmp) )
 			
-				utils.myDiags.iterateDiags(genomes[anc][e1], locations[anc][e2], options["fusionThreshold"], options["sameStrand"], combinDiag2)
+				utils.myDiags.iterateDiags(genomes[anc][e1], locations[anc][e2], options["fusionThreshold"], options["sameStrand"], combinDiag)
 				sys.stderr.write(".")
 	del locations[anc]
 	print >> sys.stderr, " OK"
 
 del genomes
+del locations
+
+print >> sys.stderr, globals().keys()
+print >> sys.stderr, locals().keys()
+sys.exit(0)
 
 for anc in diagEntry:
 
@@ -135,27 +140,23 @@ for anc in diagEntry:
 		sys.stderr.write(".")
 		voisins = {}
 		for (d,_,_) in diagEntry[anc]:
-			#print >> sys.stderr, d
 			if len(d) == 1 and d[0] not in voisins:
 				voisins[d[0]] = []
 				continue
 			for i in xrange(1,len(d)):
 				x = d[i-1]
 				y = d[i]
-				#print >> sys.stderr, x, y
 				voisins[x] = voisins.get(x,[]) + [y]
 				voisins[y] = voisins.get(y,[]) + [x]
 		sys.stderr.write(".")
 		
 		for x in voisins:
-			#print >> sys.stderr, x
 			voisins[x] = len(set(voisins[x]))
 		sys.stderr.write(".")
 
 		res = []
 		for (d,o1,o2) in diagEntry[anc]:
 			curr = []
-			#print >> sys.stderr, d
 			while len(d) > 0:
 				x = d.pop(0)
 				#print >> sys.stderr, x
