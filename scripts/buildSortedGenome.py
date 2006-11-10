@@ -1,4 +1,4 @@
-#! /usr/bin/python2.4
+#! /users/ldog/muffato/python
 
 
 # INITIALISATION #
@@ -137,7 +137,6 @@ nom = "mat"+str(os.getpid())
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 
-print "graph {"
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
 for c in genesAnc.lstChr:
 
@@ -165,7 +164,6 @@ for c in genesAnc.lstChr:
 				print >> f, options["penalite"],
 			elif y == 1:
 				print >> f, 1,
-				print "%d -- %d" % (i,j)
 			else:
 				print >> f, int(mult*y),
 		print >> f
@@ -174,7 +172,6 @@ for c in genesAnc.lstChr:
 	print >> sys.stderr, "OK"
 	print >> sys.stderr, "Lancement de concorde ",
 	lstTot = []
-	continue
 	for i in range(nbConcorde):
 		os.system('~/work/scripts/concorde -m -x ' + nom + ' >&2')
 		lstTot.append(utils.myBioObjects.ConcordeFile(nom + ".sol"))
@@ -196,4 +193,5 @@ for c in genesAnc.lstChr:
 			print c, len(q),
 		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 
-print "}"
+
+os.system('rm -f *%s*' % nom )

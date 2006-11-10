@@ -1,4 +1,4 @@
-#! /usr/bin/python2.4
+#! /users/ldog/muffato/python
 
 __doc__ = """
 Lit des donnees numeriques sur l'entree standard et affiche

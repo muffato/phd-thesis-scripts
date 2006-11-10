@@ -1,4 +1,4 @@
-#! /usr/bin/python2.4
+#! /users/ldog/muffato/python
 
 __doc__ = """
 Lit des familles de genes et affiche la composition de chaque famille en terme de nombre de genes par espece.
@@ -9,12 +9,9 @@ Lit des familles de genes et affiche la composition de chaque famille en terme d
 ##################
 
 # Librairies
-import string
 import sys
-import os
 import utils.myGenomes
 import utils.myTools
-import mutils.yPsOutput
 
 
 ########

@@ -1,4 +1,4 @@
-#! /usr/bin/python2.4
+#! /users/ldog/muffato/python
 
 __doc__ = """
 Lit des familles de genes sur l'entree standard et les filtre.
@@ -43,9 +43,10 @@ for l in sys.stdin:
 		(e,_,_) = geneBank.dicGenes[g]
 		score[e] += 1
 	else:
-		t = score.values()
-		#t = [score[x] for x in 'HMDWOC']
-		#tt = [score[x] for x in 'TS']
+		#t = score.values()
+		t = [score[x] for x in geneBank.lstEspecesNonDup]
+		tt = [score[x] for x in geneBank.lstEspecesDup]
+		#tt = [score[x] for x in ]
 		#if score['H'] == 1 and score['C'] == 1:
 		#if max(t) > 0 and max(tt) > 0:
 		#if max(t) == 2 and max(tt) == 1:

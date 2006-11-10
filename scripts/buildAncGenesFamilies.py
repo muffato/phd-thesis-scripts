@@ -1,4 +1,4 @@
-#! /usr/bin/python2.4
+#! /users/ldog/muffato/python
 
 __doc__ = """
 Lit l'arbre phylogenetique et construit les fichiers de genes ancestraux

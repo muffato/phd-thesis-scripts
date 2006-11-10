@@ -1,4 +1,4 @@
-#! /usr/bin/python2.4
+#! /users/ldog/muffato/python
 
 # Ce script prend en entree les paralogues tetraodon, les orthologues d'une
 #    espece avec tetraodon et assigne pour chaque orthologue ses origines

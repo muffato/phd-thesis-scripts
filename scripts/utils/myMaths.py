@@ -1,4 +1,4 @@
-#! /usr/bin/python2.4
+#! /users/ldog/muffato/python
 
 #
 # Fonctions communes de chargement et de traitement des donnees
@@ -6,6 +6,20 @@
 
 import math
 import sys
+
+
+def issublist(l1, l2):
+
+	if len(l1) > len(l2):
+		return False
+	
+	n = len(l1)
+	for i in xrange(len(l2)+1-n):
+		if l1 == l2[i:i+n]:
+			return True
+	return False
+
+
 
 #
 # Renvoie les cles d'un dictionnaire, triees suivant les valeurs associees

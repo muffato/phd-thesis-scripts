@@ -1,4 +1,4 @@
-#! /usr/bin/python2.4
+#! /users/ldog/muffato/python
 
 # Module d'ecriture dans un fichier PostScript
 

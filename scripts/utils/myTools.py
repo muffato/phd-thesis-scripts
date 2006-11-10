@@ -1,9 +1,10 @@
-#! /usr/bin/python2.4
+#! /users/ldog/muffato/python
 
 
 import sys
 import os
 from bz2 import BZ2File
+from gzip import GzipFile
 
 
 ##################################################################
