@@ -15,6 +15,7 @@ Les diagonales apportent les genes qui etaient sur un meme chromosome
 import sys
 import utils.myGenomes
 import utils.myTools
+import utils.myMaths
 import utils.myDiags
 
 
@@ -41,7 +42,7 @@ def loadAncGenesFile(anc, genomes, locations):
 	del genesAnc.dicGenes
 	
 	# Liste des positions des genes ancestraux dans les genomes modernes
-	print >> sys.stderr, "Extraction des positions ...",
+	print >> sys.stderr, " Extraction des positions ...",
 	lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
 	for e in fils:
 		locations[e] = [[] for x in lstGenesAnc]
@@ -69,20 +70,36 @@ def calcDiags():
 			else:
 				dd = [genomes[tmp][e][c2][i][0] for i in d2]
 			
-			diagEntry[tmp].append( (dd, set([(e1,c1), (e2,c2)])) )
-			#addDiag(diagEntry[tmp], dd, [(e1,c1), (e2,c2)] )
+			#diagEntry[tmp].append( (dd, set([(e1,c1), (e2,c2)])) )
+			addDiag(diagEntry[tmp], dd, [(e1,c1), (e2,c2)] )
 			
 	
 	def addDiag(repos, diag, appar ):
 
-		diagR = diag[:]
-		diagR.reverse()
-		
-		for (d,app) in repos:
-			if d == diag or d == diagR:
-				app.update(appar)
-				return
-		repos.append( (diag,set(appar)) )
+		diags = repos[0]
+		dic = repos[1]
+		lst = set(utils.myMaths.flatten([dic.get(x,[-1]) for x in diag]))
+		flag = False
+		if -1 not in lst:
+			dd = diag[:]
+			dd.reverse()
+			for j in lst:
+				if utils.myMaths.issublist(diag, diags[j][0]) or utils.myMaths.issublist(dd, diags[j][0]):
+					diags[j][1].update(appar)
+					flag = True
+				elif utils.myMaths.issublist(diags[j][0], diag) or utils.myMaths.issublist(diags[j][0], dd):
+					for x in set(diags[j][0]):
+						tmp = set(dic[x])
+						tmp.remove(j)
+						dic[x] = [i for i in tmp]
+					diags[j] = ([], set([]))
+		if not flag:
+			n = len(diags)
+			diags.append( (diag,set(appar)) )
+			for x in diag:
+				if x not in dic:
+					dic[x] = []
+				dic[x].append(n)
 
 	
 	n = max([len(x) for x in listEspeces])
@@ -117,38 +134,6 @@ def calcDiags():
 		
 		print >> sys.stderr, "OK"
 
-def getLongestDiags(diags):
-
-	dic = {}
-	
-	for i in xrange(len(diags)):
-		c = diags[i][0]
-		for x in c:
-			if x not in dic:
-				dic[x] = []
-			dic[x].append(i)
-	
-	lst = []
-	for i in xrange(len(diags)):
-		c = diags[i][0]
-		d = c[:]
-		d.reverse()
-		ll = set(utils.myMaths.flatten([dic[x] for x in c]))
-		flag = False
-		for j in ll:
-			if j == i:
-				continue
-			if utils.myMaths.issublist(c, diags[j][0]):
-				diags[j][1].update(diags[i][1])
-				flag = True
-			elif utils.myMaths.issublist(d, diags[j][0]):
-				diags[j][1].update(diags[i][1])
-				flag = True
-		if not flag:
-			lst.append(diags[i])
-	
-	return lst
-
 def cutNodes(diags):
 	voisins = {}
 	for (d,_) in diags:
@@ -180,12 +165,33 @@ def cutNodes(diags):
 	return res
 
 
-def combinDiags(diags):
+def combinDiags(anc, diags):
 	combin = utils.myTools.myCombinator([])
+	fils = phylTree.getSpecies(anc)
 	for (i,j) in utils.myTools.myMatrixIterator(len(diags), len(diags), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-		(d1,orig1) = diags[i]
-		(d2,orig2) = diags[j]
-		
+		combin.addLink([i])
+		(_,orig1) = diags[i]
+		(_,orig2) = diags[j]
+		commun = [x for x in orig1.intersection(orig2)]
+		filsOK = 0
+		outgroupOK = 0
+		for (k,l) in utils.myTools.myMatrixIterator(len(commun), len(commun), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+			(e1,c1) = commun[k]
+			(e2,c2) = commun[l]
+			if phylTree.getFirstParent(e1,e2) == anc:
+				filsOK += 1
+			if ((e1 in fils) and (e2 not in fils)) or ((e2 in fils) and (e1 not in fils)):
+				outgroupOK += 1
+		if (outgroupOK > 0) and (filsOK > 0):
+			combin.addLink([i,j])
+	res = []
+	for g in combin:
+		diag = utils.myMaths.unique(utils.myMaths.flatten([diags[i][0] for i in g]))
+		orig = utils.myMaths.unique(utils.myMaths.flatten([diags[i][1] for i in g]))
+		res.append( (diag,orig) )
+	return res
+
+
 ########
 # MAIN #
 ########
@@ -217,7 +223,7 @@ for anc in phylTree.items:
 del geneBank
 
 # La structure qui accueillera les diagonales et le calcul
-diagEntry = dict( [(anc, []) for anc in phylTree.items] )
+diagEntry = dict( [(anc, ([],{})) for anc in phylTree.items] )
 calcDiags()
 
 # Plus besoin de ca ...
@@ -226,44 +232,22 @@ del locations
 
 for anc in diagEntry:
 	
-	#for (d,(e1,c1),(e2,c2)) in diagEntry[anc]:
-	#	print anc, e1,c1, e2,c2, " ".join([str(x) for x in d])
-	
-	#sys.stderr.write("*")
-	lst = getLongestDiags(diagEntry[anc])
-	
-	#sys.stderr.write(".")
-
-	for (d,l) in lst:
-		print anc, " ".join([str(x) for x in d])
-		print "%s\t%s\t%s" % (anc, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in l]))
-	
-	#sys.stderr.write(".")
-	continue
-
+	print >> sys.stderr, "Traitement de %s ..." % anc,
+	lst = diagEntry[anc][0]
 	
 	if options["cutNodes"]:
-		res = cutNodes(lst)
-	else:
-		res = lst
+		print >> sys.stderr, "Coupure sur les noeuds ...",
+		lst = cutNodes(lst)
 	
-	sys.stderr.write(".")
-
-	combin = utils.myTools.myCombinator([])
 	if options["combinSameChr"]:
-		combin1 = utils.myTools.myCombinator([])
-		for i in xrange(len(res)):
-			(_,o1,o2) = res[i]
-			combin1.addLink( [o1+o2,i] )
-		for g in combin1:
-			combin.addLink(utils.myMaths.flatten([res[i][0] for i in g if type(i) == int]))
-	else:
-		for (d,_,_) in res:
-			combin.addLink(d)
-	sys.stderr.write(".")
-		
-	for d in combin:
+		print >> sys.stderr, "Combinaisons ...",
+		lst = combinDiags(anc, lst)
+	
+	for (d,l) in lst:
+		if len(d) == 0:
+			continue
 		print anc, " ".join([str(x) for x in d])
-	print >> sys.stderr, " OK"
-
+		#print "%s\t%s\t%s" % (anc, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in l]))
+	
+	print >> sys.stderr, "OK"
 

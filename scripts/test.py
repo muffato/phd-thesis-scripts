@@ -52,7 +52,7 @@ def f2():
 			
 
 
-def f3():
+def translateDiagToChrom():
 
 	genesAnc = utils.myGenomes.loadGenome(sys.argv[1])
 
@@ -146,15 +146,31 @@ def compteNbChangements():
 def buildGraph():
 	lst = []
 	lst2 = []
+	vois = {}
 	for l in sys.stdin:
 		#c = [int(x) for x in l.split('\t')[1].split()]
 		c = [int(x) for x in l.split()]
 		lst.append(c)
 		lst2.append(set(c))
+		if len(c) == 0:
+			continue
+		if len(c) == 1 and c[0] not in vois:
+			vois[c[0]] = []
+		else:
+			for i in xrange(len(c)-1):
+				x = c[i]
+				y = c[i+1]
+				if x not in vois:
+					vois[x] = []
+				if y not in vois:
+					vois[y] = []
+				vois[x].append(y)
+				vois[y].append(x)
 		
-	print "graph {"
+	#print "graph {"
+	combin = utils.myTools.myCombinator([])
+	seuil = int(sys.argv[1])
 	for i in xrange(len(lst)):
-		print 'node %d [label="%d"]' % (i, len(lst[i]))
 		for j in xrange(i):
 			s = lst2[i].intersection(lst2[j])
 			if len(s) == 0:
@@ -162,7 +178,18 @@ def buildGraph():
 			nb = 0
 			for x in s:
 				nb += min(lst[i].count(x), lst[j].count(x))
-			print 'i -- j [label="%d"]' % nb
-	print "}"
+			if nb > seuil:
+				combin.addLink([i,j])
+				#print '%d -- %d [label="%d"]' % (i,j,nb)
+				#print '%d [label="%d.%d"]' % (i,i,len(lst[i]))
+				#print '%d [label="%d.%d"]' % (j,j,len(lst[j]))
+	#print "}"
+	for g in combin:
+		s = set(utils.myMaths.flatten([lst[i] for i in g]))
+		#t = [len(set(vois[x])) for x in s]
+		#if max(t) >= 3:
+		print sys.argv[2], " ".join([str(x) for x in s])
+		
 
-f5()
+#buildGraph()
+translateDiagToChrom()

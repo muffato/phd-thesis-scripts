@@ -193,5 +193,4 @@ for c in genesAnc.lstChr:
 			print c, len(q),
 		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 
-
 os.system('rm -f *%s*' % nom )
