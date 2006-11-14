@@ -70,36 +70,30 @@ def calcDiags():
 			else:
 				dd = [genomes[tmp][e][c2][i][0] for i in d2]
 			
-			#diagEntry[tmp].append( (dd, set([(e1,c1), (e2,c2)])) )
-			addDiag(diagEntry[tmp], dd, [(e1,c1), (e2,c2)] )
+			utils.myDiags.addDiag(diagEntry[tmp], dd, [(e1,c1), (e2,c2)] )
 			
 	
-	def addDiag(repos, diag, appar ):
-
-		diags = repos[0]
-		dic = repos[1]
-		lst = set(utils.myMaths.flatten([dic.get(x,[-1]) for x in diag]))
-		flag = False
-		if -1 not in lst:
-			dd = diag[:]
-			dd.reverse()
-			for j in lst:
-				if utils.myMaths.issublist(diag, diags[j][0]) or utils.myMaths.issublist(dd, diags[j][0]):
-					diags[j][1].update(appar)
-					flag = True
-				elif utils.myMaths.issublist(diags[j][0], diag) or utils.myMaths.issublist(diags[j][0], dd):
-					for x in set(diags[j][0]):
-						tmp = set(dic[x])
-						tmp.remove(j)
-						dic[x] = [i for i in tmp]
-					diags[j] = ([], set([]))
-		if not flag:
-			n = len(diags)
-			diags.append( (diag,set(appar)) )
-			for x in diag:
-				if x not in dic:
-					dic[x] = []
-				dic[x].append(n)
+	#def addDiag(repos, diag, appar ):
+	#
+	#	diags = repos[0]
+	#	dic = repos[1]
+	#	lst = set(utils.myMaths.flatten([dic[x] for x in diag if x in dic]))
+	#	flag = False
+	#	dd = diag[:]
+	#	dd.reverse()
+	#	for j in lst:
+	#		if utils.myMaths.issublist(diag, diags[j][0]) or utils.myMaths.issublist(dd, diags[j][0]):
+	#			diags[j][1].update(appar)
+	#			flag = True
+	#		elif utils.myMaths.issublist(diags[j][0], diag) or utils.myMaths.issublist(diags[j][0], dd):
+	#			diags[j] = ([], set([]))
+	#	if not flag:
+	#		n = len(diags)
+	#		diags.append( (diag,set(appar)) )
+	#		for x in diag:
+	#			if x not in dic:
+	#				dic[x] = []
+	#			dic[x].append(n)
 
 	
 	n = max([len(x) for x in listEspeces])
@@ -199,7 +193,7 @@ def combinDiags(anc, diags):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
-	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("cutNodes",bool,True), ("combinSameChr",bool,False), \
+	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("cutNodes",bool,False), ("combinSameChr",bool,False), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )

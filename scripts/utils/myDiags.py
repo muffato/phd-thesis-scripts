@@ -123,6 +123,49 @@ def iterateDiags(genome1, dic2, threshold, sameStrand, callBackFunc):
 		for (d1,d2,c2,aa,bb) in __extractDiags(genome1[c1], dic2, threshold, sameStrand):
 			callBackFunc(c1,c2,d1,d2)
 
+# Ajoute une diagonale a la liste
+def addDiag(repos, diag, appar ):
 
+	diags = repos[0]
+	dic = repos[1]
+	lst = set(myMaths.flatten([dic[x] for x in diag if x in dic]))
+	flag = False
+	dd = diag[:]
+	dd.reverse()
+	for j in lst:
+		#if myMaths.issublist(diag, diags[j][0]) or myMaths.issublist(dd, diags[j][0]):
+		if set(diag).issubset(set(diags[j][0])) or set(dd).issubset(set(diags[j][0])):
+			diags[j][1].update(appar)
+			flag = True
+		#elif myMaths.issublist(diags[j][0], diag) or myMaths.issublist(diags[j][0], dd):
+		elif set(diags[j][0]).issubset(set(diag)) or set(diags[j][0]).issubset(set(dd)):
+			for x in diags[j][0]:
+				dic[x] = [u for u in dic[x] if u != j]
+			diags[j] = ([], set([]))
+	if not flag:
+		n = len(diags)
+		diags.append( (diag,set(appar)) )
+		for x in diag:
+			if x not in dic:
+				dic[x] = []
+			dic[x].append(n)
 
-
+def buildVoisins(lst):
+	vois = {}
+	
+	for c in lst:
+		if len(c) == 0:
+			continue
+		if len(c) == 1 and c[0] not in vois:
+			vois[c[0]] = []
+		else:
+			for i in xrange(len(c)-1):
+				x = c[i]
+				y = c[i+1]
+				if x not in vois:
+					vois[x] = set([])
+				if y not in vois:
+					vois[y] = set([])
+				vois[x].add(y)
+				vois[y].add(x)
+	return vois
