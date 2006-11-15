@@ -70,31 +70,8 @@ def calcDiags():
 			else:
 				dd = [genomes[tmp][e][c2][i][0] for i in d2]
 			
-			utils.myDiags.addDiag(diagEntry[tmp], dd, [(e1,c1), (e2,c2)] )
+			diagEntry[tmp].addDiag(dd, [(e1,c1), (e2,c2)] )
 			
-	
-	#def addDiag(repos, diag, appar ):
-	#
-	#	diags = repos[0]
-	#	dic = repos[1]
-	#	lst = set(utils.myMaths.flatten([dic[x] for x in diag if x in dic]))
-	#	flag = False
-	#	dd = diag[:]
-	#	dd.reverse()
-	#	for j in lst:
-	#		if utils.myMaths.issublist(diag, diags[j][0]) or utils.myMaths.issublist(dd, diags[j][0]):
-	#			diags[j][1].update(appar)
-	#			flag = True
-	#		elif utils.myMaths.issublist(diags[j][0], diag) or utils.myMaths.issublist(diags[j][0], dd):
-	#			diags[j] = ([], set([]))
-	#	if not flag:
-	#		n = len(diags)
-	#		diags.append( (diag,set(appar)) )
-	#		for x in diag:
-	#			if x not in dic:
-	#				dic[x] = []
-	#			dic[x].append(n)
-
 	
 	n = max([len(x) for x in listEspeces])
 	for i in xrange(len(listEspeces)):
@@ -217,7 +194,7 @@ for anc in phylTree.items:
 del geneBank
 
 # La structure qui accueillera les diagonales et le calcul
-diagEntry = dict( [(anc, ([],{})) for anc in phylTree.items] )
+diagEntry = dict( [(anc, utils.myDiags.DiagRepository()) for anc in phylTree.items] )
 calcDiags()
 
 # Plus besoin de ca ...
@@ -227,17 +204,18 @@ del locations
 for anc in diagEntry:
 	
 	print >> sys.stderr, "Traitement de %s ..." % anc,
-	lst = diagEntry[anc][0]
+	lst = diagEntry[anc].lstDiags
+	diagEntry[anc].buildVoisins()
 	
-	if options["cutNodes"]:
-		print >> sys.stderr, "Coupure sur les noeuds ...",
-		lst = cutNodes(lst)
+	#if options["cutNodes"]:
+	#	print >> sys.stderr, "Coupure sur les noeuds ...",
+	#	lst = cutNodes(lst)
 	
-	if options["combinSameChr"]:
-		print >> sys.stderr, "Combinaisons ...",
-		lst = combinDiags(anc, lst)
+	#if options["combinSameChr"]:
+	#	print >> sys.stderr, "Combinaisons ...",
+	#	lst = combinDiags(anc, lst)
 	
-	for (d,l) in lst:
+	for d in lst:
 		if len(d) == 0:
 			continue
 		print anc, " ".join([str(x) for x in d])

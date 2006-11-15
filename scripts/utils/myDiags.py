@@ -69,13 +69,6 @@ def __extractDiags(tab1, dic2, largeurTrou, sameStrand):
 	
 	if len(listI1) > 0 and len(listI2) > 0:
 		diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),myMaths.getMinMax(listI2)) )
-	
-	#for d in diag:
-	#	#print >> sys.stderr, d
-	#	yield d
-
-	#return
-	#sys.exit(0)
 
 	# On rassemble des diagonales separees par une espace pas trop large
 	while len(diag) > 0:
@@ -123,49 +116,144 @@ def iterateDiags(genome1, dic2, threshold, sameStrand, callBackFunc):
 		for (d1,d2,c2,aa,bb) in __extractDiags(genome1[c1], dic2, threshold, sameStrand):
 			callBackFunc(c1,c2,d1,d2)
 
-# Ajoute une diagonale a la liste
-def addDiag(repos, diag, appar ):
+class DiagRepository:
 
-	diags = repos[0]
-	dic = repos[1]
-	lst = set(myMaths.flatten([dic[x] for x in diag if x in dic]))
-	flag = False
-	dd = diag[:]
-	dd.reverse()
-	for j in lst:
-		#if myMaths.issublist(diag, diags[j][0]) or myMaths.issublist(dd, diags[j][0]):
-		if set(diag).issubset(set(diags[j][0])) or set(dd).issubset(set(diags[j][0])):
-			diags[j][1].update(appar)
-			flag = True
-		#elif myMaths.issublist(diags[j][0], diag) or myMaths.issublist(diags[j][0], dd):
-		elif set(diags[j][0]).issubset(set(diag)) or set(diags[j][0]).issubset(set(dd)):
-			for x in diags[j][0]:
-				dic[x] = [u for u in dic[x] if u != j]
-			diags[j] = ([], set([]))
-	if not flag:
-		n = len(diags)
-		diags.append( (diag,set(appar)) )
-		for x in diag:
-			if x not in dic:
-				dic[x] = []
-			dic[x].append(n)
+	__vide = set([])
+
+	def __init__(self):
+		self.lstDiags = []
+		self.lstApp = []
+		self.lstDiagsSet = []
+		self.genesToDiags = {}
+		self.voisins = {}
+	
+	def addDiag(self, diag, appar):
+
+		# On doit verifier si on est une sous-diagonale
+		# Les diagonales potentielles
+		lst = set(myMaths.flatten([self.genesToDiags[x] for x in diag if x in self.genesToDiags]))
+		flag = False
+		diagS = set(diag)
+		#diagR = diag[:]
+		#diagR.reverse()
+		for j in lst:
+			#elif myMaths.issublist(diags[j][0], diag) or myMaths.issublist(diags[j][0], diagS):
+			if self.lstDiagsSet[j].issubset(diagS):
+				for x in self.lstDiagsSet[j]:
+					self.genesToDiags[x] = [u for u in self.genesToDiags[x] if u != j]
+				self.lstDiags[j] = []
+				self.lstDiagsSet[j] = self.__vide
+				self.lstApp[j] = self.__vide
+			#if myMaths.issublist(diag, diags[j][0]) or myMaths.issublist(diagR, diags[j][0]):
+			elif diagS.issubset(self.lstDiagsSet[j]):
+				self.lstApp[j].update(appar)
+				flag = True
+				
+		if not flag:
+			n = len(self.lstDiags)
+			self.lstDiags.append( diag )
+			self.lstDiagsSet.append( diagS )
+			self.lstApp.append( set(appar) )
+			for x in diagS:
+				if x not in self.genesToDiags:
+					self.genesToDiags[x] = [n]
+				else:
+					self.genesToDiags[x].append(n)
+
+	def nbRealDiags(self):
+		nb = 0
+		for d in self.lstDiags:
+			if len(d) > 0:
+				nb += 1
+		return nb
+
+	def buildVoisins(self):
+		self.voisins = {}
+		
+		for c in self.lstDiags:
+			if len(c) == 0:
+				continue
+			if len(c) == 1 and c[0] not in self.voisins:
+				self.voisins[c[0]] = set([])
+			else:
+				for i in xrange(len(c)-1):
+					x = c[i]
+					y = c[i+1]
+					if x not in self.voisins:
+						self.voisins[x] = set([])
+					if y not in self.voisins:
+						self.voisins[y] = set([])
+					self.voisins[x].add(y)
+					self.voisins[y].add(x)
+	
+	def checkInsert(self):
+
+		# On cherche des elements qui ont deux voisins eux memes voisins l'un de l'autre
+		# L'element est alors a inserer entre les deux pour qu'ils ne soient plus voisins
+		for x in self.voisins:
+			s = set(self.voisins[x])
+			if len(s) != 2:
+				continue
+			i = s.pop()
+			j = s.pop()
+			if j not in self.voisins[i]:
+				continue
+			diags = set(self.genesToDiags[i]).intersection(self.genesToDiags[j])
+			#print "insertion de", x, "entre", i, "et", j, "(", self.voisins[x], self.voisins[i], diags, ")"
+			
+			for ind in diags:
+				d = self.lstDiags[ind]
+				for k in xrange(len(d)-1):
+					if (d[k],d[k+1]) not in [(i,j), (j,i)]:
+						continue
+					d.insert(k+1, x)
+					self.lstDiagsSet[ind].add(x)
+					self.genesToDiags[x].append(ind)
+					break
+	
+	def extendRight(self):
+		i = 0
+		toUpdate = set([])
+		while i < len(self.lstDiags):
+			curr = self.lstDiags[i]
+			if len(curr) >= 2:
+				last = curr[-1]
+				last2 = curr[-2]
+				v = [y for y in self.voisins[last] if y != last2]
+				if len(v) == 1:
+					x = v[0]
+					if x not in self.lstDiagsSet[i]:
+						curr.append(x)
+						self.lstDiagsSet[i].add(x)
+						self.genesToDiags[x].append(i)
+						toUpdate.add(i)
+						#self.buildVoisins()
+						continue
+			i += 1
+		
+		for i in toUpdate:
+			self.addDiag( self.lstDiags[i], self.lstApp[i] )
+	
+	
+
 
 def buildVoisins(lst):
-	vois = {}
+		voisins = {}
+		
+		for c in lst:
+			if len(c) == 0:
+				continue
+			if len(c) == 1 and c[0] not in voisins:
+				voisins[c[0]] = []
+			else:
+				for i in xrange(len(c)-1):
+					x = c[i]
+					y = c[i+1]
+					if x not in voisins:
+						voisins[x] = set([])
+					if y not in voisins:
+						voisins[y] = set([])
+					voisins[x].add(y)
+					voisins[y].add(x)
+		return voisins
 	
-	for c in lst:
-		if len(c) == 0:
-			continue
-		if len(c) == 1 and c[0] not in vois:
-			vois[c[0]] = []
-		else:
-			for i in xrange(len(c)-1):
-				x = c[i]
-				y = c[i+1]
-				if x not in vois:
-					vois[x] = set([])
-				if y not in vois:
-					vois[y] = set([])
-				vois[x].add(y)
-				vois[y].add(x)
-	return vois

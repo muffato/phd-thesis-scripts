@@ -285,23 +285,86 @@ def buildExtendedDiags():
 		while utile:
 			dim = len([d for d in lst if len(d) > 0])
 			func(lst, pos)
-			tmp = ([],{})
+			tmp = utils.myDiags.DiagRepository()
 			for d in lst:
-				utils.myDiags.addDiag(tmp, d, [])
-			newLst = [d for (d,_) in tmp[0]]
-			newDim = len([d for (d,_) in tmp[0] if len(d) > 0])
+				tmp.addDiag(d, [])
+			newLst = tmp.lstDiags
+			newDim = len([d for d in tmp.lstDiags if len(d) > 0])
 		
 			print >> sys.stderr, txt, dim, newDim
 
 			utile = (dim != newDim)
 			lst = newLst
-			pos = tmp[1]
+			pos = tmp.genesToDiags
 		return (lst,pos)
-		
-	(lst, pos) = boucle(checkInsert, "insertion", lst, pos)
-	(lst, pos) = boucle(extendRight, "droite", lst, pos)
-	(lst, pos) = boucle(extendLeft, "gauche", lst, pos)
+	
+	def boucle2(func, txt, lst, pos):
+		tmp = utils.myDiags.DiagRepository()
+		for d in lst:
+			tmp.addDiag(d, [])
+		tmp.buildVoisins()
+		utile = True
+		while utile:
+			dim = tmp.nbRealDiags()
+			tmp.checkInsert()
+			
+			tmp2 = utils.myDiags.DiagRepository()
+			for d in tmp.lstDiags:
+				tmp2.addDiag(d, [])
+			tmp2.buildVoisins()
 
+			tmp = tmp2
+			newDim = tmp.nbRealDiags()
+		
+			print >> sys.stderr, txt, dim, newDim
+			utile = (dim != newDim)
+			
+		return (tmp.lstDiags,tmp.genesToDiags)
+	
+	def boucle3(func, txt, lst, pos):
+		tmp = utils.myDiags.DiagRepository()
+		for d in lst:
+			tmp.addDiag(d, [])
+		tmp.buildVoisins()
+		utile = True
+		while utile:
+			dim = tmp.nbRealDiags()
+			tmp.extendRight()
+			
+			#for d in tmp.lstDiags:
+			#	if len(d) == 0:
+			#		continue
+			#	print >> sys.stderr, " ".join([str(x) for x in d])
+			#return
+			
+			#tmp2 = utils.myDiags.DiagRepository()
+			#for d in tmp.lstDiags:
+			#	tmp2.addDiag(d, [])
+			tmp.buildVoisins()
+			#tmp = tmp2
+			newDim = tmp.nbRealDiags()
+		
+			#for d in tmp.lstDiags:
+			#	if len(d) == 0:
+			#		continue
+			#	print >> sys.stderr, " ".join([str(x) for x in d])
+			#return
+
+			print >> sys.stderr, txt, dim, newDim
+			utile = (dim != newDim)
+			
+		return (tmp.lstDiags,tmp.genesToDiags)
+
+	(lst, pos) = boucle2(None, "insertion", lst, pos)
+	(lst, pos) = boucle3(None, "droite", lst, pos)
+	#(lst, pos) = boucle(extendRight, "droite", lst, pos)
+	#(lst, pos) = boucle(extendLeft, "gauche", lst, pos)
+
+	for d in lst:
+		if len(d) == 0:
+			continue
+		print " ".join([str(x) for x in d])
+	return
 	i = 0
 	vois = utils.myDiags.buildVoisins(lst)
 	while i < len(lst):
@@ -315,9 +378,6 @@ def buildExtendedDiags():
 		if len(v) > 2:
 			print "plusieurs choix", curr
 		i += 1
-	return
-	for d in lst:
-		print " ".join([str(x) for x in d])
 		
 #		for j in xrange(i+1,len(lst)):
 #			s = lst2[i].intersection(lst2[j])
