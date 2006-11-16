@@ -24,35 +24,34 @@ import utils.myDiags
 #############
 
 def loadAncGenesFile(anc, genomes, locations):
+
+	# Le fichier de genes ancestraux
 	genesAnc = utils.myGenomes.loadGenome(options["ancGenesFile"] % anc)
+	nbGenesAnc = len(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr])
 
 	# Les listes des especes entre lesquelles on cherche des diagonales
 	groupes = phylTree.getBranchesSpecies(anc)
 	fils = utils.myMaths.flatten(groupes)
 	
 	# Traduction des genomes en liste des genes ancestraux
-	print >> sys.stderr, "Traduction avec les genes de", anc, "",
+	print >> sys.stderr, "Distribution des genes de", anc, "...",
 	for e in fils:
+		newLoc = [[]] * nbGenesAnc
 		genome = geneBank.dicEspeces[e]
 		newGenome = {}
 		for c in genome.lstChr:
 			newGenome[c] = [(genesAnc.dicGenes.get(g.names[0], (0,-1))[1],g.strand) for g in genome.lstGenes[c]]
+			if not options["keepOrthoLess"]:
+				newGenome[c] = [x for x in newGenome[c] if x != -1]
+			for i in xrange(len(newGenome[c])):
+				(x,s) = newGenome[c][i]
+				if x != -1:
+					newLoc[x].append( (c,i,s) )
 		genomes[e] = newGenome
+		locations[e] = newLoc
 		sys.stderr.write(".")
-	del genesAnc.dicGenes
 	
-	# Liste des positions des genes ancestraux dans les genomes modernes
-	print >> sys.stderr, " Extraction des positions ...",
-	lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
-	for e in fils:
-		locations[e] = [[] for x in lstGenesAnc]
-	for ianc in xrange(len(lstGenesAnc)):
-		for g in lstGenesAnc[ianc].names:
-			if g not in geneBank.dicGenes:
-				continue
-			(e,c,i) = geneBank.dicGenes[g]
-			locations[e][ianc].append( (c,i,geneBank.dicEspeces[e].lstGenes[c][i].strand) )
-	print >> sys.stderr, "OK"
+	print >> sys.stderr, " OK"
 
 
 def calcDiags():
@@ -105,64 +104,6 @@ def calcDiags():
 		
 		print >> sys.stderr, "OK"
 
-def cutNodes(diags):
-	voisins = {}
-	for (d,_) in diags:
-		if len(d) == 1 and d[0] not in voisins:
-			voisins[d[0]] = []
-			continue
-		for i in xrange(1,len(d)):
-			x = d[i-1]
-			y = d[i]
-			voisins[x] = voisins.get(x,[]) + [y]
-			voisins[y] = voisins.get(y,[]) + [x]
-	
-	for x in voisins:
-		voisins[x] = len(set(voisins[x]))
-
-	res = []
-	for (d,orig) in diags:
-		curr = []
-		while len(d) > 0:
-			x = d.pop(0)
-			if voisins[x] < 3:
-				curr.append(x)
-			else:
-				if len(curr) >= 2:
-					res.append( (curr,orig.copy()) )
-				curr = []
-		if len(curr) >= 2:
-			res.append( (curr,orig.copy()) )
-	return res
-
-
-def combinDiags(anc, diags):
-	combin = utils.myTools.myCombinator([])
-	fils = phylTree.getSpecies(anc)
-	for (i,j) in utils.myTools.myMatrixIterator(len(diags), len(diags), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-		combin.addLink([i])
-		(_,orig1) = diags[i]
-		(_,orig2) = diags[j]
-		commun = [x for x in orig1.intersection(orig2)]
-		filsOK = 0
-		outgroupOK = 0
-		for (k,l) in utils.myTools.myMatrixIterator(len(commun), len(commun), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-			(e1,c1) = commun[k]
-			(e2,c2) = commun[l]
-			if phylTree.getFirstParent(e1,e2) == anc:
-				filsOK += 1
-			if ((e1 in fils) and (e2 not in fils)) or ((e2 in fils) and (e1 not in fils)):
-				outgroupOK += 1
-		if (outgroupOK > 0) and (filsOK > 0):
-			combin.addLink([i,j])
-	res = []
-	for g in combin:
-		diag = utils.myMaths.unique(utils.myMaths.flatten([diags[i][0] for i in g]))
-		orig = utils.myMaths.unique(utils.myMaths.flatten([diags[i][1] for i in g]))
-		res.append( (diag,orig) )
-	return res
-
-
 ########
 # MAIN #
 ########
@@ -170,7 +111,8 @@ def combinDiags(anc, diags):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
-	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("cutNodes",bool,False), ("combinSameChr",bool,False), \
+	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOrthoLess",bool,False), \
+	("checkInsertions",bool,False), ("extendLeftRight",bool,False), ("cutNodes",bool,False), ("combinSameChr",bool,False), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
@@ -204,9 +146,22 @@ del locations
 for anc in diagEntry:
 	
 	print >> sys.stderr, "Traitement de %s ..." % anc,
-	lst = diagEntry[anc].lstDiags
-	diagEntry[anc].buildVoisins()
+	lst = diagEntry[anc]
+	print >> sys.stderr, lst.nbRealDiags(),
 	
+	if options["checkInsertions"]:
+		lst.buildVoisins()
+		lst.checkInsert()
+		print >> sys.stderr, "I",
+	
+	if options["extendLeftRight"]:
+		lst.buildVoisins()
+		while (lst.extendLeft() or lst.extendRight()):
+			print >> sys.stderr, "E",
+			pass
+	
+	print >> sys.stderr, lst.nbRealDiags(),
+
 	#if options["cutNodes"]:
 	#	print >> sys.stderr, "Coupure sur les noeuds ...",
 	#	lst = cutNodes(lst)
@@ -215,7 +170,7 @@ for anc in diagEntry:
 	#	print >> sys.stderr, "Combinaisons ...",
 	#	lst = combinDiags(anc, lst)
 	
-	for d in lst:
+	for d in lst.lstDiags:
 		if len(d) == 0:
 			continue
 		print anc, " ".join([str(x) for x in d])

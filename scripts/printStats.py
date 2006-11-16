@@ -28,5 +28,5 @@ for l in sys.stdin:
 		lst.append(int(x))
 lst.sort()
 
-print utils.myMaths.moyenne(lst), utils.myMaths.ecartType(lst), utils.myMaths.mediane(lst), min(lst), max(lst)
+print utils.myMaths.moyenne(lst), utils.myMaths.ecartType(lst), utils.myMaths.mediane(lst), min(lst), max(lst), len(lst)
 

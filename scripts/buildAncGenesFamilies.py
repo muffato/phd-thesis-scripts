@@ -28,7 +28,7 @@ import utils.myMaths
 	[("homologyLevels",str,"ortholog_one2many,ortholog_many2many,apparent_ortholog_one2one,ortholog_one2one"), \
 	("orthoFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
-	("one2oneFile",str,"~/work/data/ancGenes/one2one.%s.list.bz2")], \
+	("one2oneFile",str,"~/work/data/one2one/one2one.%s.list.bz2")], \
 	__doc__ \
 )
 

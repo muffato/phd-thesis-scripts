@@ -82,7 +82,8 @@ def distInterGenes(tg1, tg2):
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "genomeAncestral", "phylTree.conf"], \
-	[("nomAncetre", str, ""), ("seuilMaxDistInterGenes", int, 0), ("nbConcorde", int, -1), ("nbDecimales", int, 2), ("penalite", int, 100000000), \
+	[("nomAncetre",str,""), ("seuilMaxDistInterGenes",int,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
+	("nbConcorde",int,-1), ("withCondordeOutput",bool,False), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
 )
@@ -161,7 +162,7 @@ for c in genesAnc.lstChr:
 		for j in xrange(i+1,n):
 			y = distInterGenes(tab[i], tab[j])
 			if y == 0:
-				print >> f, options["penalite"],
+				print >> f, int(mult*options["penalite"]),
 			elif y == 1:
 				print >> f, 1,
 			else:
@@ -173,12 +174,14 @@ for c in genesAnc.lstChr:
 	print >> sys.stderr, "Lancement de concorde ",
 	lstTot = []
 	for i in range(nbConcorde):
-		os.system('~/work/scripts/concorde -m -x ' + nom + ' >&2')
+		comm = '~/work/scripts/concorde -m -x ' + nom
+		if options["withCondordeOutput"]:
+			os.system(comm + ' >&2')
+		else:
+			os.system(comm + ' > /dev/null')
 		lstTot.append(utils.myBioObjects.ConcordeFile(nom + ".sol"))
 		os.system('rm -f 0%s* %s.*' % (nom,nom) )
 		sys.stderr.write(".")
-
-	print >> sys.stderr
 
 	# On remet chaque liste dans le meme sens que la premiere
 	for i in range(1, nbConcorde):
@@ -192,5 +195,8 @@ for c in genesAnc.lstChr:
 		else:
 			print c, len(q),
 		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
+	
+	print >> sys.stderr, len(utils.myMaths.unique(lstTot)), "solutions"
+
 
 os.system('rm -f *%s*' % nom )

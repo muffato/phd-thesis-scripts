@@ -63,7 +63,7 @@ def translateDiagToChrom():
 			print nb, " ".join(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr][int(i)].names)
 		nb += 1
 
-def f4():
+def comptePhyloNodes():
 	phylTree = utils.myBioObjects.PhylogeneticTree(sys.argv[1])
 	nbEsp = len(phylTree.getSpecies(phylTree.root))
 
@@ -75,41 +75,6 @@ def f4():
 		nbA = len(groupes[0])
 		nbB = len(groupes[1])
 		print anc, nbA*nbB + nbA*nbO + nbB*nbO
-
-def f5():
-	lst = []
-	for l in sys.stdin:
-		c = [int(x) for x in l.split()]
-		lst.append(c)
-
-	lst = utils.myMaths.unique(lst)
-
-	dic = {}
-	for n in xrange(len(lst)):
-		c = lst[n]
-		for x in c:
-			if x not in dic:
-				dic[x] = []
-			dic[x].append(n)
-	
-	for n in xrange(len(lst)):
-		c = lst[n]
-		d = c[:]
-		d.reverse()
-		ll = set(utils.myMaths.flatten([dic[x] for x in c]))
-		for j in ll:
-			if j == n:
-				continue
-			if utils.myMaths.issublist(c, lst[j]):
-				#print "NO", c, lst[j]
-				break
-			elif utils.myMaths.issublist(d, lst[j]):
-				break
-		else:
-			print " ".join([str(x) for x in c])
-		
-
-		continue
 	
 def compteNbChangements():
 
@@ -167,7 +132,7 @@ def buildGraph():
 				vois[x].append(y)
 				vois[y].append(x)
 		
-	#print "graph {"
+	print "graph {"
 	combin = utils.myTools.myCombinator([])
 	seuil = int(sys.argv[1])
 	for i in xrange(len(lst)):
@@ -180,129 +145,33 @@ def buildGraph():
 				nb += min(lst[i].count(x), lst[j].count(x))
 			if nb > seuil:
 				combin.addLink([i,j])
-				#print '%d -- %d [label="%d"]' % (i,j,nb)
-				#print '%d [label="%d.%d"]' % (i,i,len(lst[i]))
-				#print '%d [label="%d.%d"]' % (j,j,len(lst[j]))
-	#print "}"
+				print '%d -- %d [label="%d"]' % (i,j,nb)
+				print '%d [label="%d.%d"]' % (i,i,len(lst[i]))
+				print '%d [label="%d.%d"]' % (j,j,len(lst[j]))
+	print "}"
 	for g in combin:
 		s = set(utils.myMaths.flatten([lst[i] for i in g]))
 		#t = [len(set(vois[x])) for x in s]
 		#if max(t) >= 3:
-		print sys.argv[2], " ".join([str(x) for x in s])
+		#print sys.argv[2], " ".join([str(x) for x in s])
 		
 
 def buildExtendedDiags():
-	lst = []
-	lst2 = []
-	pos = {}
 	
+	lst = utils.myDiags.DiagRepository()
 	for l in sys.stdin:
 		#c = [int(x) for x in l.split('\t')[1].split()]
 		c = [int(x) for x in l.split()[1:]]
-		lst.append(c)
-		lst2.append(set(c))
-		if len(c) == 0:
-			continue
-		if len(c) == 1 and c[0] not in pos:
-			pos[c[0]].add(len(lst)-1)
-		else:
-			for i in xrange(len(c)-1):
-				x = c[i]
-				y = c[i+1]
-				if x not in pos:
-					pos[x] = set([])
-				if y not in pos:
-					pos[y] = set([])
-				pos[x].add(len(lst)-1)
-				pos[y].add(len(lst)-1)
-	
+		lst.addDiag(c, [])
+
+	lst.buildVoisins()
+
 	# Les extensions
 	print >> sys.stderr, "lecture OK"
 	
-	def checkInsert(lst, pos):
-		vois = utils.myDiags.buildVoisins(lst)
-		#print >> sys.stderr, "voisins OK"
 
-		for x in vois:
-			s = set(vois[x])
-			if len(s) != 2:
-				continue
-			for i in s:
-				t = s.intersection(vois[i])
-				if len(t) == 1:
-					t = t.pop()
-					diags = set(pos[i]).intersection(pos[t])
-					#print "insertion de", x, "entre", i, "et", t, "(", vois[x], vois[i], diags, ")"
-					f = False
-					for dd in diags:
-						d = lst[dd]
-						for j in xrange(len(d)-1):
-							if ((d[j],d[j+1]) == (i,t)) or ((d[j],d[j+1]) == (t,i)):
-								f = True
-								rrr = d[:]
-								d.insert(j+1, x)
-								#print "insertion faite sur", rrr, "->", d
-								break
-
-
-	def extendRight(lst, pos):
-		i = 0
-		vois = utils.myDiags.buildVoisins(lst)
-		while i < len(lst):
-			if len(lst[i]) < 2:
-				i += 1
-				continue
-			curr = lst[i]
-			last = curr[-1]
-			last2 = curr[-2]
-			v = vois[last]
-			if len(v) == 2:
-				v.remove(last2)
-				curr.append(v.pop())
-			else:
-				i += 1
-	
-	def extendLeft(lst, pos):
-		i = 0
-		vois = utils.myDiags.buildVoisins(lst)
-		while i < len(lst):
-			if len(lst[i]) < 2:
-				i += 1
-				continue
-			curr = lst[i]
-			last = curr[0]
-			last2 = curr[1]
-			v = vois[last]
-			if len(v) == 2:
-				v.remove(last2)
-				curr.insert(0, v.pop())
-			else:
-				i += 1
-		
-
-	def boucle(func, txt, lst, pos):
-		utile = True
-		while utile:
-			dim = len([d for d in lst if len(d) > 0])
-			func(lst, pos)
-			tmp = utils.myDiags.DiagRepository()
-			for d in lst:
-				tmp.addDiag(d, [])
-			newLst = tmp.lstDiags
-			newDim = len([d for d in tmp.lstDiags if len(d) > 0])
-		
-			print >> sys.stderr, txt, dim, newDim
-
-			utile = (dim != newDim)
-			lst = newLst
-			pos = tmp.genesToDiags
-		return (lst,pos)
 	
 	def boucle2(func, txt, lst, pos):
-		tmp = utils.myDiags.DiagRepository()
-		for d in lst:
-			tmp.addDiag(d, [])
-		tmp.buildVoisins()
 		utile = True
 		while utile:
 			dim = tmp.nbRealDiags()
@@ -322,9 +191,6 @@ def buildExtendedDiags():
 		return (tmp.lstDiags,tmp.genesToDiags)
 	
 	def boucle3(func, txt, lst, pos):
-		tmp = utils.myDiags.DiagRepository()
-		for d in lst:
-			tmp.addDiag(d, [])
 		tmp.buildVoisins()
 		utile = True
 		while utile:
@@ -340,7 +206,7 @@ def buildExtendedDiags():
 			#tmp2 = utils.myDiags.DiagRepository()
 			#for d in tmp.lstDiags:
 			#	tmp2.addDiag(d, [])
-			tmp.buildVoisins()
+			#tmp.buildVoisins()
 			#tmp = tmp2
 			newDim = tmp.nbRealDiags()
 		
@@ -355,10 +221,31 @@ def buildExtendedDiags():
 			
 		return (tmp.lstDiags,tmp.genesToDiags)
 
-	(lst, pos) = boucle2(None, "insertion", lst, pos)
-	(lst, pos) = boucle3(None, "droite", lst, pos)
-	#(lst, pos) = boucle(extendRight, "droite", lst, pos)
-	#(lst, pos) = boucle(extendLeft, "gauche", lst, pos)
+	def boucle4(func, txt, lst, pos):
+		tmp = utils.myDiags.DiagRepository()
+		for d in lst:
+			tmp.addDiag(d, [])
+		tmp.buildVoisins()
+		utile = True
+		while utile:
+			dim = tmp.nbRealDiags()
+			tmp.extendLeft()
+			newDim = tmp.nbRealDiags()
+			print >> sys.stderr, txt, dim, newDim
+			utile = (dim != newDim)
+			
+		return (tmp.lstDiags,tmp.genesToDiags)
+
+	tmp = utils.myDiags.DiagRepository()
+	for d in lst:
+		tmp.addDiag(d, [])
+	tmp.buildVoisins()
+	print >> sys.stderr, tmp.nbRealDiags(),
+	tmp.checkInsert()
+	tmp.buildVoisins()
+	while (tmp.extendLeft() or tmp.extendRight()):
+		pass
+	print >> sys.stderr, tmp.nbRealDiags()
 
 	for d in lst:
 		if len(d) == 0:
@@ -403,5 +290,5 @@ def buildExtendedDiags():
 
 
 #buildGraph()
-#translateDiagToChrom()
-buildExtendedDiags()
+translateDiagToChrom()
+#buildExtendedDiags()

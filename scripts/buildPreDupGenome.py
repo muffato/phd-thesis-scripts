@@ -116,6 +116,8 @@ def buildColorTable(lstBlocs, col, dicGenesAnc, chrAnc):
 			if len(b) == 0:
 				continue
 			(s, l) = getMaxScore(b, e)
+			if s == 0:
+				continue
 			r = float(s-1) / float(len(b))
 			for c in l:
 				for g in b:
@@ -166,7 +168,7 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 			nb[c] = (nb[c][0]+1, max(nb[c][1], l), max(nb[c][2], s), nb[c][3]+[e])
 		tmp = utils.myMaths.sortDict(nb)
 		c = tmp[0]
-		#genesAncCol[i] = nb
+		genesAncCol[i] = nb
 		
 		chrAncGenes[c].append(i)
 

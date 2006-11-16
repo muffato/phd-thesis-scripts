@@ -187,7 +187,8 @@ class DiagRepository:
 					self.voisins[y].add(x)
 	
 	def checkInsert(self):
-
+		
+		flag = False
 		# On cherche des elements qui ont deux voisins eux memes voisins l'un de l'autre
 		# L'element est alors a inserer entre les deux pour qu'ils ne soient plus voisins
 		for x in self.voisins:
@@ -209,51 +210,99 @@ class DiagRepository:
 					d.insert(k+1, x)
 					self.lstDiagsSet[ind].add(x)
 					self.genesToDiags[x].append(ind)
+					flag = True
 					break
+		return flag
+
 	
-	def extendRight(self):
+	def __extendExtrem(self, lastPos, beforeLastPos, fun):
 		i = 0
 		toUpdate = set([])
 		while i < len(self.lstDiags):
 			curr = self.lstDiags[i]
 			if len(curr) >= 2:
-				last = curr[-1]
-				last2 = curr[-2]
+				last = curr[lastPos]
+				last2 = curr[beforeLastPos]
 				v = [y for y in self.voisins[last] if y != last2]
 				if len(v) == 1:
 					x = v[0]
 					if x not in self.lstDiagsSet[i]:
-						curr.append(x)
+						fun(curr, x)
 						self.lstDiagsSet[i].add(x)
 						self.genesToDiags[x].append(i)
 						toUpdate.add(i)
-						#self.buildVoisins()
 						continue
 			i += 1
 		
 		for i in toUpdate:
 			self.addDiag( self.lstDiags[i], self.lstApp[i] )
-	
-	
+		self.buildVoisins()
+		return (len(toUpdate) > 0)
+
+	def extendLeft(self):
+		return self.__extendExtrem(0, 1, lambda l,x: l.insert(0, x))
+
+	def extendRight(self):
+		return self.__extendExtrem(-1, -2, lambda l,x: l.append(x))
 
 
-def buildVoisins(lst):
-		voisins = {}
-		
-		for c in lst:
-			if len(c) == 0:
-				continue
-			if len(c) == 1 and c[0] not in voisins:
-				voisins[c[0]] = []
+
+def cutNodes(diags):
+	voisins = {}
+	for (d,_) in diags:
+		if len(d) == 1 and d[0] not in voisins:
+			voisins[d[0]] = []
+			continue
+		for i in xrange(1,len(d)):
+			x = d[i-1]
+			y = d[i]
+			voisins[x] = voisins.get(x,[]) + [y]
+			voisins[y] = voisins.get(y,[]) + [x]
+	
+	for x in voisins:
+		voisins[x] = len(set(voisins[x]))
+
+	res = []
+	for (d,orig) in diags:
+		curr = []
+		while len(d) > 0:
+			x = d.pop(0)
+			if voisins[x] < 3:
+				curr.append(x)
 			else:
-				for i in xrange(len(c)-1):
-					x = c[i]
-					y = c[i+1]
-					if x not in voisins:
-						voisins[x] = set([])
-					if y not in voisins:
-						voisins[y] = set([])
-					voisins[x].add(y)
-					voisins[y].add(x)
-		return voisins
-	
+				if len(curr) >= 2:
+					res.append( (curr,orig.copy()) )
+				curr = []
+		if len(curr) >= 2:
+			res.append( (curr,orig.copy()) )
+	return res
+
+
+def combinDiags(anc, diags):
+	combin = utils.myTools.myCombinator([])
+	fils = phylTree.getSpecies(anc)
+	for (i,j) in utils.myTools.myMatrixIterator(len(diags), len(diags), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		combin.addLink([i])
+		(_,orig1) = diags[i]
+		(_,orig2) = diags[j]
+		commun = [x for x in orig1.intersection(orig2)]
+		filsOK = 0
+		outgroupOK = 0
+		for (k,l) in utils.myTools.myMatrixIterator(len(commun), len(commun), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+			(e1,c1) = commun[k]
+			(e2,c2) = commun[l]
+			if phylTree.getFirstParent(e1,e2) == anc:
+				filsOK += 1
+			if ((e1 in fils) and (e2 not in fils)) or ((e2 in fils) and (e1 not in fils)):
+				outgroupOK += 1
+		if (outgroupOK > 0) and (filsOK > 0):
+			combin.addLink([i,j])
+	res = []
+	for g in combin:
+		diag = utils.myMaths.unique(utils.myMaths.flatten([diags[i][0] for i in g]))
+		orig = utils.myMaths.unique(utils.myMaths.flatten([diags[i][1] for i in g]))
+		res.append( (diag,orig) )
+	return res
+
+
+
