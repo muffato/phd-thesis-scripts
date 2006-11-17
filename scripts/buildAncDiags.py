@@ -28,21 +28,22 @@ def loadAncGenesFile(anc, genomes, locations):
 	# Le fichier de genes ancestraux
 	genesAnc = utils.myGenomes.loadGenome(options["ancGenesFile"] % anc)
 	nbGenesAnc = len(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr])
+	del genesAnc.lstGenes
 
 	# Les listes des especes entre lesquelles on cherche des diagonales
 	groupes = phylTree.getBranchesSpecies(anc)
 	fils = utils.myMaths.flatten(groupes)
 	
 	# Traduction des genomes en liste des genes ancestraux
-	print >> sys.stderr, "Distribution des genes de", anc, "...",
+	print >> sys.stderr, "Distribution des genes de %s" % anc,
 	for e in fils:
 		newLoc = [[]] * nbGenesAnc
 		genome = geneBank.dicEspeces[e]
 		newGenome = {}
 		for c in genome.lstChr:
 			newGenome[c] = [(genesAnc.dicGenes.get(g.names[0], (0,-1))[1],g.strand) for g in genome.lstGenes[c]]
-			if not options["keepOrthoLess"]:
-				newGenome[c] = [x for x in newGenome[c] if x != -1]
+			if not options["keepOrthosLess"]:
+				newGenome[c] = [x for x in newGenome[c] if x[0] != -1]
 			for i in xrange(len(newGenome[c])):
 				(x,s) = newGenome[c][i]
 				if x != -1:
@@ -111,7 +112,7 @@ def calcDiags():
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
-	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOrthoLess",bool,False), \
+	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOrthosLess",bool,False), \
 	("checkInsertions",bool,False), ("extendLeftRight",bool,False), ("cutNodes",bool,False), ("combinSameChr",bool,False), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -143,6 +144,8 @@ calcDiags()
 del genomes
 del locations
 
+print >> sys.stderr, locals()
+
 for anc in diagEntry:
 	
 	print >> sys.stderr, "Traitement de %s ..." % anc,
@@ -162,19 +165,11 @@ for anc in diagEntry:
 	
 	print >> sys.stderr, lst.nbRealDiags(),
 
-	#if options["cutNodes"]:
-	#	print >> sys.stderr, "Coupure sur les noeuds ...",
-	#	lst = cutNodes(lst)
-	
-	#if options["combinSameChr"]:
-	#	print >> sys.stderr, "Combinaisons ...",
-	#	lst = combinDiags(anc, lst)
-	
 	for d in lst.lstDiags:
 		if len(d) == 0:
 			continue
-		print anc, " ".join([str(x) for x in d])
-		#print "%s\t%s\t%s" % (anc, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in l]))
+		#print anc, " ".join([str(x) for x in d])
+		print "%s\t%s\t%s" % (anc, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in l]))
 	
 	print >> sys.stderr, "OK"
 

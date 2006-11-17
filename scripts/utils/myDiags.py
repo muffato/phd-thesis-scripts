@@ -166,6 +166,13 @@ class DiagRepository:
 			if len(d) > 0:
 				nb += 1
 		return nb
+	
+	def __iter__(self):
+		for i in xrange(len(self.lstDiags)):
+			d = self.lstDiags[i]
+			if len(d) == 0:
+				continue
+			yield (d, self.lstDiagSet[i], self.lstApp[i])
 
 	def buildVoisins(self):
 		self.voisins = {}
