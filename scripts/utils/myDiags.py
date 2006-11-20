@@ -7,6 +7,7 @@
 import sys
 import myMaths
 import myGenomes
+import myTools
 
 #
 # Fait la liste de tous les genes de tab1 en diagonale avec ceux de tab2
@@ -253,38 +254,47 @@ class DiagRepository:
 		return self.__extendExtrem(-1, -2, lambda l,x: l.append(x))
 
 
+	def buildOverlap(self, chev):
+		combin = myTools.myCombinator([])
+		newDiags = DiagRepository()
+		for (i,j) in myTools.myMatrixIterator(len(self.lstDiags), len(self.lstDiags), myTools.myMatrixIterator.StrictUpperMatrix):
+			s = self.lstDiagsSet[i].intersection(self.lstDiagsSet[j])
+			if len(s) < 0:
+				continue
+			nb = 0
+			for x in s:
+				nb += min(self.lstDiags[i].count(x), self.lstDiags[j].count(x))
+			if nb >= chev:
+				combin.addLink([i,j])
+		for g in combin:
+			s = set(myMaths.flatten([self.lstDiags[i] for i in g]))
+			a = set(myMaths.flatten([self.lstApp[i] for i in g]))
+			newDiags.addDiag(s, a)
 
-def cutNodes(diags):
-	voisins = {}
-	for (d,_) in diags:
-		if len(d) == 1 and d[0] not in voisins:
-			voisins[d[0]] = []
-			continue
-		for i in xrange(1,len(d)):
-			x = d[i-1]
-			y = d[i]
-			voisins[x] = voisins.get(x,[]) + [y]
-			voisins[y] = voisins.get(y,[]) + [x]
+		return newDiags
 	
-	for x in voisins:
-		voisins[x] = len(set(voisins[x]))
-
-	res = []
-	for (d,orig) in diags:
-		curr = []
-		while len(d) > 0:
-			x = d.pop(0)
-			if voisins[x] < 3:
-				curr.append(x)
-			else:
-				if len(curr) >= 2:
-					res.append( (curr,orig.copy()) )
-				curr = []
-		if len(curr) >= 2:
-			res.append( (curr,orig.copy()) )
-	return res
-
-
+	def buildOverlap2(self, chev):
+		nbDiags = len(self.lstDiags)
+		for i in xrange(nbDiags):
+			if len(self.lstDiags[i]) == 0:
+				continue
+			lst = [i]
+			for j in xrange(i+1,nbDiags):
+				s = self.lstDiagsSet[i].intersection(self.lstDiagsSet[j])
+				if len(s) == 0:
+					continue
+				nb = 0
+				for x in s:
+					nb += min(self.lstDiags[i].count(x), self.lstDiags[j].count(x))
+				if nb >= chev:
+					lst.append(j)
+			
+			if len(lst) == 1:
+				continue
+			s = set(myMaths.flatten([self.lstDiags[j] for j in lst]))
+			a = set(myMaths.flatten([self.lstApp[j] for j in lst]))
+			self.addDiag(s, a)
+	
 def combinDiags(anc, diags):
 	combin = utils.myTools.myCombinator([])
 	fils = phylTree.getSpecies(anc)

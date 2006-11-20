@@ -35,9 +35,9 @@ def loadAncGenesFile(anc, genomes, locations):
 	fils = utils.myMaths.flatten(groupes)
 	
 	# Traduction des genomes en liste des genes ancestraux
-	print >> sys.stderr, "Distribution des genes de %s" % anc,
+	print >> sys.stderr, "Distribution des genes de %s " % anc,
 	for e in fils:
-		newLoc = [[]] * nbGenesAnc
+		newLoc = [[] for x in xrange(nbGenesAnc)]
 		genome = geneBank.dicEspeces[e]
 		newGenome = {}
 		for c in genome.lstChr:
@@ -45,9 +45,9 @@ def loadAncGenesFile(anc, genomes, locations):
 			if not options["keepOrthosLess"]:
 				newGenome[c] = [x for x in newGenome[c] if x[0] != -1]
 			for i in xrange(len(newGenome[c])):
-				(x,s) = newGenome[c][i]
-				if x != -1:
-					newLoc[x].append( (c,i,s) )
+				(ianc,s) = newGenome[c][i]
+				if ianc != -1:
+					newLoc[ianc].append( (c,i,s) )
 		genomes[e] = newGenome
 		locations[e] = newLoc
 		sys.stderr.write(".")
@@ -113,7 +113,7 @@ def calcDiags():
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOrthosLess",bool,False), \
-	("checkInsertions",bool,False), ("extendLeftRight",bool,False), ("cutNodes",bool,False), ("combinSameChr",bool,False), \
+	("checkInsertions",bool,False), ("extendLeftRight",bool,False), ("minOverlap",int,-1), ("minOverlap2",int,-1),\
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
@@ -144,8 +144,6 @@ calcDiags()
 del genomes
 del locations
 
-print >> sys.stderr, locals()
-
 for anc in diagEntry:
 	
 	print >> sys.stderr, "Traitement de %s ..." % anc,
@@ -163,12 +161,22 @@ for anc in diagEntry:
 			print >> sys.stderr, "E",
 			pass
 	
+	if options["minOverlap"] > 0:
+		lst = lst.buildOverlap(options["minOverlap"])
+		print >> sys.stderr, "O",
+	
+	if options["minOverlap2"] > 0:
+		lst.buildOverlap2(options["minOverlap2"])
+		print >> sys.stderr, "O",
+	
 	print >> sys.stderr, lst.nbRealDiags(),
 
-	for d in lst.lstDiags:
+	for i in xrange(len(lst.lstDiags)):
+		d = lst.lstDiags[i]
 		if len(d) == 0:
 			continue
 		#print anc, " ".join([str(x) for x in d])
+		l = lst.lstApp[i]
 		print "%s\t%s\t%s" % (anc, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in l]))
 	
 	print >> sys.stderr, "OK"

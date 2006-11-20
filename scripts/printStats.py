@@ -28,5 +28,8 @@ for l in sys.stdin:
 		lst.append(int(x))
 lst.sort()
 
-print utils.myMaths.moyenne(lst), utils.myMaths.ecartType(lst), utils.myMaths.mediane(lst), min(lst), max(lst), len(lst)
+if len(lst) > 0:
+	print "%.2f\t%.2f\t%d\t%d\t%d\t%d" % (utils.myMaths.moyenne(lst), utils.myMaths.ecartType(lst), utils.myMaths.mediane(lst), min(lst), max(lst), len(lst))
+else:
+	print 0, 0, 0, 0, 0, 0
 
