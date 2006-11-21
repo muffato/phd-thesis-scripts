@@ -253,40 +253,17 @@ class DiagRepository:
 	def extendRight(self):
 		return self.__extendExtrem(-1, -2, lambda l,x: l.append(x))
 
-
 	def buildOverlap(self, chev):
-		combin = myTools.myCombinator([])
-		newDiags = DiagRepository()
-		for (i,j) in myTools.myMatrixIterator(len(self.lstDiags), len(self.lstDiags), myTools.myMatrixIterator.StrictUpperMatrix):
-			s = self.lstDiagsSet[i].intersection(self.lstDiagsSet[j])
-			if len(s) < 0:
-				continue
-			nb = 0
-			for x in s:
-				nb += min(self.lstDiags[i].count(x), self.lstDiags[j].count(x))
-			if nb >= chev:
-				combin.addLink([i,j])
-		for g in combin:
-			s = set(myMaths.flatten([self.lstDiags[i] for i in g]))
-			a = set(myMaths.flatten([self.lstApp[i] for i in g]))
-			newDiags.addDiag(s, a)
-
-		return newDiags
 	
-	def buildOverlap2(self, chev):
+		self.__buildOverlapScores()
 		nbDiags = len(self.lstDiags)
 		for i in xrange(nbDiags):
 			if len(self.lstDiags[i]) == 0:
 				continue
 			lst = [i]
+			scores = self.overlapScores[i]
 			for j in xrange(i+1,nbDiags):
-				s = self.lstDiagsSet[i].intersection(self.lstDiagsSet[j])
-				if len(s) == 0:
-					continue
-				nb = 0
-				for x in s:
-					nb += min(self.lstDiags[i].count(x), self.lstDiags[j].count(x))
-				if nb >= chev:
+				if j in scores and scores[j] >= chev:
 					lst.append(j)
 			
 			if len(lst) == 1:
@@ -295,31 +272,81 @@ class DiagRepository:
 			a = set(myMaths.flatten([self.lstApp[j] for j in lst]))
 			self.addDiag(s, a)
 	
-def combinDiags(anc, diags):
-	combin = utils.myTools.myCombinator([])
-	fils = phylTree.getSpecies(anc)
-	for (i,j) in utils.myTools.myMatrixIterator(len(diags), len(diags), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-		combin.addLink([i])
-		(_,orig1) = diags[i]
-		(_,orig2) = diags[j]
-		commun = [x for x in orig1.intersection(orig2)]
-		filsOK = 0
-		outgroupOK = 0
-		for (k,l) in utils.myTools.myMatrixIterator(len(commun), len(commun), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-			(e1,c1) = commun[k]
-			(e2,c2) = commun[l]
-			if phylTree.getFirstParent(e1,e2) == anc:
-				filsOK += 1
-			if ((e1 in fils) and (e2 not in fils)) or ((e2 in fils) and (e1 not in fils)):
-				outgroupOK += 1
-		if (outgroupOK > 0) and (filsOK > 0):
-			combin.addLink([i,j])
-	res = []
-	for g in combin:
-		diag = utils.myMaths.unique(utils.myMaths.flatten([diags[i][0] for i in g]))
-		orig = utils.myMaths.unique(utils.myMaths.flatten([diags[i][1] for i in g]))
-		res.append( (diag,orig) )
-	return res
+	def combinDiags(self, fils):
+		combin = myTools.myCombinator([])
+		#fils = phylTree.getBranchesSpecies(anc)
+		for (i,j) in myTools.myMatrixIterator(len(self.lstDiags), len(self.lstDiags), myTools.myMatrixIterator.StrictUpperMatrix):
+			commun = set([e for (e,_) in self.lstApp[i].intersection(self.lstApp[j])])
+			filsOK = [len(commun.intersection(x)) for x in fils]
+			outgroupOK = len(commun) - sum(filsOK)
+			#for (k,l) in myTools.myMatrixIterator(len(commun), len(commun), myTools.myMatrixIterator.StrictUpperMatrix):
+			#	(e1,c1) = commun[k]
+			#	(e2,c2) = commun[l]
+			#	if phylTree.getFirstParent(e1,e2) == anc:
+			#		filsOK += 1
+			#	if ((e1 in fils) and (e2 not in fils)) or ((e2 in fils) and (e1 not in fils)):
+			#		outgroupOK += 1
+			#if (outgroupOK > 0) and (filsOK > 0):
+			if outgroupOK >= 1 and min(filsOK) >= 1:
+				combin.addLink([i,j])
+		res = []
+		for g in combin:
+			diag = myMaths.unique(myMaths.flatten([self.lstDiags[i] for i in g]))
+			orig = myMaths.unique(myMaths.flatten([self.lstApp[i] for i in g]))
+			self.addDiag(diag, orig)
+			#res.append( (diag,orig) )
+
+	def __buildOverlapScores(self):
+		
+		nbDiags = len(self.lstDiags)
+		self.overlapScores = [{} for i in xrange(nbDiags)]
+		print >> sys.stderr, "initA"
+		
+		for i in xrange(nbDiags):
+			if len(self.lstDiags[i]) == 0:
+				continue
+			for j in xrange(i+1,nbDiags):
+				s = self.lstDiagsSet[i].intersection(self.lstDiagsSet[j])
+				if len(s) == 0:
+					continue
+				nb = 0
+				for x in s:
+					nb += min(self.lstDiags[i].count(x), self.lstDiags[j].count(x))
+				self.overlapScores[j][i] = nb
+				self.overlapScores[i][j] = nb
+			
+
+	def buildCliques(self):
+		self.__buildOverlapScores()
+		print >> sys.stderr, "init1"
+		def recBuild(last):
+			newList = []
+			for cl in last:
+				# On est dans une clique et on va tenter de l'etendre
+				inter = set([])
+				beginning = True
+				for d in cl:
+					s = self.overlapScores[d].keys()
+					if beginning:
+						beginning = False
+						inter.update(s)
+					else:
+						inter.intersection_update(s)
+				# inter contient les voisins de tout le monde
+				for newV in inter:
+					newCL = cl.copy()
+					newCL.add(newV)
+					newList.append(newCL)
+			return myMaths.unique(newList)
+		
+		self.cliquesList = []
+		last = [[i] for i in xrange(len(self.lstDiags))]
+		self.cliquesList = [last]
+		print >> sys.stderr, "init2"
+		while len(last) > 0:
+			last = recBuild(last)
+			self.cliquesList.append(last)
+			print >> sys.stderr, len(self.cliquesList)+1, "ok !!"
 
 
 

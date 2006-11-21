@@ -156,139 +156,17 @@ def buildGraph():
 		#print sys.argv[2], " ".join([str(x) for x in s])
 		
 
-def buildExtendedDiags():
-	
+def buildCliques():
 	lst = utils.myDiags.DiagRepository()
 	for l in sys.stdin:
-		#c = [int(x) for x in l.split('\t')[1].split()]
-		c = [int(x) for x in l.split()[1:]]
+		c = [int(x) for x in l.split('\t')[1].split()]
 		lst.addDiag(c, [])
-
-	lst.buildVoisins()
-
-	# Les extensions
 	print >> sys.stderr, "lecture OK"
-	
-
-	
-	def boucle2(func, txt, lst, pos):
-		utile = True
-		while utile:
-			dim = tmp.nbRealDiags()
-			tmp.checkInsert()
-			
-			tmp2 = utils.myDiags.DiagRepository()
-			for d in tmp.lstDiags:
-				tmp2.addDiag(d, [])
-			tmp2.buildVoisins()
-
-			tmp = tmp2
-			newDim = tmp.nbRealDiags()
+	lst.buildCliques()
+	print >> sys.stderr, "L", [len(x) for x in lst.cliquesList],
 		
-			print >> sys.stderr, txt, dim, newDim
-			utile = (dim != newDim)
-			
-		return (tmp.lstDiags,tmp.genesToDiags)
-	
-	def boucle3(func, txt, lst, pos):
-		tmp.buildVoisins()
-		utile = True
-		while utile:
-			dim = tmp.nbRealDiags()
-			tmp.extendRight()
-			
-			#for d in tmp.lstDiags:
-			#	if len(d) == 0:
-			#		continue
-			#	print >> sys.stderr, " ".join([str(x) for x in d])
-			#return
-			
-			#tmp2 = utils.myDiags.DiagRepository()
-			#for d in tmp.lstDiags:
-			#	tmp2.addDiag(d, [])
-			#tmp.buildVoisins()
-			#tmp = tmp2
-			newDim = tmp.nbRealDiags()
-		
-			#for d in tmp.lstDiags:
-			#	if len(d) == 0:
-			#		continue
-			#	print >> sys.stderr, " ".join([str(x) for x in d])
-			#return
-
-			print >> sys.stderr, txt, dim, newDim
-			utile = (dim != newDim)
-			
-		return (tmp.lstDiags,tmp.genesToDiags)
-
-	def boucle4(func, txt, lst, pos):
-		tmp = utils.myDiags.DiagRepository()
-		for d in lst:
-			tmp.addDiag(d, [])
-		tmp.buildVoisins()
-		utile = True
-		while utile:
-			dim = tmp.nbRealDiags()
-			tmp.extendLeft()
-			newDim = tmp.nbRealDiags()
-			print >> sys.stderr, txt, dim, newDim
-			utile = (dim != newDim)
-			
-		return (tmp.lstDiags,tmp.genesToDiags)
-
-	tmp = utils.myDiags.DiagRepository()
-	for d in lst:
-		tmp.addDiag(d, [])
-	tmp.buildVoisins()
-	print >> sys.stderr, tmp.nbRealDiags(),
-	tmp.checkInsert()
-	tmp.buildVoisins()
-	while (tmp.extendLeft() or tmp.extendRight()):
-		pass
-	print >> sys.stderr, tmp.nbRealDiags()
-
-	for d in lst:
-		if len(d) == 0:
-			continue
-		print " ".join([str(x) for x in d])
-	return
-	i = 0
-	vois = utils.myDiags.buildVoisins(lst)
-	while i < len(lst):
-		if len(lst[i]) < 2:
-			i += 1
-			continue
-		curr = lst[i]
-		last = curr[-1]
-		last2 = curr[-2]
-		v = vois[last]
-		if len(v) > 2:
-			print "plusieurs choix", curr
-		i += 1
-		
-#		for j in xrange(i+1,len(lst)):
-#			s = lst2[i].intersection(lst2[j])
-#			if len(s) == 0:
-#				continue
-#			if len(s) < 2:
-#				continue
-#			print lst[i], lst[j]
-#			continue
-#			toAdd = []
-#			nb = 0
-#			for x in s:
-#				ci = lst[i].count(x)
-#				cj = lst[j].count(x)
-#				nb += min(ci, cj)
-#				toAdd.extend( [x] * (cj-ci))
-#			newList = lst[i][:]
-#			#while len(toAdd) > 0:
-#			#	for k in xrange(len(toAdd)):
-#			#		if
-#		return
-			
-
 
 #buildGraph()
-translateDiagToChrom()
+#translateDiagToChrom()
 #buildExtendedDiags()
+buildCliques()

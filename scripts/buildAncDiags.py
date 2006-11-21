@@ -113,7 +113,7 @@ def calcDiags():
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOrthosLess",bool,False), \
-	("checkInsertions",bool,False), ("extendLeftRight",bool,False), ("minOverlap",int,-1), ("minOverlap2",int,-1),\
+	("checkInsertions",bool,False), ("extendLeftRight",bool,False), ("minOverlap",int,-1), ("combinSameChr",bool,False), ("checkCliques",bool,False), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
@@ -164,11 +164,15 @@ for anc in diagEntry:
 	if options["minOverlap"] > 0:
 		lst = lst.buildOverlap(options["minOverlap"])
 		print >> sys.stderr, "O",
-	
-	if options["minOverlap2"] > 0:
-		lst.buildOverlap2(options["minOverlap2"])
-		print >> sys.stderr, "O",
-	
+
+	if options["combinSameChr"]:
+		lst.combinDiags(phylTree.getBranchesSpecies(anc))
+		print >> sys.stderr, "C",
+
+	if options["checkCliques"]:
+		lst.buildCliques()
+		print >> sys.stderr, "L", [len(x) for x in lst.cliquesList],
+
 	print >> sys.stderr, lst.nbRealDiags(),
 
 	for i in xrange(len(lst.lstDiags)):
