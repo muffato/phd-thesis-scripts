@@ -158,15 +158,54 @@ def buildGraph():
 
 def buildCliques():
 	lst = utils.myDiags.DiagRepository()
+	combin = utils.myTools.myCombinator([])
 	for l in sys.stdin:
-		c = [int(x) for x in l.split('\t')[1].split()]
+		#c = [int(x) for x in l.split('\t')[1].split()]
+		c = [int(x) for x in l.split()]
 		lst.addDiag(c, [])
 	print >> sys.stderr, "lecture OK"
+	#lst.buildOverlap(75)
+	#print >> sys.stderr, lst.nbRealDiags()
+	#for (s,_,_) in lst:
+	#	print " ".join([str(x) for x in s])
+	#return
+	#nb = lst.nbRealDiags()
+	#while nb == lst.nbRealDiags():
+	#	nb = lst.nbRealDiags()
+	for i in xrange(len(lst.lstDiags)):
+		combin.addLink([i])
 	lst.buildCliques()
 	print >> sys.stderr, "L", [len(x) for x in lst.cliquesList],
-		
+	#return
+	#print >> sys.stderr, "L", len(cl3)
+	#cl3 = lst.cliquesList[-1]
+	cl3b = []
+	for cl3 in lst.cliquesList[4:]:
+		for c in cl3:
+			combin.addLink(c)
+	print >> sys.stderr, "combin",
+	for c in combin:
+		s = set([])
+		for i in c:
+			s.update(lst.lstDiagsSet[i])
+		cl3b.append(s)
+	print >> sys.stderr, "mkSuperCliques=",len(cl3b),
+	for s in cl3b:
+		lst.addDiag(s, [])
+		#	cl3b.append(s)
+		#print >> sys.stderr, ".",
+		#lst2 = utils.myDiags.DiagRepository()
+		#lst2.addRepository(lst)
+		#print >> sys.stderr, ".",
+		#for s in cl3b:
+		#	lst2.addDiag(list(s), [])
+	print >> sys.stderr, lst.nbRealDiags()
+	for (s,_,_) in lst:
+		print " ".join([str(x) for x in s])
+		#lst = lst2
+			
 
 #buildGraph()
-#translateDiagToChrom()
+translateDiagToChrom()
 #buildExtendedDiags()
-buildCliques()
+#buildCliques()

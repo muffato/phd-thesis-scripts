@@ -135,17 +135,13 @@ class DiagRepository:
 		lst = set(myMaths.flatten([self.genesToDiags[x] for x in diag if x in self.genesToDiags]))
 		flag = False
 		diagS = set(diag)
-		#diagR = diag[:]
-		#diagR.reverse()
 		for j in lst:
-			#elif myMaths.issublist(diags[j][0], diag) or myMaths.issublist(diags[j][0], diagS):
 			if self.lstDiagsSet[j].issubset(diagS):
 				for x in self.lstDiagsSet[j]:
 					self.genesToDiags[x] = [u for u in self.genesToDiags[x] if u != j]
 				self.lstDiags[j] = []
 				self.lstDiagsSet[j] = self.__vide
 				self.lstApp[j] = self.__vide
-			#if myMaths.issublist(diag, diags[j][0]) or myMaths.issublist(diagR, diags[j][0]):
 			elif diagS.issubset(self.lstDiagsSet[j]):
 				self.lstApp[j].update(appar)
 				flag = True
@@ -160,7 +156,7 @@ class DiagRepository:
 					self.genesToDiags[x] = [n]
 				else:
 					self.genesToDiags[x].append(n)
-
+	
 	def nbRealDiags(self):
 		nb = 0
 		for d in self.lstDiags:
@@ -173,8 +169,14 @@ class DiagRepository:
 			d = self.lstDiags[i]
 			if len(d) == 0:
 				continue
-			yield (d, self.lstDiagSet[i], self.lstApp[i])
+			yield (d, self.lstDiagsSet[i], self.lstApp[i])
 
+	def addRepository(self, init):
+		for (d,_,a) in init:
+			self.addDiag(s, a)
+
+	
+	
 	def buildVoisins(self):
 		self.voisins = {}
 		
@@ -257,36 +259,30 @@ class DiagRepository:
 	
 		self.__buildOverlapScores()
 		nbDiags = len(self.lstDiags)
+		combin = myTools.myCombinator([])
 		for i in xrange(nbDiags):
 			if len(self.lstDiags[i]) == 0:
 				continue
 			lst = [i]
 			scores = self.overlapScores[i]
-			for j in xrange(i+1,nbDiags):
-				if j in scores and scores[j] >= chev:
+			for j in scores:
+				if 100*scores[j] >= (min(len(self.lstDiagsSet[i]),len(self.lstDiagsSet[j]))*chev):
 					lst.append(j)
 			
 			if len(lst) == 1:
 				continue
+			combin.addLink(lst)
+		for lst in combin:
 			s = set(myMaths.flatten([self.lstDiags[j] for j in lst]))
 			a = set(myMaths.flatten([self.lstApp[j] for j in lst]))
 			self.addDiag(s, a)
 	
 	def combinDiags(self, fils):
 		combin = myTools.myCombinator([])
-		#fils = phylTree.getBranchesSpecies(anc)
 		for (i,j) in myTools.myMatrixIterator(len(self.lstDiags), len(self.lstDiags), myTools.myMatrixIterator.StrictUpperMatrix):
 			commun = set([e for (e,_) in self.lstApp[i].intersection(self.lstApp[j])])
 			filsOK = [len(commun.intersection(x)) for x in fils]
 			outgroupOK = len(commun) - sum(filsOK)
-			#for (k,l) in myTools.myMatrixIterator(len(commun), len(commun), myTools.myMatrixIterator.StrictUpperMatrix):
-			#	(e1,c1) = commun[k]
-			#	(e2,c2) = commun[l]
-			#	if phylTree.getFirstParent(e1,e2) == anc:
-			#		filsOK += 1
-			#	if ((e1 in fils) and (e2 not in fils)) or ((e2 in fils) and (e1 not in fils)):
-			#		outgroupOK += 1
-			#if (outgroupOK > 0) and (filsOK > 0):
 			if outgroupOK >= 1 and min(filsOK) >= 1:
 				combin.addLink([i,j])
 		res = []
@@ -294,7 +290,6 @@ class DiagRepository:
 			diag = myMaths.unique(myMaths.flatten([self.lstDiags[i] for i in g]))
 			orig = myMaths.unique(myMaths.flatten([self.lstApp[i] for i in g]))
 			self.addDiag(diag, orig)
-			#res.append( (diag,orig) )
 
 	def __buildOverlapScores(self):
 		
@@ -305,10 +300,10 @@ class DiagRepository:
 		for i in xrange(nbDiags):
 			if len(self.lstDiags[i]) == 0:
 				continue
-			for j in xrange(i+1,nbDiags):
+			lst = set(myMaths.flatten([self.genesToDiags[x] for x in self.lstDiags[i]]))
+			lst.remove(i)
+			for j in lst:
 				s = self.lstDiagsSet[i].intersection(self.lstDiagsSet[j])
-				if len(s) == 0:
-					continue
 				nb = 0
 				for x in s:
 					nb += min(self.lstDiags[i].count(x), self.lstDiags[j].count(x))
@@ -319,8 +314,32 @@ class DiagRepository:
 	def buildCliques(self):
 		self.__buildOverlapScores()
 		print >> sys.stderr, "init1"
+		
+		initCliques = set([])
+		for i in xrange(len(self.lstDiags)):
+			for j in self.overlapScores[i]:
+				if i < j:
+					cl = (i,j)
+				else:
+					cl = (j,i)
+				initCliques.add(cl)
+		print >> sys.stderr, "test", len(initCliques)
+
+		def buildCliquesDict(lstCliques):
+			print >> sys.stderr, "dic ...",
+			dic = dict( [(i,[]) for i in xrange(len(self.lstDiags))] )
+			for i in xrange(len(lstCliques)):
+				cl = lstCliques[i]
+				for j in cl:
+					dic[j].append(i)
+			print >> sys.stderr, "OK"
+			return dic
+
+
 		def recBuild(last):
-			newList = []
+			print >> sys.stderr, "recBuild...",
+			newList = set([])
+			#newListEnd = set([])
 			for cl in last:
 				# On est dans une clique et on va tenter de l'etendre
 				inter = set([])
@@ -332,21 +351,53 @@ class DiagRepository:
 						inter.update(s)
 					else:
 						inter.intersection_update(s)
+						if len(inter) == 0:
+							break
+				if len(inter) == 0:
+					continue
+				
+				#newCL = list(cl)
+				#newCL.append(inter.pop())
+				#newCL.sort()
+				#newCL = tuple(newCL)
+				#newList.add(newCL)
+				#continue
+
 				# inter contient les voisins de tout le monde
 				for newV in inter:
-					newCL = cl.copy()
-					newCL.add(newV)
-					newList.append(newCL)
-			return myMaths.unique(newList)
+					newCL = list(cl)
+					newCL.append(newV)
+					newCL.sort()
+					newCL = tuple(newCL)
+					#if len(inter) == 1:
+					#	newListEnd.add(newCL)
+					#else:
+					#yield newCL
+					newList.add(newCL)
+			#newList.difference_update(newListEnd)
+			#print >> sys.stderr, len(newList), len(newListEnd)
+			#return (newList,newListEnd)
+			print >> sys.stderr, len(newList)
+			return newList
 		
-		self.cliquesList = []
-		last = [[i] for i in xrange(len(self.lstDiags))]
-		self.cliquesList = [last]
-		print >> sys.stderr, "init2"
+		#last = recBuild(initCliques)
+		#return last
+		#print len(last)
+		#self.cliquesList = []
+		#last = [(i,) for i in xrange(len(self.lstDiags))]
+		#self.cliquesList = [last]
+		#print >> sys.stderr, "init2"
+		#for i in range(2):
+		last = initCliques
+		self.cliquesList = [[], [], last]
 		while len(last) > 0:
+		#	(last,last2) = recBuild(last)
 			last = recBuild(last)
+			#return last
+		#	#for c in last:
+		#	#	print " ".join([str(x) for x in c])
+		#	last2.update(last)
 			self.cliquesList.append(last)
-			print >> sys.stderr, len(self.cliquesList)+1, "ok !!"
 
 
 
