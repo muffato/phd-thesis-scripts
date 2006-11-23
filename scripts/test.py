@@ -35,20 +35,6 @@ def f1():
 				score[gen.dicGenes[s][0]] += 1
 		print "%s\t%d\t%s" % (g.chromosome, g.beginning, "\t".join([str(score[x]) for x in score]))
 
-
-
-def f2():
-	f = open(sys.argv[1], 'r')
-
-	lst = f.readlines()[7:-1]
-	f.close()
-
-	for i in range(len(lst)):
-		continue
-		c = lst[i].split()
-		for j in range(len(c)):
-			if float(c[j]) > 0.5 and float(c[j]) < 1.5:
-				print i,j+i+1
 			
 
 
@@ -109,48 +95,30 @@ def compteNbChangements():
 
 
 def buildGraph():
-	lst = []
-	lst2 = []
-	vois = {}
+	
+	lst = utils.myDiags.DiagRepository()
 	for l in sys.stdin:
-		#c = [int(x) for x in l.split('\t')[1].split()]
-		c = [int(x) for x in l.split()]
-		lst.append(c)
-		lst2.append(set(c))
-		if len(c) == 0:
-			continue
-		if len(c) == 1 and c[0] not in vois:
-			vois[c[0]] = []
-		else:
-			for i in xrange(len(c)-1):
-				x = c[i]
-				y = c[i+1]
-				if x not in vois:
-					vois[x] = []
-				if y not in vois:
-					vois[y] = []
-				vois[x].append(y)
-				vois[y].append(x)
-		
-	print "graph {"
+		c = [int(x) for x in l.split('\t')[1].split()]
+		#c = [int(x) for x in l.split()]
+		lst.addDiag(c, [])
+
 	combin = utils.myTools.myCombinator([])
 	seuil = int(sys.argv[1])
-	for i in xrange(len(lst)):
-		for j in xrange(i):
-			s = lst2[i].intersection(lst2[j])
-			if len(s) == 0:
-				continue
-			nb = 0
-			for x in s:
-				nb += min(lst[i].count(x), lst[j].count(x))
-			if nb > seuil:
+	lst.buildOverlapScores()
+	
+	print "graph {"
+	for i in xrange(len(lst.lstDiags)):
+		for j in lst.overlapScores[i]:
+			nb = lst.overlapScores[i][j]
+			if nb >= seuil and i < j:
 				combin.addLink([i,j])
 				print '%d -- %d [label="%d"]' % (i,j,nb)
-				print '%d [label="%d.%d"]' % (i,i,len(lst[i]))
-				print '%d [label="%d.%d"]' % (j,j,len(lst[j]))
+				print '%d [label="%d.%d"]' % (i,i,len(lst.lstDiags[i]))
+				print '%d [label="%d.%d"]' % (j,j,len(lst.lstDiags[j]))
 	print "}"
+
 	for g in combin:
-		s = set(utils.myMaths.flatten([lst[i] for i in g]))
+		s = set(utils.myMaths.flatten([lst.lstDiags[i] for i in g]))
 		#t = [len(set(vois[x])) for x in s]
 		#if max(t) >= 3:
 		#print sys.argv[2], " ".join([str(x) for x in s])
@@ -158,12 +126,33 @@ def buildGraph():
 
 def buildCliques():
 	lst = utils.myDiags.DiagRepository()
-	combin = utils.myTools.myCombinator([])
 	for l in sys.stdin:
 		#c = [int(x) for x in l.split('\t')[1].split()]
 		c = [int(x) for x in l.split()]
 		lst.addDiag(c, [])
-	print >> sys.stderr, "lecture OK"
+	print >> sys.stderr, "lecture OK", lst.nbRealDiags()
+	seuil = int(sys.argv[1])
+	combin = utils.myTools.myCombinator([])
+	
+	nb = 0
+	while nb != lst.nbRealDiags():
+		nb = lst.nbRealDiags()
+		lst.buildCliques()
+		if len(lst.cliquesList) <= seuil:
+			continue
+		cl = lst.cliquesList[-1]
+		print >> sys.stderr, "L", [len(x) for x in lst.cliquesList],
+		if len(cl) == 0:
+			continue
+		s = set([])
+		for i in cl.pop():
+			s.update(lst.lstDiagsSet[i])
+		lst.addDiag(list(s), [])
+		print >> sys.stderr, lst.nbRealDiags()
+
+	for (s,_,_) in lst:
+		print " ".join([str(x) for x in s])
+	return
 	#lst.buildOverlap(75)
 	#print >> sys.stderr, lst.nbRealDiags()
 	#for (s,_,_) in lst:
@@ -205,7 +194,7 @@ def buildCliques():
 		#lst = lst2
 			
 
-#buildGraph()
-translateDiagToChrom()
+buildGraph()
+#translateDiagToChrom()
 #buildExtendedDiags()
 #buildCliques()

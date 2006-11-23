@@ -127,8 +127,12 @@ class DiagRepository:
 		self.lstDiagsSet = []
 		self.genesToDiags = {}
 		self.voisins = {}
+		self.nbRealDiag = 0
 	
 	def addDiag(self, diag, appar):
+
+		if len(diag) == 0:
+			print >> sys.stder, "BLAGUE !!"
 
 		# On doit verifier si on est une sous-diagonale
 		# Les diagonales potentielles
@@ -142,6 +146,7 @@ class DiagRepository:
 				self.lstDiags[j] = []
 				self.lstDiagsSet[j] = self.__vide
 				self.lstApp[j] = self.__vide
+				self.nbRealDiag -= 1
 			elif diagS.issubset(self.lstDiagsSet[j]):
 				self.lstApp[j].update(appar)
 				flag = True
@@ -156,12 +161,15 @@ class DiagRepository:
 					self.genesToDiags[x] = [n]
 				else:
 					self.genesToDiags[x].append(n)
+			self.nbRealDiag += 1
 	
 	def nbRealDiags(self):
 		nb = 0
 		for d in self.lstDiags:
 			if len(d) > 0:
 				nb += 1
+		if nb != self.nbRealDiag:
+			print >> sys.stderr, "MENSONGE !!!!"
 		return nb
 	
 	def __iter__(self):
@@ -196,8 +204,29 @@ class DiagRepository:
 					self.voisins[x].add(y)
 					self.voisins[y].add(x)
 	
+	def buildOverlapScores(self):
+		
+		nbDiags = len(self.lstDiags)
+		self.overlapScores = [{} for i in xrange(nbDiags)]
+		
+		for i in xrange(nbDiags):
+			if len(self.lstDiags[i]) == 0:
+				continue
+			lst = set(myMaths.flatten([self.genesToDiags[x] for x in self.lstDiags[i]]))
+			lst.remove(i)
+			for j in lst:
+				s = self.lstDiagsSet[i].intersection(self.lstDiagsSet[j])
+				nb = 0
+				for x in s:
+					nb += min(self.lstDiags[i].count(x), self.lstDiags[j].count(x))
+				self.overlapScores[j][i] = nb
+				self.overlapScores[i][j] = nb
+
+
+
 	def checkInsert(self):
 		
+		self.buildVoisins()
 		flag = False
 		# On cherche des elements qui ont deux voisins eux memes voisins l'un de l'autre
 		# L'element est alors a inserer entre les deux pour qu'ils ne soient plus voisins
@@ -210,7 +239,6 @@ class DiagRepository:
 			if j not in self.voisins[i]:
 				continue
 			diags = set(self.genesToDiags[i]).intersection(self.genesToDiags[j])
-			#print "insertion de", x, "entre", i, "et", j, "(", self.voisins[x], self.voisins[i], diags, ")"
 			
 			for ind in diags:
 				d = self.lstDiags[ind]
@@ -255,9 +283,11 @@ class DiagRepository:
 	def extendRight(self):
 		return self.__extendExtrem(-1, -2, lambda l,x: l.append(x))
 
-	def buildOverlap(self, chev):
+
+
+	def combinOverlap(self, chev):
 	
-		self.__buildOverlapScores()
+		self.buildOverlapScores()
 		nbDiags = len(self.lstDiags)
 		combin = myTools.myCombinator([])
 		for i in xrange(nbDiags):
@@ -266,7 +296,9 @@ class DiagRepository:
 			lst = [i]
 			scores = self.overlapScores[i]
 			for j in scores:
-				if 100*scores[j] >= (min(len(self.lstDiagsSet[i]),len(self.lstDiagsSet[j]))*chev):
+				if (chev >= 1) and (scores[j] >= chev):
+					lst.append(j)
+				elif scores[j] >= (min(len(self.lstDiagsSet[i]),len(self.lstDiagsSet[j]))*chev):
 					lst.append(j)
 			
 			if len(lst) == 1:
@@ -290,56 +322,13 @@ class DiagRepository:
 			diag = myMaths.unique(myMaths.flatten([self.lstDiags[i] for i in g]))
 			orig = myMaths.unique(myMaths.flatten([self.lstApp[i] for i in g]))
 			self.addDiag(diag, orig)
-
-	def __buildOverlapScores(self):
-		
-		nbDiags = len(self.lstDiags)
-		self.overlapScores = [{} for i in xrange(nbDiags)]
-		print >> sys.stderr, "initA"
-		
-		for i in xrange(nbDiags):
-			if len(self.lstDiags[i]) == 0:
-				continue
-			lst = set(myMaths.flatten([self.genesToDiags[x] for x in self.lstDiags[i]]))
-			lst.remove(i)
-			for j in lst:
-				s = self.lstDiagsSet[i].intersection(self.lstDiagsSet[j])
-				nb = 0
-				for x in s:
-					nb += min(self.lstDiags[i].count(x), self.lstDiags[j].count(x))
-				self.overlapScores[j][i] = nb
-				self.overlapScores[i][j] = nb
 			
 
 	def buildCliques(self):
-		self.__buildOverlapScores()
-		print >> sys.stderr, "init1"
-		
-		initCliques = set([])
-		for i in xrange(len(self.lstDiags)):
-			for j in self.overlapScores[i]:
-				if i < j:
-					cl = (i,j)
-				else:
-					cl = (j,i)
-				initCliques.add(cl)
-		print >> sys.stderr, "test", len(initCliques)
-
-		def buildCliquesDict(lstCliques):
-			print >> sys.stderr, "dic ...",
-			dic = dict( [(i,[]) for i in xrange(len(self.lstDiags))] )
-			for i in xrange(len(lstCliques)):
-				cl = lstCliques[i]
-				for j in cl:
-					dic[j].append(i)
-			print >> sys.stderr, "OK"
-			return dic
-
 
 		def recBuild(last):
-			print >> sys.stderr, "recBuild...",
 			newList = set([])
-			#newListEnd = set([])
+			newListEnd = set([])
 			for cl in last:
 				# On est dans une clique et on va tenter de l'etendre
 				inter = set([])
@@ -355,49 +344,38 @@ class DiagRepository:
 							break
 				if len(inter) == 0:
 					continue
-				
-				#newCL = list(cl)
-				#newCL.append(inter.pop())
-				#newCL.sort()
-				#newCL = tuple(newCL)
-				#newList.add(newCL)
-				#continue
-
+			
 				# inter contient les voisins de tout le monde
 				for newV in inter:
 					newCL = list(cl)
 					newCL.append(newV)
 					newCL.sort()
 					newCL = tuple(newCL)
-					#if len(inter) == 1:
-					#	newListEnd.add(newCL)
-					#else:
-					#yield newCL
-					newList.add(newCL)
-			#newList.difference_update(newListEnd)
-			#print >> sys.stderr, len(newList), len(newListEnd)
-			#return (newList,newListEnd)
-			print >> sys.stderr, len(newList)
-			return newList
+					if len(inter) == 1:
+						newListEnd.add(newCL)
+					else:
+						newList.add(newCL)
+			newList.difference_update(newListEnd)
+			return (newList,newListEnd)
 		
-		#last = recBuild(initCliques)
-		#return last
-		#print len(last)
-		#self.cliquesList = []
-		#last = [(i,) for i in xrange(len(self.lstDiags))]
-		#self.cliquesList = [last]
-		#print >> sys.stderr, "init2"
-		#for i in range(2):
-		last = initCliques
-		self.cliquesList = [[], [], last]
-		while len(last) > 0:
-		#	(last,last2) = recBuild(last)
-			last = recBuild(last)
-			#return last
-		#	#for c in last:
-		#	#	print " ".join([str(x) for x in c])
-		#	last2.update(last)
-			self.cliquesList.append(last)
+		self.buildOverlapScores()
+		
+		initCliques = set([])
+		for i in xrange(len(self.lstDiags)):
+			for j in self.overlapScores[i]:
+				if i < j:
+					cl = (i,j)
+				else:
+					cl = (j,i)
+				initCliques.add(cl)
 
+		last = initCliques
+		last2 = initCliques
+		self.cliquesList = [[], [(i,) for i in xrange(len(self.lstDiags)) if len(self.lstDiags[i]) > 0], initCliques]
+		while len(last2) > 0:
+			(last,last2) = recBuild(last)
+			last2.update(last)
+			self.cliquesList.append(last2)
+		del self.cliquesList[-1]
 
 

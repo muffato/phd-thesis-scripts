@@ -113,7 +113,7 @@ def calcDiags():
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOrthosLess",bool,False), \
-	("checkInsertions",bool,False), ("extendLeftRight",bool,False), ("minOverlap",int,-1), ("combinSameChr",bool,False), ("checkCliques",bool,False), \
+	("checkInsertions",bool,False), ("extendLeftRight",bool,False), ("minOverlap",float,-1), ("combinSameChr",bool,False), ("checkCliques",int,-1), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
@@ -151,36 +151,49 @@ for anc in diagEntry:
 	print >> sys.stderr, lst.nbRealDiags(),
 	
 	if options["checkInsertions"]:
-		lst.buildVoisins()
-		lst.checkInsert()
-		print >> sys.stderr, "I",
+		it = 0
+		while lst.checkInsert():
+			it += 1
+		print >> sys.stderr, "I [%d]" % it, lst.nbRealDiags(),
 	
 	if options["extendLeftRight"]:
 		lst.buildVoisins()
+		it = 0
 		while (lst.extendLeft() or lst.extendRight()):
-			print >> sys.stderr, "E",
-			pass
+			it += 1
+		print >> sys.stderr, "E [%d]" % it, lst.nbRealDiags(),
 	
+	if options["checkCliques"] > 0:
+		
+		nb = 0
+		it = 0
+		while nb != lst.nbRealDiags():
+			nb = lst.nbRealDiags()
+			lst.buildCliques()
+			if len(lst.cliquesList) <= options["checkCliques"]:
+				continue
+			cl = lst.cliquesList[-1]
+			if len(cl) == 0:
+				continue
+			s = set([])
+			for i in cl.pop():
+				s.update(lst.lstDiagsSet[i])
+			lst.addDiag(list(s), [])
+			it += 1
+
+		print >> sys.stderr, "L [%d]" % it, lst.nbRealDiags(),
+
 	if options["minOverlap"] > 0:
-		lst = lst.buildOverlap(options["minOverlap"])
-		print >> sys.stderr, "O",
+		lst = lst.combinOverlap(options["minOverlap"])
+		print >> sys.stderr, "O", lst.nbRealDiags(),
 
 	if options["combinSameChr"]:
 		lst.combinDiags(phylTree.getBranchesSpecies(anc))
-		print >> sys.stderr, "C",
+		print >> sys.stderr, "C", lst.nbRealDiags(),
 
-	if options["checkCliques"]:
-		lst.buildCliques()
-		print >> sys.stderr, "L", [len(x) for x in lst.cliquesList],
 
-	print >> sys.stderr, lst.nbRealDiags(),
-
-	for i in xrange(len(lst.lstDiags)):
-		d = lst.lstDiags[i]
-		if len(d) == 0:
-			continue
+	for (d,_,l) in lst:
 		#print anc, " ".join([str(x) for x in d])
-		l = lst.lstApp[i]
 		print "%s\t%s\t%s" % (anc, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in l]))
 	
 	print >> sys.stderr, "OK"
