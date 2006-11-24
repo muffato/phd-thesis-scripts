@@ -132,7 +132,7 @@ class DiagRepository:
 	def addDiag(self, diag, appar):
 
 		if len(diag) == 0:
-			print >> sys.stder, "BLAGUE !!"
+			return
 
 		# On doit verifier si on est une sous-diagonale
 		# Les diagonales potentielles
@@ -309,13 +309,17 @@ class DiagRepository:
 			a = set(myMaths.flatten([self.lstApp[j] for j in lst]))
 			self.addDiag(s, a)
 	
-	def combinDiags(self, fils):
+	def combinDiags(self, fils, func):
 		combin = myTools.myCombinator([])
 		for (i,j) in myTools.myMatrixIterator(len(self.lstDiags), len(self.lstDiags), myTools.myMatrixIterator.StrictUpperMatrix):
 			commun = set([e for (e,_) in self.lstApp[i].intersection(self.lstApp[j])])
+			diff = set([e for (e,_) in self.lstApp[i].symmetric_difference(self.lstApp[j])])
 			filsOK = [len(commun.intersection(x)) for x in fils]
+			filsNO = [len(diff.intersection(x)) for x in fils]
 			outgroupOK = len(commun) - sum(filsOK)
-			if outgroupOK >= 1 and min(filsOK) >= 1:
+			outgroupNO = len(diff) - sum(filsNO)
+			if func(filsOK, filsNO, outgroupOK, outgroupNO):
+			#if outgroupOK >= 1 and min(filsOK) >= 1 and max(filsOK) >= 1:
 				combin.addLink([i,j])
 		res = []
 		for g in combin:

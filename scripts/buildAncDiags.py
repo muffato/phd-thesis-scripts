@@ -152,8 +152,9 @@ for anc in diagEntry:
 	
 	if options["checkInsertions"]:
 		it = 0
-		while lst.checkInsert():
-			it += 1
+		lst.checkInsert()
+		#while lst.checkInsert():
+		#	it += 1
 		print >> sys.stderr, "I [%d]" % it, lst.nbRealDiags(),
 	
 	if options["extendLeftRight"]:

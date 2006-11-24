@@ -44,9 +44,10 @@ def translateDiagToChrom():
 
 	nb = 1
 	for l in sys.stdin:
-		c = l.split()
+		c = [int(x) for x in l.split('\t')[1].split()]
+		#c = [int(x) for x in l.split()]
 		for i in c:
-			print nb, " ".join(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr][int(i)].names)
+			print nb, " ".join(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr][i].names)
 		nb += 1
 
 def comptePhyloNodes():
@@ -108,13 +109,14 @@ def buildGraph():
 	
 	print "graph {"
 	for i in xrange(len(lst.lstDiags)):
+		print '%d [label="%d.%d"]' % (i,i,len(lst.lstDiags[i]))
 		for j in lst.overlapScores[i]:
 			nb = lst.overlapScores[i][j]
 			if nb >= seuil and i < j:
 				combin.addLink([i,j])
 				print '%d -- %d [label="%d"]' % (i,j,nb)
-				print '%d [label="%d.%d"]' % (i,i,len(lst.lstDiags[i]))
-				print '%d [label="%d.%d"]' % (j,j,len(lst.lstDiags[j]))
+				#print '%d [label="%d.%d"]' % (i,i,len(lst.lstDiags[i]))
+				#print '%d [label="%d.%d"]' % (j,j,len(lst.lstDiags[j]))
 	print "}"
 
 	for g in combin:
@@ -194,7 +196,7 @@ def buildCliques():
 		#lst = lst2
 			
 
-buildGraph()
-#translateDiagToChrom()
+#buildGraph()
+translateDiagToChrom()
 #buildExtendedDiags()
 #buildCliques()
