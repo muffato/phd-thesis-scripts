@@ -174,7 +174,7 @@ for c in genesAnc.lstChr:
 	print >> sys.stderr, "Lancement de concorde ",
 	lstTot = []
 	for i in range(nbConcorde):
-		comm = '~/work/scripts/concorde -m -x ' + nom
+		comm = '~/work/scripts/concorde -x ' + nom
 		if options["withCondordeOutput"]:
 			os.system(comm + ' >&2')
 		else:

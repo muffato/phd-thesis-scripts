@@ -44,55 +44,11 @@ def translateDiagToChrom():
 
 	nb = 1
 	for l in sys.stdin:
-		c = [int(x) for x in l.split('\t')[1].split()]
-		#c = [int(x) for x in l.split()]
+		#c = [int(x) for x in l.split('\t')[1].split()]
+		c = [int(x) for x in l.split()]
 		for i in c:
 			print nb, " ".join(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr][i].names)
 		nb += 1
-
-def comptePhyloNodes():
-	phylTree = utils.myBioObjects.PhylogeneticTree(sys.argv[1])
-	nbEsp = len(phylTree.getSpecies(phylTree.root))
-
-	for anc in phylTree.items:
-		groupes = [phylTree.getSpecies(e) for (e,_) in phylTree.items[anc]]
-		fils = utils.myMaths.flatten(groupes)
-
-		nbO = nbEsp-len(fils)
-		nbA = len(groupes[0])
-		nbB = len(groupes[1])
-		print anc, nbA*nbB + nbA*nbO + nbB*nbO
-	
-def compteNbChangements():
-
-	genome1 = utils.myOrthos.loadGenome(sys.argv[1])
-	genome2 = utils.myOrthos.loadGenome(sys.argv[2])
-	#genesAnc = utils.myOrthos.AncestralGenome(sys.argv[3], False)
-
-	# On construit les couleurs
-	res = {}
-	somme = 0
-	total = 0
-	for c in genome1.lstChr:
-
-		res[c] = []
-		for gene in genome1.lstGenes[c]:
-			
-			tg = gene.names
-			#tg = utils.myMaths.flatten([genesAnc.lstGenes[cc][ii].names for (cc,ii) in [genesAnc.dicGenes[g] for g in tg if g in genesAnc.dicGenes]])
-			
-			for g in tg:
-				if g in genome2.dicGenes:
-					col = genome2.dicGenes[g][0]
-					break
-			else:
-				col = -1
-			res[c].append(col)
-			total += 1
-			if col == c:
-				somme += 1
-
-	print >> sys.stderr, somme, total
 
 
 def buildGraph():
@@ -109,14 +65,14 @@ def buildGraph():
 	
 	print "graph {"
 	for i in xrange(len(lst.lstDiags)):
-		print '%d [label="%d.%d"]' % (i,i,len(lst.lstDiags[i]))
+		#print '%d [label="%d.%d"]' % (i,i,len(lst.lstDiags[i]))
 		for j in lst.overlapScores[i]:
 			nb = lst.overlapScores[i][j]
 			if nb >= seuil and i < j:
 				combin.addLink([i,j])
 				print '%d -- %d [label="%d"]' % (i,j,nb)
-				#print '%d [label="%d.%d"]' % (i,i,len(lst.lstDiags[i]))
-				#print '%d [label="%d.%d"]' % (j,j,len(lst.lstDiags[j]))
+				print '%d [label="%d.%d"]' % (i,i,len(lst.lstDiags[i]))
+				print '%d [label="%d.%d"]' % (j,j,len(lst.lstDiags[j]))
 	print "}"
 
 	for g in combin:

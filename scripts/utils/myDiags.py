@@ -121,13 +121,14 @@ class DiagRepository:
 
 	__vide = set([])
 
-	def __init__(self):
+	def __init__(self, eliminateSubDiags):
 		self.lstDiags = []
 		self.lstApp = []
 		self.lstDiagsSet = []
 		self.genesToDiags = {}
 		self.voisins = {}
 		self.nbRealDiag = 0
+		self.eliminateSubDiags = eliminateSubDiags
 	
 	def addDiag(self, diag, appar):
 
@@ -139,17 +140,18 @@ class DiagRepository:
 		lst = set(myMaths.flatten([self.genesToDiags[x] for x in diag if x in self.genesToDiags]))
 		flag = False
 		diagS = set(diag)
-		for j in lst:
-			if self.lstDiagsSet[j].issubset(diagS):
-				for x in self.lstDiagsSet[j]:
-					self.genesToDiags[x] = [u for u in self.genesToDiags[x] if u != j]
-				self.lstDiags[j] = []
-				self.lstDiagsSet[j] = self.__vide
-				self.lstApp[j] = self.__vide
-				self.nbRealDiag -= 1
-			elif diagS.issubset(self.lstDiagsSet[j]):
-				self.lstApp[j].update(appar)
-				flag = True
+		if self.eliminateSubDiags:
+			for j in lst:
+				if self.lstDiagsSet[j].issubset(diagS):
+					for x in self.lstDiagsSet[j]:
+						self.genesToDiags[x] = [u for u in self.genesToDiags[x] if u != j]
+					self.lstDiags[j] = []
+					self.lstDiagsSet[j] = self.__vide
+					self.lstApp[j] = self.__vide
+					self.nbRealDiag -= 1
+				elif diagS.issubset(self.lstDiagsSet[j]):
+					self.lstApp[j].update(appar)
+					flag = True
 				
 		if not flag:
 			n = len(self.lstDiags)
@@ -162,15 +164,6 @@ class DiagRepository:
 				else:
 					self.genesToDiags[x].append(n)
 			self.nbRealDiag += 1
-	
-	def nbRealDiags(self):
-		nb = 0
-		for d in self.lstDiags:
-			if len(d) > 0:
-				nb += 1
-		if nb != self.nbRealDiag:
-			print >> sys.stderr, "MENSONGE !!!!"
-		return nb
 	
 	def __iter__(self):
 		for i in xrange(len(self.lstDiags)):

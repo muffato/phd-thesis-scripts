@@ -11,7 +11,7 @@ colorTable = {}
 #
 # L'en-tete PostScript
 #
-def printPsHeader():
+def printPsHeader(linewidth = 0.001):
 	print "%!PS-Adobe-3.0"
 	print "%%DocumentData: Clean7bit"
 	print "%%Creator: myPsOutput"
@@ -31,7 +31,7 @@ def printPsHeader():
 	print "setfont"
 	# style de trait (coins ronds)
 	print "1 setlinejoin"
-	print "0.001 cm setlinewidth"
+	print linewidth, " cm setlinewidth"
 
 	# definition des couleurs dns l'en-tete du Postscript
 	print
