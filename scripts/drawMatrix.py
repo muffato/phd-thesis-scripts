@@ -52,7 +52,7 @@ else:
 
 
 # On ecrit l'entete du PostScipt
-utils.myPsOutput.printPsHeader()
+utils.myPsOutput.printPsHeader(0.0001)
 utils.myPsOutput.initColor()
 
 
@@ -82,43 +82,39 @@ print >> sys.stderr, ". OK"
 
 
 print >> sys.stderr, "Affichage des points ",
-for c in genome1.lstChr:
-	for gene in genome1.lstGenes[c]:
-		for g in gene.names:
-			x = lstNum1[g]
-			if g in genome2.dicGenes:
-				(cc,ii) = genome2.dicGenes[g]
-				gg = genome2.lstGenes[cc][ii].names
-			elif options["orthologuesList"] != "":
-				if g in genesAnc.dicGenes:
-					(cc,ii) = genesAnc.dicGenes[g]
-					gg = genesAnc.lstGenes[cc][ii].names
-				else:
-					continue
-			else:
-				continue
-			
-			for gt in gg:
-				if gt in lstNum2:
-					y = lstNum2[gt]
-					break
-			else:
-				continue
-			
-			if type(colors) == str:
-				cc = colors
-			else:
-				for gt in [g]+list(gg):
-					if gt in colors.dicGenes:
-						cc = colors.dicGenes[gt][0]
-						break
-				else:
-					continue
-			xx = 1 + (y*19.)/float(nb2) - dp/2.
-			yy = 1 + (x*19.)/float(nb1) - dp/2.
-			cc = utils.myPsOutput.getColor(str(cc), "black")
-			utils.myPsOutput.drawBox( xx, yy, dp, dp, cc, cc)
-			break
+for gene in genome1:
+	gg = []
+	for g in gene.names:
+		x = lstNum1[g]
+		
+		if g in genome2.dicGenes:
+			(cc,ii) = genome2.dicGenes[g]
+			gg.extend( genome2.lstGenes[cc][ii].names )
+		
+		if options["orthologuesList"] != "":
+			if g in genesAnc.dicGenes:
+				(cc,ii) = genesAnc.dicGenes[g]
+				gg.extend( genesAnc.lstGenes[cc][ii].names )
+		
+	if len(gg) == 0:
+		continue
+
+	if type(colors) == str:
+		cc = colors
+	else:
+		for gt in gene.names+list(gg):
+			if gt in colors.dicGenes:
+				cc = colors.dicGenes[gt][0]
+				break
+		else:
+			continue
+	
+	gy = set([lstNum2[gt] for gt in gg if gt in lstNum2])
+	yy = 1 + (x*19.)/float(nb1)# - dp/2.
+	cc = utils.myPsOutput.getColor(str(cc), "black")
+	for y in gy:
+		xx = 1 + (y*19.)/float(nb2)# - dp/2.
+		utils.myPsOutput.drawBox( xx, yy, dp, dp, cc, cc)
 
 utils.myPsOutput.printPsFooter()
 print >> sys.stderr, " OK"

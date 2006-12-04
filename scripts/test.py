@@ -88,13 +88,13 @@ def buildCliques():
 		#c = [int(x) for x in l.split('\t')[1].split()]
 		c = [int(x) for x in l.split()]
 		lst.addDiag(c, [])
-	print >> sys.stderr, "lecture OK", lst.nbRealDiags()
+	print >> sys.stderr, "lecture OK", lst.nbRealDiag
 	seuil = int(sys.argv[1])
 	combin = utils.myTools.myCombinator([])
 	
 	nb = 0
-	while nb != lst.nbRealDiags():
-		nb = lst.nbRealDiags()
+	while nb != lst.nbRealDiag:
+		nb = lst.nbRealDiag
 		lst.buildCliques()
 		if len(lst.cliquesList) <= seuil:
 			continue
@@ -106,19 +106,19 @@ def buildCliques():
 		for i in cl.pop():
 			s.update(lst.lstDiagsSet[i])
 		lst.addDiag(list(s), [])
-		print >> sys.stderr, lst.nbRealDiags()
+		print >> sys.stderr, lst.nbRealDiag
 
 	for (s,_,_) in lst:
 		print " ".join([str(x) for x in s])
 	return
 	#lst.buildOverlap(75)
-	#print >> sys.stderr, lst.nbRealDiags()
+	#print >> sys.stderr, lst.nbRealDiag
 	#for (s,_,_) in lst:
 	#	print " ".join([str(x) for x in s])
 	#return
-	#nb = lst.nbRealDiags()
-	#while nb == lst.nbRealDiags():
-	#	nb = lst.nbRealDiags()
+	#nb = lst.nbRealDiag
+	#while nb == lst.nbRealDiag:
+	#	nb = lst.nbRealDiag
 	for i in xrange(len(lst.lstDiags)):
 		combin.addLink([i])
 	lst.buildCliques()
@@ -146,13 +146,52 @@ def buildCliques():
 		#print >> sys.stderr, ".",
 		#for s in cl3b:
 		#	lst2.addDiag(list(s), [])
-	print >> sys.stderr, lst.nbRealDiags()
+	print >> sys.stderr, lst.nbRealDiag
 	for (s,_,_) in lst:
 		print " ".join([str(x) for x in s])
 		#lst = lst2
 			
+def tryNewOverlap():
+	lst = []
+	for l in sys.stdin:
+		#c = [int(x) for x in l.split('\t')[1].split()]
+		#a = l.split('/')
+		c = [x for x in l.split()]
+		lst.append( c )
+		#lst.append( (c[0],c[1:]) )
+		#lst.append(a[2].split(".") + a[5].split("."))
+		#lst.addDiag(c, [])
+	print >> sys.stderr, "lecture OK", len(lst)
+	dic = {}
+	for i in xrange(len(lst)):
+		#(e,d) = lst[i]
+		d = lst[i]
+		#if e not in dic:
+		#	dic[e] = {}
+		for s in d:
+			if s not in dic:
+				dic[s] = []
+			dic[s].append(i)
+	print >> sys.stderr, "dic OK"
+	combin = utils.myTools.myCombinator([[x] for x in xrange(len(lst))])
+	for s in dic:
+		combin.addLink(dic[s])
+	print >> sys.stderr, "combin OK"
+	genesAnc = utils.myGenomes.loadGenome(sys.argv[1])
+	for g in combin:
+	#for g in xrange(len(lst)):
+		ens = set([])
+		for i in g:
+			ens.update([str(genesAnc.dicGenes.get(s,("",""))[1]) for s in lst[i]])
+			#ens.update(lst[i])
+		print " ".join(ens)
+	print >> sys.stderr, "print OK"
+	
+
+
 
 #buildGraph()
 translateDiagToChrom()
 #buildExtendedDiags()
 #buildCliques()
+#tryNewOverlap()

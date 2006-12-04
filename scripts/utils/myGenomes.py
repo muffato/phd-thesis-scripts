@@ -137,6 +137,34 @@ class EnsemblGenome(Genome):
 		print >> sys.stderr, "OK"
 
 
+class GenomeFromOrthosList(Genome):
+
+	#
+	# Constructeur
+	#
+	def __init__(self, nom):
+		
+		Genome.__init__(self, nom)
+		
+		print >> sys.stderr, "Chargement de", nom, "...",
+		
+		f = myTools.myOpenFile(nom, 'r')
+		combin = myTools.myCombinator([])
+		
+		# On lit chaque ligne
+		for ligne in f:
+			champs = ligne.split()
+			combin.addLink([champs[0], champs[3]])
+			
+		f.close()
+		
+		nb = 0
+		for g in combin:
+			self.addGene( myBioObjects.Gene(tuple(g), AncestralGenome.defaultChr, nb, nb, 0) )
+			nb += 1
+
+		print >> sys.stderr, "OK"
+
 
 ####################################################################################
 # Cette classe gere un fichier de genome ancestral                                 #
