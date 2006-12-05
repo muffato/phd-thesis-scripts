@@ -10,113 +10,166 @@ import myGenomes
 import myTools
 
 #
-# Fait la liste de tous les genes de tab1 en diagonale avec ceux de tab2
-#  (eventuellement des singletons)
+# Extrait toutes les diagonales entre deux genomes (eventuellement des singletons)
 # Pour optimiser, on demande 
-#   tab1 qui est la liste des numeros des genes ancestraux du chromosome 1 (cf translateGenome)
+#   genome1 qui est un dictionnaire qui associe a chaque chromosome 
+#     la liste des numeros des genes ancestraux sur ce chromosome
 #   dic2 qui associe a un numero de gene ancestral ses positions sur le genome 2
 #
 
-def __extractDiags(tab1, dic2, largeurTrou, sameStrand):
-	
-	diag = []
-	lastI2 = []
-	lastC2 = []
-	lastS2 = []
-	listI1 = []
-	listI2 = []
-	
-	# Parcours du genome 1
-	for i1 in xrange(len(tab1)):
-		(j1,s1) = tab1[i1]
-		if j1 < 0:
-			presI2 = []
-		else:
-			presI2 = dic2[j1]
-
-		# On regarde chaque orthologue du gene
-		for (c2,i2,s2) in presI2:
-			# Est-ce qu'on est dans le prolongement d'une diagonale
-			if c2 in lastC2 and (((i2+1) in lastI2) or ((i2-1) in lastI2)):
-				# Cas special: la diagonale commence avec un g1 qui a plusieurs orthologues
-				# Il faut corriger listI2 et lastI2 avec les bons orthologues
-				if len(listI1) == 1 and len(lastI2) > 1:
-					i = lastC2.index(c2)
-					newCS = currentStrand * lastS2[i]
-					if sameStrand and (s1*s2 != newCS):
-						continue
-					listI2 = [lastI2[i]]
-					currentStrand = newCS
-				listI2.append(i2)
-				lastI2 = [i2]
-				lastC2 = [c2]
-				break
-		else:
-			# On n'a pas trouve de i2 satisfaisant, c'est la fin de la diagonale
-			if len(listI1) > 0 and len(listI2) > 0:
-				diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),myMaths.getMinMax(listI2)) )
-			deb1 = i1
-			listI1 = []
-			lastC2 = [c for (c,_,_) in presI2]
-			lastI2 = [i for (_,i,_) in presI2]
-			lastS2 = [s for (_,_,s) in presI2]
-			listI2 = [i for (_,i,_) in presI2[:1]] # Pour que les diagonales de longueur 1 soient correctes
-			currentStrand = s1
-			if len(presI2) == 1:
-				currentStrand *= presI2[0][2]
-			
-		listI1.append(i1)
-		fin1 = i1
-	
-	if len(listI1) > 0 and len(listI2) > 0:
-		diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),myMaths.getMinMax(listI2)) )
-
-	# On rassemble des diagonales separees par une espace pas trop large
-	while len(diag) > 0:
-		#print >> sys.stderr, "on est sur", diag[0]
-		(d1,d2,c2,(deb1,fin1),(deb2,fin2)) = diag.pop(0)
-		i = 0
-		while i < len(diag):
-			(dd1,dd2,cc2,(debb1,finn1),(debb2,finn2)) = diag[i]
-			#print >> sys.stderr, "test de", diag[i]
-
-			# Aucune chance de poursuivre la diagonale
-			if debb1 > (fin1+largeurTrou+1):
-				#print >> sys.stderr, "meme pas la peine"
-				break
-			a = min(abs(deb2-finn2), abs(debb2-fin2))
-			if a <= (largeurTrou+1) and c2==cc2:
-				#print >> sys.stderr, "OK"
-				d1.extend(dd1)
-				d2.extend(dd2)
-				fin1 = finn1
-				deb2 = min(deb2,debb2)
-				fin2 = max(fin2,finn2)
-				del diag[i]
-			else:
-				#print >> sys.stderr, "non"
-				i += 1
-		#print >> sys.stderr, "envoi"
-		yield (d1,d2,c2,(deb1,fin1),(deb2,fin2))
-
-
-#
-# Convertit un genome en liste de genes ancestraux 
-#
-def translateGenome(genome, genesAnc):
-	newGenome = {}
-	for c in genome.lstChr:
-		newGenome[c] = [(genesAnc.dicGenes.get(g.names[0], (0,-1))[1],g.strand) for g in genome.lstGenes[c]]
-
-	return newGenome
-
-
-def iterateDiags(genome1, dic2, threshold, sameStrand, callBackFunc):
+def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 
 	for c1 in genome1:
-		for (d1,d2,c2,aa,bb) in __extractDiags(genome1[c1], dic2, threshold, sameStrand):
-			callBackFunc(c1,c2,d1,d2)
+		
+		diag = []
+		lastI2 = []
+		lastC2 = []
+		lastS2 = []
+		listI1 = []
+		listI2 = []
+		
+		# Parcours du genome 1
+		for i1 in xrange(len(genome1[c1])):
+			(j1,s1) = genome1[c1][i1]
+			if j1 < 0:
+				presI2 = []
+			else:
+				presI2 = dic2[j1]
 
+			# On regarde chaque orthologue du gene
+			for (c2,i2,s2) in presI2:
+				# Est-ce qu'on est dans le prolongement d'une diagonale
+				if c2 in lastC2 and (((i2+1) in lastI2) or ((i2-1) in lastI2)):
+					# Cas special: la diagonale commence avec un g1 qui a plusieurs orthologues
+					# Il faut corriger listI2 et lastI2 avec les bons orthologues
+					if len(listI1) == 1 and len(lastI2) > 1:
+						i = lastC2.index(c2)
+						newCS = currentStrand * lastS2[i]
+						if sameStrand and (s1*s2 != newCS):
+							continue
+						listI2 = [lastI2[i]]
+						currentStrand = newCS
+					listI2.append(i2)
+					lastI2 = [i2]
+					lastC2 = [c2]
+					break
+			else:
+				# On n'a pas trouve de i2 satisfaisant, c'est la fin de la diagonale
+				if len(listI1) > 0 and len(listI2) > 0:
+					diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),myMaths.getMinMax(listI2)) )
+				deb1 = i1
+				listI1 = []
+				lastC2 = [c for (c,_,_) in presI2]
+				lastI2 = [i for (_,i,_) in presI2]
+				lastS2 = [s for (_,_,s) in presI2]
+				listI2 = [i for (_,i,_) in presI2[:1]] # Pour que les diagonales de longueur 1 soient correctes
+				currentStrand = s1
+				if len(presI2) == 1:
+					currentStrand *= presI2[0][2]
+				
+			listI1.append(i1)
+			fin1 = i1
+		
+		if len(listI1) > 0 and len(listI2) > 0:
+			diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),myMaths.getMinMax(listI2)) )
+
+		# On rassemble des diagonales separees par une espace pas trop large
+		while len(diag) > 0:
+			#print >> sys.stderr, "on est sur", diag[0]
+			(d1,d2,c2,(deb1,fin1),(deb2,fin2)) = diag.pop(0)
+			i = 0
+			while i < len(diag):
+				(dd1,dd2,cc2,(debb1,finn1),(debb2,finn2)) = diag[i]
+				#print >> sys.stderr, "test de", diag[i]
+
+				# Aucune chance de poursuivre la diagonale
+				if debb1 > (fin1+largeurTrou+1):
+					#print >> sys.stderr, "meme pas la peine"
+					break
+				a = min(abs(deb2-finn2), abs(debb2-fin2))
+				if a <= (largeurTrou+1) and c2==cc2:
+					#print >> sys.stderr, "OK"
+					d1.extend(dd1)
+					d2.extend(dd2)
+					fin1 = finn1
+					deb2 = min(deb2,debb2)
+					fin2 = max(fin2,finn2)
+					del diag[i]
+				else:
+					#print >> sys.stderr, "non"
+					i += 1
+			#print >> sys.stderr, "envoi"
+			#yield (d1,d2,c2,(deb1,fin1),(deb2,fin2))
+			callBackFunc(c1, c2, d1, d2)
+
+
+#
+# A partir d'une liste de diagonales, contruit la liste des voisins de chaque gene
+#
+def buildVoisins(lstDiags):
+	voisins = {}
+	
+	for c in lstDiags:
+		if len(c) == 0:
+			continue
+		if len(c) == 1 and c[0] not in voisins:
+			voisins[c[0]] = set([])
+		else:
+			for i in xrange(len(c)-1):
+				x = c[i]
+				y = c[i+1]
+				if x not in voisins:
+					voisins[x] = set([])
+				if y not in voisins:
+					voisins[y] = set([])
+				voisins[x].add(y)
+				voisins[y].add(x)
+	return voisins
+
+
+# lst2 est la liste de toutes les diagonales
+# g est un ensemble d'indices de diagonales qui se chevauchent
+# Renvoie les plus longs chemins de genes ancestraux issus des diagonales de g,
+# puis les plus longs chemins avec les genes non encore utilises et ainsi de suite
+def getLongestPath(lstTout):
+
+	# prend une liste de liste
+	# renvoie la liste des listes de longueur maximale
+	def selectLongest(lst):
+		if len(lst) == 0:
+			return []
+		tutu = max([len(x) for x in lst])
+		return [x for x in lst if len(x) == tutu]
+		
+	# prend une liste (le chemin de depart)
+	# renvoie la liste des chemins maximaux en partant de ce chemin de depart
+	def recLongestPath(currPath):
+		toto = [recLongestPath(currPath + [j]) for j in voisins[currPath[-1]] if j not in currPath]
+		return selectLongest([currPath] + myMaths.flatten(toto))
+		
+		
+	#repos = utils.myDiags.DiagRepository(False)
+	#ens = set([])
+	#for i in g:
+	#	#repos.addDiag(lstTout[i][1], [])
+	#	ens.update(lstTout[i][1])
+	#repos.buildVoisins()
+	ens = set(myMaths.flatten(lstTout))
+	voisins = buildVoisins(lstTout)
+
+	res = []
+	while len(ens) > 0:
+		res.append(selectLongest(myMaths.flatten([recLongestPath([i]) for i in ens])))
+		ens.difference_update(res[-1][0])
+	return res
+
+
+
+
+#
+# Classe censee gerer un ensemble de diagonales en evitant la redondance ...
+# encore utile ??
+#
 class DiagRepository:
 
 	__vide = set([])
@@ -179,23 +232,8 @@ class DiagRepository:
 	
 	
 	def buildVoisins(self):
-		self.voisins = {}
-		
-		for c in self.lstDiags:
-			if len(c) == 0:
-				continue
-			if len(c) == 1 and c[0] not in self.voisins:
-				self.voisins[c[0]] = set([])
-			else:
-				for i in xrange(len(c)-1):
-					x = c[i]
-					y = c[i+1]
-					if x not in self.voisins:
-						self.voisins[x] = set([])
-					if y not in self.voisins:
-						self.voisins[y] = set([])
-					self.voisins[x].add(y)
-					self.voisins[y].add(x)
+		self.voisins = buildVoisins(self.lstDiags)
+		return
 	
 	def buildOverlapScores(self):
 		

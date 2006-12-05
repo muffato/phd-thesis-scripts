@@ -79,7 +79,9 @@ def calcDiags(e1, e2):
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOrthosLess",bool,True), \
-	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2")], \
+	("getLongestOverlappingDiags",bool,False), \
+	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
+	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 

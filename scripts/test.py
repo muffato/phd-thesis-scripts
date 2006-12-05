@@ -82,116 +82,83 @@ def buildGraph():
 		#print sys.argv[2], " ".join([str(x) for x in s])
 		
 
-def buildCliques():
-	lst = utils.myDiags.DiagRepository()
-	for l in sys.stdin:
-		#c = [int(x) for x in l.split('\t')[1].split()]
-		c = [int(x) for x in l.split()]
-		lst.addDiag(c, [])
-	print >> sys.stderr, "lecture OK", lst.nbRealDiag
-	seuil = int(sys.argv[1])
-	combin = utils.myTools.myCombinator([])
-	
-	nb = 0
-	while nb != lst.nbRealDiag:
-		nb = lst.nbRealDiag
-		lst.buildCliques()
-		if len(lst.cliquesList) <= seuil:
-			continue
-		cl = lst.cliquesList[-1]
-		print >> sys.stderr, "L", [len(x) for x in lst.cliquesList],
-		if len(cl) == 0:
-			continue
-		s = set([])
-		for i in cl.pop():
-			s.update(lst.lstDiagsSet[i])
-		lst.addDiag(list(s), [])
-		print >> sys.stderr, lst.nbRealDiag
-
-	for (s,_,_) in lst:
-		print " ".join([str(x) for x in s])
-	return
-	#lst.buildOverlap(75)
-	#print >> sys.stderr, lst.nbRealDiag
-	#for (s,_,_) in lst:
-	#	print " ".join([str(x) for x in s])
-	#return
-	#nb = lst.nbRealDiag
-	#while nb == lst.nbRealDiag:
-	#	nb = lst.nbRealDiag
-	for i in xrange(len(lst.lstDiags)):
-		combin.addLink([i])
-	lst.buildCliques()
-	print >> sys.stderr, "L", [len(x) for x in lst.cliquesList],
-	#return
-	#print >> sys.stderr, "L", len(cl3)
-	#cl3 = lst.cliquesList[-1]
-	cl3b = []
-	for cl3 in lst.cliquesList[4:]:
-		for c in cl3:
-			combin.addLink(c)
-	print >> sys.stderr, "combin",
-	for c in combin:
-		s = set([])
-		for i in c:
-			s.update(lst.lstDiagsSet[i])
-		cl3b.append(s)
-	print >> sys.stderr, "mkSuperCliques=",len(cl3b),
-	for s in cl3b:
-		lst.addDiag(s, [])
-		#	cl3b.append(s)
-		#print >> sys.stderr, ".",
-		#lst2 = utils.myDiags.DiagRepository()
-		#lst2.addRepository(lst)
-		#print >> sys.stderr, ".",
-		#for s in cl3b:
-		#	lst2.addDiag(list(s), [])
-	print >> sys.stderr, lst.nbRealDiag
-	for (s,_,_) in lst:
-		print " ".join([str(x) for x in s])
-		#lst = lst2
-			
 def tryNewOverlap():
 	lst = []
+	genesAnc = utils.myGenomes.loadGenome(sys.argv[1])
 	for l in sys.stdin:
-		#c = [int(x) for x in l.split('\t')[1].split()]
-		#a = l.split('/')
-		c = [x for x in l.split()]
-		lst.append( c )
-		#lst.append( (c[0],c[1:]) )
-		#lst.append(a[2].split(".") + a[5].split("."))
-		#lst.addDiag(c, [])
+		ct = l.split('\t')
+		a1 = ct[4].split()
+		a2 = ct[7].split()
+		c = a1+a2
+		a1 = [genesAnc.dicGenes.get(s,("",""))[1] for s in a1]
+		a2 = [genesAnc.dicGenes.get(s,("",""))[1] for s in a2]
+		if "" in a1:
+			anc = a2
+		else:
+			anc = a1
+		lst.append( (c, anc, (ct[2],ct[3],a1), (ct[5],ct[6],a2)) )
+		
 	print >> sys.stderr, "lecture OK", len(lst)
+	
 	dic = {}
 	for i in xrange(len(lst)):
-		#(e,d) = lst[i]
-		d = lst[i]
-		#if e not in dic:
-		#	dic[e] = {}
+		d = lst[i][0]
 		for s in d:
 			if s not in dic:
 				dic[s] = []
 			dic[s].append(i)
 	print >> sys.stderr, "dic OK"
+	
 	combin = utils.myTools.myCombinator([[x] for x in xrange(len(lst))])
 	for s in dic:
 		combin.addLink(dic[s])
 	print >> sys.stderr, "combin OK"
-	genesAnc = utils.myGenomes.loadGenome(sys.argv[1])
+
+	diagFinal = []
 	for g in combin:
-	#for g in xrange(len(lst)):
-		ens = set([])
-		for i in g:
-			ens.update([str(genesAnc.dicGenes.get(s,("",""))[1]) for s in lst[i]])
-			#ens.update(lst[i])
-		print " ".join(ens)
+		for res in utils.myDiags.getLongestPath([lst[i][1] for i in g]):
+			# TODO Projeter sur les chromosomes modernes
+			# on teste chaque diagonale (inclusion d'au moins deux elements dans le resultat)
+			ok = set([])
+			for i in g:
+				d = lst[i][1]
+				flag = False
+				for j in xrange(len(d)-1):
+					if (d[j] not in res[0]) or (d[j+1] not in res[0]):
+						continue
+					if abs(res[0].index(d[j])-res[0].index(d[j+1])) == 1:
+						flag = True
+						break
+				if flag:
+					ok.add( (lst[i][2][0],lst[i][2][1]) )
+					ok.add( (lst[i][3][0],lst[i][3][1]) )
+			print "%d\t%s\t%s" % (len(res[0]), " ".join([str(x) for x in res[0]]), " ".join(["%s.%s" % (e,c) for (e,c) in ok]))
+			diagFinal.append( (len(res[0]), res[0], ok) )
+			
 	print >> sys.stderr, "print OK"
-	
+	return
+	combin = utils.myTools.myCombinator([])
+	fils = [['Human'], ['Chimp']]
+	for (i,j) in utils.myTools.myMatrixIterator(len(diagFinal), len(diagFinal), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		commun = set([e for (e,_) in diagFinal[i][2].intersection(diagFinal[j][2])])
+		diff = set([e for (e,_) in diagFinal[i][2].symmetric_difference(diagFinal[j][2])])
+		filsOK = [len(commun.intersection(x)) for x in fils]
+		filsNO = [len(diff.intersection(x)) for x in fils]
+		outgroupOK = len(commun) - sum(filsOK)
+		outgroupNO = len(diff) - sum(filsNO)
+		#print diagFinal[i][2], diagFinal[j][2]
+		#print commun, diff, filsOK, filsNO, outgroupOK, outgroupNO
+		if max(filsNO) == 0:
+		#if outgroupOK >= 1 and min(filsOK) >= 1 and max(filsOK) >= 1:
+			combin.addLink([i,j])
+	for g in combin:
+		r = utils.myMaths.flatten([diagFinal[i][1] for i in g])
+		print " ".join([str(x) for x in r])
 
-
+	print >> sys.stderr, "combin OK"
 
 #buildGraph()
-translateDiagToChrom()
+#translateDiagToChrom()
 #buildExtendedDiags()
 #buildCliques()
-#tryNewOverlap()
+tryNewOverlap()
