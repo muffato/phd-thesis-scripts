@@ -1,9 +1,8 @@
 #! /users/ldog/muffato/python
 
 __doc__ = """
-Extrait toutes les diagonales entre chaque paire d'especes.
-Les diagonales apportent les genes qui etaient sur un meme chromosome
-  depuis leur ancetre commun dans les deux lignees.
+A partir de toutes les diagonales extraites entre les especes,
+  reconstruit les chromosomes (ou scaffold) de chaque ancetre.
 """
 
 
@@ -23,90 +22,84 @@ import utils.myDiags
 # FONCTIONS #
 #############
 
-def loadAncGenesFile(anc, genomes, locations):
-
-	# Le fichier de genes ancestraux
-	genesAnc = utils.myGenomes.loadGenome(options["ancGenesFile"] % anc)
-	nbGenesAnc = len(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr])
-	del genesAnc.lstGenes
-
-	# Les listes des especes entre lesquelles on cherche des diagonales
-	groupes = phylTree.getBranchesSpecies(anc)
-	fils = utils.myMaths.flatten(groupes)
+def loadDiagsFile(nom, diagEntry, genesAnc):
 	
-	# Traduction des genomes en liste des genes ancestraux
-	print >> sys.stderr, "Distribution des genes de %s " % anc,
-	for e in fils:
-		newLoc = [[] for x in xrange(nbGenesAnc)]
-		genome = geneBank.dicEspeces[e]
-		newGenome = {}
-		for c in genome.lstChr:
-			newGenome[c] = [(genesAnc.dicGenes.get(g.names[0], (0,-1))[1],g.strand) for g in genome.lstGenes[c]]
-			if not options["keepOrthosLess"]:
-				newGenome[c] = [x for x in newGenome[c] if x[0] != -1]
-			for i in xrange(len(newGenome[c])):
-				(ianc,s) = newGenome[c][i]
-				if ianc != -1:
-					newLoc[ianc].append( (c,i,s) )
-		genomes[e] = newGenome
-		locations[e] = newLoc
-		sys.stderr.write(".")
+	print >> sys.stderr, "Chargement du fichier de diagonales ...",
+	f = utils.myTools.myOpenFile(nom, 'r')
+	for l in f:
+		ct = l.split('\t')
+		anc = ct[0]
+		d1 = ct[4].split()
+		d2 = ct[7].split()
+		d = d1+d2
+		da1 = [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d1]
+		da2 = [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d2]
+		if "" in da1:
+			da = da2
+		else:
+			da = da1
+		diagEntry[anc].append( (d, da, (ct[2],ct[3],d1,da1), (ct[5],ct[6],d2,da2), int(ct[1])) )
+		
+	f.close()
+	print >> sys.stderr, "OK" #, " ".join(["%s:%d" % (anc,len(diagEntry[anc])) for anc in diagEntry])
 	
-	print >> sys.stderr, " OK"
 
 
-def calcDiags():
+def extractLongestOverlappingDiags(oldDiags, newDiags):
 
-	# La fonction qui permet de traiter les diagonales
-	def combinDiag(c1, c2, d1, d2):
-		global diagEntry, geneBank
-
-		if len(d1) < options["minimalLength"]:
-			return
-		
-		dn1 = tuple([geneBank.dicEspeces[e1].lstGenes[c1][i].names[0] for i in d1])
-		dn2 = tuple([geneBank.dicEspeces[e2].lstGenes[c2][i].names[0] for i in d2])
-
-		for (e, tmp) in toStudy:
-			if e == e1:
-				dd = [genomes[tmp][e][c1][i][0] for i in d1]
-			else:
-				dd = [genomes[tmp][e][c2][i][0] for i in d2]
-			
-			diagEntry[tmp].addDiag(dd, [(e1,c1,dn1), (e2,c2,dn2)] )
-			
+	dic = {}
+	for i in xrange(len(oldDiags)):
+		d = oldDiags[i][0]
+		for s in d:
+			if s not in dic:
+				dic[s] = []
+			dic[s].append(i)
 	
-	n = max([len(x) for x in listEspeces])
-	for i in xrange(len(listEspeces)):
-		print >> sys.stderr, ("Extraction des diagonales de %-"+str(n) + "s ") % listEspeces[i],
-		for j in xrange(len(listEspeces)):
-			if j < i:
-				print >> sys.stderr, '-',
-				continue
-			elif j == i:
-				print >> sys.stderr, 'X',
-				continue
-				
-			e1 = listEspeces[i]
-			e2 = listEspeces[j]
-			anc = phylTree.getFirstParent(e1,e2)
-			toStudy = [(e1,anc)]
-			for tmp in phylTree.items:
-				s = phylTree.getSpecies(tmp)
-				if (e1 in s) and (e2 not in s):
-					toStudy.append( (e1,tmp) )
-				elif (e2 in s) and (e1 not in s):
-					toStudy.append( (e2,tmp) )
-				
-			utils.myDiags.iterateDiags(genomes[anc][e1], locations[anc][e2], options["fusionThreshold"], options["sameStrand"], combinDiag)
-			print >> sys.stderr, '+',
-		
-		for anc in phylTree.items:
-			if e1 in genomes[anc]:
-				del genomes[anc][e1]
-				del locations[anc][e1]
-		
-		print >> sys.stderr, "OK"
+	combin = utils.myTools.myCombinator([[x] for x in xrange(len(oldDiags))])
+	for s in dic:
+		combin.addLink(dic[s])
+
+	for g in combin:
+		for res in utils.myDiags.getLongestPath([oldDiags[i][1] for i in g]):
+			ok = set([])
+			for i in g:
+				d = oldDiags[i][1]
+				flag = False
+				for j in xrange(len(d)-1):
+					if (d[j] not in res[0]) or (d[j+1] not in res[0]):
+						continue
+					if abs(res[0].index(d[j])-res[0].index(d[j+1])) == 1:
+						flag = True
+						break
+				if flag:
+					ok.add( (oldDiags[i][2][0],oldDiags[i][2][1]) )
+					ok.add( (oldDiags[i][3][0],oldDiags[i][3][1]) )
+			print "%s\t%d\t%s\t%s" % (anc, len(res[0]), " ".join([str(x) for x in res[0]]), " ".join(["%s.%s" % (e,c) for (e,c) in ok]))
+			newDiags.append( (len(res[0]), res[0], ok) )
+	
+
+def combinSameChr():
+	combin = utils.myTools.myCombinator([])
+	#fils = [['Human'], ['Chimp']]
+	fils = phylTree.getBranchesSpecies(sys.argv[3])
+	for (i,j) in utils.myTools.myMatrixIterator(len(diagFinal), len(diagFinal), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		commun = set([e for (e,_) in diagFinal[i][2].intersection(diagFinal[j][2])])
+		diff = set([e for (e,_) in diagFinal[i][2].symmetric_difference(diagFinal[j][2])])
+		filsOK = [len(commun.intersection(x)) for x in fils]
+		filsNO = [len(diff.intersection(x)) for x in fils]
+		outgroupOK = len(commun) - sum(filsOK)
+		outgroupNO = len(diff) - sum(filsNO)
+		#print diagFinal[i][2], diagFinal[j][2]
+		#print commun, diff, filsOK, filsNO, outgroupOK, outgroupNO
+		#if max(filsNO) == 0:
+		#if (min(filsOK) >= 1) or (max(filsOK) >= 1 and outgroupOK >= 1):
+		if min(filsOK) >= 1:
+		#if outgroupOK >= 1 and min(filsOK) >= 1 and max(filsOK) >= 1:
+			combin.addLink([i,j])
+	for g in combin:
+		r = set(utils.myMaths.flatten([diagFinal[i][1] for i in g]))
+		print " ".join([str(x) for x in r])
+
 
 ########
 # MAIN #
@@ -114,91 +107,35 @@ def calcDiags():
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genesList.conf", "phylTree.conf"], \
-	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOrthosLess",bool,True), ("eliminateSubDiags",bool,True), \
-	("checkInsertions",bool,False), ("extendLeftRight",bool,False), ("minOverlap",float,-1), ("combinSameChr",bool,False), ("checkCliques",int,-1), \
-	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
+	["genesList.conf", "phylTree.conf", "diagsList"], \
+	[("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
 # 1. On lit tous les fichiers
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 listEspeces = phylTree.getSpecies(phylTree.root)
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], listEspeces)
+#geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], listEspeces)
 
 # Pour sauver de la memoire
-for esp in geneBank.dicEspeces:
-	del geneBank.dicEspeces[esp].dicGenes
+#del geneBank.dicEspeces
+#for esp in geneBank.dicEspeces:
+#	del geneBank.dicEspeces[esp].dicGenes
 
-# 2. On prepare tous les genomes ancestraux, les genomes traduits ...
-genomes = dict( [(anc, {}) for anc in phylTree.items] )
-locations = dict( [(anc, {}) for anc in phylTree.items] )
+diagEntry = {}
+genesAnc = {}
 for anc in phylTree.items:
-	loadAncGenesFile(anc, genomes[anc], locations[anc])
+	diagEntry[anc] = []
+	genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc, False, False)
 
-# Plus besoin de ca ...
+loadDiagsFile(noms_fichiers["diagsList"], diagEntry, genesAnc)
 
-# La structure qui accueillera les diagonales et le calcul
-diagEntry = dict( [(anc, utils.myDiags.DiagRepository(options["eliminateSubDiags"])) for anc in phylTree.items] )
-calcDiags()
-
-# Plus besoin de ca ...
-del genomes
-del locations
-del geneBank
-
-for anc in diagEntry:
+# 2. On extrait les diagonales les plus longues
+for anc in phylTree.items:
+	print >> sys.stderr, "Extraction des chevauchements les plus longs de %s ..." % anc,
+	tmp = []
+	extractLongestOverlappingDiags(diagEntry[anc], tmp)
+	print >> sys.stderr, "OK (%d -> %d)" % (len(diagEntry[anc]), len(tmp))
+	diagEntry[anc] = tmp
 	
-	print >> sys.stderr, "Traitement de %s ..." % anc,
-	lst = diagEntry[anc]
-	print >> sys.stderr, lst.nbRealDiag,
-	
-	if options["checkInsertions"]:
-		it = 0
-		lst.checkInsert()
-		#while lst.checkInsert():
-		#	it += 1
-		print >> sys.stderr, "I [%d]" % it, lst.nbRealDiag,
-	
-	if options["extendLeftRight"]:
-		lst.buildVoisins()
-		it = 0
-		while (lst.extendLeft() or lst.extendRight()):
-			it += 1
-		print >> sys.stderr, "E [%d]" % it, lst.nbRealDiag,
-	
-	if options["checkCliques"] > 0:
-		
-		nb = 0
-		it = 0
-		while nb != lst.nbRealDiag:
-			nb = lst.nbRealDiag
-			lst.buildCliques()
-			if len(lst.cliquesList) <= options["checkCliques"]:
-				continue
-			cl = lst.cliquesList[-1]
-			if len(cl) == 0:
-				continue
-			s = set([])
-			for i in cl.pop():
-				s.update(lst.lstDiagsSet[i])
-			lst.addDiag(list(s), [])
-			it += 1
-
-		print >> sys.stderr, "L [%d]" % it, lst.nbRealDiag,
-
-	if options["minOverlap"] > 0:
-		lst.combinOverlap(options["minOverlap"])
-		print >> sys.stderr, "O", lst.nbRealDiag,
-
-	if options["combinSameChr"]:
-		lst.combinDiags(phylTree.getBranchesSpecies(anc))
-		print >> sys.stderr, "C", lst.nbRealDiag,
-
-
-	for (d,_,l) in lst:
-		#print anc, " ".join([str(x) for x in d])
-		print "%s\t%s\t%s" % (anc, " ".join([str(x) for x in d]), " ".join(["%s/%s/%s" % (e,c,".".join(dd)) for (e,c,dd) in l]))
-	
-	print >> sys.stderr, "OK"
 

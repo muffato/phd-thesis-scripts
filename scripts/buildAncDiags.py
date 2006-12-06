@@ -79,9 +79,7 @@ def calcDiags(e1, e2):
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOrthosLess",bool,True), \
-	("getLongestOverlappingDiags",bool,False), \
-	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
-	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
+	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2")], \
 	__doc__ \
 )
 
@@ -106,14 +104,13 @@ del geneBank
 
 for anc in diagEntry:
 	
-	print >> sys.stderr, "Traitement de %s ..." % anc,
 	lst = diagEntry[anc]
-	print >> sys.stderr, len(lst),
+	print >> sys.stderr, "Impression des %d diagonales de %s ..." % (len(lst),anc),
 
 	s = 0
 	for ((e1,c1,d1),(e2,c2,d2)) in lst:
 		s += len(d1)
 		print "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s" % (anc, len(d1), e1,c1," ".join(d1), e2,c2," ".join(d2))
 	
-	print >> sys.stderr, s, "OK"
+	print >> sys.stderr, "%d\t%.2f\t%d OK" % (s, float(s)/float(len(lst)), max(lst))
 

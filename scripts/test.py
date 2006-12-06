@@ -36,6 +36,35 @@ def f1():
 		print "%s\t%d\t%s" % (g.chromosome, g.beginning, "\t".join([str(score[x]) for x in score]))
 
 			
+def checkNewGenes():
+	genesAnc1 = utils.myGenomes.loadGenome(sys.argv[1])
+	genesAnc2 = utils.myGenomes.loadGenome(sys.argv[2])
+	genesAnc3 = utils.myGenomes.loadGenome(sys.argv[3])
+	for c1 in genesAnc1.lstChr:
+		ens = set([])
+		for g1 in genesAnc1.lstGenes[c1]:
+			for s in g1.names:
+				if s in genesAnc3.dicGenes:
+					ens.add(genesAnc3.dicGenes[s])
+		ens2 = []
+		for (c,i) in ens:
+			for s in genesAnc3.lstGenes[c][i].names:
+				if s in genesAnc2.dicGenes:
+					ens2.append(genesAnc2.dicGenes[s][0])
+		ens2s = set(ens2)
+		ens2s.discard("Un_random")
+		if len(ens2s) > 1:
+			print c1, len(genesAnc1.lstGenes[c1]), ens2
+			
+	return
+	for l in sys.stdin:
+		c = l.split()
+		if c[0] not in genesAnc1.dicGenes:
+			print l,
+	
+
+
+
 
 
 def translateDiagToChrom():
@@ -83,82 +112,46 @@ def buildGraph():
 		
 
 def tryNewOverlap():
-	lst = []
-	genesAnc = utils.myGenomes.loadGenome(sys.argv[1])
+	lst = {}
+	phylTree = utils.myBioObjects.PhylogeneticTree(sys.argv[1])
+	for anc in phylTree.items:
+		lst[anc] = []
 	for l in sys.stdin:
 		ct = l.split('\t')
-		a1 = ct[4].split()
-		a2 = ct[7].split()
-		c = a1+a2
-		a1 = [genesAnc.dicGenes.get(s,("",""))[1] for s in a1]
-		a2 = [genesAnc.dicGenes.get(s,("",""))[1] for s in a2]
-		if "" in a1:
-			anc = a2
-		else:
-			anc = a1
-		lst.append( (c, anc, (ct[2],ct[3],a1), (ct[5],ct[6],a2)) )
+		anc = ct[0]
+		l = int(ct[1])
+		d = [int(x) for x in ct[2].split()]
+		esp = [tuple(x.split('.')) for x in ct[3].split()]
+		lst[anc].append( (l, d, esp) )
 		
-	print >> sys.stderr, "lecture OK", len(lst)
+	print >> sys.stderr, "lecture OK", " ".join(["%s:%d" % (anc,len(lst[anc])) for anc in diagEntry])
 	
-	dic = {}
-	for i in xrange(len(lst)):
-		d = lst[i][0]
-		for s in d:
-			if s not in dic:
-				dic[s] = []
-			dic[s].append(i)
-	print >> sys.stderr, "dic OK"
+	def combin(diags, fils1, fils2, outgroup):
+		print >> sys.stderr, "Combinaison de %s.%s^%s ..." % (fils1,fils2,outgroup)
+		combin = utils.myTools.myCombinator([])
+		for (i,j) in utils.myTools.myMatrixIterator(len(diags), len(diags), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+			commun = set([e for (e,_) in diagFinal[i][2].intersection(diagFinal[j][2])])
+			fils1OK = len(commun.intersection(fils1)) > 0
+			fils2OK = len(commun.intersection(fils2)) > 0
+			outgroupOK = len(commun.intersection(outgroup)) > 0
+			if (fils1OK and fils2OK) or ((fils1OK or fils2OK) and outgroupOK):
+				combin.addLink([i,j])
+		for g in combin:
+			r = set(utils.myMaths.flatten([diagFinal[i][1] for i in g]))
+			print " ".join([str(x) for x in r])
+
+		print >> sys.stderr, "OK"
 	
-	combin = utils.myTools.myCombinator([[x] for x in xrange(len(lst))])
-	for s in dic:
-		combin.addLink(dic[s])
-	print >> sys.stderr, "combin OK"
-
-	diagFinal = []
-	for g in combin:
-		for res in utils.myDiags.getLongestPath([lst[i][1] for i in g]):
-			# TODO Projeter sur les chromosomes modernes
-			# on teste chaque diagonale (inclusion d'au moins deux elements dans le resultat)
-			ok = set([])
-			for i in g:
-				d = lst[i][1]
-				flag = False
-				for j in xrange(len(d)-1):
-					if (d[j] not in res[0]) or (d[j+1] not in res[0]):
-						continue
-					if abs(res[0].index(d[j])-res[0].index(d[j+1])) == 1:
-						flag = True
-						break
-				if flag:
-					ok.add( (lst[i][2][0],lst[i][2][1]) )
-					ok.add( (lst[i][3][0],lst[i][3][1]) )
-			print "%d\t%s\t%s" % (len(res[0]), " ".join([str(x) for x in res[0]]), " ".join(["%s.%s" % (e,c) for (e,c) in ok]))
-			diagFinal.append( (len(res[0]), res[0], ok) )
-			
-	print >> sys.stderr, "print OK"
-	return
-	combin = utils.myTools.myCombinator([])
-	fils = [['Human'], ['Chimp']]
-	for (i,j) in utils.myTools.myMatrixIterator(len(diagFinal), len(diagFinal), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-		commun = set([e for (e,_) in diagFinal[i][2].intersection(diagFinal[j][2])])
-		diff = set([e for (e,_) in diagFinal[i][2].symmetric_difference(diagFinal[j][2])])
-		filsOK = [len(commun.intersection(x)) for x in fils]
-		filsNO = [len(diff.intersection(x)) for x in fils]
-		outgroupOK = len(commun) - sum(filsOK)
-		outgroupNO = len(diff) - sum(filsNO)
-		#print diagFinal[i][2], diagFinal[j][2]
-		#print commun, diff, filsOK, filsNO, outgroupOK, outgroupNO
-		if max(filsNO) == 0:
-		#if outgroupOK >= 1 and min(filsOK) >= 1 and max(filsOK) >= 1:
-			combin.addLink([i,j])
-	for g in combin:
-		r = utils.myMaths.flatten([diagFinal[i][1] for i in g])
-		print " ".join([str(x) for x in r])
-
-	print >> sys.stderr, "combin OK"
+	def recCombin(anc):
+		(c1,c2) = phylTree.getBranchesSpecies(anc)
+		outgroup = lstEspeces.difference(c1+c2)
+		combin(lst[anc], c1, c2, outgroup)
+	
+	lstEspeces = set(phylTree.getSpecies(phylTree.root))
+	recCombin(phylTree.root)
 
 #buildGraph()
-#translateDiagToChrom()
+translateDiagToChrom()
 #buildExtendedDiags()
 #buildCliques()
-tryNewOverlap()
+#tryNewOverlap()

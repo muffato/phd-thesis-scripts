@@ -127,9 +127,8 @@ def buildVoisins(lstDiags):
 	return voisins
 
 
-# lst2 est la liste de toutes les diagonales
-# g est un ensemble d'indices de diagonales qui se chevauchent
-# Renvoie les plus longs chemins de genes ancestraux issus des diagonales de g,
+# lstTout est une liste de diagonales chevauchantes
+# Renvoie les plus longs chemins de genes ancestraux issus de ces diagonales,
 # puis les plus longs chemins avec les genes non encore utilises et ainsi de suite
 def getLongestPath(lstTout):
 
@@ -147,13 +146,6 @@ def getLongestPath(lstTout):
 		toto = [recLongestPath(currPath + [j]) for j in voisins[currPath[-1]] if j not in currPath]
 		return selectLongest([currPath] + myMaths.flatten(toto))
 		
-		
-	#repos = utils.myDiags.DiagRepository(False)
-	#ens = set([])
-	#for i in g:
-	#	#repos.addDiag(lstTout[i][1], [])
-	#	ens.update(lstTout[i][1])
-	#repos.buildVoisins()
 	ens = set(myMaths.flatten(lstTout))
 	voisins = buildVoisins(lstTout)
 
