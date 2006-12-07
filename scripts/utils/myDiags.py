@@ -132,6 +132,7 @@ def buildVoisins(lstDiags):
 # puis les plus longs chemins avec les genes non encore utilises et ainsi de suite
 def getLongestPath(lstTout):
 
+
 	# prend une liste de liste
 	# renvoie la liste des listes de longueur maximale
 	def selectLongest(lst):
@@ -148,6 +149,8 @@ def getLongestPath(lstTout):
 		
 	ens = set(myMaths.flatten(lstTout))
 	voisins = buildVoisins(lstTout)
+	
+	#print >> sys.stderr, "longestPath", len(lstTout), len(ens)
 
 	res = []
 	while len(ens) > 0:
@@ -156,6 +159,41 @@ def getLongestPath(lstTout):
 	return res
 
 
+
+def extractLongestOverlappingDiags(oldDiags):
+
+	dic = {}
+	for i in xrange(len(oldDiags)):
+		((e1,c1,d1),(e2,c2,d2)) = oldDiags[i]
+		for s in d1+d2:
+			if s not in dic:
+				dic[s] = []
+			dic[s].append(i)
+	
+	combin = myTools.myCombinator([[x] for x in xrange(len(oldDiags))])
+	for s in dic:
+		combin.addLink(dic[s])
+
+	newDiags = []
+	for g in combin:
+		for res in getLongestPath([oldDiags[i][1] for i in g]):
+			ok = set([])
+			for i in g:
+				d = oldDiags[i][1]
+				flag = False
+				for j in xrange(len(d)-1):
+					if (d[j] not in res[0]) or (d[j+1] not in res[0]):
+						continue
+					if abs(res[0].index(d[j])-res[0].index(d[j+1])) == 1:
+						flag = True
+						break
+				if flag:
+					ok.add( (oldDiags[i][2][0],oldDiags[i][2][1]) )
+					ok.add( (oldDiags[i][3][0],oldDiags[i][3][1]) )
+			#print "%s\t%d\t%s\t%s" % (anc, len(res[0]), " ".join([str(x) for x in res[0]]), " ".join(["%s.%s" % (e,c) for (e,c) in ok]))
+			newDiags.append( (len(res[0]), res[0], ok) )
+	return newDiags
+	
 
 
 #
