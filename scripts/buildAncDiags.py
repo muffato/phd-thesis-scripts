@@ -79,7 +79,8 @@ def calcDiags(e1, e2):
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False), ("extractLongestPath",bool,False), \
-	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2")], \
+	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
+	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
@@ -107,12 +108,15 @@ for anc in diagEntry:
 	s = []
 	if options["extractLongestPath"]:
 	
-		print >> sys.stderr, "Extraction des chevauchements les plus longs de %s ..." % anc,
-		lst = utils.myDiags.extractLongestOverlappingDiags(diagEntry[anc])
-		print >> sys.stderr, "OK (%d -> %d) ... Impression ..." % (len(diagEntry[anc]), len(lst))
+		genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc, False, False)
+		
+		print >> sys.stderr, "Extraction des chevauchements les plus longs ...",
+				
+		lst = utils.myDiags.extractLongestOverlappingDiags(diagEntry[anc], genesAnc)
+		print >> sys.stderr, "OK (%d -> %d) ... Impression ..." % (len(diagEntry[anc]), len(lst)),
 		for (l,d,esp) in lst:
 			s.append( l )
-			print "%s\t%d\t%s\t%s" % (anc, l, " ".join([str(x) for x in d]), " ".join(["%s.%s" % (e,c) for (e,c) in esp]))
+			print "%s\t%d\t%s\t%s" % (anc, l, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in esp]))
 	
 	else:
 	

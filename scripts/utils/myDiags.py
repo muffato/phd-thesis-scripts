@@ -160,11 +160,19 @@ def getLongestPath(lstTout):
 
 
 
-def extractLongestOverlappingDiags(oldDiags):
+def extractLongestOverlappingDiags(oldDiags, genesAnc):
 
 	dic = {}
+	diags = []
 	for i in xrange(len(oldDiags)):
 		((e1,c1,d1),(e2,c2,d2)) = oldDiags[i]
+		#diags.append(d1+d2)
+		da1 = [genesAnc.dicGenes.get(s,("",""))[1] for s in d1]
+		da2 = [genesAnc.dicGenes.get(s,("",""))[1] for s in d2]
+		if "" in da1:
+			diags.append(da2)
+		else:
+			diags.append(da1)
 		for s in d1+d2:
 			if s not in dic:
 				dic[s] = []
@@ -176,10 +184,10 @@ def extractLongestOverlappingDiags(oldDiags):
 
 	newDiags = []
 	for g in combin:
-		for res in getLongestPath([oldDiags[i][1] for i in g]):
+		for res in getLongestPath([diags[i] for i in g]):
 			ok = set([])
 			for i in g:
-				d = oldDiags[i][1]
+				d = diags[i]
 				flag = False
 				for j in xrange(len(d)-1):
 					if (d[j] not in res[0]) or (d[j+1] not in res[0]):
@@ -188,8 +196,8 @@ def extractLongestOverlappingDiags(oldDiags):
 						flag = True
 						break
 				if flag:
-					ok.add( (oldDiags[i][2][0],oldDiags[i][2][1]) )
-					ok.add( (oldDiags[i][3][0],oldDiags[i][3][1]) )
+					ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
+					ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
 			#print "%s\t%d\t%s\t%s" % (anc, len(res[0]), " ".join([str(x) for x in res[0]]), " ".join(["%s.%s" % (e,c) for (e,c) in ok]))
 			newDiags.append( (len(res[0]), res[0], ok) )
 	return newDiags

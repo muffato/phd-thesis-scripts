@@ -32,7 +32,7 @@ def loadDiagsFile(nom, diagEntry):
 		anc = ct[0]
 		l = int(ct[1])
 		d = [int(x) for x in ct[2].split()]
-		esp = [tuple(x.split('.')) for x in ct[3].split()]
+		esp = [tuple(x.split('/')) for x in ct[3].split()]
 		diagEntry[anc].append( (l, d, esp) )
 
 	f.close()
@@ -55,7 +55,9 @@ def recCombin(node):
 			# TODO: utile ?
 			if i in translate[anc][new]:
 				j = translate[anc][new][i]
-			return [scaff[new][j]]
+				return [scaff[new][j]]
+			else:
+				return []
 		
 
 	# On arrete la recursion lorsqu'on est sur une espece
@@ -90,8 +92,8 @@ def recCombin(node):
 		fils2OK = len(set(d1f2).intersection(d2f2)) > 0
 		outOK = len(set(d1out).intersection(d2out)) > 0
 		
-		#if (fils1OK and fils2OK) or ((fils1OK or fils2OK) and outOK):
-		if (fils1OK and fils2OK):
+		if (fils1OK and fils2OK) or ((fils1OK or fils2OK) and outOK and options["useOutgroup"]):
+		#if (fils1OK and fils2OK):
 			combin.addLink([i1,i2])
 	
 
@@ -112,7 +114,7 @@ def recCombin(node):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "diagsList"], \
-	[("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
+	[("useOutgroup",bool,False), ("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
@@ -168,7 +170,8 @@ for anc in phylTree.items:
 
 # Lit toutes les diagonales de anc1 et les mappe sur anc2
 def mkTranslation(anc1, anc2):
-	print >> sys.stderr, "Traduction de", anc1, "vers", anc2
+	#print >> sys.stderr, "Traduction de", anc1, "vers", anc2
+	sys.stderr.write(".")
 	table = {}
 	for i in xrange(len(diagEntry[anc1])):
 		(_,d,_) = diagEntry[anc1][i]
@@ -181,8 +184,6 @@ def mkTranslation(anc1, anc2):
 				if s in genesAnc[anc2].dicGenes:
 					tmp.add(genesAnc[anc2].dicGenes[s][1])
 			for s in tmp:
-				# TODO: utile ?
-				#if s in positions[anc2]:
 				trans.extend(positions[anc2][s])
 		
 		# La reponse est la diagonale la plus presente dans trans
@@ -199,7 +200,7 @@ def mkTranslation(anc1, anc2):
 	return table
 
 # La table qui permet de passer d'une diagonale d'un ancetre a celle d'un autre
-print >> sys.stderr, "Traduction des diagonales ..."
+print >> sys.stderr, "Traduction des diagonales ",
 translate = {}
 for anc in phylTree.items:
 	((fils1,_), (fils2,_)) = phylTree.items[anc]
@@ -210,7 +211,7 @@ for anc in phylTree.items:
 		translate[anc][fils2] = mkTranslation(anc, fils2)
 	if outgroup[anc] in phylTree.items:
 		translate[anc][outgroup[anc]] = mkTranslation(anc, outgroup[anc])
-
+print >> sys.stderr, " OK"
 del genesAnc
 
 # 2. Initialisation des outgroup
@@ -220,12 +221,19 @@ del genesAnc
 print >> sys.stderr, "Ini:", [nbScaff[anc] for anc in phylTree.items]
 utile = True
 while utile:
+#for i in xrange(1):
 	print >> sys.stderr, "Recursion !"
-	length = [nbScaff[anc] for anc in phylTree.items]
+	length = repr([len(set(scaff[anc])) for anc in phylTree.items])
 	recCombin(phylTree.root)
-	newLength = [nbScaff[anc] for anc in phylTree.items]
+	newLength = repr([len(set(scaff[anc])) for anc in phylTree.items])
 	print >> sys.stderr, "OK", newLength
 	utile = (length != newLength)
 
 
+for anc in phylTree.items:
+	chrom = set(scaff[anc])
+	for c in chrom:
+		contenu = set(utils.myMaths.flatten([diagEntry[anc][i][1] for i in xrange(len(diagEntry[anc])) if scaff[anc][i] == c]))
+		print "%s\t%d\t%s" % (anc, len(contenu), " ".join([str(x) for x in contenu]))
+	
 
