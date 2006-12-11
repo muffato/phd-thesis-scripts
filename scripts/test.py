@@ -7,12 +7,13 @@
 # Librairies
 import os
 import sys
+import cPickle
+import profile
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 import utils.myDiags
 import utils.myPsOutput
-import cPickle
 
 
 
@@ -150,8 +151,19 @@ def tryNewOverlap():
 	lstEspeces = set(phylTree.getSpecies(phylTree.root))
 	recCombin(phylTree.root)
 
+
+def test():
+	import buildPreDupGenome
+	return
+	r = []
+	for i in xrange(1000):
+		r.append(range(i))
+	utils.myMaths.flatten(r)
+	
 #buildGraph()
-translateDiagToChrom()
+#translateDiagToChrom()
 #buildExtendedDiags()
 #buildCliques()
 #tryNewOverlap()
+
+profile.run("test()")

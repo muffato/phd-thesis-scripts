@@ -68,10 +68,10 @@ def colorAncestr(esp, geneBank, para, orthos):
 					continue
 				nbOrthos += 1
 				(cT,i) = orthos[e][g]
-				x1 = genomeDup.lstGenes[cT][i].beginning
-				x2 = genomeDup.lstGenes[cT][i].end
+				#x1 = genomeDup.lstGenes[cT][i].beginning
+				#x2 = genomeDup.lstGenes[cT][i].end
 				orig = set([cT])
-				for gT in genomeDup.getGenesAt(cT, x1-options["precisionChrAnc"], x2+options["precisionChrAnc"]):
+				for gT in genomeDup.getGenesAt(cT, genomeDup.lstGenes[cT][i].beginning-options["precisionChrAnc"], genomeDup.lstGenes[cT][i].end+options["precisionChrAnc"]):
 					s = gT.names[0]
 					if s in para[e]:
 						(cT2,_) = genomeDup.dicGenes[para[e][s]]
@@ -132,8 +132,10 @@ def printColorAncestr(genesAnc, chrAncGenes):
 	print >> sys.stderr, "Impression des associations genes / chromosomes ancestraux ... ",
 	nb = 0	
 
-	lstChr = chrAncGenes.keys()
-	lstChr.sort()
+	#lstChr = chrAncGenes.keys()
+	#lstChr.sort()
+	lstChr = sorted(chrAncGenes)
+	
 	if options["showStats"]:
 		print "\t\t%s" % "\t".join(lstChr)
 	
@@ -153,8 +155,8 @@ def printColorAncestr(genesAnc, chrAncGenes):
 #
 def buildChrAnc(genesAncCol, chrAncGenes):
 
-	lstChr = chrAncGenes.keys()
-	lstChr.sort()
+	#lstChr = chrAncGenes.keys()
+	#lstChr.sort()
 	
 	for i in xrange(len(genesAncCol)):
 	

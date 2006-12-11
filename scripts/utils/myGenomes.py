@@ -4,6 +4,8 @@ import sys
 import myTools
 import myBioObjects
 
+
+
 #######################################################################################
 # Cette fonction determine le type du fichier de genome a partir de la premiere ligne #
 #######################################################################################
@@ -32,13 +34,15 @@ def loadGenome(nom):
 	except Exception:
 		conc = False
 		
-	return AncestralGenome(nom, withChr, conc)
+	return AncestralGenome(nom, chromPresents=withChr, concordeQualityFactor=conc)
 
 
 ##########################################
 # Classe generale pour stocker un genome #
 ##########################################
 class Genome:
+
+	defaultChr = "-"
 
 	#
 	# Constructeur
@@ -75,6 +79,7 @@ class Genome:
 	#
 	def sortGenome(self):
 		
+		self.lstChr.sort()
 		self.dicGenes = {}
 		for c in self.lstGenes:
 			self.lstGenes[c].sort(lambda g1, g2: cmp(g1.beginning, g2.beginning))
@@ -99,11 +104,12 @@ class Genome:
 			for g in self.lstGenes[c]:
 				yield g
 
+	def getPosition(self, gene):
+		return set([self.dicGenes[s] for s in gene.names if s in self.dicGenes])
 
 ##############################################################
 # Cette classe gere un fichier de liste de genes d'Ensembl   #
 #   "Chr Debut Fin Brin Nom"                                 #
-# Le filtre correspond a une liste de chromosomes a eliminer #
 ##############################################################
 class EnsemblGenome(Genome):
 
@@ -131,12 +137,15 @@ class EnsemblGenome(Genome):
 			self.addGene( myBioObjects.Gene(champs[4:], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
 		f.close()
 
-		self.lstChr.sort()
 		self.sortGenome()
 		
 		print >> sys.stderr, "OK"
 
 
+################################################################################
+# Cette classe gere un fichier d'orthologues a partir duquel on cree un genome #
+# Les noms des genes sont en positions 1 et 4                                  #
+################################################################################
 class GenomeFromOrthosList(Genome):
 
 	#
@@ -160,7 +169,7 @@ class GenomeFromOrthosList(Genome):
 		
 		nb = 0
 		for g in combin:
-			self.addGene( myBioObjects.Gene(tuple(g), AncestralGenome.defaultChr, nb, nb, 0) )
+			self.addGene( myBioObjects.Gene(tuple(g), Genome.defaultChr, nb, nb, 0) )
 			nb += 1
 
 		print >> sys.stderr, "OK"
@@ -172,9 +181,8 @@ class GenomeFromOrthosList(Genome):
 ####################################################################################
 class AncestralGenome(Genome):
 
-	defaultChr = "-"
 	
-	def __init__(self, nom, chromPresents, concordeQualityFactor):
+	def __init__(self, nom, chromPresents=False, concordeQualityFactor=False):
 
 		Genome.__init__(self, nom)
 		
@@ -191,7 +199,7 @@ class AncestralGenome(Genome):
 
 			# Le chromosome du gene lu
 			if not chromPresents:
-				c = AncestralGenome.defaultChr
+				c = Genome.defaultChr
 			else:
 				try:
 					c = int(champs[0])

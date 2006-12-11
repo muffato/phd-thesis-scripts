@@ -46,13 +46,11 @@ def recCombin(node):
 		if new == None:
 			return []
 		elif new in listEspeces:
-			# TODO: utile ?
 			if i in scaff[new][anc]:
 				return scaff[new][anc][i]
 			else:
 				return []
 		else:
-			# TODO: utile ?
 			if i in translate[anc][new]:
 				j = translate[anc][new][i]
 				return [scaff[new][j]]
@@ -75,6 +73,8 @@ def recCombin(node):
 	lst = diagEntry[node]
 	combin = utils.myTools.myCombinator([[i] for i in xrange(len(lst))])
 	
+	print >> sys.stderr, "Assemblage de", node
+	
 	# Liste des combinaisons
 	for (i1,i2) in utils.myTools.myMatrixIterator(len(lst), len(lst), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 	
@@ -92,11 +92,16 @@ def recCombin(node):
 		fils2OK = len(set(d1f2).intersection(d2f2)) > 0
 		outOK = len(set(d1out).intersection(d2out)) > 0
 		
+		fils1OK = fils1OK and (len(set(d1f1).symmetric_difference(d2f1)) == 0)
+		fils2OK = fils2OK and (len(set(d1f2).symmetric_difference(d2f2)) == 0)
+		outOK = outOK and (len(set(d1out).symmetric_difference(d2out)) == 0)
+		
 		if (fils1OK and fils2OK) or ((fils1OK or fils2OK) and outOK and options["useOutgroup"]):
 		#if (fils1OK and fils2OK):
 			combin.addLink([i1,i2])
 	
-
+	print >> sys.stderr, "Ecriture de", node
+	
 	# On rajoute les combinaisons 
 	for g in combin:
 		if len(g) == 1:
@@ -144,10 +149,12 @@ loadDiagsFile(noms_fichiers["diagsList"], diagEntry)
 # Au fur et a mesure, on fera pointer plusieurs diagonales sur le meme scaffold
 print >> sys.stderr, "Initialisation des scaffold ancestraux ..."
 scaff = {}
+scaff["Opossum"] = {}
 nbScaff = {}
 for anc in phylTree.items:
 	scaff[anc] = [i for i in xrange(len(diagEntry[anc]))]
 	nbScaff[anc] = len(scaff[anc])
+	scaff["Opossum"][anc] = {}
 
 # La meme structure permet d'associer les diagonales aux chromosomes sur les especes
 for esp in listEspeces:
@@ -170,7 +177,6 @@ for anc in phylTree.items:
 
 # Lit toutes les diagonales de anc1 et les mappe sur anc2
 def mkTranslation(anc1, anc2):
-	#print >> sys.stderr, "Traduction de", anc1, "vers", anc2
 	sys.stderr.write(".")
 	table = {}
 	for i in xrange(len(diagEntry[anc1])):
@@ -199,6 +205,44 @@ def mkTranslation(anc1, anc2):
 
 	return table
 
+# Lit toutes les diagonales de anc1 et les mappe sur anc2
+def mkTranslationOutgroup(anc1, anc2):
+	sys.stderr.write(".")
+	table = {}
+	
+	#anc = phylTree.getFirstParent(anc1, anc2)
+	anc = phylTree.parent[anc1]
+	for i in xrange(len(diagEntry[anc1])):
+		(_,d,_) = diagEntry[anc1][i]
+		# La liste des numeros des diagonales de anc2
+		trans = []
+		for j in d:
+			# La diagonale de anc2 qui correspond a ce gene
+			tmp = set([])
+			for s in genesAnc[anc1].lstGenes[utils.myGenomes.AncestralGenome.defaultChr][j].names:
+				if s in genesAnc[anc].dicGenes:
+					tmp.add(genesAnc[anc].dicGenes[s][1])
+			tmp2 = set([])
+			for k in tmp:
+					for s in genesAnc[anc].lstGenes[utils.myGenomes.AncestralGenome.defaultChr][k].names:
+						if s in genesAnc[anc2].dicGenes:
+							tmp2.add(genesAnc[anc2].dicGenes[s][1])
+			for s in tmp2:
+				trans.extend(positions[anc2][s])
+		
+		# La reponse est la diagonale la plus presente dans trans
+		
+		# Si elle n'existe pas chez anc2, on arrete
+		if len(trans) == 0:
+			continue
+			
+		strans = set(trans)
+		ctrans = [(trans.count(x),x) for x in set(trans)]
+		ctrans.sort()
+		table[i] = ctrans[-1][1]
+
+	return table
+
 # La table qui permet de passer d'une diagonale d'un ancetre a celle d'un autre
 print >> sys.stderr, "Traduction des diagonales ",
 translate = {}
@@ -210,7 +254,7 @@ for anc in phylTree.items:
 	if fils2 in phylTree.items:
 		translate[anc][fils2] = mkTranslation(anc, fils2)
 	if outgroup[anc] in phylTree.items:
-		translate[anc][outgroup[anc]] = mkTranslation(anc, outgroup[anc])
+		translate[anc][outgroup[anc]] = mkTranslationOutgroup(anc, outgroup[anc])
 print >> sys.stderr, " OK"
 del genesAnc
 
