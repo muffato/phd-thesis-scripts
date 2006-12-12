@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#! /users/ldog/muffato/python -OO
 
 __doc__ = """
 A partir de toutes les diagonales extraites entre les especes,

@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#! /users/ldog/muffato/python -OO
 
 __doc__ = """
 Extrait toutes les diagonales de genes entre deux especes

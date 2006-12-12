@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#! /users/ldog/muffato/python -OO
 
 __doc__ = """
 Lit des familles de genes et affiche la composition de chaque famille en terme de nombre de genes par espece.

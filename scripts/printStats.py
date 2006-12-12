@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#! /users/ldog/muffato/python -OO
 
 __doc__ = """
 Lit des donnees numeriques sur l'entree standard et affiche

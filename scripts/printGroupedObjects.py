@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#! /users/ldog/muffato/python -OO
 
 __doc__ = """
 Lit sur l'entree standard des familles d'objets et les regroupe.

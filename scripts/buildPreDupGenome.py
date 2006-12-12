@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#! /users/ldog/muffato/python -OO
 
 __doc__ = """
 Ce script scanne chaque genome d'espece non dupliquee en le comparant a chaque genome duplique.
@@ -55,6 +55,8 @@ def colorAncestr(esp, geneBank, para, orthos):
 		nbOrthos = 0
 		lstBlocs[e] = []
 		genomeDup = geneBank.dicEspeces[e]
+		orthosDup = orthos[e]
+		parasDup = para[e]
 
 		# On parcourt les chromosomes de l'espece
 		for c in genome.lstGenes:
@@ -67,14 +69,13 @@ def colorAncestr(esp, geneBank, para, orthos):
 				if g not in orthos[e]:
 					continue
 				nbOrthos += 1
-				(cT,i) = orthos[e][g]
-				#x1 = genomeDup.lstGenes[cT][i].beginning
-				#x2 = genomeDup.lstGenes[cT][i].end
+				
+				(cT,i) = orthosDup[g]
 				orig = set([cT])
-				for gT in genomeDup.getGenesAt(cT, genomeDup.lstGenes[cT][i].beginning-options["precisionChrAnc"], genomeDup.lstGenes[cT][i].end+options["precisionChrAnc"]):
+				for gT in genomeDup.getGenesNear(cT, i, options["precisionChrAnc"]):
 					s = gT.names[0]
-					if s in para[e]:
-						(cT2,_) = genomeDup.dicGenes[para[e][s]]
+					if s in parasDup:
+						(cT2,_) = genomeDup.dicGenes[parasDup[s]]
 						orig.add(cT2)
 				
 				nouvOrig = lastOrig & orig
@@ -104,10 +105,11 @@ def buildColorTable(lstBlocs, col, dicGenesAnc, chrAnc):
 	def getMaxScore(bloc, especeDup):
 		score = {}
 		for c in chrAnc:
-			score[c] = 0
-			for (_,cT) in bloc:
-				if cT in chrAnc[c][especeDup]:
-					score[c] += 1
+			#score[c] = 0
+			#for (_,cT) in bloc:
+			#	if cT in chrAnc[c][especeDup]:
+			#		score[c] += 1
+			score[c] = len(cT for (_,cT) in bloc if cT in chrAnc[c][especeDup])
 		m = max(score.values())
 		return (m, [c for c in chrAnc if score[c] == m])
 
@@ -117,6 +119,7 @@ def buildColorTable(lstBlocs, col, dicGenesAnc, chrAnc):
 				continue
 			(s, l) = getMaxScore(b, e)
 			if s == 0:
+				print >> sys.stderr, "kko"
 				continue
 			r = float(s-1) / float(len(b))
 			for c in l:
@@ -132,8 +135,6 @@ def printColorAncestr(genesAnc, chrAncGenes):
 	print >> sys.stderr, "Impression des associations genes / chromosomes ancestraux ... ",
 	nb = 0	
 
-	#lstChr = chrAncGenes.keys()
-	#lstChr.sort()
 	lstChr = sorted(chrAncGenes)
 	
 	if options["showStats"]:
@@ -155,9 +156,6 @@ def printColorAncestr(genesAnc, chrAncGenes):
 #
 def buildChrAnc(genesAncCol, chrAncGenes):
 
-	#lstChr = chrAncGenes.keys()
-	#lstChr.sort()
-	
 	for i in xrange(len(genesAncCol)):
 	
 		if len(genesAncCol[i]) == 0:

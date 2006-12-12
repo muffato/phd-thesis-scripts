@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#! /users/ldog/muffato/python -OO
 
 ##################
 # INITIALISATION #
@@ -161,9 +161,9 @@ def test():
 	utils.myMaths.flatten(r)
 	
 #buildGraph()
-#translateDiagToChrom()
+translateDiagToChrom()
 #buildExtendedDiags()
 #buildCliques()
 #tryNewOverlap()
 
-profile.run("test()")
+#profile.run("test()")

@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#! /users/ldog/muffato/python -OO
 
 
 import sys
@@ -108,11 +108,19 @@ class myCombinator:
 
 	def getGrp(self):
 		return [g for g in self.grp if len(g) > 0]
-		
+
+	def getNbGrp(self):
+		nb = 0
+		for g in self.grp:
+			if len(g) > 0:
+				nb += 1
+		return nb
+
 	def __iter__(self):
 		for g in self.grp:
 			if len(g) > 0:
 				yield g
+
 
 
 #################################################################################

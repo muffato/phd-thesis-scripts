@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#! /users/ldog/muffato/python -OO
 
 __doc__ = """
 Ce script scanne les paralogues d'une espece et essaie de reconstruire les chromosomes pre-duplication de maniere appoximative.

@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#! /users/ldog/muffato/python -OO
 
 import sys
 import myTools
@@ -94,6 +94,24 @@ class Genome:
 		for g in self.lstGenes[chr]:
 			if g.end >= beg and g.beginning <= end:
 				yield g
+	#
+	# Renvoie les noms des genes presents aux alentours d'un gene donne
+	#	
+	def getGenesNear(self, chr, index, l):
+		g = self.lstGenes[chr][index]
+		x1 = g.beginning
+		x2 = g.end
+		for i in xrange(index+1, len(self.lstGenes[chr])):
+			g = self.lstGenes[chr][i]
+			if g.beginning > x2:
+				break
+			yield g
+		
+		for i in xrange(index-1, -1, -1):
+			g = self.lstGenes[chr][i]
+			if g.end < x1:
+				break
+			yield g
 
 	def iterOnChromosome(self, c):
 		for g in self.lstGenes[c]:
