@@ -88,6 +88,10 @@ def getMinMax(lst):
 			mx = x
 		elif x < mn:
 			mn = x
+	#if mn != min(lst[0], lst[-1]):
+	#	print >> sys.stderr, "BOUDIOU.MIN", mn, lst
+	#if mx != max(lst[0], lst[-1]):
+	#	print >> sys.stderr, "BOUDIOU.MAX", mx, lst
 	return (mn, mx)
 
 

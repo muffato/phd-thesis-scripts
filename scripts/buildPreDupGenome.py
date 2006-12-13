@@ -109,7 +109,7 @@ def buildColorTable(lstBlocs, col, dicGenesAnc, chrAnc):
 			#for (_,cT) in bloc:
 			#	if cT in chrAnc[c][especeDup]:
 			#		score[c] += 1
-			score[c] = len(cT for (_,cT) in bloc if cT in chrAnc[c][especeDup])
+			score[c] = len([cT for (_,cT) in bloc if cT in chrAnc[c][especeDup]])
 		m = max(score.values())
 		return (m, [c for c in chrAnc if score[c] == m])
 

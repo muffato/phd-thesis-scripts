@@ -5,6 +5,9 @@ Ce script scanne les paralogues d'une espece et essaie de reconstruire les chrom
 C'est a dire savoir sur quels chromosomes actuels ils se repartissent, et donc les alternances que l'on devra observer.
 
 TODO: Reparer en reprenant la version du M2 !!!
+Preciser les positions genomiques de chaque chromosome ancestral (debut-fin sur chaque duplicat)
+
+
 """
 
 
@@ -242,4 +245,166 @@ for i in range(len(chrom)):
 	for c in chrom[i]:
 		print >> sys.stderr, " ", c,
 	print >> sys.stderr
+
+
+
+#### VERSION DU M2 #####
+
+def getChrAncIni(genomeDup, geneBank, para, orthos):
+
+	#
+	# Compte le nombre de passages d'un chromosome a l'autre
+	#
+	def countAltern3(genome, orthos, count):
+	
+		for c in genome.lstGenes:
+			grp3Tet = []
+			for (_,_,_,g) in genome.lstGenes[c]:
+				# Il faut un orthologue avec Tetraodon
+				if g not in orthos:
+					continue
+			
+				(KT,_) = orthos[g]
+				
+				if KT in grp3Tet:
+					# On deplace le numero de chromosome en fin de groupe
+					grp3Tet.remove(KT)
+					grp3Tet.append(KT)
+					
+				elif len(grp3Tet) < 3:
+					# On construit l'alternance
+					grp3Tet.append(KT)
+				else:
+					# On enleve le plus vieux et on rajoute le nouveau
+					grp3Tet.pop(0)
+					grp3Tet.append(KT)
+				
+				if len(grp3Tet) == 3:
+					# On ajoute 1 au score
+					t = grp3Tet[:]
+					t.sort()
+					t = tuple(t)
+					if t in count:
+						count[t] += 1
+					else:
+						count[t] = 1
+	
+	#
+	# Renvoie le nombre de paralogues qui lie chaque couple de chromosomes Tetraodon
+	#
+	def countPara(nbMin):
+		
+		count = {}
+		for g1 in para:
+			(c1,_) = genomeDup.dicGenes[g1]
+			(c2,_) = genomeDup.dicGenes[para[g1]]
+			if c1 < c2:
+				count[ (c1,c2) ] = count.get( (c1,c2), 0) + 1
+		r = []
+		for (c,v) in count.items():
+			if v >= nbMin:
+				r.append( (v, c[0], c[1]) )
+	
+		r.sort()
+		r.reverse()
+	
+		return r
+
+	print >> sys.stderr, "Recherche des chromosomes ancestraux ... ",
+	
+	count3 = {}
+	for e in geneBank.dicEspeces:
+		countAltern3(geneBank.dicEspeces[e], orthos, count3)
+
+	for c in count3:
+		count3[c] /= len(geneBank.dicEspeces)
+	
+	# On va parcourir les couples de chromosomes dupliques des plus au
+	# moins presents en construisant les chromosomes au fur et a mesure
+	chrom = []
+	nbPara = []
+	rep = dict([(k,[]) for k in genomeDup.lstGenes])
+
+	for (v, c1, c2) in countPara(options["nbMinParaCouple"]):
+		if len(rep[c1]) == 0 and len(rep[c2]) == 0:
+		
+			# Les deux chromosomes sont inutilises: nouveau chromosome ancestral
+			#print >> sys.stderr, "CHR", c1, c2
+			rep[c1].append(len(chrom))
+			rep[c2].append(len(chrom))
+			chrom.append( set([c1,c2]) )
+			nbPara.append( v )
+			
+		elif len(rep[c1]) == 0 or len(rep[c2]) == 0:
+			
+			# Juste un des deux est utilise, on le parcourt pour
+			# voir si on peut creer un trio
+			if len(rep[c2]) == 0:
+				(x, y) = (c1, c2)
+			else:
+				(x, y) = (c2, c1)
+				
+			# On scanne les representations de x
+			for i in rep[x]:
+				
+				# On prend le troisieme chromosome de l'alternance
+				for c in chrom[i]:
+					if c != c1 and c != c2:
+						break
+				t = [c,c1,c2]
+				t.sort()
+				#print >> sys.stderr, "test de %s: %d / %d" % (t, count3.get(tuple(t), 0), nbPara[i])
+				
+				# Si l'alternance est vue assez de fois, on rajoute le chromosome
+				if count3.get(tuple(t), 0) > options["nbMinAltern3"]*nbPara[i]:
+					t = chrom[i].union(set([y]))
+					#print >> sys.stderr, "CHRN", t
+					for j in t:
+						rep[j].append(len(chrom))
+					chrom.append( t )
+					nbPara.append( nbPara[i] + v)
+					break
+			else:
+				# Si aucune triple alternance trouvee, on cree
+				# un nouveau chromosome ancestral
+				#print >> sys.stderr, "CHRP", c1, c2
+				rep[c1].append(len(chrom))
+				rep[c2].append(len(chrom))
+				chrom.append( set([c1,c2]) )
+				nbPara.append( v )
+		else:
+			# Les deux sont deja pris, on va choisir celui dans
+			# lequel on a la meilleure alternance de 3
+			best = 1
+			bestC = -1
+			for i in rep[c1] + rep[c2]:
+				for c in chrom[i]:
+					if c == c1 or c == c2:
+						continue
+					t = [c,c1,c2]
+					t.sort()
+					x = count3.get(tuple(t), 0)
+					if x < best:
+						continue
+					if x > best or len(chrom[i]) < len(chrom[bestC]):
+						best = count3[tuple(t)]
+						bestC = i
+			if bestC != -1:
+				#print >> sys.stderr, "FUS", c1, c2, chrom[bestC]
+				chrom[bestC].add( c1 )
+				chrom[bestC].add( c2 )
+				rep[c1].append(bestC)
+				rep[c2].append(bestC)
+				nbPara[bestC] += v
+	
+	# Affichage des resultats
+	print >> sys.stderr, "%d chromosomes trouves :" % len(chrom)
+	for i in range(len(chrom)):
+		print >> sys.stderr, "Chromosome %c (%d):" % (chr(65+i), nbPara[i]),
+		for c in chrom[i]:
+			print >> sys.stderr, " %d" % c,
+		print >> sys.stderr
+	
+	return chrom
+
 

@@ -19,6 +19,16 @@ import myTools
 
 def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 
+	def getMinMaxDiag(lst):
+		a = lst[0]
+		b = lst[-1]
+		if abs(a-b) < len(lst)-1:
+			return myMaths.getMinMax(lst)
+		elif a < b:
+			return (a,b)
+		else:
+			return (b,a)
+
 	for c1 in genome1:
 		
 		diag = []
@@ -56,7 +66,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 			else:
 				# On n'a pas trouve de i2 satisfaisant, c'est la fin de la diagonale
 				if len(listI1) > 0 and len(listI2) > 0:
-					diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),myMaths.getMinMax(listI2)) )
+					diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),getMinMaxDiag(listI2)) )
 				deb1 = i1
 				listI1 = []
 				lastC2 = [c for (c,_,_) in presI2]
@@ -71,7 +81,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 			fin1 = i1
 		
 		if len(listI1) > 0 and len(listI2) > 0:
-			diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),myMaths.getMinMax(listI2)) )
+			diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),getMinMaxDiag(listI2)) )
 
 		# On rassemble des diagonales separees par une espace pas trop large
 		while len(diag) > 0:
@@ -112,17 +122,19 @@ def buildVoisins(lstDiags):
 	for c in lstDiags:
 		if len(c) == 0:
 			continue
-		if len(c) == 1 and c[0] not in voisins:
-			voisins[c[0]] = set([])
-		else:
-			for i in xrange(len(c)-1):
-				x = c[i]
-				y = c[i+1]
-				if x not in voisins:
-					voisins[x] = set([])
-				if y not in voisins:
-					voisins[y] = set([])
+		y = c[0]
+		if len(c) == 1 and y not in voisins:
+			voisins[y] = set([])
+		for i in xrange(1, len(c)):
+			x = y
+			y = c[i]
+			if x not in voisins:
+				voisins[x] = set([y])
+			else:
 				voisins[x].add(y)
+			if y not in voisins:
+				voisins[y] = set([x])
+			else:
 				voisins[y].add(x)
 	return voisins
 
@@ -136,16 +148,33 @@ def getLongestPath(lstTout):
 	# prend une liste de liste
 	# renvoie la liste des listes de longueur maximale
 	def selectLongest(lst):
-		if len(lst) == 0:
-			return []
-		tutu = max([len(x) for x in lst])
-		return [x for x in lst if len(x) == tutu]
+		m = -1
+		r = []
+		for x in lst:
+			n = len(x)
+			if n < m:
+				continue
+			if n == m:
+				r.append(x)
+			else:
+				m = n
+				r = [x]
+		return r
+		#if len(lst) == 0:
+		#	return []
+		#tutu = max([len(x) for x in lst])
+		#return [x for x in lst if len(x) == tutu]
 		
 	# prend une liste (le chemin de depart)
 	# renvoie la liste des chemins maximaux en partant de ce chemin de depart
 	def recLongestPath(currPath):
-		toto = [recLongestPath(currPath + [j]) for j in voisins[currPath[-1]] if j not in currPath]
-		return selectLongest([currPath] + myMaths.flatten(toto))
+		toto = [currPath]
+		for j in voisins[currPath[-1]]:
+			if j not in currPath:
+				toto.extend(recLongestPath(currPath + [j]))
+		return selectLongest(toto)
+		#toto = [recLongestPath(currPath + [j]) for j in voisins[currPath[-1]] if j not in currPath]
+		#return selectLongest([currPath] + myMaths.flatten(toto))
 		
 	ens = set(myMaths.flatten(lstTout))
 	voisins = buildVoisins(lstTout)
@@ -164,8 +193,11 @@ def extractLongestOverlappingDiags(oldDiags, genesAnc):
 
 	dic = {}
 	diags = []
+	combin = myTools.myCombinator([])
 	for i in xrange(len(oldDiags)):
-		((e1,c1,d1),(e2,c2,d2)) = oldDiags[i]
+		#((e1,c1,d1),(e2,c2,d2)) = oldDiags[i]
+		d1 = oldDiags[i][0][2]
+		d2 = oldDiags[i][1][2]
 		#diags.append(d1+d2)
 		da1 = [genesAnc.dicGenes.get(s,("",""))[1] for s in d1]
 		da2 = [genesAnc.dicGenes.get(s,("",""))[1] for s in d2]
@@ -177,8 +209,9 @@ def extractLongestOverlappingDiags(oldDiags, genesAnc):
 			if s not in dic:
 				dic[s] = []
 			dic[s].append(i)
+		combin.addLink([i])
 	
-	combin = myTools.myCombinator([[x] for x in xrange(len(oldDiags))])
+	#combin = myTools.myCombinator([[x] for x in xrange(len(oldDiags))])
 	for s in dic:
 		combin.addLink(dic[s])
 

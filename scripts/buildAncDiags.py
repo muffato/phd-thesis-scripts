@@ -27,18 +27,26 @@ def calcDiags(e1, e2):
 
 	# La fonction qui permet de traiter les diagonales
 	def combinDiag(c1, c2, d1, d2):
-		global diagEntry, geneBank
+		global diagEntry
 
 		if len(d1) < options["minimalLength"]:
 			return
 		
-		dn1 = [geneBank.dicEspeces[e1].lstGenes[c1][i].names[0] for i in d1]
-		dn2 = [geneBank.dicEspeces[e2].lstGenes[c2][i].names[0] for i in d2]
+		dn1 = [g1.lstGenes[c1][i].names[0] for i in d1]
+		dn2 = [g2.lstGenes[c2][i].names[0] for i in d2]
 
 		for tmp in toStudy:
 			diagEntry[tmp].append( ((e1,c1,dn1), (e2,c2,dn2)) )
 			
-	
+	def translateGenome(genome):
+		newGenome = {}
+		for c in genome.lstChr:
+			newGenome[c] = [(genesAnc.dicGenes.get(g.names[0], (0,-1))[1],g.strand) for g in genome.lstGenes[c]]
+			if options["keepOnlyOrthos"]:
+				newGenome[c] = [x for x in newGenome[c] if x[0] != -1]
+		return newGenome
+
+	# Les noeuds de l'arbre entre l'ancetre et les especes actuelles
 	toStudy = [phylTree.getFirstParent(e1,e2)]
 	for tmp in phylTree.items:
 		s = phylTree.getSpecies(tmp)
@@ -49,24 +57,20 @@ def calcDiags(e1, e2):
 
 	# Chargement des orthologues
 	genesAnc = utils.myGenomes.GenomeFromOrthosList(options["orthosFile"] % (e1,e2))
-	nbGenesAnc = len(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr])
+	newLoc = [[] for x in xrange(len(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]))]
 	del genesAnc.lstGenes
 
-	newLoc = [[] for x in xrange(nbGenesAnc)]
-	for e in [e1,e2]:
-		genome = geneBank.dicEspeces[e]
-		newGenome = {}
-		for c in genome.lstChr:
-			newGenome[c] = [(genesAnc.dicGenes.get(g.names[0], (0,-1))[1],g.strand) for g in genome.lstGenes[c]]
-			if options["keepOnlyOrthos"]:
-				newGenome[c] = [x for x in newGenome[c] if x[0] != -1]
-			if e == e2:
-				for i in xrange(len(newGenome[c])):
-					(ianc,s) = newGenome[c][i]
-					if ianc != -1:
-						newLoc[ianc].append( (c,i,s) )
-		if e == e1:
-			newGen = newGenome
+	g1 = geneBank.dicEspeces[e1]
+	g2 = geneBank.dicEspeces[e2]
+	newGen = translateGenome(g1)
+	tmp = translateGenome(g2)
+	#del genesAnc
+	
+	for c in g2.lstChr:
+		for i in xrange(len(tmp[c])):
+			(ianc,s) = tmp[c][i]
+			if ianc != -1:
+				newLoc[ianc].append( (c,i,s) )
 	
 	utils.myDiags.iterateDiags(newGen, newLoc, options["fusionThreshold"], options["sameStrand"], combinDiag)
 
