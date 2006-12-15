@@ -252,8 +252,22 @@ while recCombin(phylTree.root):
 
 
 # Impression du resultat
+nn = max([len(anc) for anc in phylTree.items])
 mergeDiags()
 for anc in phylTree.items:
+	chr50 = []
+	chr250 = []
 	for (l,d,esp) in diagEntry[anc]:
 		print "%s\t%d\t%s" % (anc, len(d), " ".join([str(x) for x in d]))
+		if l >= 50:
+			chr50.append(l)
+		if l >= 250:
+			chr250.append(l)
+	s = utils.myMaths.fullStats(chr50)
+	print >> sys.stderr, ("%" + ("%d" % nn) + "s\t>50\t%3d chromosomes\t%5d genes\tmin=%4d\tmax=%5d\tmean=%.2f\tmedian=%s\tstddev=%.2f") % \
+	(anc, s[5], sum(chr50), s[3], s[4], s[0], s[2], s[1])
+	s = utils.myMaths.fullStats(chr250)
+	print >> sys.stderr, ("%" + ("%d" % nn) + "s\t>250\t%3d chromosomes\t%5d genes\tmin=%4d\tmax=%5d\tmean=%.2f\tmedian=%s\tstddev=%.2f") % \
+	(anc, s[5], sum(chr250), s[3], s[4], s[0], s[2], s[1])
+
 

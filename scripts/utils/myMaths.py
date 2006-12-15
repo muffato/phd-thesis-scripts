@@ -8,6 +8,14 @@ import math
 import sys
 
 
+def fullStats(lst):
+	if len(lst) == 0:
+		#return (None, None, None, None, None, 0)
+		#return (0, 0, None, None, None, 0)
+		return (0, 0, 0, 0, 0, 0)
+	return (moyenne(lst), ecartType(lst), mediane(lst), min(lst), max(lst), len(lst))
+
+
 def issublist(l1, l2):
 
 	if len(l1) > len(l2):
