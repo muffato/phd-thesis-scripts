@@ -31,6 +31,7 @@ class PhylogeneticTree:
 		
 		self.items = {}
 		self.parent = {}
+		
 		ages = {}
 		f = myTools.myOpenFile(nom, 'r')
 		for ligne in f:
@@ -47,27 +48,42 @@ class PhylogeneticTree:
 					self.items[nom].append( (e,age-ages[e]) )
 				else:
 					self.items[nom].append( (e,age) )
+			
+		f.close()
+		
 		self.root = nom
+		self.branchesSpecies = {}
+		self.species = {}
+		self.listSpecies = []
+		self.branches = {}
+		self.listAncestr = []
+		
+		def recInitialize(node):
+			self.branchesSpecies[node] = []
+			self.species[node] = []
+			self.branches[node] = []
+			if node in self.items:
+				self.listAncestr.append(node)
+				for f in self.branches[node]:
+					recInitialize(f)
+					self.branches[node].append(f)
+					self.branchesSpecies[node].append(self.species[f])
+					self.species[node].extend(self.species[f])
+			else:
+				self.listSpecies.append(node)
+				self.branchesSpecies[node].append(node)
+				self.species[node].append(node)
+			
+		recInitialize(self.root)
 		
 		print >> sys.stderr, "OK"
-	
-	def getBranches(self, anc):
-		if anc not in self.items:
-			return []
-		else:
-			return [e for (e,_) in self.items[anc]]
-			
-	def getBranchesSpecies(self, anc):
-		if anc not in self.items:
-			return []
-		else:
-			return [self.getSpecies(e) for (e,_) in self.items[anc]]
-	
-	def getSpecies(self, anc):
-		if anc not in self.items:
-			return [anc]
-		else:
-			return myMaths.flatten([self.getSpecies(e) for (e,_) in self.items[anc]])
+		print self.branches
+		print self.branchesSpecies
+		print self.listSpecies
+		print self.species
+		print self.listAncestr
+		sys.exit(0)
+
 
 	def getFirstParent(self, anc1, anc2):
 		if anc1 in self.getSpecies(anc2):

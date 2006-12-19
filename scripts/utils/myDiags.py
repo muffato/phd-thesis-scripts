@@ -195,10 +195,8 @@ def extractLongestOverlappingDiags(oldDiags, genesAnc):
 	diags = []
 	combin = myTools.myCombinator([])
 	for i in xrange(len(oldDiags)):
-		#((e1,c1,d1),(e2,c2,d2)) = oldDiags[i]
 		d1 = oldDiags[i][0][2]
 		d2 = oldDiags[i][1][2]
-		#diags.append(d1+d2)
 		da1 = [genesAnc.dicGenes.get(s,("",""))[1] for s in d1]
 		da2 = [genesAnc.dicGenes.get(s,("",""))[1] for s in d2]
 		if "" in da1:
@@ -232,7 +230,7 @@ def extractLongestOverlappingDiags(oldDiags, genesAnc):
 					ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
 					ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
 			#print "%s\t%d\t%s\t%s" % (anc, len(res[0]), " ".join([str(x) for x in res[0]]), " ".join(["%s.%s" % (e,c) for (e,c) in ok]))
-			newDiags.append( (len(res[0]), res[0], ok) )
+			newDiags.append( (len(res[0]), res[0], list(ok)) )
 	return newDiags
 	
 

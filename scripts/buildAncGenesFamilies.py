@@ -33,14 +33,14 @@ import utils.myMaths
 )
 
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.getSpecies(phylTree.root))
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.listSpecies)
 homologies = options["homologyLevels"].split(",")
 
 def buildAncFile(anc, lastComb):
 
 	# 1. on combine tous les fichiers d'orthologues
 	comb = utils.myTools.myCombinator([])
-	esp = phylTree.getSpecies(anc)
+	esp = phylTree.species[anc]
 	print >> sys.stderr, "Construction des familles d'orthologues de", anc, ":", "-".join(esp), "",
 	for (i,j) in utils.myTools.myMatrixIterator(len(esp), len(esp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 		f = utils.myTools.myOpenFile(options["orthoFile"] % (esp[i],esp[j]), 'r')
@@ -75,7 +75,7 @@ def buildAncFile(anc, lastComb):
 		if x[0] not in lastComb:
 			nbBranchesOK = 0
 			for (fils,_) in phylTree.items[anc]:
-				if sum([len(score[e]) for e in phylTree.getSpecies(fils)]) >= 1:
+				if sum([len(score[e]) for e in phylTree.species[fils]]) >= 1:
 					nbBranchesOK += 1
 			if nbBranchesOK == 1:
 				continue

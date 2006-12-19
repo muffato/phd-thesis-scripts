@@ -52,7 +52,7 @@ def loadDiagsFile(nom, diagEntry):
 
 # L'arbre phylogenetique
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-listEspeces = phylTree.getSpecies(phylTree.root) + ['Opossum']
+listEspeces = phylTree.species[phylTree.root] + ['Opossum']
 
 # Les genes ancestraux
 diagEntry = {}
@@ -82,8 +82,8 @@ for anc in phylTree.items:
 
 
 anc = options["ancestr"]
-(fils1, fils2) = phylTree.getBranchesSpecies(anc)
-outgroup = set(phylTree.getSpecies(phylTree.root)).difference(phylTree.getSpecies(anc))
+(fils1, fils2) = phylTree.branchesSpecies[anc]
+outgroup = set(phylTree.species[phylTree.root]).difference(phylTree.species[anc])
 lst = diagEntry[anc]
 nb = len(lst)
 combin = utils.myTools.myCombinator([])

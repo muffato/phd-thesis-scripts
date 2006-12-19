@@ -25,7 +25,7 @@ import utils.myDiags
 
 def calcDiags(e1, e2):
 
-	# La fonction qui permet de traiter les diagonales
+	# La fonction qui permet de stocker les diagonales sur les ancetres
 	def combinDiag(c1, c2, d1, d2):
 		global diagEntry
 
@@ -37,7 +37,8 @@ def calcDiags(e1, e2):
 
 		for tmp in toStudy:
 			diagEntry[tmp].append( ((e1,c1,dn1), (e2,c2,dn2)) )
-			
+	
+	# Ecrire un genome en suite de genes ancestraux
 	def translateGenome(genome):
 		newGenome = {}
 		for c in genome.lstChr:
@@ -49,7 +50,7 @@ def calcDiags(e1, e2):
 	# Les noeuds de l'arbre entre l'ancetre et les especes actuelles
 	toStudy = [phylTree.getFirstParent(e1,e2)]
 	for tmp in phylTree.items:
-		s = phylTree.getSpecies(tmp)
+		s = phylTree.species[tmp]
 		if (e1 in s) and (e2 not in s):
 			toStudy.append( tmp )
 		elif (e2 in s) and (e1 not in s):
@@ -64,7 +65,6 @@ def calcDiags(e1, e2):
 	g2 = geneBank.dicEspeces[e2]
 	newGen = translateGenome(g1)
 	tmp = translateGenome(g2)
-	#del genesAnc
 	
 	for c in g2.lstChr:
 		for i in xrange(len(tmp[c])):
@@ -75,6 +75,43 @@ def calcDiags(e1, e2):
 	utils.myDiags.iterateDiags(newGen, newLoc, options["fusionThreshold"], options["sameStrand"], combinDiag)
 
 
+# Cherche si la diagonale est localisee sur un chromosome d'une espece, non ordonnee
+def findNewSpecies(d, esp, anc):
+	
+	# Les especes pour lesquelles la diagonale n'a pas ete detectee
+	lstEsp = set(phylTree.listSpecies).difference([e for (e,_) in esp])
+	res = []
+	for e in lstEsp:
+		# L'ancetre commun
+		a = phylTree.getFirstParent(anc, e)
+		# On va intersecter les chromosomes des orthologues de chaque gene
+		poss = set([])
+		for i in d:
+			# Le gene chez l'ancetre commun
+			g = genesAnc[a].getPosition(genesAnc[anc].lstGenes[utils.myGenomes.Genome.defaultChr][i])
+			# Cas d'un gene specifique de la lignee
+			if len(g) == 0:
+				continue
+			# Le gene dans l'autre espece
+			tmp = [c for (c,_) in geneBank.dicEspeces[e].getPosition(genesAnc[a].lstGenes[utils.myGenomes.Genome.defaultChr][g[0][1]])]
+			# Gene non trouve, on passe au suivant
+			if len(tmp) == 0:
+				continue
+			# Sinon, on intersecte
+			if len(poss) == 0:
+				poss.update(tmp)
+			else:
+				poss.intersection_update(tmp)
+				# Utile de continuer ?
+				if len(poss) == 0:
+					break
+		# S'il en reste un, c'est gagne !
+		if len(poss) != 0:
+			res.append( (e,poss.pop()) )
+	
+	return res
+
+
 ########
 # MAIN #
 ########
@@ -82,7 +119,8 @@ def calcDiags(e1, e2):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "phylTree.conf"], \
-	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False), ("extractLongestPath",bool,False), \
+	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
+	("extractLongestPath",bool,True), ("searchUndetectedSpecies",bool,True), \
 	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -91,36 +129,37 @@ def calcDiags(e1, e2):
 
 # 1. On lit tous les fichiers
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-listEspeces = phylTree.getSpecies(phylTree.root)
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], listEspeces)
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.listSpecies)
 
-# Pour sauver de la memoire
-for esp in geneBank.dicEspeces:
-	del geneBank.dicEspeces[esp].dicGenes
-
-# La structure qui accueillera les diagonales et le calcul
+# La structure qui accueillera les diagonales
 diagEntry = dict( [(anc, []) for anc in phylTree.items] )
-for (i,j) in utils.myTools.myMatrixIterator(len(listEspeces), len(listEspeces), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+# On compare toutes les especes entre elles
+for (i,j) in utils.myTools.myMatrixIterator(len(phylTree.listSpecies), len(phylTree.listSpecies), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 	print >> sys.stderr, '+',
-	calcDiags(listEspeces[i], listEspeces[j])
+	calcDiags(phylTree.listSpecies[i], phylTree.listSpecies[j])
 
-# Plus besoin de ca ...
-del geneBank
+# On a besoin des genes ancestraux
+genesAnc = {}
+for anc in diagEntry:
+	genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc)
 
+# Traitement final
 for anc in diagEntry:
 	
 	s = []
 	if options["extractLongestPath"]:
 	
-		genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc, False, False)
-		
-		print >> sys.stderr, "Extraction des chevauchements les plus longs ...",
+		print >> sys.stderr, "Extraction des chevauchements les plus longs de %s ..." % anc,
 				
-		lst = utils.myDiags.extractLongestOverlappingDiags(diagEntry[anc], genesAnc)
+		lst = utils.myDiags.extractLongestOverlappingDiags(diagEntry[anc], genesAnc[anc])
 		print >> sys.stderr, "OK (%d -> %d) ... Impression ..." % (len(diagEntry[anc]), len(lst)),
 		for (l,d,esp) in lst:
 			s.append( l )
-			print "%s\t%d\t%s\t%s" % (anc, l, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in esp]))
+			if options["searchUndetectedSpecies"]:
+				supp = findNewSpecies(d, esp, anc)
+				print "%s\t%d\t%s\t%s\t%s" % (anc, l, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in esp]), " ".join(["%s/%s" % (e,c) for (e,c) in supp]))
+			else:
+				print "%s\t%d\t%s\t%s" % (anc, l, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in esp]))
 	
 	else:
 	

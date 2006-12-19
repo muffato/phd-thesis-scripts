@@ -1,6 +1,7 @@
 #! /users/ldog/muffato/python -OO
 
 import sys
+import myMaths
 import myTools
 import myBioObjects
 
@@ -123,7 +124,7 @@ class Genome:
 				yield g
 
 	def getPosition(self, gene):
-		return set([self.dicGenes[s] for s in gene.names if s in self.dicGenes])
+		return myMaths.unique([self.dicGenes[s] for s in gene.names if s in self.dicGenes])
 
 ##############################################################
 # Cette classe gere un fichier de liste de genes d'Ensembl   #

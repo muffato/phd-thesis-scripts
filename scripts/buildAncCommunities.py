@@ -32,7 +32,7 @@ def loadDiagsFile(nom, diagEntry):
 		ct = l.split('\t')
 		anc = ct[0]
 		l = int(ct[1])
-		d = ct[2].split(' ')
+		d = [int(x) for x in ct[2].split(' ')]
 		esp = set([tuple(x.split('/')) for x in ct[3].split()])
 		diagEntry[anc].append( (l, d, esp) )
 
@@ -55,26 +55,35 @@ def loadDiagsFile(nom, diagEntry):
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
 # Les genes ancestraux
-anc = options["ancestr"]
-genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc)
+#anc = options["ancestr"]
+genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % options["ancestr"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
 
 # On separe les especes en trois
-(fils1, fils2) = phylTree.getBranchesSpecies(anc)
-outgroup = set(phylTree.getSpecies(phylTree.root)).difference(phylTree.getSpecies(anc))
+(fils1, fils2) = phylTree.branchesSpecies(options["ancestr"])
+outgroup = set(phylTree.listSpecies).difference(phylTree.species[options["ancestr"]])
 
 # Les genomes modernes
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.getSpecies(anc))
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.species[options["ancestr"]])
 
 # Les diagonales
 diagEntry = {}
 for anc in phylTree.items:
 	diagEntry[anc] = []
 loadDiagsFile(noms_fichiers["diagsList"], diagEntry)
-lstDiags = diagEntry[anc]
+lstDiags = diagEntry[options["ancestr"]]
 del diagEntry
 
+# Test des diagonales
+# Est-ce que des diagonales sont sur un seul chromosome sans qu'on le sache
 
+
+
+
+#sys.exit(0)
+
+
+print >> sys.stderr, len(lstDiags)
 # Les genes seuls vont devenir des diagonales de 1
 genesSeuls = set(xrange(len(lstGenesAnc)))
 for (_,d,_) in lstDiags:
@@ -85,8 +94,9 @@ for i in genesSeuls:
 		lstDiags.append( (1,[i],set([(e,c) for (e,c,_) in esp])) )
 	#print "ajout de ", lstDiags[-1]
 
-
+print >> sys.stderr, len(lstDiags)
 #sys.exit(0)
+
 combin = utils.myTools.myCombinator([])
 dicAretes = dict([(i,{}) for i in xrange(len(lstDiags))])
 for (i1,i2) in utils.myTools.myMatrixIterator(len(lstDiags), len(lstDiags), utils.myTools.myMatrixIterator.StrictUpperMatrix):
@@ -109,19 +119,21 @@ for (i1,i2) in utils.myTools.myMatrixIterator(len(lstDiags), len(lstDiags), util
 		dicAretes[i1][i2] = score
 		dicAretes[i2][i1] = score
 
+#sys.exit(0)
 
 # On traite chaque composante connexe
+print >> sys.stderr, "impression"
 indComp = 0
 for g in combin:
-	print len(g)
-	continue
+	#print len(g)
+	#continue
 	indComp += 1
 	nb = len(g)
-	f = open('/users/ldog/muffato/work/temp/walktrap/%s/nodes.%d' % (anc, indComp), 'w')
+	f = open('/users/ldog/muffato/work/temp/walktrap/%s/nodes.%d' % (options["ancestr"], indComp), 'w')
 	for i in xrange(nb):
 		print >> f, i, g[i]
 	f.close()
-	f = open('/users/ldog/muffato/work/temp/walktrap/%s/graph.%d' % (anc, indComp), 'w')
+	f = open('/users/ldog/muffato/work/temp/walktrap/%s/graph.%d' % (options["ancestr"], indComp), 'w')
 	for (i1,i2) in utils.myTools.myMatrixIterator(nb, nb, utils.myTools.myMatrixIterator.StrictUpperMatrix):
 		if g[i2] in dicAretes[g[i1]]:
 			print >> f, i1, i2, dicAretes[g[i1]][g[i2]]

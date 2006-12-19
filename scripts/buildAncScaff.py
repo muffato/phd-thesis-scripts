@@ -217,7 +217,7 @@ def mergeDiags():
 
 # L'arbre phylogenetique
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-listEspeces = phylTree.getSpecies(phylTree.root) + ['Opossum']
+listEspeces = phylTree.listSpecies + ['Opossum']
 
 # Les genes ancestraux
 genesAnc = {}

@@ -89,10 +89,10 @@ def distInterGenes(tg1, tg2):
 )
 
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-if options["nomAncetre"] not in phylTree.items and options["nomAncetre"] not in phylTree.getSpecies(phylTree.root):
+if options["nomAncetre"] not in (phylTree.listAncestr + phylTree.listSpecies):
 	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["nomAncetre"]
 	sys.exit(1)
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.getSpecies(phylTree.root))
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.listSpecies)
 del geneBank.dicEspeces
 genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genomeAncestral"], True, False)
 
