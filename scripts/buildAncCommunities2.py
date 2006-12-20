@@ -34,8 +34,6 @@ def loadDiagsFile(nom, diagEntry):
 		l = int(ct[1])
 		d = [int(x) for x in ct[2].split(' ')]
 		esp = set([tuple(x.split('/')) for x in ct[3].split()])
-		if len(ct) == 5:
-			esp.update( set([tuple(x.split('/')) for x in ct[4].split()]) )
 		diagEntry[anc].append( (l, d, esp) )
 
 	f.close()
@@ -49,7 +47,7 @@ def loadDiagsFile(nom, diagEntry):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "genesList.conf", "diagsList"], \
-	[("ancestr",str,""), ("millionYearsWeights",bool,True), ("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
+	[("ancestr",str,""), ("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
@@ -57,6 +55,7 @@ def loadDiagsFile(nom, diagEntry):
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
 # Les genes ancestraux
+#anc = options["ancestr"]
 genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % options["ancestr"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
 
@@ -65,6 +64,7 @@ lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
 outgroup = phylTree.outgroupSpecies[options["ancestr"]]
 
 print >> sys.stderr, fils1, fils2, outgroup
+sys.exit(0)
 
 # Les genomes modernes
 geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.species[options["ancestr"]])
@@ -77,40 +77,28 @@ loadDiagsFile(noms_fichiers["diagsList"], diagEntry)
 lstDiags = diagEntry[options["ancestr"]]
 del diagEntry
 
+# Test des diagonales
+# Est-ce que des diagonales sont sur un seul chromosome sans qu'on le sache
 
-print >> sys.stderr, len(lstDiags)
-# Les genes seuls vont devenir des diagonales de 1
-#genesSeuls = set(xrange(len(lstGenesAnc)))
-#for (_,d,_) in lstDiags:
-#	genesSeuls.difference_update(d)
-#for i in genesSeuls:
-#	esp = [geneBank.dicGenes[s] for s in lstGenesAnc[i].names]
-#	if len(esp) >= 2:
-#		lstDiags.append( (1,[i],set([(e,c) for (e,c,_) in esp])) )
-#	#print "ajout de ", lstDiags[-1]
-#
-#print >> sys.stderr, len(lstDiags)
+
+
+
 #sys.exit(0)
 
 
-# Il faut calculer l'apport de chaque espece
-dicPoidsEspeces = {}
-def calcPoidsFils(node, calc):
-	if node in phylTree.listSpecies:
-		dicPoidsEspeces[node] = calc
-	elif options["millionYearsWeights"]:
-		poids = calc / sum([1./float(a) for (_,a) in phylTree.items[node]])
-		for (f,a) in phylTree.items[node]:
-			calcPoidsFils(f, poids/float(a))
-	else:
-		poids = calc / float(len(phylTree.items[node]))
-		for f in phylTree.branches[node]:
-			calcPoidsFils(f, poids)
+print >> sys.stderr, len(lstDiags)
+# Les genes seuls vont devenir des diagonales de 1
+genesSeuls = set(xrange(len(lstGenesAnc)))
+for (_,d,_) in lstDiags:
+	genesSeuls.difference_update(d)
+for i in genesSeuls:
+	continue
+	esp = [geneBank.dicGenes[s] for s in lstGenesAnc[i].names]
+	if len(esp) >= 2:
+		lstDiags.append( (1,[i],set([(e,c) for (e,c,_) in esp])) )
+	#print "ajout de ", lstDiags[-1]
 
-phylTree.changeRoot(options["ancestr"])
-calcPoidsFils(options["ancestr"], 1.)
-
-print >> sys.stderr, "debut", dicPoidsEspeces
+print >> sys.stderr, len(lstDiags)
 #sys.exit(0)
 
 combin = utils.myTools.myCombinator([])
@@ -118,11 +106,15 @@ dicAretes = dict([(i,{}) for i in xrange(len(lstDiags))])
 for (i1,i2) in utils.myTools.myMatrixIterator(len(lstDiags), len(lstDiags), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 	(_,_,e1) = lstDiags[i1]
 	(_,_,e2) = lstDiags[i2]
-	communEsp = set([e for (e,_) in e1.intersection(e2)])
-
-	propF1 = sum([dicPoidsEspeces[e] for e in communEsp.intersection(fils1)])
-	propF2 = sum([dicPoidsEspeces[e] for e in communEsp.intersection(fils2)])
-	propOut = sum([dicPoidsEspeces[e] for e in communEsp.intersection(outgroup)])
+	commun = e1.intersection(e2)
+	communEsp = set([e for (e,_) in commun])
+	
+	propF1 = float(len(communEsp.intersection(fils1))) / float(len(fils1))
+	propF2 = float(len(communEsp.intersection(fils2))) / float(len(fils2))
+	if len(outgroup) == 0:
+		propOut = 0
+	else:
+		propOut = float(len(communEsp.intersection(outgroup))) / float(len(outgroup))
 	
 	score = propF1*propF2 + propF1*propOut + propF2*propOut
 	
@@ -137,6 +129,8 @@ for (i1,i2) in utils.myTools.myMatrixIterator(len(lstDiags), len(lstDiags), util
 print >> sys.stderr, "impression"
 indComp = 0
 for g in combin:
+	#print len(g)
+	#continue
 	indComp += 1
 	nb = len(g)
 	f = open('/users/ldog/muffato/work/temp/walktrap/%s/nodes.%d' % (options["ancestr"], indComp), 'w')

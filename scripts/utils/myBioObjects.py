@@ -48,48 +48,77 @@ class PhylogeneticTree:
 					self.items[nom].append( (e,age-ages[e]) )
 				else:
 					self.items[nom].append( (e,age) )
-			
 		f.close()
-		
 		self.root = nom
-		self.branchesSpecies = {}
-		self.species = {}
-		self.listSpecies = []
-		self.branches = {}
-		self.listAncestr = []
 		
+		print >> sys.stderr, "Analyse des donnees ...",
+		self.__initialize()
+		
+		print >> sys.stderr, "OK"
+
+
+	# Initialisation des listes des especes, des outgroup ...
+	def __initialize(self):
+
 		def recInitialize(node):
 			self.branchesSpecies[node] = []
 			self.species[node] = []
 			self.branches[node] = []
+			self.outgroupNode[node] = None
 			if node in self.items:
 				self.listAncestr.append(node)
-				for f in self.branches[node]:
+				for (f,_) in self.items[node]:
 					recInitialize(f)
 					self.branches[node].append(f)
 					self.branchesSpecies[node].append(self.species[f])
 					self.species[node].extend(self.species[f])
+				for (f,_) in self.items[node]:
+					self.outgroupNode[f] = self.branches[node][:]
+					self.outgroupNode[f].remove(f)
+					
 			else:
 				self.listSpecies.append(node)
 				self.branchesSpecies[node].append(node)
 				self.species[node].append(node)
-			
+	
+		self.branches = {}
+		self.branchesSpecies = {}
+		self.species = {}
+		self.listSpecies = []
+		self.listAncestr = []
+		self.outgroupNode = {}
+
 		recInitialize(self.root)
 		
-		print >> sys.stderr, "OK"
-		print self.branches
-		print self.branchesSpecies
-		print self.listSpecies
-		print self.species
-		print self.listAncestr
-		sys.exit(0)
+		self.outgroupSpecies = {}
+		for node in self.items:
+			self.outgroupSpecies[node] = list(set(self.listSpecies).difference(self.species[node]))
 
+	# Deplace la partie de l'arbre des outgroup en tant que fils, pour avoir une nouvelle racine
+	def changeRoot(self, newRoot):
+
+		def recChange(newRoot):
+			if newRoot == self.root:
+				return
+
+			par = self.parent[newRoot]
+			recChange(par)
+			
+			age = [a for (e,a) in self.items[par] if e == newRoot][0]
+			self.items[par].remove( (newRoot,age) )
+			self.parent[newRoot] = None
+			self.items[newRoot].append( (par, age) )
+			self.parent[par] = newRoot
+		
+		recChange(newRoot)
+		self.root = newRoot
+		self.__initialize()
 
 	def getFirstParent(self, anc1, anc2):
 		if anc1 in self.getSpecies(anc2):
 			return anc2
 		anc = anc1
-		while anc2 not in self.getSpecies(anc):
+		while anc2 not in self.species[anc]:
 			anc = self.parent[anc]
 		return anc
 
