@@ -31,8 +31,8 @@ class PhylogeneticTree:
 		
 		self.items = {}
 		self.parent = {}
+		self.ages = {}
 		
-		ages = {}
 		f = myTools.myOpenFile(nom, 'r')
 		for ligne in f:
 			c = ligne.split()
@@ -40,12 +40,12 @@ class PhylogeneticTree:
 				continue
 			nom = c[0].strip()
 			age = int(c[1])
-			ages[nom] = age
+			self.ages[nom] = age
 			self.items[nom] = []
 			for e in c[2:]:
 				self.parent[e] = nom
-				if e in ages:
-					self.items[nom].append( (e,age-ages[e]) )
+				if e in self.ages:
+					self.items[nom].append( (e,age-self.ages[e]) )
 				else:
 					self.items[nom].append( (e,age) )
 		f.close()

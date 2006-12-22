@@ -120,6 +120,8 @@ for merge in allMerges:
 		cluster = cluster + 1
 		printAllChildren (merge.father)
 		print
+
+sys.exit(0)
 lonelyNodes = 0
 
 for i in xrange (max / 2 + 1):

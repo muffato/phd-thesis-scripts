@@ -49,7 +49,7 @@ def loadDiagsFile(nom, diagEntry):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "genesList.conf", "diagsList"], \
-	[("ancestr",str,""), ("millionYearsWeights",bool,True), ("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
+	[("ancestr",str,""), ("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
@@ -67,7 +67,7 @@ outgroup = phylTree.outgroupSpecies[options["ancestr"]]
 print >> sys.stderr, fils1, fils2, outgroup
 
 # Les genomes modernes
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.species[options["ancestr"]])
+#geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.species[options["ancestr"]])
 
 # Les diagonales
 diagEntry = {}
@@ -98,21 +98,29 @@ dicPoidsEspeces = {}
 def calcPoidsFils(node, calc):
 	if node in phylTree.listSpecies:
 		dicPoidsEspeces[node] = calc
-	elif options["millionYearsWeights"]:
-		poids = calc / sum([1./float(a) for (_,a) in phylTree.items[node]])
-		for (f,a) in phylTree.items[node]:
-			calcPoidsFils(f, poids/float(a))
 	else:
 		poids = calc / float(len(phylTree.items[node]))
 		for f in phylTree.branches[node]:
 			calcPoidsFils(f, poids)
 
-phylTree.changeRoot(options["ancestr"])
-calcPoidsFils(options["ancestr"], 1.)
+def calcPoids(node):
+	# Les fils a egalite avec un poids de 1
+	for f in phylTree.branches[node]:
+		calcPoidsFils(f, 1.)
+	outgroup = []
+	anc = node
+	while anc in phylTree.parent:
+		par = phylTree.parent[anc]
+		outgroup.extend([(e,2*phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
+		anc = par
+	s = sum([1./math.log(a) for (_,a) in outgroup])
+	for (e,a) in outgroup:
+		calcPoidsFils(e, 1. / (math.log(a)*s))
+
+calcPoids(options["ancestr"])
 
 print >> sys.stderr, "debut", dicPoidsEspeces
-#sys.exit(0)
-
+print >> sys.stderr, fils1, fils2, outgroup
 combin = utils.myTools.myCombinator([])
 dicAretes = dict([(i,{}) for i in xrange(len(lstDiags))])
 for (i1,i2) in utils.myTools.myMatrixIterator(len(lstDiags), len(lstDiags), utils.myTools.myMatrixIterator.StrictUpperMatrix):
