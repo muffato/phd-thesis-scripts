@@ -43,13 +43,15 @@ def buildAncFile(anc, lastComb):
 	esp = phylTree.species[anc]
 	print >> sys.stderr, "Construction des familles d'orthologues de", anc, ":", "-".join(esp), "",
 	for (i,j) in utils.myTools.myMatrixIterator(len(esp), len(esp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-		f = utils.myTools.myOpenFile(options["orthoFile"] % (esp[i],esp[j]), 'r')
-		for ligne in f:
-			c = ligne.split()
-			if c[6] not in homologies:
-				continue
-			comb.addLink([c[0], c[3]])
-		f.close()
+		orthos = utils.myGenomes.GenomeFromOrthosList(options["orthoFile"] % (esp[i],esp[j]), filter=homologies)
+		for g in orthos:
+			comb.addLink(g.names)
+		#for ligne in f:
+		#	c = ligne.split()
+		#	if c[6] not in homologies:
+		#		continue
+		#	comb.addLink([c[0], c[3]])
+		#f.close()
 		sys.stderr.write('.')
 	print >> sys.stderr, " OK"
 	

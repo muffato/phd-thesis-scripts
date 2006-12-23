@@ -170,7 +170,7 @@ class GenomeFromOrthosList(Genome):
 	#
 	# Constructeur
 	#
-	def __init__(self, nom):
+	def __init__(self, nom, filter=[]):
 		
 		Genome.__init__(self, nom)
 		
@@ -182,8 +182,12 @@ class GenomeFromOrthosList(Genome):
 		# On lit chaque ligne
 		for ligne in f:
 			champs = ligne.split()
-			combin.addLink([champs[0], champs[3]])
-			
+			if len(champs) == 11:
+				if champs[6] in filter:
+					combin.addLink([champs[0], champs[3]])
+			else:
+				if champs[4] in filter:
+					combin.addLink([champs[0], champs[2]])
 		f.close()
 		
 		nb = 0
