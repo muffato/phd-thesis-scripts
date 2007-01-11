@@ -35,4 +35,6 @@ for s in sys.stdin:
 		if g in geneBank.dicGenes:
 			(e,_,_) = geneBank.dicGenes[g]
 			score[e] += 1
-	print "\t".join([score[e] for e in esp])
+	#print score
+	if max(score.values()) >= 2:
+		print s, #"\t".join([score[e] for e in esp])

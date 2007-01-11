@@ -57,11 +57,15 @@ def colorAncestr(esp, e, geneBank, para, orthos, col, dicGenesAnc, chrAnc):
 
 	# On parcourt les chromosomes de l'espece
 	for c in genome.lstChr:
-		lastOrig = set([])
-		bloc = []
+		
 		# Eviter d'essayer de creer des DCS sur des scaffolds trop petits
 		if len(genome.lstGenes[c]) < options["minChrLen"]:
 			continue
+		
+		lastOrig = set([])
+		bloc = []
+		(lastCT,lastI) = ("",0)
+		
 		for tg in genome.lstGenes[c]:
 			g = tg.names[0]
 
@@ -71,34 +75,35 @@ def colorAncestr(esp, e, geneBank, para, orthos, col, dicGenesAnc, chrAnc):
 			nbOrthos += 1
 			
 			(cT,i) = orthosDup[g]
-			orig = set([cT])
-			for gT in genomeDup.getGenesNearB(cT, i, options["precisionChrAnc"]):
-				s = gT.names[0]
-				if s not in parasDup:
-					continue
-				for ss in parasDup[s]:
-					(cT2,_) = genomeDup.dicGenes[ss]
-					orig.add(cT2)
-			nouvOrig = lastOrig & orig
-			if len(nouvOrig) == 0:
+			ok = False
+			if cT == lastCT:
+				ok = True
+			else:
+				gTn1 = [gT.names[0] for gT in genomeDup.getGenesNearN(lastCT, lastI, options["precisionChrAnc"])]
+				gTn2 = [gT.names[0] for gT in genomeDup.getGenesNearN(cT, i, options["precisionChrAnc"])]
+				gTp = set(utils.myMaths.flatten([parasDup[s] for s in gTn2 if s in parasDup]))
+				print ":", len(gTn2), len(gTp)
+				if len(gTp.intersection(gTn1)) > 0:
+					ok = True
+				
+			if not ok:
 				if len(bloc) != 0:
 					nbBlocs += 1
-					#print "----"
+					print "----"
 					addDCS(bloc, col, dicGenesAnc, chrAnc, esp, e)
 				bloc = []
-				nouvOrig = orig
-			#print c, cT, nouvOrig, orig
+			print g, c, genomeDup.lstGenes[cT][i].names[0], cT
 			bloc.append( (g,cT) )
-			lastOrig = nouvOrig
+			(lastCT,lastI) = (cT,i)
 
 		if len(bloc) != 0:
 			nbBlocs += 1
-			#print "----"
+			print "----"
 			addDCS(bloc, col, dicGenesAnc, chrAnc, esp, e)
 		sys.stderr.write(".")
 	
 	print >> sys.stderr, "", nbBlocs, "blocs, pour", nbOrthos, "genes orthologues"
-
+	sys.exit(0)
 
 #
 # Construit les tables d'association "nom de gene" -> couleur
@@ -107,6 +112,7 @@ def colorAncestr(esp, e, geneBank, para, orthos, col, dicGenesAnc, chrAnc):
 def addDCS(bloc, col, dicGenesAnc, chrAnc, eNonDup, eDup):
 
 	# Renvoie le chromosome ancestral qui a le meilleur score pour la region consideree
+	#print len(bloc)
 	score = {}
 	for c in chrAnc:
 		score[c] = len([cT for (_,cT) in bloc if cT in chrAnc[c][eDup]])
@@ -216,7 +222,7 @@ def loadChrAncIni(nom):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "genesAncestraux.list", "draftPreDupGenome.conf", "phylTree.conf"],
-	[("minChrLen",int,20), ("precisionChrAnc",int,1000000), ("especesNonDup",str,""), ("especesDup",str,""), ("showStats",bool,False)], \
+	[("minChrLen",int,20), ("precisionChrAnc",int,10), ("especesNonDup",str,""), ("especesDup",str,""), ("showStats",bool,False)], \
 	__doc__ \
 )
 

@@ -7,6 +7,11 @@ from bz2 import BZ2File
 from gzip import GzipFile
 
 
+null = open('/dev/null', 'w')
+stdin = sys.stdin
+stdout = sys.stdout
+stderr = sys.stderr
+
 ##################################################################
 # Cette classe ouvre le fichier en le decompressant s'il le faut #
 #   Retourne l'objet FILE et le nom complet du fichier           #

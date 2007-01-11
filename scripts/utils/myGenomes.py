@@ -98,10 +98,12 @@ class Genome:
 	#
 	# Renvoie les noms des genes presents aux alentours d'un gene donne
 	#	
-	def getGenesNear(self, chr, index, l):
+	def getGenesNearB(self, chr, index, l):
+		if chr not in self.lstGenes:
+			return
 		g = self.lstGenes[chr][index]
-		x1 = g.beginning
-		x2 = g.end
+		x1 = g.beginning-l
+		x2 = g.end+l
 		for i in xrange(index+1, len(self.lstGenes[chr])):
 			g = self.lstGenes[chr][i]
 			if g.beginning > x2:
@@ -113,6 +115,19 @@ class Genome:
 			if g.end < x1:
 				break
 			yield g
+	#
+	# Renvoie les noms des genes presents aux alentours d'un gene donne
+	#	
+	def getGenesNearN(self, chr, index, l):
+		if chr not in self.lstGenes:
+			return
+		
+		for i in xrange(index+1, min(len(self.lstGenes[chr]), index+l+1)):
+			yield self.lstGenes[chr][i]
+		
+		for i in xrange(index-1, max(-1, index-1-l), -1):
+			yield self.lstGenes[chr][i]
+
 
 	def iterOnChromosome(self, c):
 		for g in self.lstGenes[c]:
