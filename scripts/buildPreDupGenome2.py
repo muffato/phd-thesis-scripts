@@ -196,12 +196,11 @@ def addDCS(bloc, col, dicGenesAnc, chrAnc, eNonDup):
 	if s == 0:
 		return ""
 	
-	r = float(s-1) / float(len(bloc))
 	for c in chrAnc:
 		if score[c] == s:
 			cc = c
 			for g in bloc:
-				col[dicGenesAnc[g[1]][1]].append( (r,len(bloc),c,eNonDup) )
+				col[dicGenesAnc[g[1]][1]].append( (len(bloc),c,eNonDup) )
 	return cc
 
 
@@ -214,8 +213,8 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 	# Renvoie un score (~pourcentage d'especes) qui soutiennent l'attribution d'un gene a un chromosome
 	#
 	def calcChrAncScore(col, ch):
-		espOK = [eND for (_,_,c,eND) in col if c == ch]
-		espNO = [eND for (_,_,c,eND) in col if c != ch]
+		espOK = [eND for (_,c,eND) in col if c == ch]
+		espNO = [eND for (_,c,eND) in col if c != ch]
 		
 		def recCalc(node):
 			if node in espALL:
@@ -275,7 +274,7 @@ def printColorAncestr(genesAnc, chrAncGenes):
 		for i in chrAncGenes[c]:
 			nb += 1
 			if options["showStats"]:
-				print "%s\t%d\t%s" % (c, nb, "\t".join(["%.2f" % (100*col[i][x]) for x in lstChr]))
+				print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*col[i][x]) for x in lstChr]), 100*col[i][c])
 			else:
 				print c, " ".join(genesAnc[i].names)
 		

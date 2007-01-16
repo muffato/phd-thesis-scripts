@@ -25,7 +25,8 @@ lst = []
 for l in sys.stdin:
 	c = l.split()
 	for x in c:
-		lst.append(int(x))
+		#lst.append(int(x))
+		lst.append(float(x))
 
 if len(lst) > 0:
 	res = (utils.myMaths.moyenne(lst), utils.myMaths.ecartType(lst), utils.myMaths.mediane(lst), min(lst), max(lst), len(lst))

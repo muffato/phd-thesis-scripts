@@ -16,7 +16,7 @@ import sys
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
-
+import utils.myCommunities
 
 #############
 # FONCTIONS #
@@ -121,9 +121,11 @@ calcPoids(options["ancestr"])
 
 print >> sys.stderr, "debut", dicPoidsEspeces
 print >> sys.stderr, fils1, fils2, outgroup
-combin = utils.myTools.myCombinator([])
-dicAretes = dict([(i,{}) for i in xrange(len(lstDiags))])
-for (i1,i2) in utils.myTools.myMatrixIterator(len(lstDiags), len(lstDiags), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+
+def calcScore(i1, i2):
+
+	global lstDiags, dicPoidsEspeces, fils1, fils2, outgroup
+	
 	(_,_,e1) = lstDiags[i1]
 	(_,_,e2) = lstDiags[i2]
 	communEsp = set([e for (e,_) in e1.intersection(e2)])
@@ -132,28 +134,10 @@ for (i1,i2) in utils.myTools.myMatrixIterator(len(lstDiags), len(lstDiags), util
 	propF2 = sum([dicPoidsEspeces[e] for e in communEsp.intersection(fils2)])
 	propOut = sum([dicPoidsEspeces[e] for e in communEsp.intersection(outgroup)])
 	
-	score = propF1*propF2 + propF1*propOut + propF2*propOut
+	return propF1*propF2 + propF1*propOut + propF2*propOut
 	
-	if score > 0:
-		combin.addLink([i1,i2])
-		dicAretes[i1][i2] = score
-		dicAretes[i2][i1] = score
 
-#sys.exit(0)
+clusters = utils.myCommunities.launchCommunitiesBuild(len(lstDiags), calcScore)
 
-# On traite chaque composante connexe
-print >> sys.stderr, "impression"
-indComp = 0
-for g in combin:
-	indComp += 1
-	nb = len(g)
-	f = open('/users/ldog/muffato/work/temp/walktrap/%s/nodes.%d' % (options["ancestr"], indComp), 'w')
-	for i in xrange(nb):
-		print >> f, i, g[i]
-	f.close()
-	f = open('/users/ldog/muffato/work/temp/walktrap/%s/graph.%d' % (options["ancestr"], indComp), 'w')
-	for (i1,i2) in utils.myTools.myMatrixIterator(nb, nb, utils.myTools.myMatrixIterator.StrictUpperMatrix):
-		if g[i2] in dicAretes[g[i1]]:
-			print >> f, i1, i2, dicAretes[g[i1]][g[i2]]
-	f.close()
-	
+for c in clusters:
+	print c

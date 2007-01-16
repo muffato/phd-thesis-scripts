@@ -115,7 +115,7 @@ class PhylogeneticTree:
 		self.__initialize()
 
 	def getFirstParent(self, anc1, anc2):
-		if anc1 in self.getSpecies(anc2):
+		if anc1 in self.species[anc2]:
 			return anc2
 		anc = anc1
 		while anc2 not in self.species[anc]:
