@@ -118,8 +118,8 @@ while anc in phylTree.parent:
 			else:
 				dicOutgroupGenes[i] = set(newGenes)
 	del tmpGenesAnc
-	del ianc
-	del newGenes
+del newGenes
+del ianc
 
 # On reecrit le genome en terme d'especes
 genome = {}

@@ -58,7 +58,7 @@ def calcDiags(e1, e2):
 
 	# Chargement des orthologues
 	genesAnc = utils.myGenomes.GenomeFromOrthosList(options["orthosFile"] % (e1,e2))
-	newLoc = [[] for x in xrange(len(genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]))]
+	newLoc = [[] for x in xrange(len(genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]))]
 	del genesAnc.lstGenes
 
 	g1 = geneBank.dicEspeces[e1]

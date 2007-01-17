@@ -10,17 +10,9 @@ import myMaths
 import myGenomes
 import myTools
 
-
-#anc=Percomorph
-#num=1
-#alpha=0.48397
-#relevance=0.54888
-#python /users/ldog/muffato/work/scripts/extract_clusters.py $anc/log.$num $alpha $anc/nodes.$num
-#| ~/work/scripts/toto2.py ~/work/phylTree.noLowCoverage.conf ~/work/data41/diags/diags.noKeepOnlyOrthos.noLowCoverage.projected.longest.moreSpecies.bz2 -ancestr=$anc
-#| ~/work/scripts/printAncestralGenome.py ~/work/data41/ancGenes/ancGenes.$anc.list.bz2 /dev/stdin
-#| sort -k1,1n -k2 > Genome.$anc-$alpha-$relevance
-
 def launchCommunitiesBuild(nbItems, scoreFunc, keepLonelyNodes):
+	
+	print >> sys.stderr, "Calcul des scores des aretes ...",
 	combin = myTools.myCombinator([])
 	dicAretes = dict([(i,{}) for i in xrange(nbItems)])
 	for (i1,i2) in myTools.myMatrixIterator(nbItems, nbItems, myTools.myMatrixIterator.StrictUpperMatrix):
@@ -31,15 +23,18 @@ def launchCommunitiesBuild(nbItems, scoreFunc, keepLonelyNodes):
 			combin.addLink([i1,i2])
 			dicAretes[i1][i2] = score
 			dicAretes[i2][i1] = score
+	print >> sys.stderr, "OK"
 
 	# On traite chaque composante connexe
 	res = []
-	indComp = 1
+	
+	indComp = 0
 	for g in combin:
 	
+		indComp += 1
 		print >> sys.stderr, "Traitement de la composante connexe %d ..." % indComp,
 		
-		(stdin,stdout) = os.popen2('/users/ldog/muffato/work/scripts/walktrap/walktrap -s')
+		(stdin,stdout) = os.popen2('/users/ldog/muffato/work/scripts/walktrap/walktrap -s -t10')
 		
 		nb = len(g)
 		for (i1,i2) in myTools.myMatrixIterator(nb, nb, myTools.myMatrixIterator.StrictUpperMatrix):
@@ -50,10 +45,26 @@ def launchCommunitiesBuild(nbItems, scoreFunc, keepLonelyNodes):
 		print >> sys.stderr, "Extraction des communautes ...",
 
 		comm = loadCommunitiesFile(stdout)
-		res.extend([[g[i] for i in c] for c in comm])
-		#if keepLonelyNodes:
+		tout = set(xrange(nb))
+		r = []
+		for c in comm:
+			tout.difference_update(c)
+			r.append([g[i] for i in c])
 		
-		print >> sys.stderr, len(comm), "OK"
+		
+		# Lorsque trop de diagonales sont laissees de cote, c'est qu'il
+		# y a un probleme, on ne divise pas alors la composante connexe
+		pourcentage = (100*len(tout))/nb
+		print >> sys.stderr, " %d%% N/A," % pourcentage,
+
+		if pourcentage > 50:
+			r = [g[:]]
+		else:
+			if keepLonelyNodes:
+				r.append([g[i] for i in tout])
+		
+		res.extend(r)
+		print >> sys.stderr, "%d clusters" % len(r)
 
 
 	return res
@@ -117,7 +128,7 @@ def loadCommunitiesFile(file):
 	
 	vals.sort()
 	scale = vals[-1][1]
-	print >> sys.stderr, "relevance=%f alpha=%f" % vals[-1],
+	print >> sys.stderr, "relevance=%f alpha=%f " % vals[-1],
 	
 	alreadySeen = set([])
 
@@ -126,12 +137,6 @@ def loadCommunitiesFile(file):
 		if merge.scale < scale and merge.father not in alreadySeen:
 			sys.stderr.write('.')
 			lstClusters.append( getAllChildren(merge.father) )
-
-	if printLonelyNodes:
-		for i in xrange (max / 2 + 1):
-			if i not in alreadySeen:
-				pass
-		#		print i
 
 	return lstClusters
 

@@ -198,10 +198,10 @@ class GenomeFromOrthosList(Genome):
 		for ligne in f:
 			champs = ligne.split()
 			if len(champs) == 11:
-				if champs[6] in filter:
+				if (champs[6] in filter) or (len(filter) == 0):
 					combin.addLink([champs[0], champs[3]])
 			else:
-				if champs[4] in filter:
+				if (champs[4] in filter) or (len(filter) == 0):
 					combin.addLink([champs[0], champs[2]])
 		f.close()
 		

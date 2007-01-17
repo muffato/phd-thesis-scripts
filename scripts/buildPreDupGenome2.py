@@ -1,10 +1,10 @@
 #! /users/ldog/muffato/python -OO
 
 __doc__ = """
-Ce script scanne chaque genome d'espece non dupliquee en le comparant a chaque genome duplique.
-Pour chaque gene, on dresse une liste de ses origines possibles en utilisant son orthologue chez l'espece dupliquee puis en etudiant les paralogues autour.
+Ce script scanne chaque genome d'espece non dupliquee en le comparant a chaque genome duplique et cree les DCS.
+Un gene est inclus dans le DCS courant si son orthologue est proche d'un gene paralogue d'un gene proche des genes inclus dans le DCS.
 On regroupe les genes en faisant des suites qui ont une origine commune.
-Chaque gene ancestral recoit son chromosome ancestral par un vote a la majorite en fonction de chaque annotation.
+Chaque gene ancestral recoit son chromosome ancestral par un vote a la majorite en fonction l'annotation de chaque tetrapode
 """
 
 # INITIALISATION #
@@ -35,13 +35,13 @@ def loadChrAncIni(nom):
 		for x in c[1:]:
 			if x[0] == '*':
 				e = x[1:]
-				dic[e] = []
+				dic[e] = set([])
 			else:
 				try:
 					x = int(x)
 				except Exception:
 					pass
-				dic[e].append(x)
+				dic[e].add(x)
 		chrAnc[c[0]] = dic
 	f.close()
 	return chrAnc
@@ -65,7 +65,7 @@ def buildParaOrtho(lstGenesAnc, geneBank):
 				para[e][x] = [y for y in gT if y != x]
 			gNT = [x for x in g.names if x not in genomeDup.dicGenes]
 			for x in gNT:
-				ortho[e][x] = genomeDup.dicGenes[gT[0]]
+				ortho[e][x] = [genomeDup.dicGenes[y] for y in gT]
 	return (para, ortho)
 
 
@@ -92,7 +92,7 @@ def colorAncestr(esp, e, geneBank, para, orthos):
 			continue
 		
 		bloc = []
-		lastCT = ""
+		lastCT = []
 		lastGT = set([])
 		
 		for tg in genome.lstGenes[c]:
@@ -103,16 +103,29 @@ def colorAncestr(esp, e, geneBank, para, orthos):
 				#print g, c
 				continue
 			nbOrthos += 1
-			
-			(cT,i) = orthosDup[g]
-			gTn = [gT.names[0] for gT in genomeDup.getGenesNearN(cT, i, options["precisionChrAnc"]) if gT.names[0] in parasDup]
-			
-			if cT == lastCT:
-				ok = True
-			else:
-				gTp = utils.myMaths.flatten([parasDup[s] for s in gTn])
-				#print ":", len(gTp)
-				ok = (len(lastGT.intersection(gTp)) > 0)
+	
+			for (cT,i) in orthosDup[g]:
+				gTn = [gT.names[0] for gT in genomeDup.getGenesNearN(cT, i, options["precisionChrAnc"]) if gT.names[0] in parasDup]
+				
+				if cT in lastCT:
+					ok = True
+				else:
+					gTp = utils.myMaths.flatten([parasDup[s] for s in gTn])
+					#print ":", len(gTp)
+					ok = (len(lastGT.intersection(gTp)) > 0)
+				
+				if ok:
+					break
+		
+			#(cT,i) = orthosDup[g]
+			#gTn = [gT.names[0] for gT in genomeDup.getGenesNearN(cT, i, options["precisionChrAnc"]) if gT.names[0] in parasDup]
+			#
+			#if cT == lastCT:
+			#	ok = True
+			#else:
+			#	gTp = utils.myMaths.flatten([parasDup[s] for s in gTn])
+			#	#print ":", len(gTp)
+			#	ok = (len(lastGT.intersection(gTp)) > 0)
 				
 			if not ok:
 				if len(bloc) != 0:
@@ -123,7 +136,7 @@ def colorAncestr(esp, e, geneBank, para, orthos):
 				lastGT = set([])
 				
 			bloc.append( g )
-			lastCT = cT
+			lastCT = [cT for (cT,i) in orthosDup[g]]
 			lastGT.update(gTn)
 			#print g, c, genomeDup.lstGenes[cT][i].names[0], cT #, lastGT
 
@@ -136,6 +149,8 @@ def colorAncestr(esp, e, geneBank, para, orthos):
 	print >> sys.stderr, "", nbBlocs, "blocs, pour", nbOrthos, "genes orthologues"
 
 	return lstBlocs
+
+
 
 # Synthese des DCS
 
@@ -151,7 +166,7 @@ def doSynthese(combin, eND, geneBank, orthos, col, dicGenesAnc, chrAnc):
 			p = geneBank.dicEspeces[eND].dicGenes[g]
 			a = {}
 			for eD in geneBank.lstEspecesDup:
-				a[eD] = orthos[eD].get(g,("",""))[0]
+				a[eD] = [c for (c,_) in orthos[eD].get(g,[])]
 			l.append( (p,g,a) )
 		l.sort()
 		lstBlocs.append(l)
@@ -184,12 +199,12 @@ def addDCS(bloc, col, dicGenesAnc, chrAnc, eNonDup):
 
 	score = dict([(c,0) for c in chrAnc])
 	for eDup in geneBank.lstEspecesDup:
-		l = [a[eDup] for (_,_,a) in bloc if a[eDup] != ""]
+		l = [a[eDup] for (_,_,a) in bloc if len(a[eDup]) > 0]
 		# On veut une veritable alternance
-		if len(set(l)) < 2:
+		if len(set(utils.myMaths.flatten(l))) < 2:
 			continue
 		for c in chrAnc:
-			score[c] += float(len([x for x in l if x in chrAnc[c][eDup]])) / float(len(l))
+			score[c] += float(len([x for x in l if len(chrAnc[c][eDup].intersection(x))>0 ])) / float(len(l))
 			
 	s = max(score.values())
 

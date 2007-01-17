@@ -119,8 +119,7 @@ def calcPoids(node):
 
 calcPoids(options["ancestr"])
 
-print >> sys.stderr, "debut", dicPoidsEspeces
-print >> sys.stderr, fils1, fils2, outgroup
+print >> sys.stderr, dicPoidsEspeces
 
 def calcScore(i1, i2):
 
@@ -137,7 +136,26 @@ def calcScore(i1, i2):
 	return propF1*propF2 + propF1*propOut + propF2*propOut
 	
 
-clusters = utils.myCommunities.launchCommunitiesBuild(len(lstDiags), calcScore)
+clusters = utils.myCommunities.launchCommunitiesBuild(len(lstDiags), calcScore, False)
 
+print >> sys.stderr, "Impression des chromosomes ancestraux ...",
+lstChr = []
 for c in clusters:
-	print c
+	lst = set([])
+	for i in c:
+		lst.update(lstDiags[i][1])
+	lstChr.append(lst)
+
+for (i1,i2) in utils.myTools.myMatrixIterator(len(lstChr), len(lstChr), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	inter = lstChr[i1].intersection(lstChr[i2])
+	lstChr[i1].difference_update(inter)
+	lstChr[i2].difference_update(inter)
+
+chrIndex = 0
+for c in lstChr:
+	chrIndex += 1
+	for i in c:
+		print chrIndex, " ".join(lstGenesAnc[i].names)
+
+
+print >> sys.stderr, "OK"
