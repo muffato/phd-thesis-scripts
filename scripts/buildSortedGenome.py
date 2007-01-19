@@ -118,8 +118,6 @@ while anc in phylTree.parent:
 			else:
 				dicOutgroupGenes[i] = set(newGenes)
 	del tmpGenesAnc
-del newGenes
-del ianc
 
 # On reecrit le genome en terme d'especes
 genome = {}
@@ -196,7 +194,7 @@ for c in genesAnc.lstChr:
 			print c, len(q),
 		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 	
-	print >> sys.stderr, len(utils.myMaths.unique(lstTot)), "solutions"
+	print >> sys.stderr, len(utils.myMaths.unique([l.res for l in lstTot])), "solutions"
 
 
 os.system('rm -f *%s*' % nom )

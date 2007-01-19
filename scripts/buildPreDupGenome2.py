@@ -100,7 +100,6 @@ def colorAncestr(esp, e, geneBank, para, orthos):
 
 			# Il faut un orthologue avec Tetraodon
 			if g not in orthos[e]:
-				#print g, c
 				continue
 			nbOrthos += 1
 	
@@ -111,26 +110,14 @@ def colorAncestr(esp, e, geneBank, para, orthos):
 					ok = True
 				else:
 					gTp = utils.myMaths.flatten([parasDup[s] for s in gTn])
-					#print ":", len(gTp)
 					ok = (len(lastGT.intersection(gTp)) > 0)
 				
 				if ok:
 					break
 		
-			#(cT,i) = orthosDup[g]
-			#gTn = [gT.names[0] for gT in genomeDup.getGenesNearN(cT, i, options["precisionChrAnc"]) if gT.names[0] in parasDup]
-			#
-			#if cT == lastCT:
-			#	ok = True
-			#else:
-			#	gTp = utils.myMaths.flatten([parasDup[s] for s in gTn])
-			#	#print ":", len(gTp)
-			#	ok = (len(lastGT.intersection(gTp)) > 0)
-				
 			if not ok:
 				if len(bloc) != 0:
 					nbBlocs += 1
-					#print "----"
 					lstBlocs.append(bloc)
 				bloc = []
 				lastGT = set([])
@@ -138,11 +125,9 @@ def colorAncestr(esp, e, geneBank, para, orthos):
 			bloc.append( g )
 			lastCT = [cT for (cT,i) in orthosDup[g]]
 			lastGT.update(gTn)
-			#print g, c, genomeDup.lstGenes[cT][i].names[0], cT #, lastGT
 
 		if len(bloc) != 0:
 			nbBlocs += 1
-			#print "----"
 			lstBlocs.append(bloc)
 		sys.stderr.write(".")
 	
@@ -174,19 +159,22 @@ def doSynthese(combin, eND, geneBank, orthos, col, dicGenesAnc, chrAnc):
 	
 	print >> sys.stderr, len(lstBlocs), "blocs pour", sum([len(x) for x in lstBlocs]), "orthologues",
 
+	if options["showDCS"]:
+		print "%s\t\t\t\t%s\t" % (eND, "\t".join(geneBank.lstEspecesDup))
+	
 	nbDCS = 0
 	DCSlen = 0
+
 	for gr in lstBlocs:
 		cc = addDCS(gr, col, dicGenesAnc, chrAnc, eND)
 		if cc != "":
 			nbDCS += 1
 			DCSlen += len(gr)
-		#for ((c,i),g,a) in gr:
-		#	print c, "\t", i, "\t", g, "\t",
-		#	for eD in geneBank.lstEspecesDup:
-		#		print "%s\t" % a[eD],
-		#	print cc
-		#print "---"
+		if options["showDCS"]:
+			for ((c,i),g,a) in gr:
+				print "%s\t%d\t%s\t\t%s\t%s" % \
+				(c, i, g, "\t".join(["/".join([str(x) for x in set(a[eD])]) for eD in geneBank.lstEspecesDup]), cc)
+			print "---"
 
 	print >> sys.stderr, "/", nbDCS, "DCS pour", DCSlen, "orthologues"
 
@@ -278,22 +266,22 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 def printColorAncestr(genesAnc, chrAncGenes):
 	
 	print >> sys.stderr, "Impression des associations genes / chromosomes ancestraux ... ",
-	nb = 0	
 
 	lstChr = sorted(chrAncGenes)
 	
-	if options["showStats"]:
+	if options["showQuality"]:
 		print "\t\t%s" % "\t".join(lstChr)
 	
 	for c in lstChr:
+		nb = 0
 		for i in chrAncGenes[c]:
 			nb += 1
-			if options["showStats"]:
+			if options["showQuality"]:
 				print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*col[i][x]) for x in lstChr]), 100*col[i][c])
-			else:
+			if options["showAncestralGenome"]:
 				print c, " ".join(genesAnc[i].names)
 		
-	print >> sys.stderr, nb, "genes dans le genome ancestral"
+	print >> sys.stderr, sum([len(chrAncGenes[c]) for c in lstChr]), "genes dans le genome ancestral"
 
 
 
@@ -303,9 +291,9 @@ def printColorAncestr(genesAnc, chrAncGenes):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "genesAncestraux.list", "draftPreDupGenome.conf", "phylTree.conf"],
-	[("minChrLen",int,20), ("precisionChrAnc",int,10), \
+	[("minChrLen",int,20), ("precisionChrAnc",int,10), ("usePhylTreeScoring",bool,False), \
 	("especesNonDup",str,""), ("especesDup",str,""), \
-	("usePhylTreeScoring",bool,False), ("showStats",bool,False)], \
+	("showDCS",bool,False), ("showQuality",bool,False), ("showAncestralGenome",bool,True)], \
 	__doc__ \
 )
 

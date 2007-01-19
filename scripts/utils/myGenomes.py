@@ -309,7 +309,7 @@ class AncestralGenome(Genome):
 ###########################################################
 class GeneBank:
 
-	def __init__(self, nom, only = []):
+	def __init__(self, nom, only = [], type = []):
 
 		self.dicGenes = {}
 		self.dicEspeces = {}
@@ -341,7 +341,8 @@ class GeneBank:
 			if s not in only and len(only) > 0:
 				continue
 
-			g = EnsemblGenome(champs[1])
+			if dup not in type and len(type) > 0:
+				continue
 			
 			if dup == "":
 				self.lstEspecesNonDup.append(s)
@@ -349,6 +350,8 @@ class GeneBank:
 				self.lstEspecesDup.append(s)
 			elif dup == '-':
 				self.lstEspecesOutgroup.append(s)
+			
+			g = EnsemblGenome(champs[1])
 			self.dicEspeces[s] = g
 			
 			for x in g.dicGenes:
