@@ -10,7 +10,7 @@ import myMaths
 import myGenomes
 import myTools
 
-def launchCommunitiesBuild(nbItems, scoreFunc, keepLonelyNodes):
+def launchCommunitiesBuild(nbItems, scoreFunc, keepLonelyNodes = False, minRelevance = 0, minCoverage = 0):
 	
 	print >> sys.stderr, "Calcul des scores des aretes ...",
 	combin = myTools.myCombinator([])
@@ -44,7 +44,7 @@ def launchCommunitiesBuild(nbItems, scoreFunc, keepLonelyNodes):
 
 		print >> sys.stderr, "Extraction des communautes ...",
 
-		comm = loadCommunitiesFile(stdout)
+		(v, comm) = loadCommunitiesFile(stdout)
 		tout = set(xrange(nb))
 		r = []
 		for c in comm:
@@ -57,7 +57,7 @@ def launchCommunitiesBuild(nbItems, scoreFunc, keepLonelyNodes):
 		pourcentage = (100*len(tout))/nb
 		print >> sys.stderr, " %d%% N/A," % pourcentage,
 
-		if pourcentage > 50:
+		if (pourcentage > 100*(1-minCoverage)) or (len(r) == 1) or (v < minRelevance):
 			r = [g[:]]
 		else:
 			if keepLonelyNodes:
@@ -124,7 +124,7 @@ def loadCommunitiesFile(file):
 			pass
 	
 	if len(vals) == 0:
-		return []
+		return (0,[])
 	
 	vals.sort()
 	scale = vals[-1][1]
@@ -138,7 +138,7 @@ def loadCommunitiesFile(file):
 			sys.stderr.write('.')
 			lstClusters.append( getAllChildren(merge.father) )
 
-	return lstClusters
+	return (vals[-1][0], lstClusters)
 
 
 

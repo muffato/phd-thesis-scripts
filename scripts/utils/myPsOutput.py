@@ -40,6 +40,11 @@ def printPsHeader(linewidth = 0.001):
 	print "} def"
 	print
 
+	# Toutes les couleurs
+	for coul in colorTable:
+		(r,g,b) = colorTable[coul]
+		print "/%s [%f %f %f] def" % (coul, r,g,b)
+	print
 #
 # Le pied de page PostScript
 #
@@ -77,7 +82,6 @@ def initColor():
 
 	ordre = lightColors + craniateColors + darkColors
 	for i in range(len(ordre)):
-		printColorDefinitionLine(ordre[i])
 		color[str(-(i+1))] = ordre[i]
 		color[chr(i+97)] = ordre[i]
 
@@ -89,11 +93,6 @@ def initColor():
 	for i in range(len(greekLetters)):
 		color[greekLetters[i]] = craniateColors[i]
 
-	printColorDefinitionLine("black")
-	printColorDefinitionLine("white")
-
-	print
-
 
 #
 # Permet de rajouter une couleur creee en direct
@@ -103,16 +102,12 @@ def getColor(s, d):
 	if s in color:
 		return color[s]
 
-	elif s in colorTable:
-		printColorDefinitionLine(s)
-		return s
-
 	elif s[0] == '#':
 		r = float(s[1:4])
 		g = float(s[5:8])
 		b = float(s[9:12])
 		
-		{}["tmp"] = (r/255., g/255., b/255.)
+		colorTable["tmp"] = (r/255., g/255., b/255.)
 		printColorDefinitionLine("tmp")
 		return "tmp"
 	else:
