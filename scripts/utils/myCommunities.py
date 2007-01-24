@@ -27,6 +27,7 @@ def launchCommunitiesBuild(nbItems, scoreFunc, keepLonelyNodes = False, minRelev
 
 	# On traite chaque composante connexe
 	res = []
+	relev = []
 	
 	indComp = 0
 	for g in combin:
@@ -64,10 +65,11 @@ def launchCommunitiesBuild(nbItems, scoreFunc, keepLonelyNodes = False, minRelev
 				r.append([g[i] for i in tout])
 		
 		res.extend(r)
+		relev.append(v)
 		print >> sys.stderr, "%d clusters" % len(r)
 
 
-	return res
+	return (relev, res)
 
 def loadCommunitiesFile(file):
 

@@ -155,11 +155,9 @@ for anc in diagEntry:
 		print >> sys.stderr, "OK (%d -> %d) ... Impression ..." % (len(diagEntry[anc]), len(lst)),
 		for (l,d,esp) in lst:
 			s.append( l )
-			if options["searchUndetectedSpecies"]:
-				supp = findNewSpecies(d, esp, anc)
-				print "%s\t%d\t%s\t%s\t%s" % (anc, l, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in esp]), " ".join(["%s/%s" % (e,c) for (e,c) in supp]))
-			else:
-				print "%s\t%d\t%s\t%s" % (anc, l, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in esp]))
+			supp = findNewSpecies(d, esp, anc)
+			print "%s\t%d\t%s\t%s\t%s" % \
+			(anc, l, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in esp]), " ".join(["%s/%s" % (e,c) for (e,c) in supp]))
 	
 	else:
 	

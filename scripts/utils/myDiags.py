@@ -139,6 +139,15 @@ def buildVoisins(lstDiags):
 	return voisins
 
 
+def buildReducedGraph(voisins):
+	newSommets = [x for x in voisins if len(voisins[x]) != 2]
+	for (i1,i2) in myTools.myMatrixIterator(len(newSommets), len(newSommets), myTools.myMaths.WholeWithoutDiag):
+		x = newSommets[i1]
+		y = newSommets[i2]
+		#if x[-1] in voisins[y[0]] or x[-1]
+
+
+
 def FloydWarshall(voisins):
 
 	dist = {}
@@ -176,6 +185,8 @@ function fw(int[1..n,1..n] graph) {
     return ( dist, pred ) // Tuple of the distance and predecessor matrices
 }
 """
+
+
 
 
 def extractLongestOverlappingDiags(oldDiags, genesAnc):
