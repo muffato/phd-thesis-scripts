@@ -26,8 +26,8 @@ import utils.myTools
 )
 
 esp = options["speciesList"].split(',')
-#geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], only=esp)
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"])
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], only=esp)
+#geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"])
 print >> sys.stderr, geneBank.dicEspeces.keys()
 
 for s in sys.stdin:
@@ -39,6 +39,6 @@ for s in sys.stdin:
 			score[e] += 1
 	#print score
 	tt = score.values()
-	if max(tt) <= 2 and tt.count(2) < tt.count(1):
-	#if max(score.values()) >= 2:
+	#if max(tt) <= 2 and tt.count(2) < tt.count(1):
+	if max(score.values()) <= 2:
 		print s, #"\t".join([score[e] for e in esp])

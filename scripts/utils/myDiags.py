@@ -113,127 +113,119 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 			callBackFunc(c1, c2, d1, d2)
 
 
-#
-# A partir d'une liste de diagonales, contruit la liste des voisins de chaque gene
-#
-def buildVoisins(lstDiags):
-	voisins = {}
+
+
+# lstTout est une liste de diagonales chevauchantes
+# Renvoie les plus longs chemins de genes ancestraux issus de ces diagonales,
+# puis les plus longs chemins avec les genes non encore utilises et ainsi de suite
+def getLongestPath(lstTout):
+
+	# A partir d'une liste de diagonales, contruit la liste des voisins de chaque gene
+	def buildVoisins(lstDiags):
+		voisins = {}
+		
+		for c in lstDiags:
+			if len(c) == 0:
+				continue
+			y = c[0]
+			if len(c) == 1 and y not in voisins:
+				voisins[y] = set([])
+			for i in xrange(1, len(c)):
+				x = y
+				y = c[i]
+				if x not in voisins:
+					voisins[x] = set([y])
+				else:
+					voisins[x].add(y)
+				if y not in voisins:
+					voisins[y] = set([x])
+				else:
+					voisins[y].add(x)
+		return voisins
+
+
+	# Construit un graphe dans lequel les suites d'aretes sans carrefours ont ete reduites
+	def buildReducedGraph():
+		newSommets = [x for x in voisins if len(voisins[x]) != 2]
+		aretes = dict([(x,dict()) for x in newSommets])
+
+		# Renvoie le chemin maximal qui part de s (en venant de pred)
+		# qui ne croise pas de carrefours
+		def followSommet(s, pred):
+			if s in newSommets:
+				return [s]
+			next = [x for x in voisins[s] if x != pred][0]
+			l = followSommet(next, s)
+			return [s]+l
+
+		for x in newSommets:
+			for v in voisins[x]:
+				l = followSommet(v, x)
+				if (l[-1] not in aretes[x]) or (len(l) > len(aretes[x][l[-1]])):
+					aretes[x][l[-1]] = l
+
+		return (newSommets, aretes)
+
+
+	# prend une liste de liste
+	# renvoie la liste des listes de longueur maximale
+	def selectLongest(lst):
+		m = -1
+		r = []
+		for (x,n) in lst:
+			if n < m:
+				continue
+			if n != m:
+				m = n
+				r = []
+			r.append( (x,n) )
+		return r
+		
+	# prend une liste (le chemin de depart)
+	# renvoie la liste des chemins maximaux en partant de ce chemin de depart
+	# Chaque liste est en fait un couple (liste ds noeuds, poids)
+	def recLongestPath( (currPath,currLength) ):
+		toto = [ (currPath,currLength) ]
+		for j in aretes[currPath[-1]]:
+			if j in currPath:
+				continue
+			tmp = recLongestPath( (currPath+[j], currLength+len(aretes[currPath[-1]][j])) )
+			toto = selectLongest(toto + tmp)
+			if toto[0][1] == len(voisins):
+				return [toto[0]]
+		return toto
+		
 	
-	for c in lstDiags:
-		if len(c) == 0:
-			continue
-		y = c[0]
-		if len(c) == 1 and y not in voisins:
-			voisins[y] = set([])
-		for i in xrange(1, len(c)):
-			x = y
-			y = c[i]
-			if x not in voisins:
-				voisins[x] = set([y])
+	# 1. On construit le graphe original
+	voisins = buildVoisins(lstTout)
+	sys.stderr.write('.')
+
+	# 2. On reduit le graphe
+	(newSommets, aretes) = buildReducedGraph()
+	sys.stderr.write('.')
+	
+	# 3. On extrait les chemins les plus longs
+	res = []
+	while len(newSommets) > 0:
+		(long,_) = selectLongest(myMaths.flatten([recLongestPath( ([i],0) ) for i in newSommets]))[0]
+		new = []
+		for x in long:
+			if len(new) == 0:
+				new.append(x)
 			else:
-				voisins[x].add(y)
-			if y not in voisins:
-				voisins[y] = set([x])
-			else:
-				voisins[y].add(x)
-	return voisins
-
-
-def buildReducedGraph(voisins):
-	newSommets = [x for x in voisins if len(voisins[x]) != 2]
-	for (i1,i2) in myTools.myMatrixIterator(len(newSommets), len(newSommets), myTools.myMaths.WholeWithoutDiag):
-		x = newSommets[i1]
-		y = newSommets[i2]
-		#if x[-1] in voisins[y[0]] or x[-1]
-
-
-
-def FloydWarshall(voisins):
-
-	dist = {}
-	pred = {}
-	for i in voisins:
-		for j in voisins:
-			pred[(i,j)] = None
-			if i in voisins[j]:
-				dist[(i,j)] = 1
-			else:
-				dist[(i,j)] = 1000000
-
-	for k in voisins:
-		for i in voisins:
-			for j in voisins:
-				if dist[(i,j)] < dist[(i,k)]+dist[(k,j)]:
-					pass
-"""
-function fw(int[1..n,1..n] graph) {
-    // Initialization
-    var int[1..n,1..n] dist := graph
-    var int[1..n,1..n] pred
-    for i from 1 to n
-        for j from 1 to n
-            pred[i,j] := nil
-            if (dist[i,j] > 0) and (dist[i,j] < Infinity)
-                pred[i,j] := i
-    // Main loop of the algorithm
-    for k from 1 to n
-        for i from 1 to n
-            for j from 1 to n
-                if dist[i,j] > dist[i,k] + dist[k,j]
-                    dist[i,j] = dist[i,k] + dist[k,j]
-                    pred[i,j] = pred[k,j]
-    return ( dist, pred ) // Tuple of the distance and predecessor matrices
-}
-"""
-
+				new.extend(aretes[new[-1]][x])
+		if len(new) < 2:
+			break
+		res.append(new)
+		newSommets.difference_update(long)
+	
+	sys.stderr.write('.')
+	
+	return res
 
 
 
 def extractLongestOverlappingDiags(oldDiags, genesAnc):
-
-	# lstTout est une liste de diagonales chevauchantes
-	# Renvoie les plus longs chemins de genes ancestraux issus de ces diagonales,
-	# puis les plus longs chemins avec les genes non encore utilises et ainsi de suite
-	def getLongestPath(lstTout):
-
-
-		# prend une liste de liste
-		# renvoie la liste des listes de longueur maximale
-		def selectLongest(lst):
-			m = -1
-			r = []
-			for x in lst:
-				n = len(x)
-				if n < m:
-					continue
-				if n == m:
-					r.append(x)
-				else:
-					m = n
-					r = [x]
-			return r
-			
-		# prend une liste (le chemin de depart)
-		# renvoie la liste des chemins maximaux en partant de ce chemin de depart
-		def recLongestPath(currPath):
-			toto = [currPath]
-			for j in voisins[currPath[-1]]:
-				if j not in currPath:
-					toto = selectLongest(toto + recLongestPath(currPath + [j]))
-					if len(toto[0]) == len(voisins):
-						return [toto[0]]
-			return toto
-			
-		ens = set(myMaths.flatten(lstTout))
-		voisins = buildVoisins(lstTout)
-		
-		#print >> sys.stderr, "longestPath", len(lstTout), len(ens)
-
-		res = []
-		while len(ens) > 0:
-			res.append( selectLongest(myMaths.flatten([recLongestPath([i]) for i in ens]))[0] )
-			ens.difference_update(res[-1])
-		return res
 
 
 	dic = {}
@@ -254,7 +246,6 @@ def extractLongestOverlappingDiags(oldDiags, genesAnc):
 			dic[s].append(i)
 		combin.addLink([i])
 	
-	#combin = myTools.myCombinator([[x] for x in xrange(len(oldDiags))])
 	for s in dic:
 		combin.addLink(dic[s])
 

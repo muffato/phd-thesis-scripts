@@ -136,7 +136,7 @@ def calcScore(i1, i2):
 	return propF1*propF2 + propF1*propOut + propF2*propOut
 	
 
-clusters = utils.myCommunities.launchCommunitiesBuild(len(lstDiags), calcScore, False)
+(_,clusters) = utils.myCommunities.launchCommunitiesBuild(len(lstDiags), calcScore, False)
 
 print >> sys.stderr, "Impression des chromosomes ancestraux ...",
 lstChr = []

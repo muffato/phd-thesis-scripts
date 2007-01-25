@@ -291,7 +291,7 @@ def printColorAncestr(genesAnc, chrAncGenes):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf", "genesAncestraux.list", "draftPreDupGenome.conf", "phylTree.conf"],
-	[("minChrLen",int,20), ("precisionChrAnc",int,10), ("usePhylTreeScoring",bool,False), \
+	[("minChrLen",int,20), ("precisionChrAnc",int,25), ("usePhylTreeScoring",bool,False), \
 	("especesNonDup",str,""), ("especesDup",str,""), \
 	("showDCS",bool,False), ("showQuality",bool,False), ("showAncestralGenome",bool,True)], \
 	__doc__ \

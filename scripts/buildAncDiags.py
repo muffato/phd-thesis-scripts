@@ -149,9 +149,9 @@ for anc in diagEntry:
 	s = []
 	if options["extractLongestPath"]:
 	
-		print >> sys.stderr, "Extraction des chevauchements les plus longs de %s ..." % anc,
-				
+		print >> sys.stderr, "Extraction des chevauchements les plus longs de %s " % anc,
 		lst = utils.myDiags.extractLongestOverlappingDiags(diagEntry[anc], genesAnc[anc])
+
 		print >> sys.stderr, "OK (%d -> %d) ... Impression ..." % (len(diagEntry[anc]), len(lst)),
 		for (l,d,esp) in lst:
 			s.append( l )

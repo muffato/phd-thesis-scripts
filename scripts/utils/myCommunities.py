@@ -115,22 +115,20 @@ def loadCommunitiesFile(file):
 
 	allMerges.reverse()
 
-	vals = []
+	scale = None
 	for line in file:
 		try:
 			c = line.split()
-			alpha = float(c[0])
+			scale = float(c[0])
 			relevance = float(c[1])
-			vals.append( (relevance, alpha) )
+			break
 		except Exception:
 			pass
 	
-	if len(vals) == 0:
+	if scale == None:
 		return (0,[])
 	
-	vals.sort()
-	scale = vals[-1][1]
-	print >> sys.stderr, "relevance=%f alpha=%f " % vals[-1],
+	print >> sys.stderr, "relevance=%f alpha=%f" % (relevance, scale),
 	
 	alreadySeen = set([])
 
@@ -140,7 +138,7 @@ def loadCommunitiesFile(file):
 			sys.stderr.write('.')
 			lstClusters.append( getAllChildren(merge.father) )
 
-	return (vals[-1][0], lstClusters)
+	return (relevance, lstClusters)
 
 
 

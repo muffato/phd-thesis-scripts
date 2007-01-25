@@ -34,8 +34,8 @@ if options["orthologuesList"] != "":
 	genesAnc = utils.myGenomes.AncestralGenome(options["orthologuesList"], False, False)
 
 # On ecrit le PostScipt
-utils.myPsOutput.printPsHeader()
 utils.myPsOutput.initColor()
+utils.myPsOutput.printPsHeader()
 
 # On construit les couleurs
 res = {}
