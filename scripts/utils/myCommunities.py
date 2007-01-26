@@ -35,7 +35,7 @@ def launchCommunitiesBuild(nbItems, scoreFunc, keepLonelyNodes = False, minRelev
 		indComp += 1
 		print >> sys.stderr, "Traitement de la composante connexe %d ..." % indComp,
 		
-		(stdin,stdout) = os.popen2('/users/ldog/muffato/work/scripts/walktrap/walktrap -s -t10')
+		(stdin,stdout) = os.popen2('/users/ldog/muffato/work/scripts/walktrap -s -t10')
 		
 		nb = len(g)
 		for (i1,i2) in myTools.myMatrixIterator(nb, nb, myTools.myMatrixIterator.StrictUpperMatrix):
@@ -128,7 +128,7 @@ def loadCommunitiesFile(file):
 	if scale == None:
 		return (0,[])
 	
-	print >> sys.stderr, "relevance=%f alpha=%f" % (relevance, scale),
+	print >> sys.stderr, "relevance=%f alpha=%f " % (relevance, scale),
 	
 	alreadySeen = set([])
 

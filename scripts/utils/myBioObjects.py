@@ -123,6 +123,14 @@ class PhylogeneticTree:
 		return anc
 
 
+	def convertToFlatFile(self, anc):
+
+		if anc in self.items:
+			return "(" + ",".join(["%s:%d" % (self.convertToFlatFile(e),l) for (e,l) in self.items[anc]]) + ")%s.%d" % (anc,self.ages[anc])
+		else:
+			return anc
+
+
 #####################################################
 # Cette classe gere un fichier resultat de Concorde #
 #####################################################

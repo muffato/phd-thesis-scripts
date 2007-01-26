@@ -195,19 +195,34 @@ def getLongestPath(lstTout):
 				return [toto[0]]
 		return toto
 		
-	
+	def doSearchLongestPath():
+		todo = [ ([i],0) for i in newSommets ]
+		res = []
+		max = -1
+		while len(todo) > 0:
+			(path,weight) = todo.pop()
+			for j in aretes[path[-1]]:
+				if j not in path:
+					todo.append( (path+[j], weight+len(aretes[path[-1]])) )
+			if weight > max:
+				max = weight
+				res = path
+		return [ (res,max) ]
+
 	# 1. On construit le graphe original
 	voisins = buildVoisins(lstTout)
 	sys.stderr.write('.')
 
 	# 2. On reduit le graphe
 	(newSommets, aretes) = buildReducedGraph()
+	print >> sys.stderr, '%d->%d/%d' % (len(voisins), len(newSommets), len(aretes))
 	sys.stderr.write('.')
 	
 	# 3. On extrait les chemins les plus longs
 	res = []
 	while len(newSommets) > 0:
-		(long,_) = selectLongest(myMaths.flatten([recLongestPath( ([i],0) ) for i in newSommets]))[0]
+		#(long,_) = selectLongest(myMaths.flatten([recLongestPath( ([i],0) ) for i in newSommets]))[0]
+		(long,_) = doSearchLongestPath()
 		new = []
 		for x in long:
 			if len(new) == 0:

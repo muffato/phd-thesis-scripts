@@ -52,8 +52,8 @@ else:
 
 
 # On ecrit l'entete du PostScipt
-utils.myPsOutput.printPsHeader(0.0001)
 utils.myPsOutput.initColor()
+utils.myPsOutput.printPsHeader(0.0001)
 
 
 def prepareGenome(genome, nb, func):

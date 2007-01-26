@@ -133,9 +133,25 @@ def buildAncFile(anc, lastComb):
 
 		# D.3/ On est oblige de clusteriser
 		else:
-			(relev,clusters) = utils.myCommunities.launchCommunitiesBuild(len(x), test, minCoverage=0.9, minRelevance=0.4)
+			#(relev,clusters) = utils.myCommunities.launchCommunitiesBuild(len(x), test, minCoverage=0.9, minRelevance=0.4)
+			(relev,clusters) = utils.myCommunities.launchCommunitiesBuild(len(x), test)
 			clusters = [[x[i] for i in c] for c in clusters]
-		
+
+			if relev[0] < 0.4 or len(utils.myMaths.flatten(clusters)) <= 0.9*len(x):
+				fa = open('/users/ldog/muffato/work/tutu/graph-%f' % relev[0], 'w')
+				print >> fa, "graph {"
+				for ci in xrange(len(clusters)):
+					c = clusters[ci]
+					(r,g,b) = utils.myPsOutput.colorTable[utils.myPsOutput.color[str(ci+1)]]
+					for cc in c:
+						print >> fa, "%s [style=\"filled\",color=\"#%02X%02X%02X\"]" % (cc, int(255*r),int(255*g),int(255*b))
+				for (i1,i2) in utils.myTools.myMatrixIterator(len(x), len(x), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+					if (i1,i2) in tmpAretes:
+						print >> fa, "%s -- %s" % (x[i1], x[i2])
+				print >> fa, "}"
+				fa.close()
+
+
 		nbA += len(clusters)
 
 		# @. Ecriture du gene ancestral
@@ -153,7 +169,6 @@ def buildAncFile(anc, lastComb):
 		#	print >> f, "}"
 		#	f.close()
 		#	#print >> f, " ".join(x)
-		#	nbA += 1
 
 		# E. Ecriture
 		for c in clusters:
@@ -184,6 +199,7 @@ def buildAncFile(anc, lastComb):
 	
 	print >> sys.stderr, "OK (%d/%d)" % (nbA, nbO)
 	
+	return
 	for (esp,_) in phylTree.items[anc]:
 		if esp not in geneBank.dicEspeces:
 			buildAncFile(esp, res)
