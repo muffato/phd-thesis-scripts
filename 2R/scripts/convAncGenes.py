@@ -8,14 +8,13 @@ import sys
 import os
 
 sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myOrthos
+import myGenomes
 import myTools
 import myMaths
 
 (noms_fichiers, options) = myTools.checkArgs(["GENOME_ANCESTRAL"], [], "")
 
-genesAnc = myOrthos.AncestralGenome(noms_fichiers[0], True, False)
-#genesAnc = myOrthos.EnsemblGenome(noms_fichiers[0])
+genesAnc = myGenomes.AncestralGenome(noms_fichiers["GENOME_ANCESTRAL"], chromPresents=True)
 
 lst = set([])
 nb = 0

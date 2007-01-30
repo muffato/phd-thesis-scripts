@@ -68,7 +68,7 @@ for c1 in lstChr:
 		pvalues[c1][c2] = x
 	print >> sys.stderr
 
-
+sys.exit(0)
 s0 = [set(x) for x in lstChr]
 ss = [s0]
 

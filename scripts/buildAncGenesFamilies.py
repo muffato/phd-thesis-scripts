@@ -53,13 +53,8 @@ def buildAncFile(anc, lastComb):
 			gB = champs[3]
 			comb.addLink([gA, gB])
 			if gA not in aretes:
-				aretes[gA] = [gB]
-			else:
-				aretes[gA].append(gB)
-			if gB not in aretes:
-				aretes[gB] = [gA]
-			else:
-				aretes[gB].append(gA)
+				aretes[gA] = dict([])
+			aretes[gA][gB] = 1
 		f.close()
 		
 
@@ -102,11 +97,11 @@ def buildAncFile(anc, lastComb):
 			continue
 
 		# La fonction qui renvoie le s
-		def test(i1, i2):
-			if (i1,i2) in tmpAretes:
-				return 1
-			else:
-				return 0
+		#def test(i1, i2):
+		#	if (i1,i2) in tmpAretes:
+		#		return 1
+		#	else:
+		#		return 0
 
 		# C. On calcule les aretes du graphe
 		tmpAretes = []
@@ -114,7 +109,7 @@ def buildAncFile(anc, lastComb):
 		for (i1,i2) in utils.myTools.myMatrixIterator(len(x), len(x), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 			g1 = x[i1]
 			g2 = x[i2]
-			if (g1 in aretes[g2]):
+			if (g1 in aretes.get(g2,[])) or (g2 in aretes.get(g1,[])):
 				tmpAretes.append( (i1,i2) )
 			if (geneBank.dicGenes[g1][0] == geneBank.dicGenes[g2][0]):
 				tmpAretesMemeEspece.append( (i1,i2) )
@@ -134,11 +129,13 @@ def buildAncFile(anc, lastComb):
 		# D.3/ On est oblige de clusteriser
 		else:
 			#(relev,clusters) = utils.myCommunities.launchCommunitiesBuild(len(x), test, minCoverage=0.9, minRelevance=0.4)
-			(relev,clusters) = utils.myCommunities.launchCommunitiesBuild(len(x), test)
-			clusters = [[x[i] for i in c] for c in clusters]
+			#(relev,clusters) = utils.myCommunities.launchCommunitiesBuild(len(x), test, bestRelevance = False)
+			print >> sys.stderr, "Communautes"
+			popo = utils.myCommunities.launchCommunitiesBuild1(x, aretes)
 
-			if relev[0] < 0.4 or len(utils.myMaths.flatten(clusters)) <= 0.9*len(x):
-				fa = open('/users/ldog/muffato/work/tutu/graph-%f' % relev[0], 'w')
+			#if relev[0] < 0.45 or len(utils.myMaths.flatten(clusters)) != len(x):
+			for (alpha,relevance,clusters,_) in popo:
+				fa = open('/users/ldog/muffato/work/tutu/graph-%f-%f' % (relevance,alpha), 'w')
 				print >> fa, "graph {"
 				for ci in xrange(len(clusters)):
 					c = clusters[ci]
@@ -154,21 +151,6 @@ def buildAncFile(anc, lastComb):
 
 		nbA += len(clusters)
 
-		# @. Ecriture du gene ancestral
-		#if len(clusters) >= 2:
-		#	f = open('/users/ldog/muffato/work/temp/graph/graph-%f' % relev[0], 'w')
-		#	print >> f, "graph {"
-		#	for ci in xrange(len(clusters)):
-		#		c = clusters[ci]
-		#		(r,g,b) = utils.myPsOutput.colorTable[utils.myPsOutput.color[str(ci+1)]]
-		#		for cc in c:
-		#			print >> f, "%s [style=\"filled\",color=\"#%02X%02X%02X\"]" % (x[cc], int(255*r),int(255*g),int(255*b))
-		#	for (i1,i2) in utils.myTools.myMatrixIterator(len(x), len(x), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-		#		if (i1,i2) in tmpAretes:
-		#			print >> f, "%s -- %s" % (x[i1], x[i2])
-		#	print >> f, "}"
-		#	f.close()
-		#	#print >> f, " ".join(x)
 
 		# E. Ecriture
 		for c in clusters:
