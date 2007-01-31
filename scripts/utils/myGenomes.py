@@ -359,4 +359,15 @@ class GeneBank:
 
 		f.close()
 
+	def findFamilyComposition(self, fam, breakWhenIncomplete=False):
+		
+		score = dict( [(e,[]) for e in self.dicEspeces] )
+		
+		for g in fam:
+			if (g not in self.dicGenes) and breakWhenIncomplete:
+				return None
+			(e,_,_) = self.dicGenes[g]
+			score[e].append(g)
+		
+		return score
 

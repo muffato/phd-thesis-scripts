@@ -1,7 +1,8 @@
 #! /users/ldog/muffato/python -OO
 
 __doc__ = """
-Lit des familles de genes sur l'entree standard et les filtre.
+Lit des familles de genes sur l'entree standard.
+Calcule le nombre de genes de chaque espece et agit en consequence
 """
 
 ##################
@@ -22,12 +23,13 @@ import utils.myTools
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesList.conf"],\
-	[("breakWhenFamilyNotComplete",bool,False)], \
+	[("breakWhenFamilyNotComplete",bool,False), ("speciesList",str,"")], \
 	__doc__ \
 )
 
+esp = options["speciesList"].split(',')
+geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], only=esp)
 
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"])
 
 for l in sys.stdin:
 	c = l.split()
@@ -55,3 +57,4 @@ for l in sys.stdin:
 		if max(t) <= 1: # and max(tt) <= 2:
 		#if max(t) == 1 and min(t) == 1:
 			print l,
+
