@@ -30,13 +30,14 @@ import utils.myPsOutput
 	["genesList.conf", "phylTree.conf"], \
 	[("homologyLevels",str,"ortholog_one2many,ortholog_many2many,apparent_ortholog_one2one,ortholog_one2one"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
+	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("one2oneFile",str,"~/work/data/one2one/one2one.%s.list.bz2"), \
 	("orthoFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2")], \
 	__doc__ \
 )
 
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.listSpecies)
+phylTree.loadAllSpeciesSince("Euteleostomi", options["genesFile"])
 homologies = options["homologyLevels"].split(",")
 utils.myPsOutput.initColor()
 
@@ -104,7 +105,7 @@ def buildAncFile(anc, lastComb):
 	res = utils.myTools.myCombinator([])
 	for x in comb:
 	
-		score = geneBank.findFamilyComposition(x)
+		score = phylTree.findFamilyComposition(x)
 		poidsBranches = [max([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
 	
 		# A. Famille specifique d'une unique sous-branche
@@ -142,7 +143,7 @@ def buildAncFile(anc, lastComb):
 					if t1 == 0.5:
 						tmpAretesApparent.append( (i1,i2) )
 					tmpAretes.append( (i1,i2) )
-				if (geneBank.dicGenes[g1][0] == geneBank.dicGenes[g2][0]):
+				if (phylTree.dicGenes[g1][0] == phylTree.dicGenes[g2][0]):
 					tmpAretesMemeEspece.append( (i1,i2) )
 					#if g1 not in aretes:
 					#	aretes[g1] = dict([])
@@ -171,7 +172,7 @@ def buildAncFile(anc, lastComb):
 					# Une clusterisation est correcte si tous les clusters sont repartis sur les deux sous-branches
 					ok = True
 					for c in comm[2]:
-						score = geneBank.findFamilyComposition(c)
+						score = phylTree.findFamilyComposition(c)
 						poidsBranches = [max([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
 						if len([e for e in poidsBranches if e > 0]) == 1:
 							ok = False
@@ -236,9 +237,9 @@ def buildAncFile(anc, lastComb):
 			res.addLink(c)
 			print >> f, " ".join(c)
 			
-			score = dict( [(e,[]) for e in geneBank.dicEspeces] )
+			score = dict( [(e,[]) for e in phylTree.dicGenomes] )
 			for i in c:
-				score[geneBank.dicGenes[i][0]].append(i)
+				score[phylTree.dicGenes[i][0]].append(i)
 			l = [score[e][0] for e in score if len(score[e]) == 1]
 			if len(l) >= 1:
 				print >> ff, " ".join(l)
@@ -246,7 +247,7 @@ def buildAncFile(anc, lastComb):
 	
 	# 3. On rajoute les genes qui n'ont plus qu'une seule copie
 	for e in esp:
-		for g in geneBank.dicEspeces[e].dicGenes:
+		for g in phylTree.dicGenomes[e].dicGenes:
 			if (g not in lastComb) or (g in res):
 				continue
 			print >> f, g
@@ -261,7 +262,7 @@ def buildAncFile(anc, lastComb):
 	print >> sys.stderr, "OK (%d/%d)" % (nbA, nbO)
 	
 	for (esp,_) in phylTree.items[anc]:
-		if esp not in geneBank.dicEspeces:
+		if esp not in phylTree.dicGenomes:
 			buildAncFile(esp, res)
 
 buildAncFile(phylTree.root, utils.myTools.myCombinator([]))

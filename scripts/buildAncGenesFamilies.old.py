@@ -27,13 +27,14 @@ import utils.myMaths
 	["genesList.conf", "phylTree.conf"], \
 	[("homologyLevels",str,"ortholog_one2many,ortholog_many2many,apparent_ortholog_one2one,ortholog_one2one"), \
 	("orthoFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
+	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("one2oneFile",str,"~/work/data/one2one/one2one.%s.list.bz2")], \
 	__doc__ \
 )
 
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.listSpecies)
+phylTree.loadAllSpeciesSince("Euteleostomi", options["genesFile"])
 homologies = options["homologyLevels"].split(",")
 
 def buildAncFile(anc, lastComb):
@@ -61,13 +62,7 @@ def buildAncFile(anc, lastComb):
 	for x in comb:
 	
 		# A. Composition du gene ancestral suivant les familles
-		score = dict( [(e,[]) for e in geneBank.dicEspeces] )
-		for g in x:
-			if g not in geneBank.dicGenes:
-				print >> sys.stderr, "GENE NON RECONNU: %s" % g,
-				continue
-			(e,_,_) = geneBank.dicGenes[g]
-			score[e].append(g)
+		score = phylTree.findFamilyComposition(x)
 			
 		# B. On filtre les genes qui ne sont pas specifiques a une branche
 		if x[0] not in lastComb:
@@ -91,7 +86,7 @@ def buildAncFile(anc, lastComb):
 	
 	# 3. On rajoute les genes qui n'ont plus qu'une seule copie
 	for e in esp:
-		for g in geneBank.dicEspeces[e].dicGenes:
+		for g in phylTree.dicGenomes[e].dicGenes:
 			if (g not in lastComb) or (g in res):
 				continue
 			print >> f, g
@@ -107,7 +102,7 @@ def buildAncFile(anc, lastComb):
 	del comb
 	
 	for (esp,_) in phylTree.items[anc]:
-		if esp not in geneBank.dicEspeces:
+		if esp not in phylTree.dicGenomes:
 			buildAncFile(esp, res)
 
 buildAncFile(phylTree.root, set([]))

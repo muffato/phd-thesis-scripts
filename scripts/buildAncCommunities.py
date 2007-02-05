@@ -48,7 +48,7 @@ def loadDiagsFile(nom, diagEntry):
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf", "genesList.conf", "diagsList"], \
+	["phylTree.conf", "diagsList"], \
 	[("ancestr",str,""), ("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )

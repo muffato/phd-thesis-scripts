@@ -34,7 +34,7 @@ def loadChrAncIni(nom):
 		dic = {}
 		for x in c[1:]:
 			if x[0] == '*':
-				e = x[1:]
+				e = x[1:].replace('.',' ')
 				dic[e] = set([])
 			else:
 				try:
@@ -51,13 +51,13 @@ def loadChrAncIni(nom):
 # Construit les tables d'associations pour chaque especes dupliquee
 #  des paralogues et des orthologues
 #
-def buildParaOrtho(lstGenesAnc, geneBank):
-	para = dict([(e,{}) for e in geneBank.lstEspecesDup])
-	ortho = dict([(e,{}) for e in geneBank.lstEspecesDup])
+def buildParaOrtho(lstGenesAnc):
+	para = dict([(e,{}) for e in especesDup])
+	ortho = dict([(e,{}) for e in especesDup])
 	
 	for g in lstGenesAnc:
-		for e in geneBank.lstEspecesDup:
-			genomeDup = geneBank.dicEspeces[e]
+		for e in especesDup:
+			genomeDup = phylTree.dicGenomes[e]
 			gT = [x for x in g.names if x in genomeDup.dicGenes]
 			if len(gT) == 0:
 				continue
@@ -72,14 +72,14 @@ def buildParaOrtho(lstGenesAnc, geneBank):
 #
 # Cree les regions de chromosomes ancestraux dans la classe d'orthologues
 #
-def colorAncestr(esp, e, geneBank, para, orthos):
+def colorAncestr(esp, e, phylTree, para, orthos):
 
 	print >> sys.stderr, "Decoupage de", esp, "avec", e, "",
 
 	nbOrthos = 0
 	nbBlocs = 0
-	genome = geneBank.dicEspeces[esp]
-	genomeDup = geneBank.dicEspeces[e]
+	genome = phylTree.dicGenomes[esp]
+	genomeDup = phylTree.dicGenomes[e]
 	orthosDup = orthos[e]
 	parasDup = para[e]
 	lstBlocs = []
@@ -139,7 +139,7 @@ def colorAncestr(esp, e, geneBank, para, orthos):
 
 # Synthese des DCS
 
-def doSynthese(combin, eND, geneBank, orthos, col, dicGenesAnc, chrAnc):
+def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 	
 	print >> sys.stderr, "Synthese des decoupages de", eND, "...",
 	
@@ -148,9 +148,9 @@ def doSynthese(combin, eND, geneBank, orthos, col, dicGenesAnc, chrAnc):
 	for gr in combin:
 		l = []
 		for g in gr:
-			p = geneBank.dicEspeces[eND].dicGenes[g]
+			p = phylTree.dicGenomes[eND].dicGenes[g]
 			a = {}
-			for eD in geneBank.lstEspecesDup:
+			for eD in especesDup:
 				a[eD] = [c for (c,_) in orthos[eD].get(g,[])]
 			l.append( (p,g,a) )
 		l.sort()
@@ -160,7 +160,7 @@ def doSynthese(combin, eND, geneBank, orthos, col, dicGenesAnc, chrAnc):
 	print >> sys.stderr, len(lstBlocs), "blocs pour", sum([len(x) for x in lstBlocs]), "orthologues",
 
 	if options["showDCS"]:
-		print "%s\t\t\t\t%s\t" % (eND, "\t".join(geneBank.lstEspecesDup))
+		print "%s\t\t\t\t%s\t" % (eND, "\t".join(especesDup))
 	
 	nbDCS = 0
 	DCSlen = 0
@@ -173,7 +173,7 @@ def doSynthese(combin, eND, geneBank, orthos, col, dicGenesAnc, chrAnc):
 		if options["showDCS"]:
 			for ((c,i),g,a) in gr:
 				print "%s\t%d\t%s\t\t%s\t%s" % \
-				(c, i, g, "\t".join(["/".join([str(x) for x in set(a[eD])]) for eD in geneBank.lstEspecesDup]), cc)
+				(c, i, g, "\t".join(["/".join([str(x) for x in set(a[eD])]) for eD in especesDup]), cc)
 			print "---"
 
 	print >> sys.stderr, "/", nbDCS, "DCS pour", DCSlen, "orthologues"
@@ -186,7 +186,7 @@ def doSynthese(combin, eND, geneBank, orthos, col, dicGenesAnc, chrAnc):
 def addDCS(bloc, col, dicGenesAnc, chrAnc, eNonDup):
 
 	score = dict([(c,0) for c in chrAnc])
-	for eDup in geneBank.lstEspecesDup:
+	for eDup in especesDup:
 		l = [a[eDup] for (_,_,a) in bloc if len(a[eDup]) > 0]
 		# On veut une veritable alternance
 		if len(set(utils.myMaths.flatten(l))) < 2:
@@ -290,38 +290,39 @@ def printColorAncestr(genesAnc, chrAncGenes):
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genesList.conf", "genesAncestraux.list", "draftPreDupGenome.conf", "phylTree.conf"],
+	["genesAncestraux.list", "draftPreDupGenome.conf", "phylTree.conf"],
 	[("minChrLen",int,20), ("precisionChrAnc",int,25), ("usePhylTreeScoring",bool,False), \
 	("especesNonDup",str,""), ("especesDup",str,""), \
+	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("showDCS",bool,False), ("showQuality",bool,False), ("showAncestralGenome",bool,True)], \
 	__doc__ \
 )
 
 # Chargement des fichiers
-especesDup = options["especesDup"].split(',')
-especesNonDupGrp = [x.split('+') for x in options["especesNonDup"].split(',')]
-especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+especesDup = [phylTree.officialName[x] for x in options["especesDup"].split(',')]
+especesNonDupGrp = [[phylTree.officialName[i] for i in x.split('+')] for x in options["especesNonDup"].split(',')]
+especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
 rootNonDup = [x for x in phylTree.branches[phylTree.root] if len(set(phylTree.species[x]).intersection(especesDup)) == 0][0]
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], especesNonDup+especesDup)
+phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
 genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAncestraux.list"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
-(para,orthos) = buildParaOrtho(lstGenesAnc, geneBank)
+(para,orthos) = buildParaOrtho(lstGenesAnc)
 chrAnc = loadChrAncIni(noms_fichiers["draftPreDupGenome.conf"])
 
 # On colorie les matrices actuelles
 col = [[] for i in xrange(len(lstGenesAnc))]
 
 # Decoupage de chaque tetrapode
-for eND in geneBank.lstEspecesNonDup:
+for eND in especesNonDup:
 	combin = utils.myTools.myCombinator([])
 	# Avec chaque poisson
-	for eD in geneBank.lstEspecesDup:
-		lstBlocs = colorAncestr(eND, eD, geneBank, para, orthos)
+	for eD in especesDup:
+		lstBlocs = colorAncestr(eND, eD, phylTree, para, orthos)
 		for bloc in lstBlocs:
 			combin.addLink(bloc)
 	
-	doSynthese(combin, eND, geneBank, orthos, col, genesAnc.dicGenes, chrAnc)
+	doSynthese(combin, eND, orthos, col, genesAnc.dicGenes, chrAnc)
 
 
 # On construit les chromosomes ancestraux

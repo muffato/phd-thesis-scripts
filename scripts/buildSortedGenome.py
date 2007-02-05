@@ -84,6 +84,7 @@ def distInterGenes(tg1, tg2):
 	["genesList.conf", "genomeAncestral", "phylTree.conf"], \
 	[("nomAncetre",str,""), ("seuilMaxDistInterGenes",int,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
 	("nbConcorde",int,-1), ("withConcordeOutput",bool,False), \
+	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
 )
@@ -92,8 +93,8 @@ phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 if options["nomAncetre"] not in (phylTree.listAncestr + phylTree.listSpecies):
 	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["nomAncetre"]
 	sys.exit(1)
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.listSpecies)
-del geneBank.dicEspeces
+phylTree.loadAllSpeciesSince(None, options["genesFile"])
+del phylTree.dicGenomes
 genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genomeAncestral"], True, False)
 
 # On etend la liste des genes ancestraux pour utiliser les outgroup
@@ -110,8 +111,8 @@ while anc in phylTree.parent:
 		for s in g.names:
 			if s in genesAnc.dicGenes:
 				ianc.add(genesAnc.dicGenes[s])
-			elif s in geneBank.dicGenes:
-				newGenes.append(geneBank.dicGenes[s])
+			elif s in phylTree.dicGenes:
+				newGenes.append(phylTree.dicGenes[s])
 		for i in ianc:
 			if i in dicOutgroupGenes:
 				dicOutgroupGenes[i].update(newGenes)
@@ -125,11 +126,11 @@ for c in genesAnc.lstChr:
 	genome[c] = []
 	for i in xrange(len(genesAnc.lstGenes[c])):
 		g = genesAnc.lstGenes[c][i]
-		tmp = set([geneBank.dicGenes[s] for s in g.names if s in geneBank.dicGenes])
+		tmp = set([phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes])
 		if i in dicOutgroupGenes:
 			tmp.extend(dicOutgroupGenes[i])
 		genome[c].append(tmp)
-del geneBank
+del phylTree.dicGenes
 del dicOutgroupGenes
 
 nom = "mat"+str(os.getpid())

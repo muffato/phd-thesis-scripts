@@ -22,19 +22,21 @@ import utils.myTools
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genesList.conf"],\
-	[("breakWhenFamilyNotComplete",bool,False), ("speciesList",str,"")], \
+	["phylTree.conf"],\
+	[("breakWhenFamilyNotComplete",bool,False), ("speciesList",str,""), \
+	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2")], \
 	__doc__ \
 )
 
 esp = options["speciesList"].split(',')
-geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], only=esp)
+phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree.loadSpeciesFromList(esp, options["genesFile"])
 
 
 for l in sys.stdin:
 	c = l.split()
 
-	score = dict( [(e,0) for e in geneBank.dicEspeces] )
+	score = dict( [(e,0) for e in esp] )
 
 	for g in c:
 		if g not in geneBank.dicGenes:
@@ -46,8 +48,8 @@ for l in sys.stdin:
 		score[e] += 1
 	else:
 		#t = score.values()
-		t = [score[x] for x in geneBank.lstEspecesNonDup]
-		tt = [score[x] for x in geneBank.lstEspecesDup]
+		#t = [score[x] for x in geneBank.lstEspecesNonDup]
+		#tt = [score[x] for x in geneBank.lstEspecesDup]
 		#tt = [score[x] for x in ]
 		#if score['H'] == 1 and score['C'] == 1:
 		#if max(t) > 0 and max(tt) > 0:

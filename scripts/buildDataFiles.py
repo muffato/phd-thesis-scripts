@@ -121,57 +121,107 @@ def findNewSpecies(d, esp, anc):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
-	("extractLongestPath",bool,True), ("searchUndetectedSpecies",bool,True), \
-	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
-	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
-	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
+	[("OUT.genesFile",str,"~/work/data42/genes/genes.%s.list.bz2"), \
+	("OUT.fullGenesFile",str,"~/work/data42/genes/full/genes.%s.list.bz2"), \
+	("OUT.orthosFile",str,"~/work/data42/orthologs/orthos.%s.%s.list.bz2"), \
+	("OUT.parasFile",str,"~/work/data42/paralogs/paras.%s.list.bz2"), \
+	("IN.genesFile",str,""), \
+	("IN.transcriptsFile",str,""), \
+	("IN.orthosFile",str,""), \
+	("IN.parasFile",str,"")], \
 	__doc__ \
 )
 
 
-# 1. On lit tous les fichiers
+# L'arbre phylogenetique
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-phylTree.loadAllSpeciesSince("Euteleostomi", options["genesFile"])
 
-# La structure qui accueillera les diagonales
-diagEntry = dict( [(anc, []) for anc in phylTree.items] )
-# On compare toutes les especes entre elles
-for (i,j) in utils.myTools.myMatrixIterator(len(phylTree.listSpecies), len(phylTree.listSpecies), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-	print >> sys.stderr, '+',
-	calcDiags(phylTree.listSpecies[i], phylTree.listSpecies[j])
+# Les noms utilises dans les fichiers "Homo Sapiens" -> "hsapiens"
+nomReel = {}
+for esp in phylTree.listSpecies:
+	tmp = esp.lower().split()
+	nomReel[esp] = tmp[0][0] + tmp[1]
 
-# On a besoin des genes ancestraux
-genesAnc = {}
-for anc in diagEntry:
-	genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc)
+# La table de traduction ENSGTXXX.N ENS
+dicTranscrits = {}
+for esp in phylTree.listSpecies:
 
-# Traitement final
-for anc in diagEntry:
+	print >> sys.stderr, "Chargement de la table des transcrits de %s ..." % esp,
+	f = utils.myTools.myOpenFile(options["IN.transcriptsFile"] % nomReel[esp], 'r')
+	for ligne in f:
+		c = ligne[:-1].split('\t')
+		if len(c) <= 6:
+			continue
+		dicTranscrits[c[6]] = c[2]
+	f.close()
+	print >> sys.stderr, "OK"
+
+
+# On genere les fichiers de listes de genes + Filtre scaffold/chromosome
+forbiddenTokens = ["rand", "Un", "affold", "ont", "tig", "v6", "h", "MT", "Mt"]
+forbiddenStartingTokens = ["NT", "U", "1099", "c", "E"]
+
+for esp in phylTree.listSpecies:
+	continue	
+	print >> sys.stderr, "Mise en forme de la liste des genes de %s ..." % esp,
+	fi = utils.myTools.myOpenFile(options["IN.genesFile"] % nomReel[esp], 'r')
+	fo1 = utils.myTools.myOpenFile(options["OUT.fullGenesFile"] % phylTree.commonNames[esp][0], 'w')
+	fo2 = utils.myTools.myOpenFile(options["OUT.genesFile"] % phylTree.commonNames[esp][0], 'w')
 	
-	s = []
-	if options["extractLongestPath"]:
-	
-		print >> sys.stderr, "Extraction des chevauchements les plus longs de %s " % anc,
-		lst = utils.myDiags.extractLongestOverlappingDiags(diagEntry[anc], genesAnc[anc])
+	nb1 = 0
+	nb2 = 0
+	for ligne in fi:
+		c = ligne[:-1].split('\t')
+		if c[1] == "\\N":
+			continue
+		gene = "\t".join( [c[11],c[7],c[8],c[9],c[1]] )
+		print >> fo1, gene
+		nb1 += 1
 
-		print >> sys.stderr, "OK (%d -> %d) ... Impression ..." % (len(diagEntry[anc]), len(lst)),
-		for (l,d,esp) in lst:
-			s.append( l )
-			supp = findNewSpecies(d, esp, anc)
-			print "%s\t%d\t%s\t%s\t%s" % \
-			(anc, l, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in esp]), " ".join(["%s/%s" % (e,c) for (e,c) in supp]))
-	
-	else:
-	
-		lst = diagEntry[anc]
-		print >> sys.stderr, "Impression des %d diagonales de %s ..." % (len(lst),anc),
-		for ((e1,c1,d1),(e2,c2,d2)) in lst:
-			s.append( len(d1) )
-			print "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s" % (anc, len(d1), e1,c1," ".join(d1), e2,c2," ".join(d2))
-		
-	ss = sum(s)
-	print >> sys.stderr, ss, "%.2f" % (float(ss)/float(len(lst))), max(s), "OK"
+		for t in forbiddenTokens:
+			if t in c[11]:
+				break
+		else:
+			for t in forbiddenStartingTokens:
+				if c[11].startswith(t):
+					break
+			else:
+				print >> fo2, gene
+				nb2 += 1
 
+	fi.close()
+	fo1.close()
+	fo2.close()
+	print >> sys.stderr, "%d/%d genes OK" % (nb2,nb1)
+
+# On genere les fichiers d'ortologues
+for esp1 in phylTree.listSpecies:
+	for esp2 in phylTree.listSpecies:
+
+
+		if esp1 == esp2:
+			print >> sys.stderr, "Mise en forme de la liste des genes paralogues de %s ..." % esp1,
+			fi = utils.myTools.myOpenFile(options["IN.parasFile"] % (nomReel[esp1],nomReel[esp1]), 'r')
+			fo = utils.myTools.myOpenFile(options["OUT.parasFile"] % phylTree.commonNames[esp1][0], 'w')
+			anc = 10000000
+		else:
+			print >> sys.stderr, "Mise en forme de la liste des genes orthologues entre %s et %s..." % (esp1,esp2),
+			fi = utils.myTools.myOpenFile(options["IN.orthosFile"] % (nomReel[esp1],nomReel[esp2]), 'r')
+			fo = utils.myTools.myOpenFile(options["OUT.orthosFile"] % (phylTree.commonNames[esp1][0],phylTree.commonNames[esp2][0]), 'w')
+			anc = phylTree.ages[phylTree.getFirstParent(esp1, esp2)]
+
+		nb = 0
+		for ligne in fi:
+			c = ligne[:-1].split('\t')
+			if c[1] == "\\N":
+				continue
+			print phylTree.ages[c[16]], anc, (c[2],dicTranscrits[c[3]],c[20], c[4],dicTranscrits[c[5]],c[21], c[23],c[24],c[27],c[28], c[15],c[16])
+			if phylTree.ages[c[16]] <= anc:
+				nb += 1
+				print >> fo, (c[2],dicTranscrits[c[3]],c[20], c[4],dicTranscrits[c[5]],c[21], c[23],c[24],c[27],c[28], c[15],c[16])
+
+		fi.close()
+		fo.close()
+		print >> sys.stderr, "%d genes OK" % nb
 
 

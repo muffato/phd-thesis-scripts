@@ -168,7 +168,7 @@ class EnsemblGenome(Genome):
 			except ValueError:
 				pass
 	
-			self.addGene( myBioObjects.Gene(champs[4:], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
+			self.addGene( myBioObjects.Gene(champs[5:], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
 		f.close()
 
 		self.sortGenome()
