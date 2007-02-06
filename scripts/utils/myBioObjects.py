@@ -73,10 +73,10 @@ class PhylogeneticTree:
 				fils.append( (tmp, currLine[2]-self.ages[tmp]) )
 				self.parent[tmp] = currLine[1][0]
 			
-			self.ages[currLine[1][0]] = currLine[2]
 			self.items[currLine[1][0]] = fils
 			self.commonNames[currLine[1][0]] = currLine[1][1:]
 			for s in currLine[1]:
+				self.ages[s] = currLine[2]
 				self.officialName[s] = currLine[1][0]
 				
 			return currLine[1][0]

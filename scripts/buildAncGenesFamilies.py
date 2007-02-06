@@ -27,7 +27,7 @@ import utils.myPsOutput
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genesList.conf", "phylTree.conf"], \
+	["phylTree.conf"], \
 	[("homologyLevels",str,"ortholog_one2many,ortholog_many2many,apparent_ortholog_one2one,ortholog_one2one"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
@@ -68,25 +68,25 @@ def buildAncFile(anc, lastComb):
 		f.close()
 		
 
-	def hasTrueLinksBetweenClusters(x, (alpha,relevance,clusters,lonely)):
-	
-		for (i1,i2) in utils.myTools.myMatrixIterator(len(x), len(x), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-			realLink = (((i1,i2) in tmpAretes) and ((i1,i2) not in tmpAretesApparent))
-			
-			memeCluster = False
-			for c in clusters:
-				if (x[i1] in c) and (x[i2] in c):
-					memeCluster = True
-					break
-			if realLink and (not memeCluster):
-				print >> sys.stderr, "break", x[i1], x[i2]
-				return True
-		return False
+	#def hasTrueLinksBetweenClusters(x, (alpha,relevance,clusters,lonely)):
+	#
+	#	for (i1,i2) in utils.myTools.myMatrixIterator(len(x), len(x), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	#		realLink = (((i1,i2) in tmpAretes) and ((i1,i2) not in tmpAretesApparent))
+	#		
+	#		memeCluster = False
+	#		for c in clusters:
+	#			if (x[i1] in c) and (x[i2] in c):
+	#				memeCluster = True
+	#				break
+	#		if realLink and (not memeCluster):
+	#			print >> sys.stderr, "break", x[i1], x[i2]
+	#			return True
+	#	return False
 	
 
 	# 1. on combine tous les fichiers d'orthologues
 	comb = utils.myTools.myCombinator([])
-	esp = phylTree.species[anc]
+	esp = [phylTree.commonNames[x][0] for x in phylTree.species[anc]]
 	aretes = {}
 	
 	print >> sys.stderr, "Construction des familles d'orthologues de", anc, ":", "-".join(esp), "",
@@ -115,7 +115,7 @@ def buildAncFile(anc, lastComb):
 			if x[0] in lastComb:
 				print >> sys.stderr, "Famille heritee"
 				clusters = [x]
-			# A.2/ Sinon, elle correspond a une famille qui seracree plus tard
+			# A.2/ Sinon, elle correspond a une famille qui sera cree plus tard
 			else:
 				continue
 		
@@ -209,24 +209,23 @@ def buildAncFile(anc, lastComb):
 				#else:
 				#	print >> sys.stderr, "Nothing"
 				
-				#for (alpha,relevance,clusters,lonely) in lstCommunitiesOrig:
-				#	fa = open('/users/ldog/muffato/work/tutu/graph-%f-%f-%d-%d' % (relevance,alpha,len(clusters),len(lonely)), 'w')
-				#	print >> fa, "graph {"
-				#	for ci in xrange(len(clusters)):
-				#		c = clusters[ci]
-				#		(r,g,b) = utils.myPsOutput.colorTable[utils.myPsOutput.color[str(ci+1)]]
-				#		for cc in c:
-				#			print >> fa, "%s [style=\"filled\",color=\"#%02X%02X%02X\"]" % (cc, int(255*r),int(255*g),int(255*b))
-				#	for (i1,i2) in utils.myTools.myMatrixIterator(len(x), len(x), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-				#		if (i1,i2) in tmpAretesApparent:
-				#			print >> fa, "%s -- %s [style=\"dotted\"]" % (x[i1], x[i2])
-				#		elif (i1,i2) in tmpAretesMemeEspece:
-				#			print >> fa, "%s -- %s [style=\"dashed\"]" % (x[i1], x[i2])
-				#		elif (i1,i2) in tmpAretes:
-				#			print >> fa, "%s -- %s" % (x[i1], x[i2])
-				#
-				#	print >> fa, "}"
-				#	fa.close()
+				for (alpha,relevance,clusters,lonely) in lstCommunitiesOrig:
+					fa = open('/users/ldog/muffato/work/tutu/graph-%f-%f-%d-%d' % (relevance,alpha,len(clusters),len(lonely)), 'w')
+					print >> fa, "graph {"
+					for ci in xrange(len(clusters)):
+						c = clusters[ci]
+						(r,g,b) = utils.myPsOutput.colorTable[utils.myPsOutput.color[str(ci+1)]]
+						for cc in c:
+							print >> fa, "%s [style=\"filled\",color=\"#%02X%02X%02X\"]" % (cc, int(255*r),int(255*g),int(255*b))
+					for (i1,i2) in utils.myTools.myMatrixIterator(len(x), len(x), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+						if (i1,i2) in tmpAretesApparent:
+							print >> fa, "%s -- %s [style=\"dotted\"]" % (x[i1], x[i2])
+						elif (i1,i2) in tmpAretesMemeEspece:
+							print >> fa, "%s -- %s [style=\"dashed\"]" % (x[i1], x[i2])
+						elif (i1,i2) in tmpAretes:
+							print >> fa, "%s -- %s" % (x[i1], x[i2])
+					print >> fa, "}"
+					fa.close()
 
 
 		nbA += len(clusters)
@@ -246,7 +245,7 @@ def buildAncFile(anc, lastComb):
 				nbO += 1
 	
 	# 3. On rajoute les genes qui n'ont plus qu'une seule copie
-	for e in esp:
+	for e in phylTree.species[anc]:
 		for g in phylTree.dicGenomes[e].dicGenes:
 			if (g not in lastComb) or (g in res):
 				continue
@@ -260,9 +259,11 @@ def buildAncFile(anc, lastComb):
 	ff.close()
 	
 	print >> sys.stderr, "OK (%d/%d)" % (nbA, nbO)
-	
+
+	return
 	for (esp,_) in phylTree.items[anc]:
 		if esp not in phylTree.dicGenomes:
 			buildAncFile(esp, res)
 
-buildAncFile(phylTree.root, utils.myTools.myCombinator([]))
+#buildAncFile(phylTree.root, utils.myTools.myCombinator([]))
+buildAncFile("Euteleostomi", utils.myTools.myCombinator([]))

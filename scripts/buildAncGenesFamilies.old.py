@@ -24,7 +24,7 @@ import utils.myMaths
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genesList.conf", "phylTree.conf"], \
+	["phylTree.conf"], \
 	[("homologyLevels",str,"ortholog_one2many,ortholog_many2many,apparent_ortholog_one2one,ortholog_one2one"), \
 	("orthoFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
@@ -41,7 +41,7 @@ def buildAncFile(anc, lastComb):
 
 	# 1. on combine tous les fichiers d'orthologues
 	comb = utils.myTools.myCombinator([])
-	esp = phylTree.species[anc]
+	esp = [phylTree.commonNames[x][0] for x in phylTree.species[anc]]
 	print >> sys.stderr, "Construction des familles d'orthologues de", anc, ":", "-".join(esp), "",
 	sys.stderr = utils.myTools.null
 	for (i,j) in utils.myTools.myMatrixIterator(len(esp), len(esp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
@@ -85,7 +85,7 @@ def buildAncFile(anc, lastComb):
 			nbO += 1
 	
 	# 3. On rajoute les genes qui n'ont plus qu'une seule copie
-	for e in esp:
+	for e in phylTree.species[anc]:
 		for g in phylTree.dicGenomes[e].dicGenes:
 			if (g not in lastComb) or (g in res):
 				continue
@@ -105,4 +105,5 @@ def buildAncFile(anc, lastComb):
 		if esp not in phylTree.dicGenomes:
 			buildAncFile(esp, res)
 
-buildAncFile(phylTree.root, set([]))
+#buildAncFile(phylTree.root, set([]))
+buildAncFile("Euteleostomi", set([]))
