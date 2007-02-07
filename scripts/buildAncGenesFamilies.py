@@ -29,6 +29,7 @@ import utils.myPsOutput
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
 	[("homologyLevels",str,"ortholog_one2many,ortholog_many2many,apparent_ortholog_one2one,ortholog_one2one"), \
+	("ancestr",str,""),\
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("one2oneFile",str,"~/work/data/one2one/one2one.%s.list.bz2"), \
@@ -37,9 +38,10 @@ import utils.myPsOutput
 )
 
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-phylTree.loadAllSpeciesSince("Euteleostomi", options["genesFile"])
+phylTree.loadAllSpeciesSince(options["ancestr"], options["genesFile"])
 homologies = options["homologyLevels"].split(",")
 utils.myPsOutput.initColor()
+
 
 
 def buildAncFile(anc, lastComb):
@@ -98,8 +100,9 @@ def buildAncFile(anc, lastComb):
 	# 2. On affiche les groupes d'orthologues
 	print >> sys.stderr, "Construction des fichiers de", anc, "..."
 	
-	f = utils.myTools.myOpenFile(options["ancGenesFile"] % anc, 'w')
-	ff = utils.myTools.myOpenFile(options["one2oneFile"] % anc, 'w')
+	s = anc.replace('/', '_').replace(' ', '_')
+	f = utils.myTools.myOpenFile(options["ancGenesFile"] % s, 'w')
+	ff = utils.myTools.myOpenFile(options["one2oneFile"] % s, 'w')
 	nbA = 0
 	nbO = 0
 	res = utils.myTools.myCombinator([])
@@ -265,5 +268,4 @@ def buildAncFile(anc, lastComb):
 		if esp not in phylTree.dicGenomes:
 			buildAncFile(esp, res)
 
-#buildAncFile(phylTree.root, utils.myTools.myCombinator([]))
-buildAncFile("Euteleostomi", utils.myTools.myCombinator([]))
+buildAncFile(options["ancestr"], utils.myTools.myCombinator([]))

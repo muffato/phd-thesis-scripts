@@ -162,6 +162,6 @@ for esp1 in phylTree.listSpecies:
 
 			fo1.close()
 			fo2.close()
-			print >> sys.stderr, "%d/%d genes OK" %(nb2, nb1)
+			print >> sys.stderr, "%d/%d genes OK" % (nb2, nb1)
 
 
