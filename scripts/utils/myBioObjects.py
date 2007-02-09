@@ -73,7 +73,8 @@ class PhylogeneticTree:
 				fils.append( (tmp, currLine[2]-self.ages[tmp]) )
 				self.parent[tmp] = currLine[1][0]
 			
-			self.items[currLine[1][0]] = fils
+			if len(fils) != 0:
+				self.items[currLine[1][0]] = fils
 			self.commonNames[currLine[1][0]] = currLine[1][1:]
 			for s in currLine[1]:
 				self.ages[s] = currLine[2]
@@ -88,7 +89,8 @@ class PhylogeneticTree:
 			self.species[node] = []
 			self.branches[node] = []
 			self.outgroupNode[node] = None
-			if len(self.items[node]) != 0:
+			#if len(self.items[node]) != 0:
+			if node in self.items:
 				self.listAncestr.append(node)
 				for (f,_) in self.items[node]:
 					recInitialize(f)
@@ -147,10 +149,11 @@ class PhylogeneticTree:
 	# Renvoie l'arbre au format avec des parentheses
 	def convertToFlatFile(self, anc):
 
-		if anc in self.items:
-			return "(" + ",".join(["%s:%d" % (self.convertToFlatFile(e),l) for (e,l) in self.items[anc]]) + ")%s.%d" % (anc,self.ages[anc])
+		a = anc.replace(' ', '.')
+		if anc in self.listSpecies:
+			return a
 		else:
-			return anc
+			return "(" + ",".join(["%s:%d" % (self.convertToFlatFile(e),l) for (e,l) in self.items[anc]]) + ")%s|%d" % (a,self.ages[anc])
 
 
 

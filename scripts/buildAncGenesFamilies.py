@@ -228,7 +228,8 @@ def buildAncFile(anc, lastComb):
 
 	del res.grp
 	for (esp,_) in phylTree.items[anc]:
-		if esp not in phylTree.dicGenomes:
-			buildAncFile(esp, res)
+		buildAncFile(esp, res)
+		#if esp not in phylTree.dicGenomes:
+		#	buildAncFile(esp, res)
 
 buildAncFile(options["ancestr"], utils.myTools.myCombinator([]))

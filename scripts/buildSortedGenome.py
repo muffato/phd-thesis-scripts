@@ -68,30 +68,30 @@ def distInterGenes(tg1, tg2):
 			while tmp != anc:
 				tmp = phylTree.parent[tmp]
 				distAnc[tmp] = 1
-			if distAnc[options["nomAncetre"]] == 1:
+			if distAnc[options["ancestr"]] == 1:
 				return 1
 	
 	#print >> sys.stderr, 2, distAnc
 			
 	# On calcule par une moyenne les autres distances
-	calcDist(options["nomAncetre"])
+	calcDist(options["ancestr"])
 	#print >> sys.stderr, 3, distAnc
-	return distAnc[options["nomAncetre"]]
+	return distAnc[options["ancestr"]]
 	
 
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genesList.conf", "genomeAncestral", "phylTree.conf"], \
-	[("nomAncetre",str,""), ("seuilMaxDistInterGenes",int,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
-	("nbConcorde",int,-1), ("withConcordeOutput",bool,False), \
+	["genomeAncestral", "phylTree.conf"], \
+	[("ancestr",str,""), ("seuilMaxDistInterGenes",int,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
+	("nbConcorde",int,-1), ("withConcordeOutput",bool,False), ("withConcordeStats",bool,False),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
 )
 
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-if options["nomAncetre"] not in (phylTree.listAncestr + phylTree.listSpecies):
-	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["nomAncetre"]
+if options["ancestr"] not in (phylTree.listAncestr + phylTree.listSpecies):
+	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["ancestr"]
 	sys.exit(1)
 phylTree.loadAllSpeciesSince(None, options["genesFile"])
 del phylTree.dicGenomes
@@ -99,7 +99,7 @@ genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genomeAncestral"], Tru
 
 # On etend la liste des genes ancestraux pour utiliser les outgroup
 
-anc = options["nomAncetre"]
+anc = options["ancestr"]
 dicOutgroupGenes = {}
 while anc in phylTree.parent:
 	anc = phylTree.parent[anc]
@@ -160,6 +160,7 @@ for c in genesAnc.lstChr:
 	for i in xrange(n):
 		for j in xrange(i+1,n):
 			y = distInterGenes(tab[i], tab[j])
+			#print >> sys.stderr, tab[i], tab[j], y
 			if y == 0:
 				print >> f, int(mult*options["penalite"]),
 			elif y == 1:
@@ -189,13 +190,16 @@ for c in genesAnc.lstChr:
 
 	for i in xrange(n):
 		q = set([s.res[i] for s in lstTot])
-		if options["nbConcorde"] < 1:
+		if options["nbConcorde"] <= 1:
 			print c,
 		else:
 			print c, len(q),
 		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 	
-	print >> sys.stderr, len(utils.myMaths.unique([l.res for l in lstTot])), "solutions"
+	solUniq = utils.myMaths.unique([l.res for l in lstTot])
+	print >> sys.stderr, len(solUniq), "solutions"
+	for sol in solUniq:
+		print ".%s" % c, " ".join([str(i) for i in sol])
 
 
 os.system('rm -f *%s*' % nom )
