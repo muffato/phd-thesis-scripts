@@ -11,8 +11,9 @@ A partir de toutes les diagonales extraites entre les especes,
 ##################
 
 # Librairies
-import math
 import sys
+import math
+import operator
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
@@ -31,11 +32,13 @@ def loadDiagsFile(nom, diagEntry):
 
 		ct = l.split('\t')
 		anc = ct[0]
-		l = int(ct[1])
-		d = [int(x) for x in ct[2].split(' ')]
-		esp = set([tuple(x.split('/')) for x in ct[3].split()])
+		#l = int(ct[1])
+		d = [int(x) for x in ct[1].split(' ')]
+		l = len(d)
+		esp = set([tuple(x.split('/')) for x in ct[2].split()])
 		if len(ct) == 5:
 			esp.update( set([tuple(x.split('/')) for x in ct[4].split()]) )
+		esp = set([(phylTree.officialName[e],c) for (e,c) in esp])
 		diagEntry[anc].append( (l, d, esp) )
 
 	f.close()
@@ -120,6 +123,8 @@ def calcPoids(node):
 calcPoids(options["ancestr"])
 
 print >> sys.stderr, dicPoidsEspeces
+#dicPoidsEspeces = dict([(phylTree.commonNames[esp][0],dicPoidsEspeces[esp]) for esp in dicPoidsEspeces])
+#print >> sys.stderr, dicPoidsEspeces
 
 def calcScore(i1, i2):
 
@@ -133,10 +138,19 @@ def calcScore(i1, i2):
 	propF2 = sum([dicPoidsEspeces[e] for e in communEsp.intersection(fils2)])
 	propOut = sum([dicPoidsEspeces[e] for e in communEsp.intersection(outgroup)])
 	
+	#print propF1*propF2 + propF1*propOut + propF2*propOut
 	return propF1*propF2 + propF1*propOut + propF2*propOut
 	
 
-(_,clusters) = utils.myCommunities.launchCommunitiesBuild(len(lstDiags), calcScore, False)
+(_,clusters) = utils.myCommunities.launchCommunitiesBuild(len(lstDiags), calcScore, keepLonelyNodes = False, minRelevance = 0.3, minCoverage = 0, bestRelevance = True)
+
+#lstCommunities.sort(key = operator.itemgetter(1), reverse = True)
+#if len(lstCommunities) == 0:
+#	clusters = [range(len(lstDiags))]
+#elif lstCommunities[0][1] > 0.3:
+#	clusters = lstCommunities[0][2]
+#else:
+#	clusters = [range(len(lstDiags))]
 
 print >> sys.stderr, "Impression des chromosomes ancestraux ...",
 lstChr = []

@@ -144,7 +144,7 @@ for (i,j) in utils.myTools.myMatrixIterator(len(phylTree.listSpecies), len(phylT
 # On a besoin des genes ancestraux
 genesAnc = {}
 for anc in diagEntry:
-	genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % anc)
+	genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % (anc.replace('/', '_').replace(' ', '_')))
 
 # Traitement final
 for anc in diagEntry:

@@ -113,6 +113,26 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 			callBackFunc(c1, c2, d1, d2)
 
 
+"""
+function fw(int[1..n,1..n] graph) {
+    // Initialization
+    var int[1..n,1..n] dist := graph
+    var int[1..n,1..n] pred
+    for i from 1 to n
+        for j from 1 to n
+            pred[i,j] := nil
+            if (dist[i,j] > 0) and (dist[i,j] < Infinity)
+                pred[i,j] := i
+    // Main loop of the algorithm
+    for k from 1 to n
+        for i from 1 to n
+            for j from 1 to n
+                if dist[i,j] > dist[i,k] + dist[k,j]
+                    dist[i,j] = dist[i,k] + dist[k,j]
+                    pred[i,j] = pred[k,j]
+    return ( dist, pred ) // Tuple of the distance and predecessor matrices
+}
+"""
 
 
 # lstTout est une liste de diagonales chevauchantes
@@ -146,7 +166,7 @@ def getLongestPath(lstTout):
 
 	# Construit un graphe dans lequel les suites d'aretes sans carrefours ont ete reduites
 	def buildReducedGraph():
-		newSommets = [x for x in voisins if len(voisins[x]) != 2]
+		newSommets = set([x for x in voisins if len(voisins[x]) != 2])
 		aretes = dict([(x,dict()) for x in newSommets])
 
 		# Renvoie le chemin maximal qui part de s (en venant de pred)
@@ -207,7 +227,24 @@ def getLongestPath(lstTout):
 			if weight > max:
 				max = weight
 				res = path
-		return [ (res,max) ]
+		return (res,max)
+
+	def doFloydWarshall():
+		chemins = dict([(x,dict([(y,(None,0)) for y in newSommets])) for x in newSommets])
+		for x in newSommets:
+			for y in newSommets:
+				if y in aretes[x]:
+					chemins[x][y] = (set([x,y]), len(aretes[x][y]))
+		for z in newSommets:
+			for x in newSommets:
+				for y in newSommets:
+					(c1,l1) = chemins[x][z]
+					(c2,l2) = chemins[z][y]
+					newL = l1 + l2
+					if (l1 > 0) and (l2 > 0) and (newL > chemins[x][y][1]) and (len(c1 & c2) <= 1):
+						chemins[x][y] = (c1 | c2, newL)
+		return chemins
+
 
 	# 1. On construit le graphe original
 	voisins = buildVoisins(lstTout)
@@ -215,12 +252,30 @@ def getLongestPath(lstTout):
 
 	# 2. On reduit le graphe
 	(newSommets, aretes) = buildReducedGraph()
+	#print "graph {"
+	#for x in aretes:
+	#	for y in aretes[x]:
+	#		print x, " -- ", y
+	#print "}"
+
 	print >> sys.stderr, '%d->%d/%d' % (len(voisins), len(newSommets), len(aretes))
 	sys.stderr.write('.')
 	
 	# 3. On extrait les chemins les plus longs
 	res = []
 	while len(newSommets) > 0:
+		#sys.stderr.write('*')
+		#allChemins = doFloydWarshall()
+		#sys.stderr.write('*')
+		#best = []
+		#bestS = 0
+		#for x in allChemins:
+		#	all2 = allChemins[x]
+		#	for y in all2:
+		#		if all2[y][1] > bestS:
+		#			(best,bestS) = all2[y]
+		#new = best
+		#sys.stderr.write('*')
 		#(long,_) = selectLongest(myMaths.flatten([recLongestPath( ([i],0) ) for i in newSommets]))[0]
 		(long,_) = doSearchLongestPath()
 		new = []
@@ -233,6 +288,7 @@ def getLongestPath(lstTout):
 			break
 		res.append(new)
 		newSommets.difference_update(long)
+		print >> sys.stderr, "%d/%d" % (len(new),len(long))
 	
 	sys.stderr.write('.')
 	
@@ -272,16 +328,16 @@ def extractLongestOverlappingDiags(oldDiags, genesAnc):
 				d = diags[i]
 				flag = False
 				for j in xrange(len(d)-1):
-					if (d[j] not in res[0]) or (d[j+1] not in res[0]):
+					if (d[j] not in res) or (d[j+1] not in res):
 						continue
-					if abs(res[0].index(d[j])-res[0].index(d[j+1])) == 1:
+					if abs(res.index(d[j])-res.index(d[j+1])) == 1:
 						flag = True
 						break
 				if flag:
 					ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
 					ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
 			#print "%s\t%d\t%s\t%s" % (anc, len(res[0]), " ".join([str(x) for x in res[0]]), " ".join(["%s.%s" % (e,c) for (e,c) in ok]))
-			newDiags.append( (len(res[0]), res[0], list(ok)) )
+			newDiags.append( (len(res), res, list(ok)) )
 	return newDiags
 	
 

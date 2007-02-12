@@ -190,16 +190,16 @@ for c in genesAnc.lstChr:
 
 	for i in xrange(n):
 		q = set([s.res[i] for s in lstTot])
-		if options["nbConcorde"] <= 1:
-			print c,
-		else:
-			print c, len(q),
+		print c,
+		if (options["nbConcorde"] > 1) and options["withConcordeStats"]:
+			print len(q),
 		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 	
 	solUniq = utils.myMaths.unique([l.res for l in lstTot])
 	print >> sys.stderr, len(solUniq), "solutions"
-	for sol in solUniq:
-		print ".%s" % c, " ".join([str(i) for i in sol])
+	if options["withConcordeStats"]:
+		for sol in solUniq:
+			print ".%s" % c, " ".join([str(i) for i in sol])
 
 
 os.system('rm -f *%s*' % nom )
