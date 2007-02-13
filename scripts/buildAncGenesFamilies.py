@@ -18,7 +18,7 @@ import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 import utils.myCommunities
-import utils.myPsOutput
+#import utils.myPsOutput
 
 
 ########
@@ -29,9 +29,9 @@ import utils.myPsOutput
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
 	[("homologyLevels",str,"ortholog_one2many,ortholog_many2many,apparent_ortholog_one2one,ortholog_one2one"), \
-	("ancestr",str,""),\
+	("ancestr",str,""),("clusterize",bool,False), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
-	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
+	("genesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
 	("one2oneFile",str,"~/work/data/one2one/one2one.%s.list.bz2"), \
 	("orthoFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2")], \
 	__doc__ \
@@ -40,7 +40,18 @@ import utils.myPsOutput
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 phylTree.loadAllSpeciesSince(options["ancestr"], options["genesFile"])
 homologies = options["homologyLevels"].split(",")
-utils.myPsOutput.initColor()
+homologies = []
+
+# Les orthologues par paires d'especes
+#dicOrthos = {}
+#for esp in phylTree.dicGenomes:
+#	phylTree.dicGenomes[esp].lstGenes = None
+#esp = [phylTree.commonNames[x][0] for x in phylTree.species[options["ancestr"]]]
+#for (i,j) in utils.myTools.myMatrixIterator(len(esp), len(esp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+#	orthos = utils.myGenomes.GenomeFromOrthosList(options["orthoFile"] % (esp[i],esp[j]), filter=homologies)
+#	lst = [g.names for g in orthos]
+#	dicOrthos[(esp[i],esp[j])] = lst
+#	dicOrthos[(esp[j],esp[i])] = lst
 
 
 
@@ -75,22 +86,28 @@ def buildAncFile(anc, lastComb):
 
 
 	# 1. on combine tous les fichiers d'orthologues
-	comb = utils.myTools.myCombinator([])
-	esp = [phylTree.commonNames[x][0] for x in phylTree.species[anc]]
+	if anc not in phylTree.items:
+		return
+	esp = [[phylTree.commonNames[x][0] for x in s] for s in phylTree.branchesSpecies[anc]]
 	aretes = {}
+	comb = utils.myTools.myCombinator([])
 	
-	print >> sys.stderr, "Construction des familles d'orthologues de", anc, ":", "-".join(esp), "",
+	print >> sys.stderr, "Construction des familles d'orthologues de", anc, ":", "-".join(utils.myMaths.flatten(esp)), "",
 	for (i,j) in utils.myTools.myMatrixIterator(len(esp), len(esp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-		doLoad(options["orthoFile"] % (esp[i],esp[j]))
-		utils.myTools.stderr.write('.')
+		for e1 in esp[i]:
+			for e2 in esp[j]:
+				doLoad(options["orthoFile"] % (e1,e2))
+				utils.myTools.stderr.write('.')
 	print >> sys.stderr, " OK"
 	
 	# 2. On affiche les groupes d'orthologues
 	print >> sys.stderr, "Construction des fichiers de", anc, "..."
 	
 	s = anc.replace('/', '_').replace(' ', '_')
-	f = utils.myTools.myOpenFile(options["ancGenesFile"] % s, 'w')
-	ff = utils.myTools.myOpenFile(options["one2oneFile"] % s, 'w')
+	#f = utils.myTools.myOpenFile(options["ancGenesFile"] % s, 'w')
+	f = utils.myTools.null
+	#ff = utils.myTools.myOpenFile(options["one2oneFile"] % s, 'w')
+	ff = utils.myTools.null
 	nbA = 0
 	nbO = 0
 	res = utils.myTools.myCombinator([])
@@ -135,12 +152,12 @@ def buildAncFile(anc, lastComb):
 				print >> sys.stderr, "Graphe complet"
 				clusters = [x]
 				
-			elif nbAretesTot >= (len(x)*(len(x)-3))/2:
-				print >> sys.stderr, "Graphe quasi-complet"
-				clusters = [x]
-				
+			#elif nbAretesTot >= (len(x)*(len(x)-3))/2:
+			#	print >> sys.stderr, "Graphe quasi-complet"
+			#	clusters = [x]
+			
 			# C.3/ On est oblige de clusteriser
-			else:
+			elif options["clusterize"]:
 				lstCommunitiesOrig = utils.myCommunities.launchCommunitiesBuild1(x, aretes)
 				
 				lstCommunities = []
@@ -191,6 +208,9 @@ def buildAncFile(anc, lastComb):
 					print >> sys.stderr, "Hesitations !"
 					clusters = lstCommunities[0][2]
 				
+			# C.4 On a interdit de clusteriser
+			else:
+				clusters = [x]
 			
 		nbA += len(clusters)
 
@@ -208,7 +228,8 @@ def buildAncFile(anc, lastComb):
 				nbO += 1
 	
 	comb = None
-	
+
+	add = 0
 	# 3. On rajoute les genes qui n'ont plus qu'une seule copie
 	print >> sys.stderr, "Rajout des genes solitaires ...",
 	for e in phylTree.species[anc]:
@@ -219,12 +240,13 @@ def buildAncFile(anc, lastComb):
 			nbA += 1
 			print >> ff, g
 			nbO += 1
+			add += 1
 			res.addLink([g])
 
-	f.close()
-	ff.close()
+	#f.close()
+	#ff.close()
 	
-	print >> sys.stderr, "OK (%d/%d)" % (nbA, nbO)
+	print >> sys.stderr, "OK (%d/%d+%d)" % (nbA,nbO,add)
 
 	del res.grp
 	for (esp,_) in phylTree.items[anc]:

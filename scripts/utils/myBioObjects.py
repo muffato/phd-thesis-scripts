@@ -89,7 +89,6 @@ class PhylogeneticTree:
 			self.species[node] = []
 			self.branches[node] = []
 			self.outgroupNode[node] = None
-			#if len(self.items[node]) != 0:
 			if node in self.items:
 				self.listAncestr.append(node)
 				for (f,_) in self.items[node]:

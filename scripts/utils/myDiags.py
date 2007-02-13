@@ -248,7 +248,7 @@ def getLongestPath(lstTout):
 
 	# 1. On construit le graphe original
 	voisins = buildVoisins(lstTout)
-	sys.stderr.write('.')
+	#sys.stderr.write('.')
 
 	# 2. On reduit le graphe
 	(newSommets, aretes) = buildReducedGraph()
@@ -258,8 +258,8 @@ def getLongestPath(lstTout):
 	#		print x, " -- ", y
 	#print "}"
 
-	print >> sys.stderr, '%d->%d/%d' % (len(voisins), len(newSommets), len(aretes))
-	sys.stderr.write('.')
+	#print >> sys.stderr, '%d->%d/%d' % (len(voisins), len(newSommets), len(aretes))
+	#sys.stderr.write('.')
 	
 	# 3. On extrait les chemins les plus longs
 	res = []
@@ -288,9 +288,9 @@ def getLongestPath(lstTout):
 			break
 		res.append(new)
 		newSommets.difference_update(long)
-		print >> sys.stderr, "%d/%d" % (len(new),len(long))
+		#print >> sys.stderr, "%d/%d" % (len(new),len(long))
 	
-	sys.stderr.write('.')
+	#sys.stderr.write('.')
 	
 	return res
 

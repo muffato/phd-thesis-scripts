@@ -160,7 +160,7 @@ for anc in diagEntry:
 			s.append( l )
 			supp = findNewSpecies(d, esp, anc)
 			print "%s\t%d\t%s\t%s\t%s" % \
-			(anc, l, " ".join([str(x) for x in d]), " ".join(["%s/%s" % (e,c) for (e,c) in esp]), " ".join(["%s/%s" % (e,c) for (e,c) in supp]))
+			(anc, l, " ".join([str(x) for x in d]), "|".join(["%s/%s" % (e,c) for (e,c) in esp]), "|".join(["%s/%s" % (e,c) for (e,c) in supp]))
 	
 	else:
 	
@@ -171,6 +171,9 @@ for anc in diagEntry:
 			print "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s" % (anc, len(d1), e1,c1," ".join(d1), e2,c2," ".join(d2))
 		
 	ss = sum(s)
+	if len(lst) == 0:
+		print >> sys.stderr, ss, "%.2f" % 0, 0, "OK"
+		continue
 	print >> sys.stderr, ss, "%.2f" % (float(ss)/float(len(lst))), max(s), "OK"
 
 

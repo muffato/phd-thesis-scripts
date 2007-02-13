@@ -22,7 +22,14 @@ def launchCommunitiesBuildB(nbItems, scoreFunc):
 			combin.addLink([i1,i2])
 			dicAretes[i1][i2] = score
 
-	return [launchCommunitiesBuild1(g, dicAretes) for g in combin]
+	res = []
+	for g in combin:
+		#tmp = launchCommunitiesBuild1(g, dicAretes)
+		#if len(tmp) == 0:
+		tmp = [(1,0,[g],[])]
+		res.append(tmp)
+	return res
+	#return [launchCommunitiesBuild1(g, dicAretes) for g in combin]
 
 
 
