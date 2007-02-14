@@ -160,7 +160,9 @@ def checkArgs(args, options, info):
 	valArg = []
 	
 	# On scanne les argumetns pour les compter et recuperer les valeurs
-	for t in sys.argv[1:]:
+	for tt in sys.argv[1:]:
+
+		t = tt.replace('^', ' ')
 
 		# Un petit peu d'aide
 		if t == '-h' or t == '--help' or t == '-help':

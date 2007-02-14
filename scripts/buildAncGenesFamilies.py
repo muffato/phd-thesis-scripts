@@ -18,7 +18,6 @@ import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 import utils.myCommunities
-#import utils.myPsOutput
 
 
 ########
@@ -28,8 +27,7 @@ import utils.myCommunities
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("homologyLevels",str,"ortholog_one2many,ortholog_many2many,apparent_ortholog_one2one,ortholog_one2one"), \
-	("ancestr",str,""),("clusterize",bool,False), \
+	[("ancestr",str,""),("minRelevance",float,0.3), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("genesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
 	("one2oneFile",str,"~/work/data/one2one/one2one.%s.list.bz2"), \
@@ -39,20 +37,6 @@ import utils.myCommunities
 
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 phylTree.loadAllSpeciesSince(options["ancestr"], options["genesFile"])
-homologies = options["homologyLevels"].split(",")
-homologies = []
-
-# Les orthologues par paires d'especes
-#dicOrthos = {}
-#for esp in phylTree.dicGenomes:
-#	phylTree.dicGenomes[esp].lstGenes = None
-#esp = [phylTree.commonNames[x][0] for x in phylTree.species[options["ancestr"]]]
-#for (i,j) in utils.myTools.myMatrixIterator(len(esp), len(esp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-#	orthos = utils.myGenomes.GenomeFromOrthosList(options["orthoFile"] % (esp[i],esp[j]), filter=homologies)
-#	lst = [g.names for g in orthos]
-#	dicOrthos[(esp[i],esp[j])] = lst
-#	dicOrthos[(esp[j],esp[i])] = lst
-
 
 
 def buildAncFile(anc, lastComb):
@@ -86,8 +70,6 @@ def buildAncFile(anc, lastComb):
 
 
 	# 1. on combine tous les fichiers d'orthologues
-	if anc not in phylTree.items:
-		return
 	esp = [[phylTree.commonNames[x][0] for x in s] for s in phylTree.branchesSpecies[anc]]
 	aretes = {}
 	comb = utils.myTools.myCombinator([])
@@ -104,10 +86,8 @@ def buildAncFile(anc, lastComb):
 	print >> sys.stderr, "Construction des fichiers de", anc, "..."
 	
 	s = anc.replace('/', '_').replace(' ', '_')
-	#f = utils.myTools.myOpenFile(options["ancGenesFile"] % s, 'w')
-	f = utils.myTools.null
-	#ff = utils.myTools.myOpenFile(options["one2oneFile"] % s, 'w')
-	ff = utils.myTools.null
+	f = utils.myTools.myOpenFile(options["ancGenesFile"] % s, 'w')
+	ff = utils.myTools.myOpenFile(options["one2oneFile"] % s, 'w')
 	nbA = 0
 	nbO = 0
 	res = utils.myTools.myCombinator([])
@@ -125,6 +105,7 @@ def buildAncFile(anc, lastComb):
 				clusters = [x]
 			# A.2/ Sinon, elle correspond a une famille qui sera cree plus tard
 			else:
+				print >> sys.stderr, "Sous-famille"
 				continue
 		
 		
@@ -152,42 +133,37 @@ def buildAncFile(anc, lastComb):
 				print >> sys.stderr, "Graphe complet"
 				clusters = [x]
 				
-			#elif nbAretesTot >= (len(x)*(len(x)-3))/2:
-			#	print >> sys.stderr, "Graphe quasi-complet"
-			#	clusters = [x]
-			
 			# C.3/ On est oblige de clusteriser
-			elif options["clusterize"]:
+			else:
 				lstCommunitiesOrig = utils.myCommunities.launchCommunitiesBuild1(x, aretes)
 				
 				lstCommunities = []
 				for comm in lstCommunitiesOrig:
 				
-					print >> sys.stderr, "Test de [alpha=%f relevance=%f parts=%d N/A=%d]" % (comm[0],comm[1],len(comm[2]),len(comm[3]))
+					print >> sys.stderr, "Test de [alpha=%f relevance=%f parts=%d N/A=%d/%d] :" % (comm[0],comm[1],len(comm[2]),len(comm[3]),len(x)),
 					
 					# Ne nous interessent que les clusterisations completes
 					if len(comm[-1]) != 0:
 						print >> sys.stderr, "genes oublies"
 						continue
 					
-					# Ne nous interessent que les clusterisations avec une relevance suffisante
-					if comm[1] < 0.35:
-						print >> sys.stderr, "relevance insuffisante"
-						continue
-						
 					# Une clusterisation est correcte si tous les clusters sont repartis sur les deux sous-branches
-					ok = True
 					for c in comm[2]:
 						score = phylTree.findFamilyComposition(c)
 						poidsBranches = [max([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
 						if len([e for e in poidsBranches if e > 0]) == 1:
-							ok = False
 							print >> sys.stderr, "Clusterisation incoherente"
 							break
-					if ok:
-						print >> sys.stderr, "Communaute recevable"
-						lstCommunities.append(comm)
-			
+					else:
+				
+						# Ne nous interessent que les clusterisations avec une relevance suffisante
+						if comm[1] >= options["minRelevance"]:
+							print >> sys.stderr, "Communaute recevable"
+							lstCommunities.append(comm)
+						else:
+							print >> sys.stderr, "relevance insuffisante"
+							continue
+						
 				# On trie suivant la meilleure relevance
 				lstCommunities.sort(key = operator.itemgetter(1), reverse = True)
 
@@ -205,12 +181,9 @@ def buildAncFile(anc, lastComb):
 				
 				# C.3.c/ Le choix s'impose
 				else:
-					print >> sys.stderr, "Hesitations !"
 					clusters = lstCommunities[0][2]
+					print >> sys.stderr, "Hesitation ... Choix: [alpha=%f relevance=%f parts=%d]" % (lstCommunities[0][0],lstCommunities[0][1],len(clusters))
 				
-			# C.4 On a interdit de clusteriser
-			else:
-				clusters = [x]
 			
 		nbA += len(clusters)
 
@@ -230,28 +203,26 @@ def buildAncFile(anc, lastComb):
 	comb = None
 
 	add = 0
-	# 3. On rajoute les genes qui n'ont plus qu'une seule copie
-	print >> sys.stderr, "Rajout des genes solitaires ...",
-	for e in phylTree.species[anc]:
-		for g in phylTree.dicGenomes[e].dicGenes:
-			if (g not in lastComb.dic) or (g in res.dic):
-				continue
-			print >> f, g
+	# 3. On rajoute les familles heritees
+	print >> sys.stderr, "Rajout des familles heritees ...",
+	fils = set(phylTree.species[anc])
+	for gr in lastComb:
+		oublies = [g for g in gr if (g not in res.dic) and (phylTree.dicGenes[g][0] in fils)]
+		if len(oublies) > 0:
+			print >> f, " ".join(oublies)
 			nbA += 1
-			print >> ff, g
+			print >> ff, " ".join(oublies)
 			nbO += 1
 			add += 1
-			res.addLink([g])
+			res.addLink(oublies)
 
-	#f.close()
-	#ff.close()
+	f.close()
+	ff.close()
 	
-	print >> sys.stderr, "OK (%d/%d+%d)" % (nbA,nbO,add)
+	print >> sys.stderr, "OK (%d\\%d+%d)" % (nbA,nbO,add)
 
-	del res.grp
 	for (esp,_) in phylTree.items[anc]:
-		buildAncFile(esp, res)
-		#if esp not in phylTree.dicGenomes:
-		#	buildAncFile(esp, res)
+		if esp not in phylTree.dicGenomes:
+			buildAncFile(esp, res)
 
 buildAncFile(options["ancestr"], utils.myTools.myCombinator([]))

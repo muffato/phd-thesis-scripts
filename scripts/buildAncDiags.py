@@ -123,7 +123,7 @@ def findNewSpecies(d, esp, anc):
 	["phylTree.conf"], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
 	("extractLongestPath",bool,True), ("searchUndetectedSpecies",bool,True), \
-	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
+	("genesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
 	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \

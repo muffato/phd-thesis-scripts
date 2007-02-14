@@ -30,14 +30,19 @@ def loadDiagsFile(nom, diagEntry):
 	f = utils.myTools.myOpenFile(nom, 'r')
 	for l in f:
 
-		ct = l.split('\t')
+		ct = l[:-1].split('\t')
 		anc = ct[0]
 		l = int(ct[1])
 		d = [int(x) for x in ct[2].split(' ')]
 		#l = len(d)
-		esp = set([tuple(x.split('/')) for x in ct[3].split()])
-		if len(ct) == 5:
-			esp.update( set([tuple(x.split('/')) for x in ct[4].split()]) )
+		#print >> sys.stderr, ct[3].split('|')
+		#print >> sys.stderr, [x.split('/') for x in ct[3].split('|')]
+		esp = set([tuple(x.split('/')) for x in ct[3].split('|')])
+		if len(ct) == 5 and len(ct[4]) > 0:
+			#print >> sys.stderr, ct[4].split('|')
+			#print >> sys.stderr, [x.split('/') for x in ct[4].split('|')]
+			esp.update( set([tuple(x.split('/')) for x in ct[4].split('|')]) )
+		#print >> sys.stderr, esp
 		esp = set([(phylTree.officialName[e],c) for (e,c) in esp])
 		diagEntry[anc].append( (l, d, esp) )
 

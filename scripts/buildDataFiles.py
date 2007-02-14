@@ -27,7 +27,7 @@ import utils.myDiags
 
 def fileIterator(nom):
 	try:
-		f = utils.myTools.myOpenFile(nom, 'r')
+		f = utils.myTools.myOpenFile(options["IN.ensemblDirectory"] + "/" + nom, 'r')
 		tmp = ""
 		for ligne in f:
 			if ligne[-2] == '\\':
@@ -53,10 +53,11 @@ def fileIterator(nom):
 	("OUT.orthosFile",str,"~/work/data42/orthologs/orthos.%s.%s.list.bz2"), \
 	("OUT.fullOrthosFile",str,"~/work/data42/orthologs/full/orthos.%s.%s.list.bz2"), \
 	("OUT.parasFile",str,"~/work/data42/paralogs/paras.%s.list.bz2"), \
-	("IN.genesFile",str,""), \
-	("IN.transcriptsFile",str,""), \
-	("IN.orthosFile",str,""), \
-	("IN.parasFile",str,"")], \
+	("IN.ensemblDirectory",str,"~/workspace/ftp.ensembl.org/pub/release-41/mart_41/data/mysql/ensembl_mart_41/"), \
+	("IN.genesFile",str,"%s_gene_ensembl__gene__main.txt.table.gz"), \
+	("IN.transcriptsFile",str,"%s_gene_ensembl__transcript__main.txt.table.gz"), \
+	("IN.orthosFile",str,"%s_gene_ensembl__homologs_%s__dm.txt.table.gz"), \
+	("IN.parasFile",str,"%s_gene_ensembl__paralogs_%s__dm.txt.table.gz")], \
 	__doc__ \
 )
 
@@ -85,7 +86,7 @@ for esp in phylTree.listSpecies:
 
 # On genere les fichiers de listes de genes + Filtre scaffold/chromosome
 forbiddenTokens = ["rand", "Un", "affold", "ont", "tig", "v6", "h", "MT", "Mt"]
-forbiddenStartingTokens = ["NT", "U", "1099", "c", "E"]
+forbiddenStartingTokens = ["NT", "U", "1099", "c", "E", "Mito", "RNO"]
 
 for esp in phylTree.listSpecies:
 	print >> sys.stderr, "Mise en forme de la liste des genes et des familles de %s ..." % esp,
