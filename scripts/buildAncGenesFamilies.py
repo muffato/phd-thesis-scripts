@@ -18,6 +18,9 @@ import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 import utils.myCommunities
+import utils.myPsOutput
+
+
 
 
 ########
@@ -27,7 +30,7 @@ import utils.myCommunities
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("ancestr",str,""),("minRelevance",float,0.3), \
+	[("ancestr",str,""),("minRelevance",float,0.3), ("recursiveConstruction",bool,True), ("graphDirectory",str,""), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("genesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
 	("one2oneFile",str,"~/work/data/one2one/one2one.%s.list.bz2"), \
@@ -37,6 +40,7 @@ import utils.myCommunities
 
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 phylTree.loadAllSpeciesSince(options["ancestr"], options["genesFile"])
+utils.myPsOutput.initColor()
 
 
 def buildAncFile(anc, lastComb):
@@ -62,6 +66,7 @@ def buildAncFile(anc, lastComb):
 			# Les apparent_one2one comptent pour 1/2 dans les poids des aretes
 			if champs[6].startswith("apparent"):
 				aretes[gA][gB] = 0.5
+				aretes[gA][gB] = 1
 			else:
 				aretes[gA][gB] = 1
 
@@ -95,99 +100,114 @@ def buildAncFile(anc, lastComb):
 	
 		score = phylTree.findFamilyComposition(x)
 		poidsBranches = [max([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
-	
-		# A. Famille specifique d'une unique sous-branche
-		if len([e for e in poidsBranches if e > 0]) == 1:
-			
-			# A.1/ Si elle est heritee, on doit la garder
-			if x[0] in lastComb.dic:
-				print >> sys.stderr, "Famille heritee"
-				clusters = [x]
-			# A.2/ Sinon, elle correspond a une famille qui sera cree plus tard
-			else:
-				print >> sys.stderr, "Sous-famille"
-				continue
+
+		nbAretes = 0
+		for (i1,i2) in utils.myTools.myMatrixIterator(len(x), len(x), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+			if x[i1] in aretes and x[i2] in aretes[x[i1]]:
+				nbAretes += 1
+			elif x[i2] in aretes and x[i1] in aretes[x[i2]]:
+				nbAretes += 1
+		nbAretesAttendu = 0
+		tmp = [sum([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
+		for (i,j) in utils.myTools.myMatrixIterator(len(tmp), len(tmp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+			nbAretesAttendu += tmp[i]*tmp[j]
+
+		# A. Des conditions qui aident
+		# A.1/ Dans une des sous-branches, tous les genes sont en 1 copie
+		if nbAretes == nbAretesAttendu:
+			print >> sys.stderr, "Graphe complet"
+			clusters = [x]
 		
-		
-		# B. Dans une des sous-branches, tous les genes sont en 1 copie
+		# A.2/ Dans une des sous-branches, tous les genes sont en 1 copie
 		elif min(poidsBranches) == 1:
 			print >> sys.stderr, "Branche sans duplication"
 			clusters = [x]
 
-		# C. On calcule les aretes du graphe
+		# B. On est oblige de clusteriser
 		else:
-
-			# C.1/ Construction des aretes
-			nbAretesTot = 0
-			for (i1,i2) in utils.myTools.myMatrixIterator(len(x), len(x), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-				g1 = x[i1]
-				g2 = x[i2]
-				if (g1 in aretes.get(g2,[])) or (g2 in aretes.get(g1,[])):
-					nbAretesTot += 1
-				if (phylTree.dicGenes[g1][0] == phylTree.dicGenes[g2][0]):
-					nbAretesTot += 1
-
+		
+			# B.1/ On lance les communautes
+			lstCommunitiesOrig = utils.myCommunities.launchCommunitiesBuild1(x, aretes)
 			
-			# C.2/ Graphe complet -> 1 cluster
-			if nbAretesTot == (len(x)*(len(x)-1))/2:
-				print >> sys.stderr, "Graphe complet"
-				clusters = [x]
+			# B.2/ On selectionne celles qui sont convenables
+			lstCommunities = []
+			for comm in lstCommunitiesOrig:
+			
+				print >> sys.stderr, "Test de [alpha=%f relevance=%f parts=%d N/A=%d/%d] :" % (comm[0],comm[1],len(comm[2]),len(comm[3]),len(x)),
+				(alpha,relevance,clusters,lonely) = comm
+				if len(options["graphDirectory"]) > 0:
+					fa = open(options["graphDirectory"] + '/graph-%f-%f-%d-%d' % (relevance,alpha,len(clusters),len(lonely)), 'w')
+					print >> fa, "graph {"
+					for ci in xrange(len(clusters)):
+						c = clusters[ci]
+						(r,g,b) = utils.myPsOutput.colorTable[utils.myPsOutput.color[str(ci+1)]]
+						for cc in c:
+							print >> fa, "%s [style=\"filled\",color=\"#%02X%02X%02X\"]" % (cc, int(255*r),int(255*g),int(255*b))
+					for (i1,i2) in utils.myTools.myMatrixIterator(len(x), len(x), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+						if x[i1] in aretes and x[i2] in aretes[x[i1]]:
+							ss = aretes[x[i1]][x[i2]]
+						elif x[i2] in aretes and x[i1] in aretes[x[i2]]:
+							ss = aretes[x[i2]][x[i1]]
+						elif phylTree.dicGenes[x[i1]][0] == phylTree.dicGenes[x[i2]][0]:
+							ss = -1
+						else:
+							ss = 0
+						if ss == -1:
+							print >> fa, "%s -- %s [style=\"dotted\"]" % (x[i1], x[i2])
+						elif ss == 0.5:
+							print >> fa, "%s -- %s [style=\"dashed\"]" % (x[i1], x[i2])
+						elif ss == 1:
+							print >> fa, "%s -- %s" % (x[i1], x[i2])
+					print >> fa, "}"
+					fa.close()
+
+
+				# Ne nous interessent que les clusterisations completes
+				if len(comm[-1]) != 0:
+					print >> sys.stderr, "genes oublies"
+					continue
 				
-			# C.3/ On est oblige de clusteriser
-			else:
-				lstCommunitiesOrig = utils.myCommunities.launchCommunitiesBuild1(x, aretes)
-				
-				lstCommunities = []
-				for comm in lstCommunitiesOrig:
-				
-					print >> sys.stderr, "Test de [alpha=%f relevance=%f parts=%d N/A=%d/%d] :" % (comm[0],comm[1],len(comm[2]),len(comm[3]),len(x)),
-					
-					# Ne nous interessent que les clusterisations completes
-					if len(comm[-1]) != 0:
-						print >> sys.stderr, "genes oublies"
+				# Une clusterisation est correcte si tous les clusters sont repartis sur les deux sous-branches
+				for c in comm[2]:
+					score = phylTree.findFamilyComposition(c)
+					poidsBranches = [max([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
+					if len([e for e in poidsBranches if e > 0]) == 1:
+						print >> sys.stderr, "Clusterisation incoherente"
+						break
+				else:
+			
+					# Ne nous interessent que les clusterisations avec une relevance suffisante
+					if comm[1] >= options["minRelevance"]:
+						print >> sys.stderr, "Communaute recevable"
+						lstCommunities.append(comm)
+					else:
+						print >> sys.stderr, "relevance insuffisante"
 						continue
 					
-					# Une clusterisation est correcte si tous les clusters sont repartis sur les deux sous-branches
-					for c in comm[2]:
-						score = phylTree.findFamilyComposition(c)
-						poidsBranches = [max([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
-						if len([e for e in poidsBranches if e > 0]) == 1:
-							print >> sys.stderr, "Clusterisation incoherente"
-							break
-					else:
-				
-						# Ne nous interessent que les clusterisations avec une relevance suffisante
-						if comm[1] >= options["minRelevance"]:
-							print >> sys.stderr, "Communaute recevable"
-							lstCommunities.append(comm)
-						else:
-							print >> sys.stderr, "relevance insuffisante"
-							continue
-						
-				# On trie suivant la meilleure relevance
-				lstCommunities.sort(key = operator.itemgetter(1), reverse = True)
+			# On trie suivant la meilleure relevance
+			lstCommunities.sort(key = operator.itemgetter(1), reverse = True)
 
-				# C.3.a/ Aucune clusterisation satisfaisante
-				if len(lstCommunities) == 0:
-					print >> sys.stderr, "Aucune communaute satisfaisante"
-					clusters = [x]
-					
-				# C.3.b/ Unique solution
-				elif len(lstCommunities) == 1:
+			# B.3/ Aucune clusterisation satisfaisante
+			if len(lstCommunities) == 0:
+				print >> sys.stderr, "Aucune communaute satisfaisante"
+				clusters = [x]
+				
+			# B.4/ Unique solution
+			elif len(lstCommunities) == 1:
 
-					# TODO: Verifier le score de relevance !!
-					clusters = lstCommunities[0][2]
-					print >> sys.stderr, "Resultat unique [alpha=%f relevance=%f parts=%d]" % (lstCommunities[0][0],lstCommunities[0][1],len(clusters))
-				
-				# C.3.c/ Le choix s'impose
-				else:
-					clusters = lstCommunities[0][2]
-					print >> sys.stderr, "Hesitation ... Choix: [alpha=%f relevance=%f parts=%d]" % (lstCommunities[0][0],lstCommunities[0][1],len(clusters))
-				
+				# TODO: Verifier le score de relevance !!
+				clusters = lstCommunities[0][2]
+				print >> sys.stderr, "Resultat unique [alpha=%f relevance=%f parts=%d]" % (lstCommunities[0][0],lstCommunities[0][1],len(clusters))
+			
+			# B.5/ Le choix s'impose
+			else:
+				clusters = lstCommunities[0][2]
+				print >> sys.stderr, "Hesitation ... Choix: [alpha=%f relevance=%f parts=%d]" % (lstCommunities[0][0],lstCommunities[0][1],len(clusters))
+			
 			
 		nbA += len(clusters)
 
-		# E. Ecriture
+		# Ecriture
 		for c in clusters:
 			res.addLink(c)
 			print >> f, " ".join(c)
@@ -221,8 +241,9 @@ def buildAncFile(anc, lastComb):
 	
 	print >> sys.stderr, "OK (%d\\%d+%d)" % (nbA,nbO,add)
 
-	for (esp,_) in phylTree.items[anc]:
-		if esp not in phylTree.dicGenomes:
-			buildAncFile(esp, res)
+	if options["recursiveConstruction"]:
+		for (esp,_) in phylTree.items[anc]:
+			if esp not in phylTree.dicGenomes:
+				buildAncFile(esp, res)
 
 buildAncFile(options["ancestr"], utils.myTools.myCombinator([]))
