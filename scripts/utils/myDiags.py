@@ -189,31 +189,31 @@ def getLongestPath(lstTout):
 
 	# prend une liste de liste
 	# renvoie la liste des listes de longueur maximale
-	def selectLongest(lst):
-		m = -1
-		r = []
-		for (x,n) in lst:
-			if n < m:
-				continue
-			if n != m:
-				m = n
-				r = []
-			r.append( (x,n) )
-		return r
+	#def selectLongest(lst):
+	#	m = -1
+	#	r = []
+	#	for (x,n) in lst:
+	#		if n < m:
+	#			continue
+	#		if n != m:
+	#			m = n
+	#			r = []
+	#		r.append( (x,n) )
+	#	return r
 		
 	# prend une liste (le chemin de depart)
 	# renvoie la liste des chemins maximaux en partant de ce chemin de depart
 	# Chaque liste est en fait un couple (liste ds noeuds, poids)
-	def recLongestPath( (currPath,currLength) ):
-		toto = [ (currPath,currLength) ]
-		for j in aretes[currPath[-1]]:
-			if j in currPath:
-				continue
-			tmp = recLongestPath( (currPath+[j], currLength+len(aretes[currPath[-1]][j])) )
-			toto = selectLongest(toto + tmp)
-			if toto[0][1] == len(voisins):
-				return [toto[0]]
-		return toto
+	#def recLongestPath( (currPath,currLength) ):
+	#	toto = [ (currPath,currLength) ]
+	#	for j in aretes[currPath[-1]]:
+	#		if j in currPath:
+	#			continue
+	#		tmp = recLongestPath( (currPath+[j], currLength+len(aretes[currPath[-1]][j])) )
+	#		toto = selectLongest(toto + tmp)
+	#		if toto[0][1] == len(voisins):
+	#			return [toto[0]]
+	#	return toto
 		
 	def doSearchLongestPath():
 		todo = [ ([i],0) for i in newSommets ]
@@ -222,28 +222,28 @@ def getLongestPath(lstTout):
 		while len(todo) > 0:
 			(path,weight) = todo.pop()
 			for j in aretes[path[-1]]:
-				if j not in path:
+				if (j not in path) and (j in newSommets):
 					todo.append( (path+[j], weight+len(aretes[path[-1]])) )
 			if weight > max:
 				max = weight
 				res = path
 		return (res,max)
 
-	def doFloydWarshall():
-		chemins = dict([(x,dict([(y,(None,0)) for y in newSommets])) for x in newSommets])
-		for x in newSommets:
-			for y in newSommets:
-				if y in aretes[x]:
-					chemins[x][y] = (set([x,y]), len(aretes[x][y]))
-		for z in newSommets:
-			for x in newSommets:
-				for y in newSommets:
-					(c1,l1) = chemins[x][z]
-					(c2,l2) = chemins[z][y]
-					newL = l1 + l2
-					if (l1 > 0) and (l2 > 0) and (newL > chemins[x][y][1]) and (len(c1 & c2) <= 1):
-						chemins[x][y] = (c1 | c2, newL)
-		return chemins
+	#def doFloydWarshall():
+	#	chemins = dict([(x,dict([(y,(None,0)) for y in newSommets])) for x in newSommets])
+	#	for x in newSommets:
+	#		for y in newSommets:
+	#			if y in aretes[x]:
+	#				chemins[x][y] = (set([x,y]), len(aretes[x][y]))
+	#	for z in newSommets:
+	#		for x in newSommets:
+	#			for y in newSommets:
+	#				(c1,l1) = chemins[x][z]
+	#				(c2,l2) = chemins[z][y]
+	#				newL = l1 + l2
+	#				if (l1 > 0) and (l2 > 0) and (newL > chemins[x][y][1]) and (len(c1 & c2) <= 1):
+	#					chemins[x][y] = (c1 | c2, newL)
+	#	return chemins
 
 
 	# 1. On construit le graphe original
@@ -308,8 +308,18 @@ def extractLongestOverlappingDiags(oldDiags, genesAnc):
 		da1 = [genesAnc.dicGenes.get(s,("",""))[1] for s in d1]
 		da2 = [genesAnc.dicGenes.get(s,("",""))[1] for s in d2]
 		if "" in da1:
+			tmp = [s for s in d2 if s not in genesAnc.dicGenes]
+			#if len(tmp) > 0:
+			#	print >> sys.stderr, oldDiags[i]
+			#	print >> sys.stderr, da1
+			#	print >> sys.stderr, da2
 			diags.append(da2)
 		else:
+			tmp = [s for s in d1 if s not in genesAnc.dicGenes]
+			#if len(tmp) > 0:
+			#	print >> sys.stderr, oldDiags[i]
+			#	print >> sys.stderr, da1
+			#	print >> sys.stderr, da2
 			diags.append(da1)
 		for s in d1+d2:
 			if s not in dic:

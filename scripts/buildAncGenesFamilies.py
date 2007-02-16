@@ -56,19 +56,19 @@ def buildAncFile(anc, lastComb):
 			gB = champs[3]
 			
 			# Si les genes ont ete separes au noeud superieur, on les laisse separes
-			if lastComb.dic.get(gA,0) != lastComb.dic.get(gB,0):
+			if (gA in lastComb.dic) and (gB in lastComb.dic) and (lastComb.dic[gA] != lastComb.dic[gB]):
 				continue
 			
 			comb.addLink([gA, gB])
 			if gA not in aretes:
 				aretes[gA] = dict([])
 			
+			aretes[gA][gB] = 1
 			# Les apparent_one2one comptent pour 1/2 dans les poids des aretes
-			if champs[6].startswith("apparent"):
-				aretes[gA][gB] = 0.5
-				aretes[gA][gB] = 1
-			else:
-				aretes[gA][gB] = 1
+			#if champs[6].startswith("apparent"):
+			#	aretes[gA][gB] = 0.5
+			#else:
+			#	aretes[gA][gB] = 1
 
 		f.close()
 		
@@ -182,7 +182,6 @@ def buildAncFile(anc, lastComb):
 						lstCommunities.append(comm)
 					else:
 						print >> sys.stderr, "relevance insuffisante"
-						continue
 					
 			# On trie suivant la meilleure relevance
 			lstCommunities.sort(key = operator.itemgetter(1), reverse = True)

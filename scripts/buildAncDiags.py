@@ -89,6 +89,12 @@ def findNewSpecies(d, esp, anc):
 		# On va intersecter les chromosomes des orthologues de chaque gene
 		poss = set([])
 		for i in d:
+			
+			#print >> sys.stderr, a
+			#print >> sys.stderr, anc
+			#print >> sys.stderr, i
+			#print >> sys.stderr, len(genesAnc[anc].lstGenes[utils.myGenomes.Genome.defaultChr])
+			
 			# Le gene chez l'ancetre commun
 			g = genesAnc[a].getPosition(genesAnc[anc].lstGenes[utils.myGenomes.Genome.defaultChr][i])
 			# Cas d'un gene specifique de la lignee
