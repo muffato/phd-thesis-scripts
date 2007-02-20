@@ -128,7 +128,7 @@ def findNewSpecies(d, esp, anc):
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
-	("extractLongestPath",bool,True), ("searchUndetectedSpecies",bool,True), \
+	("showProjected",bool,False), ("showAncestral",bool,True), ("extractLongestPath",bool,True), ("searchUndetectedSpecies",bool,True), \
 	("genesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
 	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
@@ -154,33 +154,51 @@ for anc in diagEntry:
 
 # Traitement final
 for anc in diagEntry:
-	
-	s = []
-	if options["extractLongestPath"]:
-	
-		print >> sys.stderr, "Extraction des chevauchements les plus longs de %s " % anc,
-		lst = utils.myDiags.extractLongestOverlappingDiags(diagEntry[anc], genesAnc[anc])
 
-		print >> sys.stderr, "OK (%d -> %d) ... Impression ..." % (len(diagEntry[anc]), len(lst)),
-		for (l,d,esp) in lst:
-			s.append( l )
-			supp = findNewSpecies(d, esp, anc)
-			print "%s\t%d\t%s\t%s\t%s" % \
-			(anc, l, " ".join([str(x) for x in d]), "|".join(["%s/%s" % (e,c) for (e,c) in esp]), "|".join(["%s/%s" % (e,c) for (e,c) in supp]))
-	
-	else:
-	
+
+	if options["showProjected"]:
 		lst = diagEntry[anc]
-		print >> sys.stderr, "Impression des %d diagonales de %s ..." % (len(lst),anc),
+		print >> sys.stderr, "Impression des %d diagonales projetees de %s ..." % (len(lst),anc),
+		s = []
 		for ((e1,c1,d1),(e2,c2,d2)) in lst:
 			s.append( len(d1) )
-			print "%s\t%d\t%s\t%s\t%s\t%s\t%s\t%s" % (anc, len(d1), e1,c1," ".join(d1), e2,c2," ".join(d2))
+			print '\t'.join([anc, str(len(d1)), e1,str(c1)," ".join(d1), e2,str(c2)," ".join(d2)])
+		ss = sum(s)
+		if len(lst) == 0:
+			print >> sys.stderr, ss, "%.2f" % 0, 0, "OK"
+			continue
+		print >> sys.stderr, ss, "%.2f" % (float(ss)/float(len(lst))), max(s), "OK"
+
+
+	if options["showAncestral"]:
+	
+		if options["extractLongestPath"]:
+			print >> sys.stderr, "Extraction des chevauchements les plus longs de %s ..." % anc,
+			lst = utils.myDiags.extractLongestOverlappingDiags(diagEntry[anc], genesAnc[anc])
+			print >> sys.stderr, "OK (%d -> %d)" % (len(diagEntry[anc]), len(lst))
+		else:
+			lst = []
+			for ((e1,c1,d1),(e2,c2,d2)) in diagEntry[anc]:
+				da = [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d1]
+				if "" in da:
+					da = [genesAnc[anc].dicGenes[s][1] for s in d2]
+				lst.append( (len(da), da, [(e1,c1),(e2,c2)]) )
+
 		
-	ss = sum(s)
-	if len(lst) == 0:
-		print >> sys.stderr, ss, "%.2f" % 0, 0, "OK"
-		continue
-	print >> sys.stderr, ss, "%.2f" % (float(ss)/float(len(lst))), max(s), "OK"
-
-
+		print >> sys.stderr, "Impression des %d diagonales ancestrales de %s ..." % (len(lst),anc),
+		s = []
+		for (l,d,esp) in lst:
+			s.append( l )
+			print '\t'.join([anc, str(l), " ".join([str(x) for x in d]), "|".join(["%s/%s" % (e,c) for (e,c) in esp])]),
+			if options["searchUndetectedSpecies"]:
+				supp = findNewSpecies(d, esp, anc)
+				print '\t' + '|'.join(["%s/%s" % (e,c) for (e,c) in supp])
+			else:
+				print
+	
+		ss = sum(s)
+		if len(lst) == 0:
+			print >> sys.stderr, ss, "%.2f" % 0, 0, "OK"
+			continue
+		print >> sys.stderr, ss, "%.2f" % (float(ss)/float(len(lst))), max(s), "OK"
 

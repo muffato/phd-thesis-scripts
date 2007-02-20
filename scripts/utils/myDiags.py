@@ -258,7 +258,7 @@ def getLongestPath(lstTout):
 	#		print x, " -- ", y
 	#print "}"
 
-	#print >> sys.stderr, '%d->%d/%d' % (len(voisins), len(newSommets), len(aretes))
+	#print >> sys.stderr, '[%d->%d]' % (len(voisins), len(newSommets)),
 	#sys.stderr.write('.')
 	
 	# 3. On extrait les chemins les plus longs
@@ -308,18 +308,8 @@ def extractLongestOverlappingDiags(oldDiags, genesAnc):
 		da1 = [genesAnc.dicGenes.get(s,("",""))[1] for s in d1]
 		da2 = [genesAnc.dicGenes.get(s,("",""))[1] for s in d2]
 		if "" in da1:
-			tmp = [s for s in d2 if s not in genesAnc.dicGenes]
-			#if len(tmp) > 0:
-			#	print >> sys.stderr, oldDiags[i]
-			#	print >> sys.stderr, da1
-			#	print >> sys.stderr, da2
 			diags.append(da2)
 		else:
-			tmp = [s for s in d1 if s not in genesAnc.dicGenes]
-			#if len(tmp) > 0:
-			#	print >> sys.stderr, oldDiags[i]
-			#	print >> sys.stderr, da1
-			#	print >> sys.stderr, da2
 			diags.append(da1)
 		for s in d1+d2:
 			if s not in dic:
