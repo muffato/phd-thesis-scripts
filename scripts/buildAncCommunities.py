@@ -34,13 +34,11 @@ def loadDiagsFile(nom, diagEntry):
 		anc = ct[0]
 		l = int(ct[1])
 		d = [int(x) for x in ct[2].split(' ')]
-		#l = len(d)
-		#print >> sys.stderr, ct[3].split('|')
-		#print >> sys.stderr, [x.split('/') for x in ct[3].split('|')]
-		esp = set([tuple(x.split('/')) for x in ct[3].split('|')])
+		esp = set([])
+		if len(ct[3]) > 0:
+			esp.update( set([tuple(x.split('/')) for x in ct[3].split('|')]) )
 		if len(ct) == 5 and len(ct[4]) > 0:
-			#print >> sys.stderr, ct[4].split('|')
-			#print >> sys.stderr, [x.split('/') for x in ct[4].split('|')]
+			#print >> sys.stderr, ct[4], ct[4].split('|')
 			esp.update( set([tuple(x.split('/')) for x in ct[4].split('|')]) )
 		#print >> sys.stderr, esp
 		esp = set([(phylTree.officialName[e],c) for (e,c) in esp])
@@ -65,7 +63,7 @@ def loadDiagsFile(nom, diagEntry):
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
 # Les genes ancestraux
-genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % options["ancestr"])
+genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % options["ancestr"].replace('/', '_').replace(' ', '_'))
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
 
 # On separe les especes en trois

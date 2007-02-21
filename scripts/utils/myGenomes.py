@@ -56,8 +56,10 @@ class Genome:
 		self.nom = nom
 		# Associer un nom de gene a sa position sur le genome
 		self.dicGenes = {}
-		# La liste triee des chromosomes
+		# La liste triee des noms des chromosomes, des scaffolds et des randoms
 		self.lstChr = []
+		self.lstScaff = []
+		self.lstRand = []
 		
 	#
 	# Rajoute un gene au genome
@@ -81,6 +83,9 @@ class Genome:
 	def sortGenome(self):
 		
 		self.lstChr.sort()
+		self.lstScaff.sort()
+		self.lstRand.sort()
+		
 		self.dicGenes = {}
 		for c in self.lstGenes:
 			self.lstGenes[c].sort(lambda g1, g2: cmp(g1.beginning, g2.beginning))
@@ -134,7 +139,7 @@ class Genome:
 			yield g
 	
 	def __iter__(self):
-		for c in self.lstChr:
+		for c in self.lstGenes:
 			for g in self.lstGenes[c]:
 				yield g
 
@@ -143,9 +148,12 @@ class Genome:
 
 ##############################################################
 # Cette classe gere un fichier de liste de genes d'Ensembl   #
-#   "Chr Debut Fin Brin Nom"                                 #
+#   "Chr Debut Fin Brin ENSFAM Nom"                          #
+# Convertit automatiquement les nombres romains en arabe     #
 ##############################################################
 class EnsemblGenome(Genome):
+
+	dicConvRomain = {"I":1, "II":2, "III":3, "IV":4, "V":5, "VI":6, "VII":7, "VIII":8, "IX":9, "X":10, "XI":11, "XII":12, "XIII":13, "XIV":14, "XV":15, "XVI":16, "XVII":17, "XVIII":18, "XIX":19, "XX":20, "XXI":21, "XXII":22, "XXIII":23, "XXIV":24, "XXV":25}
 
 	#
 	# Constructeur
@@ -158,7 +166,9 @@ class EnsemblGenome(Genome):
 		
 		f = myTools.myOpenFile(nom, 'r')
 		
-		# On lit chaque ligne
+		# On lit chaque ligne et on stocke temporairement
+		lstGenes = []
+		typesChr = set([])
 		for ligne in f:
 			champs = ligne.split()
 			
@@ -168,9 +178,37 @@ class EnsemblGenome(Genome):
 			except ValueError:
 				pass
 	
-			self.addGene( myBioObjects.Gene([champs[-1]], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
+			lstGenes.append(champs)
+			typesChr.add( type(champs[0]) )
+			
 		f.close()
+		
+		
+		for champs in lstGenes:
+			c = champs[0]
+			# On n'a que des chiffres romains
+			if int not in typesChr:
+				c = dicConvRomain[c]
+			
+			self.addGene( myBioObjects.Gene([champs[-1]], c, int(champs[1]), int(champs[2]), int(champs[3])) )
 
+		# Les veritables chromosomes sont des entiers ou des entiers suivis de p/q/L/R/a/b ou W/X/Y/Z
+		# Les chromosomes '*random*' ou 'UNKN' sont des scaffold mis bout a bout -> pas d'ordre utilisable
+		# Le reste correspond aux scaffolds
+		old = self.lstChr
+		self.lstChr = []
+		for c in old:
+			if type(c) == int:
+				if c < 50:
+					self.lstChr.append(c)
+				else:
+					self.lstScaff.append(c)
+			elif ((c[-1] in "pqLRab") and (c != "c6_QBL")) or (c in "WXYZ"):
+				self.lstChr.append(c)
+			elif ("ando" in c) or (c == "UNKN"):
+				self.lstRand.append(c)
+			else:
+				self.lstScaff.append(c)
 		self.sortGenome()
 		
 		print >> sys.stderr, "OK"
@@ -298,76 +336,4 @@ class AncestralGenome(Genome):
 		
 		return (blocsAnc, dico)
 
-
-###########################################################
-# Cette classe gere une liste de fichiers de genes.       #
-# Le format des lignes est "Nom_Espece nom_fichier_genes" #
-# Un symbole indique le type de l'espece                  #
-#   Rien -> Vertebre non duplique                         #
-#    . -> Vertebre duplique                               #
-#    * -> Non vertebre = outgroup                         #
-###########################################################
-class GeneBank:
-
-	def __init__(self, nom, only = [], type = []):
-
-		self.dicGenes = {}
-		self.dicEspeces = {}
-		self.lstEspecesNonDup = []
-		self.lstEspecesDup = []
-		self.lstEspecesOutgroup = []
-		f = myTools.myOpenFile(nom, 'r')
-		
-		for ligne in f:
-
-			champs = ligne.split()
-			
-			if len(champs) != 2:
-				continue
-
-			# Un commentaire
-			if ligne[0] == '#':
-				continue
-
-			# Le nom de l'espece
-			if champs[0][0] in ['.', '-']:
-				s = champs[0][1:]
-				dup = champs[0][0]
-			else:
-				s = champs[0]
-				dup = ""
-			
-			# Est-ce que l'espece a ete filtree
-			if s not in only and len(only) > 0:
-				continue
-
-			if dup not in type and len(type) > 0:
-				continue
-			
-			if dup == "":
-				self.lstEspecesNonDup.append(s)
-			elif dup == '.':
-				self.lstEspecesDup.append(s)
-			elif dup == '-':
-				self.lstEspecesOutgroup.append(s)
-			
-			g = EnsemblGenome(champs[1])
-			self.dicEspeces[s] = g
-			
-			for x in g.dicGenes:
-				self.dicGenes[x] = (s, g.dicGenes[x][0], g.dicGenes[x][1])
-
-		f.close()
-
-	def findFamilyComposition(self, fam, breakWhenIncomplete=False):
-		
-		score = dict( [(e,[]) for e in self.dicEspeces] )
-		
-		for g in fam:
-			if (g not in self.dicGenes) and breakWhenIncomplete:
-				return None
-			(e,_,_) = self.dicGenes[g]
-			score[e].append(g)
-		
-		return score
 

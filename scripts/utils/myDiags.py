@@ -113,28 +113,6 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 			callBackFunc(c1, c2, d1, d2)
 
 
-"""
-function fw(int[1..n,1..n] graph) {
-    // Initialization
-    var int[1..n,1..n] dist := graph
-    var int[1..n,1..n] pred
-    for i from 1 to n
-        for j from 1 to n
-            pred[i,j] := nil
-            if (dist[i,j] > 0) and (dist[i,j] < Infinity)
-                pred[i,j] := i
-    // Main loop of the algorithm
-    for k from 1 to n
-        for i from 1 to n
-            for j from 1 to n
-                if dist[i,j] > dist[i,k] + dist[k,j]
-                    dist[i,j] = dist[i,k] + dist[k,j]
-                    pred[i,j] = pred[k,j]
-    return ( dist, pred ) // Tuple of the distance and predecessor matrices
-}
-"""
-
-
 # lstTout est une liste de diagonales chevauchantes
 # Renvoie les plus longs chemins de genes ancestraux issus de ces diagonales,
 # puis les plus longs chemins avec les genes non encore utilises et ainsi de suite
@@ -186,64 +164,67 @@ def getLongestPath(lstTout):
 
 		return (newSommets, aretes)
 
-
-	# prend une liste de liste
-	# renvoie la liste des listes de longueur maximale
-	#def selectLongest(lst):
-	#	m = -1
-	#	r = []
-	#	for (x,n) in lst:
-	#		if n < m:
-	#			continue
-	#		if n != m:
-	#			m = n
-	#			r = []
-	#		r.append( (x,n) )
-	#	return r
 		
-	# prend une liste (le chemin de depart)
-	# renvoie la liste des chemins maximaux en partant de ce chemin de depart
-	# Chaque liste est en fait un couple (liste ds noeuds, poids)
-	#def recLongestPath( (currPath,currLength) ):
-	#	toto = [ (currPath,currLength) ]
-	#	for j in aretes[currPath[-1]]:
-	#		if j in currPath:
-	#			continue
-	#		tmp = recLongestPath( (currPath+[j], currLength+len(aretes[currPath[-1]][j])) )
-	#		toto = selectLongest(toto + tmp)
-	#		if toto[0][1] == len(voisins):
-	#			return [toto[0]]
-	#	return toto
-		
+	
 	def doSearchLongestPath():
-		todo = [ ([i],0) for i in newSommets ]
+		todo = [ [i] for i in newSommets ]
 		res = []
 		max = -1
 		while len(todo) > 0:
-			(path,weight) = todo.pop()
+			#(path,weight) = todo.pop()
+			path = todo.pop()
 			for j in aretes[path[-1]]:
 				if (j not in path) and (j in newSommets):
-					todo.append( (path+[j], weight+len(aretes[path[-1]])) )
-			if weight > max:
-				max = weight
+					#todo.append( (path+[j], weight+len(aretes[path[-1]][j])) )
+					todo.append( path + aretes[path[-1]][j] )
+			#if weight > max:
+			if len(path) > max:
+				#max = weight
+				max = len(path)
 				res = path
-		return (res,max)
+		return res
+		new = []
+		for x in res:
+			if len(new) == 0:
+				new.append(x)
+			else:
+				new.extend(aretes[new[-1]][x])
+		return new
 
-	#def doFloydWarshall():
-	#	chemins = dict([(x,dict([(y,(None,0)) for y in newSommets])) for x in newSommets])
-	#	for x in newSommets:
-	#		for y in newSommets:
-	#			if y in aretes[x]:
-	#				chemins[x][y] = (set([x,y]), len(aretes[x][y]))
-	#	for z in newSommets:
-	#		for x in newSommets:
-	#			for y in newSommets:
-	#				(c1,l1) = chemins[x][z]
-	#				(c2,l2) = chemins[z][y]
-	#				newL = l1 + l2
-	#				if (l1 > 0) and (l2 > 0) and (newL > chemins[x][y][1]) and (len(c1 & c2) <= 1):
-	#					chemins[x][y] = (c1 | c2, newL)
-	#	return chemins
+	
+	def doFloydWarshall():
+		# Tous les plus longs chemins
+		vide = set([])
+		chemins = dict([(x,dict([(y,vide) for y in newSommets])) for x in newSommets])
+		for x in newSommets:
+			for y in aretes[x]:
+				chemins[x][y] = set([x] + aretes[x][y])
+		for z in newSommets:
+			for x in newSommets:
+				for y in newSommets:
+					c1 = chemins[x][z]
+					c2 = chemins[z][y]
+					
+					# Cycle absorbant
+					if len(c1 & c2) > 1:
+						continue
+					
+					new = c1 | c2
+					if len(new) > len(chemins[x][y]):
+						chemins[x][y] = new
+		
+		return chemins
+		
+		# Le plus long plus long chemin
+		best = []
+		bestS = 0
+		for x in chemins:
+			all2 = chemins[x]
+			for y in all2:
+				if len(all2[y]) > bestS:
+					best = all2[y]
+					bestS = len(best)
+		return best
 
 
 	# 1. On construit le graphe original
@@ -252,43 +233,25 @@ def getLongestPath(lstTout):
 
 	# 2. On reduit le graphe
 	(newSommets, aretes) = buildReducedGraph()
-	#print "graph {"
-	#for x in aretes:
-	#	for y in aretes[x]:
-	#		print x, " -- ", y
-	#print "}"
 
-	#print >> sys.stderr, '[%d->%d]' % (len(voisins), len(newSommets)),
+	print >> sys.stderr, '[%d->%d]' % (len(voisins), len(newSommets))
 	#sys.stderr.write('.')
 	
 	# 3. On extrait les chemins les plus longs
 	res = []
 	while len(newSommets) > 0:
 		#sys.stderr.write('*')
-		#allChemins = doFloydWarshall()
+		best = doFloydWarshall()
+		#best = doSearchLongestPath()
 		#sys.stderr.write('*')
-		#best = []
-		#bestS = 0
-		#for x in allChemins:
-		#	all2 = allChemins[x]
-		#	for y in all2:
-		#		if all2[y][1] > bestS:
-		#			(best,bestS) = all2[y]
-		#new = best
-		#sys.stderr.write('*')
-		#(long,_) = selectLongest(myMaths.flatten([recLongestPath( ([i],0) ) for i in newSommets]))[0]
-		(long,_) = doSearchLongestPath()
-		new = []
-		for x in long:
-			if len(new) == 0:
-				new.append(x)
-			else:
-				new.extend(aretes[new[-1]][x])
-		if len(new) < 2:
+		
+		if len(best) < 2:
 			break
-		res.append(new)
-		newSommets.difference_update(long)
-		#print >> sys.stderr, "%d/%d" % (len(new),len(long))
+		res.append(best)
+		newSommets.difference_update(best)
+		#sys.stderr.write('*')
+		print >> sys.stderr, "{%s}" % best
+		#print >> sys.stderr, "{%d}" % len(best),
 	
 	#sys.stderr.write('.')
 	
@@ -326,16 +289,13 @@ def extractLongestOverlappingDiags(oldDiags, genesAnc):
 			ok = set([])
 			for i in g:
 				d = diags[i]
-				flag = False
 				for j in xrange(len(d)-1):
 					if (d[j] not in res) or (d[j+1] not in res):
 						continue
-					if abs(res.index(d[j])-res.index(d[j+1])) == 1:
-						flag = True
-						break
-				if flag:
+					#if abs(res.index(d[j])-res.index(d[j+1])) == 1:
 					ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
 					ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
+					break
 			#print "%s\t%d\t%s\t%s" % (anc, len(res[0]), " ".join([str(x) for x in res[0]]), " ".join(["%s.%s" % (e,c) for (e,c) in ok]))
 			newDiags.append( (len(res), res, list(ok)) )
 	return newDiags

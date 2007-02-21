@@ -25,7 +25,7 @@ import utils.myPsOutput
 # TODO Couleurs
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["GenomeADessiner", "GenomeReference"], \
-	[("taillePoint", float, -1), ("useColor", str, "black"), ("orthologuesList", str, "")], \
+	[("taillePoint",float,-1), ("useColor",str,"black"), ("orthologuesList",str,""), ("includeScaffolds",bool,False), ("includeRandoms",bool,False)], \
 	__doc__
 )
 
@@ -42,9 +42,18 @@ except Exception:
 	colors = options["useColor"]
 
 
+chr1 = genome1.lstChr
+chr2 = genome2.lstChr
+if options["includeScaffolds"]:
+	chr1.extend(genome1.lstScaff)
+	chr2.extend(genome2.lstScaff)
+if options["includeRandoms"]:
+	chr1.extend(genome1.lstRand)
+	chr2.extend(genome2.lstRand)
+
 # Initialisations
-nb1 = sum([len(genome1.lstGenes[x]) for x in genome1.lstGenes])
-nb2 = sum([len(genome2.lstGenes[x]) for x in genome2.lstGenes])
+nb1 = sum([len(genome1.lstGenes[x]) for x in chr1])
+nb2 = sum([len(genome2.lstGenes[x]) for x in chr2])
 if options["taillePoint"] < 0:
 	dp = 19. / float(nb1)
 else:
@@ -56,12 +65,12 @@ utils.myPsOutput.initColor()
 utils.myPsOutput.printPsHeader(0.0001)
 
 
-def prepareGenome(genome, nb, func):
+def prepareGenome(genome, chr, nb, func):
 	i = 0
 	y = 1.
 	lstNum = {}
 	func(y)
-	for c in genome.lstChr:
+	for c in chr:
 		y += (19. * len(genome.lstGenes[c])) / float(nb)
 		func(y)
 		for gene in genome.lstGenes[c]:
@@ -74,17 +83,17 @@ def prepareGenome(genome, nb, func):
 
 # On affiche la grille et on associe "nom de gene" <-> "position sur la grille"
 print >> sys.stderr, "Tri des genomes ",
-lstNum1 = prepareGenome(genome1, nb1, lambda y: utils.myPsOutput.drawLine(1, y, 19, 0, "black"))
+lstNum1 = prepareGenome(genome1, chr1, nb1, lambda y: utils.myPsOutput.drawLine(1, y, 19, 0, "black"))
 sys.stderr.write(".")
-lstNum2 = prepareGenome(genome2, nb2, lambda x: utils.myPsOutput.drawLine(x, 1, 0, 19, "black"))
+lstNum2 = prepareGenome(genome2, chr2, nb2, lambda x: utils.myPsOutput.drawLine(x, 1, 0, 19, "black"))
 print >> sys.stderr, ". OK"
-
-
 
 print >> sys.stderr, "Affichage des points ",
 for gene in genome1:
 	gg = []
 	for g in gene.names:
+		if g not in lstNum1:
+			continue
 		x = lstNum1[g]
 		
 		if g in genome2.dicGenes:

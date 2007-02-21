@@ -85,7 +85,7 @@ def colorAncestr(esp, e, phylTree, para, orthos):
 	lstBlocs = []
 
 	# On parcourt les chromosomes de l'espece
-	for c in genome.lstChr:
+	for c in genome.lstChr + genome.lstScaff:
 		
 		# Eviter d'essayer de creer des DCS sur des scaffolds trop petits
 		if len(genome.lstGenes[c]) < options["minChrLen"]:

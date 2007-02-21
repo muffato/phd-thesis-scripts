@@ -33,8 +33,8 @@ def calcDiags(e1, e2):
 		if len(d1) < options["minimalLength"]:
 			return
 		
-		dn1 = [g1.lstGenes[c1][i].names[0] for i in d1]
-		dn2 = [g2.lstGenes[c2][i].names[0] for i in d2]
+		dn1 = [g1.lstGenes[c1][trans1[(c1,i)]].names[0] for i in d1]
+		dn2 = [g2.lstGenes[c2][trans2[(c2,i)]].names[0] for i in d2]
 
 		for tmp in toStudy:
 			diagEntry[tmp].append( ((e1,c1,dn1), (e2,c2,dn2)) )
@@ -42,11 +42,22 @@ def calcDiags(e1, e2):
 	# Ecrire un genome en suite de genes ancestraux
 	def translateGenome(genome):
 		newGenome = {}
-		for c in genome.lstChr:
+		transNewOld = {}
+		for c in genome.lstChr + genome.lstScaff:
 			newGenome[c] = [(genesAnc.dicGenes.get(g.names[0], (0,-1))[1],g.strand) for g in genome.lstGenes[c]]
 			if options["keepOnlyOrthos"]:
-				newGenome[c] = [x for x in newGenome[c] if x[0] != -1]
-		return newGenome
+				tmp = [x for x in newGenome[c] if x[0] != -1]
+			else:
+				tmp = newGenome[c]
+			last = 0
+			for i in xrange(len(tmp)):
+				x = tmp[i]
+				new = newGenome[c].index(x, last)
+				transNewOld[(c,i)] = new
+				last = new
+			newGenome[c] = tmp
+					
+		return (newGenome,transNewOld)
 
 	# Les noeuds de l'arbre entre l'ancetre et les especes actuelles
 	toStudy = [phylTree.getFirstParent(e1,e2)]
@@ -58,17 +69,16 @@ def calcDiags(e1, e2):
 			toStudy.append( tmp )
 
 	# Chargement des orthologues
-	#calcDiags(phylTree.commonNames[phylTree.listSpecies[i]][0], phylTree.commonNames[phylTree.listSpecies[j]][0])
 	genesAnc = utils.myGenomes.GenomeFromOrthosList(options["orthosFile"] % (phylTree.commonNames[e1][0],phylTree.commonNames[e2][0]))
 	newLoc = [[] for x in xrange(len(genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]))]
 	del genesAnc.lstGenes
 
 	g1 = phylTree.dicGenomes[e1]
 	g2 = phylTree.dicGenomes[e2]
-	newGen = translateGenome(g1)
-	tmp = translateGenome(g2)
+	(newGen,trans1) = translateGenome(g1)
+	(tmp,trans2) = translateGenome(g2)
 	
-	for c in g2.lstChr:
+	for c in g2.lstChr + g2.lstScaff:
 		for i in xrange(len(tmp[c])):
 			(ianc,s) = tmp[c][i]
 			if ianc != -1:
@@ -89,11 +99,6 @@ def findNewSpecies(d, esp, anc):
 		# On va intersecter les chromosomes des orthologues de chaque gene
 		poss = set([])
 		for i in d:
-			
-			#print >> sys.stderr, a
-			#print >> sys.stderr, anc
-			#print >> sys.stderr, i
-			#print >> sys.stderr, len(genesAnc[anc].lstGenes[utils.myGenomes.Genome.defaultChr])
 			
 			# Le gene chez l'ancetre commun
 			g = genesAnc[a].getPosition(genesAnc[anc].lstGenes[utils.myGenomes.Genome.defaultChr][i])
@@ -189,12 +194,11 @@ for anc in diagEntry:
 		s = []
 		for (l,d,esp) in lst:
 			s.append( l )
-			print '\t'.join([anc, str(l), " ".join([str(x) for x in d]), "|".join(["%s/%s" % (e,c) for (e,c) in esp])]),
+			ss = '\t'.join([anc, str(l), " ".join([str(x) for x in d]), "|".join(["%s/%s" % (e,c) for (e,c) in esp])])
 			if options["searchUndetectedSpecies"]:
 				supp = findNewSpecies(d, esp, anc)
-				print '\t' + '|'.join(["%s/%s" % (e,c) for (e,c) in supp])
-			else:
-				print
+				ss += '\t' + '|'.join(["%s/%s" % (e,c) for (e,c) in supp])
+			print ss
 	
 		ss = sum(s)
 		if len(lst) == 0:
