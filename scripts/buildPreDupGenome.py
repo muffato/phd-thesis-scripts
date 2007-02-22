@@ -52,13 +52,15 @@ def loadChrAncIni(nom):
 #  des paralogues et des orthologues
 #
 def buildParaOrtho(lstGenesAnc):
+
+	print >> sys.stderr, "Creation des listes d'orthologues et de paralogues ...",
 	para = dict([(e,{}) for e in especesDup])
 	ortho = dict([(e,{}) for e in especesDup])
 	
 	for g in lstGenesAnc:
 		for e in especesDup:
 			genomeDup = phylTree.dicGenomes[e]
-			gT = [x for x in g.names if x in genomeDup.dicGenes]
+			gT = [x for x in g.names if x in genomeDup.dicGenes and genomeDup.dicGenes[x][0] not in genomeDup.lstRand]
 			if len(gT) == 0:
 				continue
 			for x in gT:
@@ -66,6 +68,9 @@ def buildParaOrtho(lstGenesAnc):
 			gNT = [x for x in g.names if x not in genomeDup.dicGenes]
 			for x in gNT:
 				ortho[e][x] = [genomeDup.dicGenes[y] for y in gT]
+	
+	print >> sys.stderr, "OK"
+	
 	return (para, ortho)
 
 

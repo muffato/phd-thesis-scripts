@@ -150,14 +150,21 @@ def checkArgs(args, options, info):
 				invite = "+/-"
 			else:
 				invite = "-"
-			print >> sys.stderr, "\t", invite + "%s [%s] (%s)" % t
+			print >> sys.stderr, "\t", invite + "%s %s (%s)" % t
 		if info != "":
 			print >> sys.stderr, "\n", info
 		sys.exit(1)
 
-	types = dict([ (x[0], x[1]) for x in options ])
-	valOpt = dict([ (x[0], x[2]) for x in options ])
+	#types = {}
+	valOpt = {}
 	valArg = []
+	opt = {}
+	for (name,typ,val) in options:
+		opt[name] = (typ,val)
+		if type(val) == list:
+			valOpt[name] = val[0]
+		else:
+			valOpt[name] = val
 	
 	# On scanne les argumetns pour les compter et recuperer les valeurs
 	for tt in sys.argv[1:]:
@@ -177,15 +184,17 @@ def checkArgs(args, options, info):
 				v = t[t.index('=')+1:]
 				if not s in valOpt:
 					error_usage()
-				if types[s] == bool:
+				if (type(opt[s][1]) == list) and (v not in opt[s][1]):
 					error_usage()
-				valOpt[s] = types[s](v)
+				if opt[s][0] == bool:
+					error_usage()
+				valOpt[s] = opt[s][0](v)
 				
 			else:
 				s = t[1:]
 				if not s in valOpt:
 					error_usage()
-				if types[s] != bool:
+				if opt[s][0] != bool:
 					error_usage()
 				# Ici, on affecte False
 				valOpt[s] = (t[0] == '+')

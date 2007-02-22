@@ -9,19 +9,19 @@ import sys
 import os
 import utils.myTools
 
-(noms_fichiers, options) = utils.myTools.checkArgs([], [("showStats", bool, False)], __doc__)
+(noms_fichiers, options) = utils.myTools.checkArgs(["familiesFile"], [("showStats", bool, False)], __doc__)
 
 # MAIN #
 
-comb = utils.myTools.myCombinator([])
-
 # On scanne toutes les lignes
-for l in sys.stdin:
-	cc = l.split()
-	comb.addLink(cc)
+f = utils.myTools.myOpenFile(noms_fichiers["familiesFile"], 'r')
+comb = utils.myTools.myCombinator([])
+for l in f:
+	comb.addLink(l.split())
+f.close()
 
 # On affiche le resultat
-for x in comb.getGrp():
+for x in comb:
 	print " ".join(x)
 	if options["showStats"]:
 		print >> sys.stderr, len(x)

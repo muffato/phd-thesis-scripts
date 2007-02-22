@@ -11,7 +11,7 @@ colorTable = {}
 #
 # L'en-tete PostScript
 #
-def printPsHeader(linewidth = 0.001):
+def printPsHeader(linewidth = 0.01):
 	print "%!PS-Adobe-3.0"
 	print "%%DocumentData: Clean7bit"
 	print "%%Creator: myPsOutput"

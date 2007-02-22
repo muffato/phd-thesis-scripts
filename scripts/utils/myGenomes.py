@@ -68,7 +68,6 @@ class Genome:
 	
 		c = gene.chromosome
 		if c not in self.lstGenes:
-			self.lstChr.append(c)
 			self.lstGenes[c] = []
 
 		n = len(self.lstGenes[c])
@@ -85,6 +84,9 @@ class Genome:
 		self.lstChr.sort()
 		self.lstScaff.sort()
 		self.lstRand.sort()
+		#print >> sys.stderr, self.lstChr
+		#print >> sys.stderr, self.lstScaff
+		#print >> sys.stderr, self.lstRand
 		
 		self.dicGenes = {}
 		for c in self.lstGenes:
@@ -146,6 +148,8 @@ class Genome:
 	def getPosition(self, gene):
 		return myMaths.unique([self.dicGenes[s] for s in gene.names if s in self.dicGenes])
 
+
+
 ##############################################################
 # Cette classe gere un fichier de liste de genes d'Ensembl   #
 #   "Chr Debut Fin Brin ENSFAM Nom"                          #
@@ -166,9 +170,7 @@ class EnsemblGenome(Genome):
 		
 		f = myTools.myOpenFile(nom, 'r')
 		
-		# On lit chaque ligne et on stocke temporairement
-		lstGenes = []
-		typesChr = set([])
+		# On lit chaque ligne
 		for ligne in f:
 			champs = ligne.split()
 			
@@ -178,27 +180,15 @@ class EnsemblGenome(Genome):
 			except ValueError:
 				pass
 	
-			lstGenes.append(champs)
-			typesChr.add( type(champs[0]) )
+			self.addGene( myBioObjects.Gene([champs[-1]], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
 			
 		f.close()
 		
-		
-		for champs in lstGenes:
-			c = champs[0]
-			# On n'a que des chiffres romains
-			if int not in typesChr:
-				c = dicConvRomain[c]
-			
-			self.addGene( myBioObjects.Gene([champs[-1]], c, int(champs[1]), int(champs[2]), int(champs[3])) )
-
 		# Les veritables chromosomes sont des entiers ou des entiers suivis de p/q/L/R/a/b ou W/X/Y/Z
 		# Les chromosomes '*random*' ou 'UNKN' sont des scaffold mis bout a bout -> pas d'ordre utilisable
 		# Le reste correspond aux scaffolds
-		old = self.lstChr
-		self.lstChr = []
-		for c in old:
-			if type(c) == int:
+		for c in self.lstGenes:
+			if (type(c) == int) or (type(c) == long):
 				if c < 50:
 					self.lstChr.append(c)
 				else:
@@ -290,7 +280,7 @@ class AncestralGenome(Genome):
 				
 			
 			# La position du gene lu
-			if c in self.lstChr:
+			if c in self.lstGenes:
 				i = len(self.lstGenes[c])
 			else:
 				i = 0
@@ -299,7 +289,7 @@ class AncestralGenome(Genome):
 			self.addGene( myBioObjects.Gene(champs, c, i, i, strand) )
 		
 		f.close()
-		self.lstChr.sort()
+		self.lstChr = sorted(self.lstGenes)
 		
 		print >> sys.stderr, "OK"
 
