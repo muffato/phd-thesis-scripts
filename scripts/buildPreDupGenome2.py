@@ -52,13 +52,15 @@ def loadChrAncIni(nom):
 #  des paralogues et des orthologues
 #
 def buildParaOrtho(lstGenesAnc):
+
+	print >> sys.stderr, "Creation des listes d'orthologues et de paralogues ...",
 	para = dict([(e,{}) for e in especesDup])
 	ortho = dict([(e,{}) for e in especesDup])
 	
 	for g in lstGenesAnc:
 		for e in especesDup:
 			genomeDup = phylTree.dicGenomes[e]
-			gT = [x for x in g.names if x in genomeDup.dicGenes]
+			gT = [x for x in g.names if x in genomeDup.dicGenes and genomeDup.dicGenes[x][0] not in genomeDup.lstRand]
 			if len(gT) == 0:
 				continue
 			for x in gT:
@@ -66,6 +68,9 @@ def buildParaOrtho(lstGenesAnc):
 			gNT = [x for x in g.names if x not in genomeDup.dicGenes]
 			for x in gNT:
 				ortho[e][x] = [genomeDup.dicGenes[y] for y in gT]
+	
+	print >> sys.stderr, "OK"
+	
 	return (para, ortho)
 
 
@@ -171,6 +176,7 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 		if cc != "":
 			nbDCS += 1
 			DCSlen += len(gr)
+			#if cc in "ADEIKLMN":
 			res.append(gr)
 			
 		if options["showDCS"]:
@@ -181,8 +187,8 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 
 	print >> sys.stderr, "/", nbDCS, "DCS pour", DCSlen, "orthologues"
 
+	return lstBlocs
 	return res
-	#return lstBlocs
 
 
 #
@@ -340,16 +346,28 @@ for eD in especesDup:
 	allDCSe1[eD] = []
 	allDCSe2[eD] = []
 	for dcs in allDCS:
-		l = utils.myMaths.flatten([x[eD] for (_,_,x) in dcs])
-		allDCSe1[eD].append(l)
-		allDCSe2[eD].append(set(l))
+		altern = []
+		for i in xrange(len(dcs)-1):
+			(_,_,lcT1) = dcs[i]
+			(_,_,lcT2) = dcs[i+1]
+			for c1 in lcT1[eD]:
+				for c2 in lcT2[eD]:
+					if c1 == c2:
+						continue
+					altern.append( (c1,c2) )
+					altern.append( (c2,c1) )
+		allDCSe1[eD].append(altern)
+		allDCSe2[eD].append(set(altern))
+	#	print >> sys.stderr, dcs
+	#	print >> sys.stderr, altern
+	#sys.exit(0)
 		
 
 def scorePaireDCS(i1, i2):
-	score = 1
+	score = 0
 	for eD in especesDup:
 		for x in (allDCSe2[eD][i1] & allDCSe2[eD][i2]):
-			score *= min(allDCSe1[eD][i1].count(x), allDCSe1[eD][i2].count(x))
+			score += min(allDCSe1[eD][i1].count(x), allDCSe1[eD][i2].count(x))
 		#print "Comparing %s and %s -> %d" % (allDCSe1[eD][i1],allDCSe1[eD][i2],score)
 
 	return score
@@ -357,15 +375,17 @@ def scorePaireDCS(i1, i2):
 print >> sys.stderr, "Lancement des communautes"
 lstLstComm = utils.myCommunities.launchCommunitiesBuildB(len(allDCS), scorePaireDCS)
 
+aa = 0
 for lstComm in lstLstComm:
 	print >> sys.stderr, "Nouvelle composante connexe"
+	aa += 1
 	for (alpha,relevance,clusters,lonely) in lstComm:
 		print >> sys.stderr, "Resultat alpha=%f relevance=%f clusters=%d size=%d lonely=%d" % \
 		(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely))
 		for i in range(len(clusters)):
 			for g in clusters[i]:
 				for (_,nnn,_) in allDCS[g]:
-					print i+1, nnn
+					print "%d.%d" % (aa,i+1), nnn
 
 sys.exit(0)
 

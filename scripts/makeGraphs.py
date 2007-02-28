@@ -27,12 +27,35 @@ f.close()
 n = 0
 lastG = -1
 f = None
+dejaLus = set([])
+
 for l in sys.stdin:
 	
 	t = l.split()
 
 	a = int(t[1])
 	b = int(t[2])
+
+	n += 1
+	if n % 100000 == 0:
+		print >> sys.stderr, n
+
+		
+	if a == b:
+		continue
+	
+	elif a > b:
+
+		if (b,a) in dejaLus:
+			continue
+
+		g = a
+		a = b
+		b = g
+
+	else:
+		dejaLus.add( (a,b) )
+	
 	c = float(t[11])
 	if c == 0:
 		c = 1000000
@@ -50,6 +73,3 @@ for l in sys.stdin:
 
 	print >> f, ia, ib, c
 
-	n += 1
-	if n % 100000 == 0:
-		print >> sys.stderr, n

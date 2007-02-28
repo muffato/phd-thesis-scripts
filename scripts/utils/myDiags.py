@@ -113,95 +113,87 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 			callBackFunc(c1, c2, d1, d2)
 
 
-# lstTout est une liste de diagonales chevauchantes
-# Renvoie les plus longs chemins de genes ancestraux issus de ces diagonales,
-# puis les plus longs chemins avec les genes non encore utilises et ainsi de suite
-def getLongestPath(lstTout):
+#
+# Un ensemble de diagonales que l'on represente comme un graphe ou les noeuds sont les genes
+#
+class DiagGraph:
 
-	# A partir d'une liste de diagonales, contruit la liste des voisins de chaque gene
-	def buildVoisins(lstDiags):
-		voisins = {}
+
+	#
+	# Initialisation du graphe a partir de la liste des diagonales
+	# On construit la liste des genes voisins
+	#
+	def __init__(self, lstDiags):
 		
-		for c in lstDiags:
-			if len(c) == 0:
-				continue
-			y = c[0]
-			if len(c) == 1 and y not in voisins:
-				voisins[y] = set([])
-			for i in xrange(1, len(c)):
-				x = y
-				y = c[i]
-				if x not in voisins:
-					voisins[x] = set([y])
-				else:
-					voisins[x].add(y)
-				if y not in voisins:
-					voisins[y] = set([x])
-				else:
-					voisins[y].add(x)
-		return voisins
+		# La liste des sommets
+		self.sommets = set()
+		for d in lstDiags:
+			self.sommets.update(d)
+		
+		# Les aretes du graphe
+		self.aretes = dict([(x,dict()) for x in self.sommets])
+		for d in lstDiags:
+			for i in xrange(len(d)-1):
+				x = d[i]
+				y = d[i+1]
+				self.aretes[x][y] = self.aretes[x].get(y,[]) + [y]
+				self.aretes[y][x] = self.aretes[y].get(x,[]) + [x]
 
 
+
+	#
 	# Construit un graphe dans lequel les suites d'aretes sans carrefours ont ete reduites
-	def buildReducedGraph():
-		newSommets = set([x for x in voisins if len(voisins[x]) != 2])
-		aretes = dict([(x,dict()) for x in newSommets])
+	#
+	def reduceGraph(self):
 
-		# Renvoie le chemin maximal qui part de s (en venant de pred)
-		# qui ne croise pas de carrefours
+		# Renvoie le chemin qui part de s (en venant de pred) tant qu'il ne croise pas de carrefours
 		def followSommet(s, pred):
 			if s in newSommets:
-				return [s]
-			next = [x for x in voisins[s] if x != pred][0]
-			l = followSommet(next, s)
-			return [s]+l
+				return self.aretes[pred][s]
+			next = [x for x in self.aretes[s] if x != pred][0]
+			return self.aretes[pred][s] + followSommet(next, s)
 
+		# Cree les aretes du nouveau graphe, avec les chemins les plus longs entre les nouveaux sommets
+		newSommets = set([x for x in self.sommets if len(self.aretes[x]) != 2])
+		newAretes = dict([(x,dict()) for x in newSommets])
 		for x in newSommets:
-			for v in voisins[x]:
+			for v in self.aretes[x]:
 				l = followSommet(v, x)
-				if (l[-1] not in aretes[x]) or (len(l) > len(aretes[x][l[-1]])):
-					aretes[x][l[-1]] = l
-
-		return (newSommets, aretes)
-
+				if len(l) > len(newAretes[x].get(l[-1],[])):
+					newAretes[x][l[-1]] = l
 		
+		self.sommets = newSommets
+		self.aretes = newAretes
+
 	
-	def doSearchLongestPath():
-		todo = [ [i] for i in newSommets ]
+	#
+	# Recherche le plus long chemin en les testant tous
+	#
+	def doSearchLongestPath(self):
+		todo = [ [i] for i in self.newSommets ]
 		res = []
 		max = -1
 		while len(todo) > 0:
-			#(path,weight) = todo.pop()
 			path = todo.pop()
-			for j in aretes[path[-1]]:
-				if (j not in path) and (j in newSommets):
-					#todo.append( (path+[j], weight+len(aretes[path[-1]][j])) )
-					todo.append( path + aretes[path[-1]][j] )
-			#if weight > max:
+			for j in self.aretes[path[-1]]:
+				if (j not in path) and (j in self.newSommets):
+					todo.append( path + self.aretes[path[-1]][j] )
 			if len(path) > max:
-				#max = weight
 				max = len(path)
 				res = path
 		return res
-		new = []
-		for x in res:
-			if len(new) == 0:
-				new.append(x)
-			else:
-				new.extend(aretes[new[-1]][x])
-		return new
 
 	
 	def doFloydWarshall():
 		# Tous les plus longs chemins
 		vide = set([])
-		chemins = dict([(x,dict([(y,vide) for y in newSommets])) for x in newSommets])
-		for x in newSommets:
-			for y in aretes[x]:
-				chemins[x][y] = set([x] + aretes[x][y])
-		for z in newSommets:
-			for x in newSommets:
-				for y in newSommets:
+		chemins = dict([(x,dict([(y,vide) for y in self.newSommets])) for x in self.newSommets])
+		for x in self.newSommets:
+			for y in self.aretes[x]:
+				chemins[x][y] = set([x] + self.aretes[x][y])
+		for z in self.newSommets:
+			for x in self.newSommets:
+				for y in self.newSommets:
 					c1 = chemins[x][z]
 					c2 = chemins[z][y]
 					
@@ -212,8 +204,6 @@ def getLongestPath(lstTout):
 					new = c1 | c2
 					if len(new) > len(chemins[x][y]):
 						chemins[x][y] = new
-		
-		return chemins
 		
 		# Le plus long plus long chemin
 		best = []
@@ -227,35 +217,33 @@ def getLongestPath(lstTout):
 		return best
 
 
-	# 1. On construit le graphe original
-	voisins = buildVoisins(lstTout)
-	#sys.stderr.write('.')
-
-	# 2. On reduit le graphe
-	(newSommets, aretes) = buildReducedGraph()
-
-	print >> sys.stderr, '[%d->%d]' % (len(voisins), len(newSommets))
-	#sys.stderr.write('.')
-	
-	# 3. On extrait les chemins les plus longs
-	res = []
-	while len(newSommets) > 0:
-		#sys.stderr.write('*')
-		best = doFloydWarshall()
-		#best = doSearchLongestPath()
-		#sys.stderr.write('*')
+	def makeHamiltonianDecomposition(self):
+		res = []
+		backupSommets = self.newSommets.copy()
+		while len(self.newSommets) > 0:
+			best = self.doFloydWarshall()
+			#best = doSearchLongestPath()
+			
+			if len(best) < 2:
+				break
+			res.append(best)
+			newSommets.difference_update(best)
+			print >> sys.stderr, "{%s}" % best
 		
-		if len(best) < 2:
-			break
-		res.append(best)
-		newSommets.difference_update(best)
-		#sys.stderr.write('*')
-		print >> sys.stderr, "{%s}" % best
-		#print >> sys.stderr, "{%d}" % len(best),
-	
-	#sys.stderr.write('.')
-	
-	return res
+		self.newSommets = backupSommets
+		return res
+
+
+	def printGraph(self, subset):
+		print "graph {"
+		for x in self.sommets:
+			if x not in subset:
+				continue
+			for y in self.aretes[x]:
+				if y not in subset or y >= x:
+					continue
+				print "%s -- %s [label=\"%d\"]" % (x,y,len(self.aretes[x][y]))
+		print "}"
 
 
 
@@ -285,14 +273,18 @@ def extractLongestOverlappingDiags(oldDiags, genesAnc):
 
 	newDiags = []
 	for g in combin:
-		for res in getLongestPath([diags[i] for i in g]):
+		gr = DiagGraph([diags[i] for i in g])
+		gr.reduceGraph()
+		print >> sys.stderr, "%d/%d->%d" % (len(gr.sommets),len(g),len(gr.newSommets)),
+		gr.printGraph()
+		gr.printReducedGraph()
+		for res in gr.makeHamiltonianDecomposition():
 			ok = set([])
 			for i in g:
 				d = diags[i]
 				for j in xrange(len(d)-1):
 					if (d[j] not in res) or (d[j+1] not in res):
 						continue
-					#if abs(res.index(d[j])-res.index(d[j+1])) == 1:
 					ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
 					ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
 					break

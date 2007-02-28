@@ -23,7 +23,7 @@ def launchCommunitiesBuildB(nbItems, scoreFunc):
 			combin.addLink([i1,i2])
 			dicAretes[i1][i2] = score
 
-	print >> sys.stderr, "Division en communautes ..."
+	print >> sys.stderr, "Division en communautes ...",
 	res = []
 	for g in combin:
 		tmp = launchCommunitiesBuild1(g, dicAretes)
@@ -43,7 +43,7 @@ def launchCommunitiesBuild1(nodes, edges):
 	for i in xrange(nb):
 		indNodes[nodes[i]] = i
 	
-	(stdin,stdout) = os.popen2('/users/ldog/muffato/work/scripts/walktrap -s -t10')
+	(stdin,stdout) = os.popen2('/users/ldog/muffato/work/scripts/walktrap/walktrap -s -t10')
 	
 	for x in nodes:
 		if x not in edges:

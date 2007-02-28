@@ -1,8 +1,8 @@
 #! /users/ldog/muffato/python -OO
 
 
-import sys
 import os
+import sys
 from bz2 import BZ2File
 from gzip import GzipFile
 
@@ -17,11 +17,7 @@ stderr = sys.stderr
 #   Retourne l'objet FILE et le nom complet du fichier           #
 ##################################################################
 def myOpenFile(nom, mode):
-	if "~" in nom:
-		if "_CONDOR_SCRATCH_DIR" in os.environ:
-			nom = nom.replace("~", "/users/ldog/muffato")
-		else:
-			nom = nom.replace("~", os.environ['HOME'])
+	nom = nom.replace("~", os.environ['HOME'])
 	if nom.endswith(".bz2"):
 		f = BZ2File(nom, mode)
 	elif nom.endswith(".gz"):
@@ -52,6 +48,7 @@ class myMatrixIterator:
 		for i in xrange(0, self.n):
 			for j in xrange(0, self.p):
 			
+				# Les valeurs a eviter pour chaque mode
 				if self.mode == myMatrixIterator.OnlyDiag:
 					if i != j:
 						continue
@@ -66,6 +63,8 @@ class myMatrixIterator:
 				elif self.mode == myMatrixIterator.StrictUpperMatrix:
 					if j <= i:
 						continue
+				
+				# Mode inconnu
 				else:
 					continue
 				yield (i,j)
@@ -86,34 +85,25 @@ class myCombinator:
 				self.dic[x] = i
 	
 	def addLink(self, obj):
+	
 		if len(obj) == 0:
 			return
-		
-		# Le 1er objet de la liste
-		a = obj[0]
-		if a in self.dic:
-			i = self.dic[a]
-		else:
+	
+		deja = set([self.dic[x] for x in obj if x in self.dic])
+		if len(deja) == 0:
 			i = len(self.grp)
-			self.grp.append([a])
-			self.dic[a] = i
+			self.grp.append(obj)
+		else:
+			i = deja.pop()
+			for x in deja:
+				self.grp[i].extend(self.grp[x])
+				self.grp[x] = []
+			self.grp[i].extend([x for x in obj if x not in self.dic])
 
-		for x in obj[1:]:
-			if x in self.dic:
-				j = self.dic[x]
-				if i == j:
-					continue
-				for b in self.grp[j]:
-					self.dic[b] = i
-				self.grp[i].extend(self.grp[j])
-				self.grp[j] = []
-			else:
-				self.grp[i].append(x)
-				self.dic[x] = i
+		for x in obj:
+			self.dic[x] = i
 
-	def getGrp(self):
-		return [g for g in self.grp if len(g) > 0]
-
+	
 	def getNbGrp(self):
 		nb = 0
 		for g in self.grp:
@@ -126,6 +116,17 @@ class myCombinator:
 			if len(g) > 0:
 				yield g
 
+
+
+				
+
+#######################################################################################
+# Classe qui permet d'utiliser les cles d'un dictionnaire directement comme attributs #
+#######################################################################################
+class dicContainer(dict):
+
+	def __getattr__(self, name):
+		return dict.__getitem__(self, name)
 
 
 #################################################################################
@@ -155,8 +156,7 @@ def checkArgs(args, options, info):
 			print >> sys.stderr, "\n", info
 		sys.exit(1)
 
-	#types = {}
-	valOpt = {}
+	valOpt = dicContainer()
 	valArg = []
 	opt = {}
 	for (name,typ,val) in options:
@@ -166,7 +166,7 @@ def checkArgs(args, options, info):
 		else:
 			valOpt[name] = val
 	
-	# On scanne les argumetns pour les compter et recuperer les valeurs
+	# On scanne les arguments pour les compter et recuperer les valeurs
 	for tt in sys.argv[1:]:
 
 		t = tt.replace('^', ' ')
@@ -176,21 +176,26 @@ def checkArgs(args, options, info):
 			error_usage()
 			
 		# Un argument optionnel
-		if t[0] in ['-', '+']:
+		if t[0] in '-+':
 		
 			# Un parametre non bool
-			if '=' in t:
-				s = t[1:t.index('=')]
-				v = t[t.index('=')+1:]
+			try:
+				i = t.index('=')
+				s = t[1:i]
+				v = t[i+1:]
+				# Parametre non connu
 				if not s in valOpt:
 					error_usage()
+				# Valeur de parametre non autorisee
 				if (type(opt[s][1]) == list) and (v not in opt[s][1]):
 					error_usage()
+				# Mauvaise syntaxe pour les bool
 				if opt[s][0] == bool:
 					error_usage()
+				# oki
 				valOpt[s] = opt[s][0](v)
 				
-			else:
+			except ValueError:
 				s = t[1:]
 				if not s in valOpt:
 					error_usage()

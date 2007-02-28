@@ -95,7 +95,7 @@ if options["ancestr"] not in (phylTree.listAncestr + phylTree.listSpecies):
 	sys.exit(1)
 phylTree.loadAllSpeciesSince(None, options["genesFile"])
 del phylTree.dicGenomes
-genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genomeAncestral"], True, False)
+genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genomeAncestral"])
 
 # On etend la liste des genes ancestraux pour utiliser les outgroup
 
