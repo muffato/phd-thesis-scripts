@@ -9,9 +9,7 @@ Dessine un genome en coloriant ses genes a partir d'un autre genome reference.
 ##################
 
 # Librairies
-import string
 import sys
-import os
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths

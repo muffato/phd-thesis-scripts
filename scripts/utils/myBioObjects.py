@@ -27,6 +27,15 @@ class PhylogeneticTree:
 
 	def __init__(self, nom):
 		
+		class commonNamesMapper(dict):
+
+			def __getitem__(d, name):
+				if name in d:
+					return dict.__getitem__(d, name)
+				else:
+					return dict.__getitem__(d, self.officialName[name])
+
+		
 		# Procedure de chargement du fichier
 		def loadFile(s):
 			f = myTools.myOpenFile(s, 'r')
@@ -59,25 +68,34 @@ class PhylogeneticTree:
 		# La procedure d'analyse des lignes du fichier
 		def recLoad(indent):
 			
-			# Est-ce que la ligne suivante est une ligne fille ?
+			# On ne continue que si la ligne suivante est indentee comme prevu
 			if len(lignes) == 0  or lignes[-1][0] != indent:
 				return None
 
-			# On charge toutes les sous arbres-fils
+			# On charge la ligne
 			currLine = lignes.pop()
+			
+			# On charge toutes les sous arbres-fils tant que possible
 			fils = []
 			while True:
 				tmp = recLoad(indent + 1)
 				if tmp == None:
 					break
+				# On stocke (nom_du_fils, temps_d_evolution)
 				fils.append( (tmp, currLine[2]-self.ages[tmp]) )
 				self.parent[tmp] = currLine[1][0]
 			
-			if len(fils) != 0:
+			# Un seul fils, on remonte le noeud
+			if len(fils) == 1:
+				return fils[0][0]
+			# Plusieurs fils, on les enregistre
+			elif len(fils) > 1:
 				self.items[currLine[1][0]] = fils
+
+			# Info standard
 			self.commonNames[currLine[1][0]] = currLine[1][1:]
+			self.ages[currLine[1][0]] = currLine[2]
 			for s in currLine[1]:
-				self.ages[s] = currLine[2]
 				self.officialName[s] = currLine[1][0]
 				
 			return currLine[1][0]
@@ -106,20 +124,21 @@ class PhylogeneticTree:
 				self.species[node].append(node)
 	
 				
-		self.items = {}
-		self.commonNames = {}
+		self.commonNames = commonNamesMapper()
 		self.officialName = {}
-		self.parent = {}
-		self.ages = {}
-		self.branches = {}
-		self.branchesSpecies = {}
-		self.species = {}
+		self.items = commonNamesMapper()
+		self.parent = commonNamesMapper()
+		self.ages = commonNamesMapper()
+		self.branches = commonNamesMapper()
+		self.branchesSpecies = commonNamesMapper()
+		self.branchesSpecies = commonNamesMapper()
+		self.species = commonNamesMapper()
 		self.listSpecies = []
 		self.listAncestr = []
-		self.outgroupNode = {}
-		self.outgroupSpecies = {}
-		self.dicGenes = {}
-		self.dicGenomes = {}
+		self.outgroupNode = commonNamesMapper()
+		self.outgroupSpecies = commonNamesMapper()
+		self.dicGenes = commonNamesMapper()
+		self.dicGenomes = commonNamesMapper()
 
 		print >> sys.stderr, "Chargement de l'arbre phylogenique de %s ..." % nom,
 		lignes = loadFile(nom)

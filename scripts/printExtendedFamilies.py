@@ -10,7 +10,6 @@ Rajoute a chaque famille les genes associes dans le genome ancestral passe en ar
 
 # Librairies
 import sys
-import os
 import utils.myGenomes
 import utils.myTools
 

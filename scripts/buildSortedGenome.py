@@ -4,8 +4,9 @@
 # INITIALISATION #
 
 # Librairies
-import sys
 import os
+import sys
+import random
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
@@ -133,7 +134,7 @@ for c in genesAnc.lstChr:
 del phylTree.dicGenes
 del dicOutgroupGenes
 
-nom = "mat"+str(os.getpid())
+nom = "mat%f.%d" % (random.random(), os.getpid())
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 

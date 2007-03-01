@@ -6,7 +6,6 @@ Il ne s'agit que d'une interface pour l'objet myCombinator.
 """
 
 import sys
-import os
 import utils.myTools
 
 (noms_fichiers, options) = utils.myTools.checkArgs(["familiesFile"], [("showStats", bool, False)], __doc__)

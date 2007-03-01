@@ -22,21 +22,26 @@ import utils.myMaths
 
 
 #
-# Cette fonction renvoie les chromosomes ancestraux tels qu'on peut les definir
-# grace aux paralogues
+# Charge le fichier qui contient les alternances que l'on doit observer
+# Format de chaque ligne: "A	*Tetraodon.nigroviridis 2 3 5	*Gastero ..."
+# Renvoie un dictionnaire des chromosomes ancestraux, qui contient les dictionnaires (par especes) des alternances
 #
 def loadChrAncIni(nom):
 
 	chrAnc = {}
 	f = utils.myTools.myOpenFile(nom, 'r')
 	for ligne in f:
+
 		c = ligne.split()
 		dic = {}
 		for x in c[1:]:
 			if x[0] == '*':
+				# Un nom d'espece
 				e = x[1:].replace('.',' ')
 				dic[e] = set([])
 			else:
+				# Un nom de chromosome
+				# On convertit en entier le nom du chromosome si possible
 				try:
 					x = int(x)
 				except Exception:
@@ -57,17 +62,22 @@ def buildParaOrtho(lstGenesAnc):
 	para = dict([(e,{}) for e in especesDup])
 	ortho = dict([(e,{}) for e in especesDup])
 	
+	# On parcourt les genes ancestraux
 	for g in lstGenesAnc:
 		for e in especesDup:
 			genomeDup = phylTree.dicGenomes[e]
+			# Les genes de l'espece dupliquee
 			gT = [x for x in g.names if x in genomeDup.dicGenes and genomeDup.dicGenes[x][0] not in genomeDup.lstRand]
 			if len(gT) == 0:
 				continue
+			# On construit les paralogues
 			for x in gT:
 				para[e][x] = [y for y in gT if y != x]
-			gNT = [x for x in g.names if x not in genomeDup.dicGenes]
-			for x in gNT:
-				ortho[e][x] = [genomeDup.dicGenes[y] for y in gT]
+			# On construit les orthologues
+			gT = [genomeDup.dicGenes[y] for y in gT]
+			for x in g.names:
+				if x not in genomeDup.dicGenes:
+					ortho[e][x] = gT
 	
 	print >> sys.stderr, "OK"
 	
@@ -75,18 +85,17 @@ def buildParaOrtho(lstGenesAnc):
 
 
 #
-# Cree les regions de chromosomes ancestraux dans la classe d'orthologues
+# Cree les DCS en parcourant un genome non duplique (eND) face a un genome duplique (eD)
 #
-def colorAncestr(esp, e, phylTree, para, orthos):
+def colorAncestr(eND, eD, phylTree, para, orthos):
 
-	print >> sys.stderr, "Decoupage de", esp, "avec", e, "",
+	print >> sys.stderr, "Decoupage de", eND, "avec", eD, "",
 
 	nbOrthos = 0
-	nbBlocs = 0
-	genome = phylTree.dicGenomes[esp]
-	genomeDup = phylTree.dicGenomes[e]
-	orthosDup = orthos[e]
-	parasDup = para[e]
+	genome = phylTree.dicGenomes[eND]
+	genomeDup = phylTree.dicGenomes[eD]
+	orthosDup = orthos[eD]
+	parasDup = para[eD]
 	lstBlocs = []
 
 	# On parcourt les chromosomes de l'espece
@@ -99,59 +108,67 @@ def colorAncestr(esp, e, phylTree, para, orthos):
 		bloc = []
 		lastCT = []
 		lastGT = set([])
-		
+	
+		# On parcourt les genes du chromosomes
 		for tg in genome.lstGenes[c]:
 			g = tg.names[0]
 
-			# Il faut un orthologue avec Tetraodon
-			if g not in orthos[e]:
+			# Il faut un orthologue avec l'espece dupliquee
+			if g not in orthosDup:
 				continue
 			nbOrthos += 1
-	
+
+			# On parcourt les orthologues
 			for (cT,i) in orthosDup[g]:
+				# La region environnante (chez l'espece dupliquee)
 				gTn = [gT.names[0] for gT in genomeDup.getGenesNearN(cT, i, options["precisionChrAnc"]) if gT.names[0] in parasDup]
 				
+				# Si on reste sur le meme chromosome, on continue le DCS
 				if cT in lastCT:
-					ok = True
+					break
+				# Sinon, il faut qu'il y ait un paralogue qui nous fasse revenir vers une region environnante deja visitee
 				else:
 					gTp = utils.myMaths.flatten([parasDup[s] for s in gTn])
-					ok = (len(lastGT.intersection(gTp)) > 0)
+					if len(lastGT.intersection(gTp)) > 0:
+						break
 				
-				if ok:
-					break
-		
-			if not ok:
+			# Si on n'a pas fait de break, c'est qu'aucun orthologue ne convient, il faut arreter le DCS
+			else:
+				# On l'enregistre et on repart de zero
 				if len(bloc) != 0:
-					nbBlocs += 1
 					lstBlocs.append(bloc)
 				bloc = []
 				lastGT = set([])
 				
+			# On rajoute les infos du gene qu'on vient de lire
 			bloc.append( g )
 			lastCT = [cT for (cT,i) in orthosDup[g]]
 			lastGT.update(gTn)
-
+		
+		# Ne pas oublier le bloc courant
 		if len(bloc) != 0:
-			nbBlocs += 1
 			lstBlocs.append(bloc)
 		sys.stderr.write(".")
 	
-	print >> sys.stderr, "", nbBlocs, "blocs, pour", nbOrthos, "genes orthologues"
+	print >> sys.stderr, "", len(lstBlocs), "blocs, pour", nbOrthos, "genes orthologues"
 
 	return lstBlocs
 
 
 
-# Synthese des DCS
-
+#
+# Pour une espece non dupliquee donnee, fait la synthese de tous les DCS chevauchants
+#
 def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 	
 	print >> sys.stderr, "Synthese des decoupages de", eND, "...",
 	
-	# On retrouve les groupes de genes pour chaque tetrapode
+	# combin a ete mis a jour avec tous les DCS
+	# Il faut le lire pour avoir chaque DCS final (qu'il faut reformatter)
 	lstBlocs = []
 	for gr in combin:
 		l = []
+		# On fait la liste des positions et des chromosomes des orthologues
 		for g in gr:
 			p = phylTree.dicGenomes[eND].dicGenes[g]
 			a = {}
@@ -170,9 +187,11 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 	nbDCS = 0
 	DCSlen = 0
 
+	# On va assigner un chromosome ancestral a chaque DCS en fonction des alternances predefinies
 	for gr in lstBlocs:
 		cc = addDCS(gr, col, dicGenesAnc, chrAnc, eND)
-		if cc != "":
+		# Alternance detectee
+		if cc != None:
 			nbDCS += 1
 			DCSlen += len(gr)
 		if options["showDCS"]:
@@ -202,14 +221,14 @@ def addDCS(bloc, col, dicGenesAnc, chrAnc, eNonDup):
 	s = max(score.values())
 
 	if s == 0:
-		return ""
+		return None
 	
 	for c in chrAnc:
 		if score[c] == s:
-			cc = c
 			for g in bloc:
 				col[dicGenesAnc[g[1]][1]].append( (len(bloc),c,eNonDup) )
-	return cc
+			return c
+	return None
 
 
 #

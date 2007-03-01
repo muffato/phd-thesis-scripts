@@ -19,14 +19,16 @@ import utils.myMaths
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs([], [], __doc__)
+(noms_fichiers, options) = utils.myTools.checkArgs(["fichier"], [("type",str,"float")], __doc__)
 
 lst = []
-for l in sys.stdin:
+f = utils.myTools.myOpenFile(noms_fichiers["fichier"], 'r')
+t = eval(options.type)
+for l in f:
 	c = l.split()
 	for x in c:
-		#lst.append(int(x))
-		lst.append(float(x))
+		lst.append(t(x))
+f.close()
 
 if len(lst) > 0:
 	res = (utils.myMaths.moyenne(lst), utils.myMaths.ecartType(lst), utils.myMaths.mediane(lst), min(lst), max(lst), len(lst))

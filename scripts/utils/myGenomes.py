@@ -152,7 +152,7 @@ class Genome:
 
 ##############################################################
 # Cette classe gere un fichier de liste de genes d'Ensembl   #
-#   "Chr Debut Fin Brin ENSFAM Nom"                          #
+#   "Chr Debut Fin Brin ENSFAMxxxx Nom"                      #
 # Convertit automatiquement les nombres romains en arabe     #
 ##############################################################
 class EnsemblGenome(Genome):
@@ -184,7 +184,7 @@ class EnsemblGenome(Genome):
 			
 		f.close()
 		
-		# Les veritables chromosomes sont des entiers ou des entiers suivis de p/q/L/R/a/b ou W/X/Y/Z
+		# Les veritables chromosomes sont des entiers < 50 ou des entiers suivis de p/q/L/R/a/b ou W/X/Y/Z
 		# Les chromosomes '*random*' ou 'UNKN' sont des scaffold mis bout a bout -> pas d'ordre utilisable
 		# Le reste correspond aux scaffolds
 		for c in self.lstGenes:
@@ -225,12 +225,8 @@ class GenomeFromOrthosList(Genome):
 		# On lit chaque ligne
 		for ligne in f:
 			champs = ligne.split()
-			if len(champs) == 11:
-				if (champs[6] in filter) or (len(filter) == 0):
-					combin.addLink([champs[0], champs[3]])
-			else:
-				if (champs[4] in filter) or (len(filter) == 0):
-					combin.addLink([champs[0], champs[2]])
+			if (champs[6] in filter) or (len(filter) == 0):
+				combin.addLink([champs[0], champs[3]])
 		f.close()
 		
 		nb = 0

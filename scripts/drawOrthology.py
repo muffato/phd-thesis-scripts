@@ -9,9 +9,7 @@ Dessine la matrice des genes orthologues entre deux genomes.
 ##################
 
 # Librairies
-import string
 import sys
-import os
 import utils.myGenomes
 import utils.myTools
 import utils.myPsOutput
