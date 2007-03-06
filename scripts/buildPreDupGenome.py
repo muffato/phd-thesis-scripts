@@ -32,21 +32,22 @@ def loadChrAncIni(nom):
 	f = utils.myTools.myOpenFile(nom, 'r')
 	for ligne in f:
 
-		c = ligne.split()
-		dic = {}
+		c = ligne.split('\t')
+		dic = phylTree.newCommonNamesMapperInstance()
 		for x in c[1:]:
-			if x[0] == '*':
-				# Un nom d'espece
-				e = x[1:].replace('.',' ')
-				dic[e] = set([])
-			else:
+			cc = x.split('|')
+			if len(cc) != 2:
+				continue
+			s = set([])
+			for x in cc[1].split():
 				# Un nom de chromosome
 				# On convertit en entier le nom du chromosome si possible
 				try:
 					x = int(x)
 				except Exception:
 					pass
-				dic[e].add(x)
+				s.add(x)
+			dic[cc[0]] = s
 		chrAnc[c[0]] = dic
 	f.close()
 	return chrAnc
@@ -324,8 +325,8 @@ def printColorAncestr(genesAnc, chrAncGenes):
 
 # Chargement des fichiers
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-especesDup = [phylTree.officialName[x] for x in options["especesDup"].split(',')]
-especesNonDupGrp = [[phylTree.officialName[i] for i in x.split('+')] for x in options["especesNonDup"].split(',')]
+especesDup = options["especesDup"].split(',')
+especesNonDupGrp = [x.split('+') for x in options["especesNonDup"].split(',')]
 especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
 rootNonDup = [x for x in phylTree.branches[phylTree.root] if len(set(phylTree.species[x]).intersection(especesDup)) == 0][0]
 phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])

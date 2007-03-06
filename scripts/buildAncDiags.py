@@ -69,7 +69,7 @@ def calcDiags(e1, e2):
 			toStudy.append( tmp )
 
 	# Chargement des orthologues
-	genesAnc = utils.myGenomes.GenomeFromOrthosList(options["orthosFile"] % (phylTree.commonNames[e1][0],phylTree.commonNames[e2][0]))
+	genesAnc = utils.myGenomes.EnsemblOrthosListGenome(options["orthosFile"] % (phylTree.fileName[e1],phylTree.fileName[e2]), ancFilter=[phylTree.getFirstParent(e1,e2)])
 	newLoc = [[] for x in xrange(len(genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]))]
 	del genesAnc.lstGenes
 
@@ -91,7 +91,7 @@ def calcDiags(e1, e2):
 def findNewSpecies(d, esp, anc):
 	
 	# Les especes pour lesquelles la diagonale n'a pas ete detectee
-	lstEsp = set(phylTree.listSpecies).difference([e for (e,_) in esp])
+	lstEsp = set(listSpecies).difference([e for (e,_) in esp])
 	res = []
 	for e in lstEsp:
 		# L'ancetre commun
@@ -133,6 +133,7 @@ def findNewSpecies(d, esp, anc):
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
+	("ancestr",str,""),("useOutgroups",bool,False),\
 	("showProjected",bool,False), ("showAncestral",bool,True), ("extractLongestPath",bool,True), ("searchUndetectedSpecies",bool,True), \
 	("genesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
 	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
@@ -143,23 +144,30 @@ def findNewSpecies(d, esp, anc):
 
 # 1. On lit tous les fichiers
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-phylTree.loadAllSpeciesSince("Euteleostomi", options["genesFile"])
+if options.useOutgroups:
+	listSpecies = phylTree.listSpecies
+else:
+	listSpecies = phylTree.species[options.ancestr]
+phylTree.loadAllSpeciesFromList(listSpecies, options.genesFile)
 
 # La structure qui accueillera les diagonales
 diagEntry = dict( [(anc, []) for anc in phylTree.items] )
 # On compare toutes les especes entre elles
-for (i,j) in utils.myTools.myMatrixIterator(len(phylTree.listSpecies), len(phylTree.listSpecies), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+for (i,j) in utils.myTools.myMatrixIterator(len(listSpecies), len(listSpecies), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 	print >> sys.stderr, '+',
-	calcDiags(phylTree.listSpecies[i], phylTree.listSpecies[j])
+	calcDiags(listSpecies[i], listSpecies[j])
 
 # On a besoin des genes ancestraux
 genesAnc = {}
 for anc in diagEntry:
-	genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % (anc.replace('/', '_').replace(' ', '_')))
+	if options.useOutgroups or (phylTree.ages[anc] <= phylTree.ages[options.ancestr]):
+		genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
 
 # Traitement final
 for anc in diagEntry:
 
+	if (not options.useOutgroups) and (phylTree.ages[anc] > phylTree.ages[options.ancestr]):
+		continue
 
 	if options["showProjected"]:
 		lst = diagEntry[anc]

@@ -14,7 +14,7 @@ import myMaths
 
 (noms_fichiers, options) = myTools.checkArgs(["GENOME_ANCESTRAL"], [], "")
 
-genesAnc = myGenomes.AncestralGenome(noms_fichiers["GENOME_ANCESTRAL"], chromPresents=True)
+genesAnc = myGenomes.loadGenome(noms_fichiers["GENOME_ANCESTRAL"])
 
 lst = set([])
 nb = 0
@@ -28,7 +28,11 @@ for s in sys.stdin:
 		nb += 1
 
 	for (c,i) in t:
+		if type(c) != int:
+			continue
 		for (k,j) in t:
+			if type(k) != int:
+				continue
 			if c<k or (c==k and i<j):
 				if (c,i,k,j) not in lst:
 					print c,i,k,j

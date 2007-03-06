@@ -63,7 +63,7 @@ def loadDiagsFile(nom, diagEntry):
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
 # Les genes ancestraux
-genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % options["ancestr"].replace('/', '_').replace(' ', '_'))
+genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[options.ancestr])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
 
 # On separe les especes en trois
@@ -142,7 +142,7 @@ def calcScore(i1, i2):
 	return propF1*propF2 + propF1*propOut + propF2*propOut
 	
 
-lstLstComm = utils.myCommunities.launchCommunitiesBuildB(len(lstDiags), calcScore)
+lstLstComm = utils.myCommunities.launchCommunitiesBuildB(items = range(len(lstDiags)), funcScore = calcScore)
 clusters = []
 
 # Chaque composante connexe

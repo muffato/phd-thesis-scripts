@@ -134,7 +134,7 @@ for c in genesAnc.lstChr:
 del phylTree.dicGenes
 del dicOutgroupGenes
 
-nom = "mat%f.%d" % (random.random(), os.getpid())
+nom = "mat%d-%d-%d" % (os.getpid(), os.getppid(), random.randint(1,100000000))
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 

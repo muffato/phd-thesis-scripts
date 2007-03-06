@@ -26,7 +26,7 @@ import myTools
 # Creation du graphe (associations des noeuds avec poids des aretes)
 # Separation en composantes connexes
 #
-def makeConnectedComponents(file = None, nbItems = None, scoreFunc = None, edgesDict = {}):
+def makeConnectedComponents(file = None, items = None, scoreFunc = None, edgesDict = {}):
 
 	# Chargement depuis un fichier
 	if file != None:
@@ -38,21 +38,24 @@ def makeConnectedComponents(file = None, nbItems = None, scoreFunc = None, edges
 			edgesDict[c[0]][c[1]] = float(c[2])
 	
 	# Chargement avec une fonction
-	if (nbItems != None) and (scoreFunc != None):
+	if (items != None) and (scoreFunc != None):
 		# Iteration des couples (i1,i2)
-		for (i1,i2) in myTools.myMatrixIterator(nbItems, nbItems, myTools.myMatrixIterator.StrictUpperMatrix):
+		for (i1,i2) in myTools.myMatrixIterator(len(items), len(items), myTools.myMatrixIterator.StrictUpperMatrix):
 		
 			# Le poids de l'arete
-			score = scoreFunc(i1, i2)
+			x1 = items[i1]
+			x2 = items[i2]
+			score = scoreFunc(x1, x2)
 			if score > 0:
 				if i1 not in edgesDict:
-					edgesDict[i1] = {}
-				edgesDict[i1][i2] = score
+					edgesDict[x1] = {}
+				edgesDict[x1][x2] = score
 
 	# Creation des composantes connexes
 	combin = myTools.myCombinator([])
-	for x in edgesDict:
-		combin.addLink([x] + edgesDict[x].keys())
+	for x in items:
+		s = set(edgesDict.get(x,{}).iterkeys()).intersection(items)
+		combin.addLink([x] + list(s))
 
 	return (edgesDict, combin)
 

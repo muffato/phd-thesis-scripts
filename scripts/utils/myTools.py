@@ -12,6 +12,16 @@ stdin = sys.stdin
 stdout = sys.stdout
 stderr = sys.stderr
 
+###########################################################################
+# Consomme les elements d'un iterateur et renvoie la longueur de la liste #
+###########################################################################
+def leniter(it):
+	nb = 0
+	for _ in it:
+		nb += 1
+	return nb
+
+
 ##################################################################
 # Cette classe ouvre le fichier en le decompressant s'il le faut #
 #   Retourne l'objet FILE et le nom complet du fichier           #
@@ -56,7 +66,7 @@ class myMatrixIterator:
 					if i == j:
 						continue
 				elif self.mode == myMatrixIterator.WholeMatrix:
-					continue
+					pass
 				elif self.mode == myMatrixIterator.UpperMatrix:
 					if j < i:
 						continue
@@ -77,6 +87,9 @@ class myMatrixIterator:
 ########################################################################
 class myCombinator:
 
+	#
+	# Constructeur
+	#
 	def __init__(self, ini):
 		self.grp = ini
 		self.dic = {}
@@ -84,6 +97,9 @@ class myCombinator:
 			for x in ini[i]:
 				self.dic[x] = i
 	
+	#
+	# Definit un lien entre tous les elements de obj
+	#
 	def addLink(self, obj):
 	
 		if len(obj) == 0:
@@ -103,18 +119,20 @@ class myCombinator:
 		for x in obj:
 			self.dic[x] = i
 
-	
-	def getNbGrp(self):
-		nb = 0
-		for g in self.grp:
-			if len(g) > 0:
-				nb += 1
-		return nb
 
+	#
+	# Renvoie un iterateur sur les donnees
+	#  Les ensembles vides sont donc elimines
+	#
 	def __iter__(self):
 		for g in self.grp:
 			if len(g) > 0:
 				yield g
+	#
+	# Le nombre de groupes
+	#
+	def getNbGrp(self):
+		return leniter(self)
 
 
 

@@ -38,6 +38,8 @@ print phylTree.species['Boreoeutheria']
 print phylTree.species['Glires']
 print phylTree.branchesSpecies['Vertebreta']
 
+print phylTree.fileName
+
 sys.exit(0)
 dic = {}
 

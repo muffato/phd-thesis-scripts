@@ -49,9 +49,7 @@ def fileIterator(nom):
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
 	[("OUT.genesFile",str,"~/work/data42/genes/genes.%s.list.bz2"), \
-	("OUT.fullGenesFile",str,"~/work/data42/genes/full/genes.%s.list.bz2"), \
 	("OUT.orthosFile",str,"~/work/data42/orthologs/orthos.%s.%s.list.bz2"), \
-	("OUT.fullOrthosFile",str,"~/work/data42/orthologs/full/orthos.%s.%s.list.bz2"), \
 	("OUT.parasFile",str,"~/work/data42/paralogs/paras.%s.list.bz2"), \
 	("IN.ensemblDirectory",str,"~/workspace/ftp.ensembl.org/pub/release-41/mart_41/data/mysql/ensembl_mart_41/"), \
 	("IN.genesFile",str,"%s_gene_ensembl__gene__main.txt.table.gz"), \
@@ -84,40 +82,37 @@ for esp in phylTree.listSpecies:
 	print >> sys.stderr, "OK"
 
 
-# On genere les fichiers de listes de genes + Filtre scaffold/chromosome
-forbiddenTokens = ["rand", "Un", "affold", "ont", "tig", "v6", "h", "MT", "Mt"]
-forbiddenStartingTokens = ["NT", "U", "1099", "c", "E", "Mito", "RNO"]
-
 for esp in phylTree.listSpecies:
 	print >> sys.stderr, "Mise en forme de la liste des genes et des familles de %s ..." % esp,
-	fo1 = utils.myTools.myOpenFile(options["OUT.fullGenesFile"] % phylTree.commonNames[esp][0], 'w')
-	fo2 = utils.myTools.myOpenFile(options["OUT.genesFile"] % phylTree.commonNames[esp][0], 'w')
+	fo = utils.myTools.myOpenFile(options["OUT.genesFile"] % phylTree.fileName[esp], 'w')
 	
-	nb1 = 0
-	nb2 = 0
+	nb = 0
 	for ligne in fileIterator(options["IN.genesFile"] % nomReel[esp]):
 		c = ligne.split('\t')
 		if c[1] == "\\N":
 			continue
-		gene = "\t".join( [c[11],c[7],c[8],c[9],dicFam[c[1]],c[1]] )
-		print >> fo1, gene
+		print >> fo, "\t".join( [c[11],c[7],c[8],c[9],dicFam[c[1]],c[1]] )
 		
-		nb1 += 1
+		nb += 1
+	
+	fo.close()
+	print >> sys.stderr, "%d genes OK" % nb
 
-		for t in forbiddenTokens:
-			if t in c[11]:
-				break
-		else:
-			for t in forbiddenStartingTokens:
-				if c[11].startswith(t):
-					break
-			else:
-				print >> fo2, gene
-				nb2 += 1
 
-	fo1.close()
-	fo2.close()
-	print >> sys.stderr, "%d/%d genes OK" % (nb2,nb1)
+
+# Ensembl n'utilise pas exactement le meme arbre que nous ...
+def mkEnsemblPhylAdjustment(oldAnc, theoryAnc):
+
+	if (theoryAnc == "Boreoeutheria") and (oldAnc == "Eutheria"):
+		return "Boreoeutheria"
+
+	if (theoryAnc == "FishInterm") and (oldAnc == "Percomorpha"):
+		return "FishInterm"
+
+	if oldAnc == "Smegmamorpha":
+		return "Percomorpha"
+
+	return oldAnc
 
 
 
@@ -125,18 +120,20 @@ for esp in phylTree.listSpecies:
 for esp1 in phylTree.listSpecies:
 	for esp2 in phylTree.listSpecies:
 
-
+		theoryAnc = phylTree.getFirstParent(esp1, esp2)
+		
 		if esp1 == esp2:
 			print >> sys.stderr, "Mise en forme de la liste des genes paralogues de %s ..." % esp1,
 			fi = options["IN.parasFile"] % (nomReel[esp1],nomReel[esp1])
-			fo = utils.myTools.myOpenFile(options["OUT.parasFile"] % phylTree.commonNames[esp1][0], 'w')
+			fo = utils.myTools.myOpenFile(options["OUT.parasFile"] % phylTree.fileName[esp1], 'w')
 			nb = 0
 			for ligne in fileIterator(fi):
 				c = ligne.split('\t')
 				if c[2] == "\\N":
 					continue
 				nb += 1
-				print >> fo, "\t".join([c[2],dicTranscrits[c[3]],c[20], c[4],dicTranscrits[c[5]],c[21], c[16], c[24],c[25],c[28],c[29]])
+				newAnc = mkEnsemblPhylAdjustment(c[16], theoryAnc)
+				print >> fo, "\t".join([c[2],dicTranscrits[c[3]],c[20], c[4],dicTranscrits[c[5]],c[21], newAnc, c[24],c[25],c[28],c[29]])
 
 			fo.close()
 			print >> sys.stderr, "%d genes OK" % nb
@@ -144,9 +141,8 @@ for esp1 in phylTree.listSpecies:
 		else:
 			print >> sys.stderr, "Extraction des genes orthologues entre %s et %s ..." % (esp1,esp2),
 			fi = options["IN.orthosFile"] % (nomReel[esp1],nomReel[esp2])
-			fo1 = utils.myTools.myOpenFile(options["OUT.orthosFile"] % (phylTree.commonNames[esp1][0],phylTree.commonNames[esp2][0]), 'w')
-			fo2 = utils.myTools.myOpenFile(options["OUT.fullOrthosFile"] % (phylTree.commonNames[esp1][0],phylTree.commonNames[esp2][0]), 'w')
-			anc = phylTree.ages[phylTree.getFirstParent(esp1, esp2)]
+			fo = utils.myTools.myOpenFile(options["OUT.orthosFile"] % (phylTree.fileName[esp1],phylTree.fileName[esp2]), 'w')
+			anc = phylTree.ages[theoryAnc]
 			
 			nb1 = 0
 			nb2 = 0
@@ -154,15 +150,13 @@ for esp1 in phylTree.listSpecies:
 				c = ligne.split('\t')
 				if c[2] == "\\N":
 					continue
-				s = "\t".join([c[2],dicTranscrits[c[3]],c[20], c[4],dicTranscrits[c[5]],c[21], c[15], c[24],c[25],c[28],c[29]])
+				newAnc = mkEnsemblPhylAdjustment(c[16], theoryAnc)
+				print >> fo, "\t".join([c[2],dicTranscrits[c[3]],c[20], c[4],dicTranscrits[c[5]],c[21], newAnc, c[24],c[25],c[28],c[29], c[15]])
 				nb1 += 1
-				print >> fo2, "%s\t%s" % (s, c[16])
-				if phylTree.ages[c[16]] <= anc:
+				if newAnc == theoryAnc:
 					nb2 += 1
-					print >> fo1, s
 
-			fo1.close()
-			fo2.close()
+			fo.close()
 			print >> sys.stderr, "%d/%d genes OK" % (nb2, nb1)
 
 
