@@ -87,6 +87,57 @@ def calcDiags(e1, e2):
 	utils.myDiags.iterateDiags(newGen, newLoc, options["fusionThreshold"], options["sameStrand"], combinDiag)
 
 
+def getLongestDiags(oldDiags):
+
+	dic = {}
+	diags = []
+	combin = utils.myTools.myCombinator([])
+	for i in xrange(len(oldDiags)):
+		d1 = oldDiags[i][0][2]
+		d2 = oldDiags[i][1][2]
+		da1 = [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d1]
+		da2 = [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d2]
+		if "" in da1:
+			diags.append(da2)
+		else:
+			diags.append(da1)
+		for s in d1+d2:
+			if s not in dic:
+				dic[s] = []
+			dic[s].append(i)
+		combin.addLink([i])
+	
+	for s in dic:
+		combin.addLink(dic[s])
+	
+	newDiags = []
+	for g in combin:
+		if options["extractLongestPath"]:
+			gr = utils.myDiags.DiagGraph([diags[i] for i in g])
+			gr.reduceGraph()
+			#print >> sys.stderr, "%d/%d->%d" % (len(gr.sommets),len(g),len(gr.newSommets)),
+			#gr.printGraph()
+			#gr.printReducedGraph()
+		else:
+			gr = utils.myDiags.WeightedDiagGraph([diags[i] for i in g])
+		for res in gr.getBestDiags():
+			if len(res) < 2:
+				continue
+			ok = set([])
+			for i in g:
+				d = diags[i]
+				for j in xrange(len(d)-1):
+					if (d[j] not in res) or (d[j+1] not in res):
+						continue
+					ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
+					ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
+					break
+			newDiags.append( (len(res), res, list(ok)) )
+	return newDiags
+	
+
+
+
 # Cherche si la diagonale est localisee sur un chromosome d'une espece, non ordonnee
 def findNewSpecies(d, esp, anc):
 	
@@ -134,7 +185,8 @@ def findNewSpecies(d, esp, anc):
 	["phylTree.conf"], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
 	("ancestr",str,""),("useOutgroups",bool,False),\
-	("showProjected",bool,False), ("showAncestral",bool,True), ("extractLongestPath",bool,True), ("searchUndetectedSpecies",bool,True), \
+	("showProjected",bool,False), ("showAncestral",bool,True), ("searchUndetectedSpecies",bool,True), \
+	("extractLongestPath",bool,True), ("cutLongestPath",bool,True), \
 	("genesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
 	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
@@ -148,10 +200,10 @@ if options.useOutgroups:
 	listSpecies = phylTree.listSpecies
 else:
 	listSpecies = phylTree.species[options.ancestr]
-phylTree.loadAllSpeciesFromList(listSpecies, options.genesFile)
+phylTree.loadSpeciesFromList(listSpecies, options.genesFile)
 
 # La structure qui accueillera les diagonales
-diagEntry = dict( [(anc, []) for anc in phylTree.items] )
+diagEntry = dict( [(anc, []) for anc in phylTree.items if options.useOutgroups or (phylTree.getFirstParent(anc, options.ancestr) == options.ancestr)] )
 # On compare toutes les especes entre elles
 for (i,j) in utils.myTools.myMatrixIterator(len(listSpecies), len(listSpecies), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 	print >> sys.stderr, '+',
@@ -160,14 +212,10 @@ for (i,j) in utils.myTools.myMatrixIterator(len(listSpecies), len(listSpecies), 
 # On a besoin des genes ancestraux
 genesAnc = {}
 for anc in diagEntry:
-	if options.useOutgroups or (phylTree.ages[anc] <= phylTree.ages[options.ancestr]):
-		genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
+	genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
 
 # Traitement final
 for anc in diagEntry:
-
-	if (not options.useOutgroups) and (phylTree.ages[anc] > phylTree.ages[options.ancestr]):
-		continue
 
 	if options["showProjected"]:
 		lst = diagEntry[anc]
@@ -185,9 +233,9 @@ for anc in diagEntry:
 
 	if options["showAncestral"]:
 	
-		if options["extractLongestPath"]:
+		if options["extractLongestPath"] or options["cutLongestPath"]:
 			print >> sys.stderr, "Extraction des chevauchements les plus longs de %s ..." % anc,
-			lst = utils.myDiags.extractLongestOverlappingDiags(diagEntry[anc], genesAnc[anc])
+			lst = getLongestDiags(diagEntry[anc])
 			print >> sys.stderr, "OK (%d -> %d)" % (len(diagEntry[anc]), len(lst))
 		else:
 			lst = []

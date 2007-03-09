@@ -217,8 +217,7 @@ class DiagGraph:
 		return best
 
 
-	def makeHamiltonianDecomposition(self):
-		res = []
+	def getBestDiags(self):
 		backupSommets = self.newSommets.copy()
 		while len(self.newSommets) > 0:
 			best = self.doFloydWarshall()
@@ -226,12 +225,11 @@ class DiagGraph:
 			
 			if len(best) < 2:
 				break
-			res.append(best)
+			yield best
 			newSommets.difference_update(best)
 			print >> sys.stderr, "{%s}" % best
 		
 		self.newSommets = backupSommets
-		return res
 
 
 	def printGraph(self, subset):
@@ -247,49 +245,78 @@ class DiagGraph:
 
 
 
-def extractLongestOverlappingDiags(oldDiags, genesAnc):
+#
+# Un ensemble de diagonales que l'on represente comme un graphe ou les noeuds sont les genes
+#
+class WeightedDiagGraph:
 
 
-	dic = {}
-	diags = []
-	combin = myTools.myCombinator([])
-	for i in xrange(len(oldDiags)):
-		d1 = oldDiags[i][0][2]
-		d2 = oldDiags[i][1][2]
-		da1 = [genesAnc.dicGenes.get(s,("",""))[1] for s in d1]
-		da2 = [genesAnc.dicGenes.get(s,("",""))[1] for s in d2]
-		if "" in da1:
-			diags.append(da2)
-		else:
-			diags.append(da1)
-		for s in d1+d2:
-			if s not in dic:
-				dic[s] = []
-			dic[s].append(i)
-		combin.addLink([i])
-	
-	for s in dic:
-		combin.addLink(dic[s])
+	#
+	# Initialisation du graphe a partir de la liste des diagonales
+	# On construit la liste des genes voisins
+	#
+	def __init__(self, lstDiags):
+		
+		# La liste des sommets
+		self.sommets = set()
+		for d in lstDiags:
+			self.sommets.update(d)
+		
+		# Les aretes du graphe
+		self.aretes = dict([(x,{}) for x in self.sommets])
+		for d in lstDiags:
+			for i in xrange(len(d)-1):
+				x = d[i]
+				y = d[i+1]
+				self.aretes[x][y] = self.aretes[x].get(y, 0) + 1
+				self.aretes[y][x] = self.aretes[y].get(x, 0) + 1
 
-	newDiags = []
-	for g in combin:
-		gr = DiagGraph([diags[i] for i in g])
-		gr.reduceGraph()
-		print >> sys.stderr, "%d/%d->%d" % (len(gr.sommets),len(g),len(gr.newSommets)),
-		gr.printGraph()
-		gr.printReducedGraph()
-		for res in gr.makeHamiltonianDecomposition():
-			ok = set([])
-			for i in g:
-				d = diags[i]
-				for j in xrange(len(d)-1):
-					if (d[j] not in res) or (d[j+1] not in res):
-						continue
-					ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
-					ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
-					break
-			#print "%s\t%d\t%s\t%s" % (anc, len(res[0]), " ".join([str(x) for x in res[0]]), " ".join(["%s.%s" % (e,c) for (e,c) in ok]))
-			newDiags.append( (len(res), res, list(ok)) )
-	return newDiags
-	
+
+
+	#
+	# Construit un graphe dans lequel les suites d'aretes sans carrefours ont ete reduites
+	#
+	def getBestDiags(self):
+
+		# Pour les noeuds qui ont plus de deux voisins, on ne considere que les meilleurs hits
+		for x in self.sommets:
+			if len(self.aretes[x]) <= 2:
+				continue
+			vois = self.aretes[x].keys()
+			vois.sort(lambda a, b: cmp(self.aretes[x][b], self.aretes[x][a]))
+			for y in vois[3:]:
+				try:
+					del self.aretes[x][y]
+				except KeyError:
+					pass
+				try:
+					del self.aretes[y][x]
+				except KeyError:
+					pass
+		
+		# Renvoie le chemin qui part de s (en venant de pred) tant qu'il ne croise pas de carrefours
+		def followSommet(s):
+			res = []
+			pred = None
+			while True:
+				alreadySeen.add(s)
+				res.append(s)
+				next = [x for x in self.aretes[s] if (x != pred) and (x not in alreadySeen)]
+				if len(next) == 0:
+					return res
+				pred = s
+				s = next[0]
+				
+
+		alreadySeen = set()
+		for x in self.sommets:
+			if (len(self.aretes[x]) == 1) and (x not in alreadySeen):
+				yield followSommet(x)
+
+		#for x in self.sommets:
+		#	if (len(self.aretes[x]) == 2) and (x not in alreadySeen):
+		#		a = followSommet(x)
+		#		yield a
+
+
 

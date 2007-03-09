@@ -16,11 +16,11 @@ def loadGenome(nom):
 	c = f.readline().split()
 	f.close()
 	
-	# Fichier d'Ensembl: les trois champs du milieu sont des nombres
+	# Fichier de genome d'Ensembl: les trois champs du milieu sont des nombres
 	try:
 		x = int(c[1]) + int(c[2]) + int(c[3])
 		return EnsemblGenome(nom)
-	except Exception:
+	except ValueError:
 		# On a un genome ancestral
 		pass
 	
@@ -84,9 +84,6 @@ class Genome:
 		self.lstChr.sort()
 		self.lstScaff.sort()
 		self.lstRand.sort()
-		#print >> sys.stderr, self.lstChr
-		#print >> sys.stderr, self.lstScaff
-		#print >> sys.stderr, self.lstRand
 		
 		self.dicGenes = {}
 		for c in self.lstGenes:
@@ -208,12 +205,12 @@ class EnsemblGenome(Genome):
 # Cette classe gere un fichier d'orthologues a partir duquel on cree un genome #
 # Les noms des genes sont en positions 1 et 4                                  #
 ################################################################################
-class GenomeFromOrthosList(Genome):
+class EnsemblOrthosListGenome(Genome):
 
 	#
 	# Constructeur
 	#
-	def __init__(self, nom, filter=[]):
+	def __init__(self, nom, homologyFilter=[], ancFilter=[]):
 		
 		Genome.__init__(self, nom)
 		
@@ -225,8 +222,17 @@ class GenomeFromOrthosList(Genome):
 		# On lit chaque ligne
 		for ligne in f:
 			champs = ligne.split()
-			if (champs[6] in filter) or (len(filter) == 0):
-				combin.addLink([champs[0], champs[3]])
+			if len(champs) == 12:
+				# Nouvelle version des fichiers
+				if (champs[-1] not in homologyFilter) and (len(homologyFilter) != 0):
+					continue
+				if (champs[6] not in ancFilter) and (len(ancFilter) != 0):
+					continue
+			else:
+				# Ancienne version des fichiers
+				if (champs[6] not in homologyFilter) and (len(homologyFilter) != 0):
+					continue
+			combin.addLink([champs[0], champs[3]])
 		f.close()
 		
 		nb = 0

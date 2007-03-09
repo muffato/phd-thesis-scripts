@@ -27,13 +27,6 @@ class PhylogeneticTree:
 
 	def __init__(self, nom):
 		
-		class commonNamesMapper(dict):
-
-			def __getitem__(d, name):
-				if name in d:
-					return dict.__getitem__(d, name)
-				else:
-					return dict.__getitem__(d, self.officialName[name])
 
 		
 		# Procedure de chargement du fichier
@@ -53,7 +46,7 @@ class PhylogeneticTree:
 					indent += 1
 
 				# On stocke le triplet (indentation,noms,age)
-				noms = l[indent].split('|')
+				noms = [x.strip() for x in l[indent].split('|')]
 				if len(l) > (indent+1):
 					age = int(l[indent+1])
 				else:
@@ -124,43 +117,91 @@ class PhylogeneticTree:
 				self.species[node].append(node)
 	
 				
-		self.commonNames = commonNamesMapper()
 		self.officialName = {}
-		self.items = commonNamesMapper()
-		self.parent = commonNamesMapper()
-		self.ages = commonNamesMapper()
-		self.branches = commonNamesMapper()
-		self.branchesSpecies = commonNamesMapper()
-		self.branchesSpecies = commonNamesMapper()
-		self.species = commonNamesMapper()
+		self.commonNames = self.newCommonNamesMapperInstance()
+		self.items = self.newCommonNamesMapperInstance()
+		self.parent = self.newCommonNamesMapperInstance()
+		self.ages = self.newCommonNamesMapperInstance()
+		self.branches = self.newCommonNamesMapperInstance()
+		self.branchesSpecies = self.newCommonNamesMapperInstance()
+		self.species = self.newCommonNamesMapperInstance()
 		self.listSpecies = []
 		self.listAncestr = []
-		self.outgroupNode = commonNamesMapper()
-		self.outgroupSpecies = commonNamesMapper()
-		self.dicGenes = commonNamesMapper()
-		self.dicGenomes = commonNamesMapper()
+		self.outgroupNode = self.newCommonNamesMapperInstance()
+		self.dicGenes = self.newCommonNamesMapperInstance()
+		self.dicGenomes = self.newCommonNamesMapperInstance()
 
 		print >> sys.stderr, "Chargement de l'arbre phylogenique de %s ..." % nom,
 		lignes = loadFile(nom)
 		self.root = recLoad(0)
+		
 		print >> sys.stderr, "Analyse des donnees ...",
 		recInitialize(self.root)
 		
+		# Les especes qui peuvent servir d'outgroup
+		self.outgroupSpecies = self.newCommonNamesMapperInstance()
 		for node in self.items:
 			self.outgroupSpecies[node] = list(set(self.listSpecies).difference(self.species[node]))
+		# Les noms a donner aux fichiers
+		self.fileName = self.newCommonNamesMapperInstance()
+		for n in self.commonNames:
+			if n in self.items:
+				self.fileName[n] = n.replace(' ', '_').replace('/', '-')
+			else:
+				self.fileName[n] = n.replace(' ', '.')
+			# Ancienne version
+			#self.fileName[n] = (self.commonNames[n]+[n])[0].replace(' ', '_').replace('/', '_')
 
 		print >> sys.stderr, "OK"
+		
 
+	#
+	# Renvoie un dictionnaire qui utilise en interne les noms officiels des taxons
+	#  mais que l'on peut utiliser avec les noms communs
+	#
+	def newCommonNamesMapperInstance(self):
+		class commonNamesMapper(dict):
 
+			def __getitem__(d, name):
+				if name in self.officialName:
+					return dict.__getitem__(d, self.officialName[name])
+				else:
+					return dict.__getitem__(d, name)
+			
+			def __setitem__(d, name, value):
+				if name in self.officialName:
+					return dict.__setitem__(d, self.officialName[name], value)
+				else:
+					return dict.__setitem__(d, name, value)
+			
+		return commonNamesMapper()
 		
 
 	# Renvoie le dernier ancetre commun des deux entites
 	def getFirstParent(self, anc1, anc2):
-		if anc1 in self.species[anc2]:
+		if anc1 not in self.officialName:
+			return None
+		elif anc1 in self.listSpecies:
+			e1 = set([anc1])
+		else:
+			e1 = set(self.species[anc1])
+		
+		if anc2 not in self.officialName:
+			return None
+		elif anc2 in self.listSpecies:
+			e2 = set([anc2])
+		else:
+			e2 = set(self.species[anc2])
+		
+		if e1.issubset(e2):
 			return anc2
-		anc = anc1
-		while anc2 not in self.species[anc]:
+		elif e2.issubset(e1):
+			return anc1
+			
+		anc = self.parent[anc1]
+		while not e2.issubset(self.species[anc]):
 			anc = self.parent[anc]
+			
 		return anc
 
 
@@ -187,7 +228,7 @@ class PhylogeneticTree:
 	def loadSpeciesFromList(self, lst, template):
 
 		for esp in lst:
-			g = myGenomes.EnsemblGenome(template % self.commonNames[esp][0])
+			g = myGenomes.EnsemblGenome(template % self.fileName[esp])
 			self.dicGenomes[esp] = g
 			for x in g.dicGenes:
 				self.dicGenes[x] = (esp, g.dicGenes[x][0], g.dicGenes[x][1])

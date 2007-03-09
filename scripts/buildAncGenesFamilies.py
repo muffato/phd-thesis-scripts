@@ -75,7 +75,7 @@ def buildAncFile(anc, lastComb):
 
 
 	# 1. on combine tous les fichiers d'orthologues
-	esp = [[phylTree.commonNames[x][0] for x in s] for s in phylTree.branchesSpecies[anc]]
+	esp = [[phylTree.fileName[x] for x in s] for s in phylTree.branchesSpecies[anc]]
 	aretes = {}
 	comb = utils.myTools.myCombinator([])
 	
@@ -90,9 +90,8 @@ def buildAncFile(anc, lastComb):
 	# 2. On affiche les groupes d'orthologues
 	print >> sys.stderr, "Construction des fichiers de", anc, "..."
 	
-	s = anc.replace('/', '_').replace(' ', '_')
-	f = utils.myTools.myOpenFile(options["ancGenesFile"] % s, 'w')
-	ff = utils.myTools.myOpenFile(options["one2oneFile"] % s, 'w')
+	f = utils.myTools.myOpenFile(options["ancGenesFile"] % phylTree.fileName[anc], 'w')
+	ff = utils.myTools.myOpenFile(options["one2oneFile"] % phylTree.fileName[anc], 'w')
 	nbA = 0
 	nbO = 0
 	res = utils.myTools.myCombinator([])
@@ -124,10 +123,13 @@ def buildAncFile(anc, lastComb):
 			clusters = [x]
 
 		# B. On est oblige de clusteriser
+		#elif True:
+		#	clusters = [x]
+		
 		else:
 		
 			# B.1/ On lance les communautes
-			lstCommunitiesOrig = utils.myCommunities.launchCommunitiesBuild1(x, aretes)
+			lstCommunitiesOrig = utils.myCommunities.launchCommunitiesBuild(items = x, edgesDict = aretes)[0]
 			
 			# B.2/ On selectionne celles qui sont convenables
 			lstCommunities = []
@@ -136,7 +138,7 @@ def buildAncFile(anc, lastComb):
 				print >> sys.stderr, "Test de [alpha=%f relevance=%f parts=%d N/A=%d/%d] :" % (comm[0],comm[1],len(comm[2]),len(comm[3]),len(x)),
 				(alpha,relevance,clusters,lonely) = comm
 				if len(options["graphDirectory"]) > 0:
-					fa = open(options["graphDirectory"] + '/graph-%f-%f-%d-%d' % (relevance,alpha,len(clusters),len(lonely)), 'w')
+					fa = open(options["graphDirectory"] + '/graph-%f-%f-%d-%d-%d' % (relevance,alpha,len(clusters),len(lonely),nbA), 'w')
 					print >> fa, "graph {"
 					for ci in xrange(len(clusters)):
 						c = clusters[ci]
@@ -168,14 +170,19 @@ def buildAncFile(anc, lastComb):
 					continue
 				
 				# Une clusterisation est correcte si tous les clusters sont repartis sur les deux sous-branches
+				tmpNbEsp = []
 				for c in comm[2]:
 					score = phylTree.findFamilyComposition(c)
-					poidsBranches = [max([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
-					if len([e for e in poidsBranches if e > 0]) == 1:
-						print >> sys.stderr, "Clusterisation incoherente"
-						break
+					tmpNbEsp.append(   float(len([e for e in score if len(score[e]) > 0])) )
+					#poidsBranches = [float(len([e for e in espGrp if score[e] > 0])) / float(len(espGrp)) for espGrp in phylTree.branchesSpecies[anc]]
+					# Le nombre de genes sur chaque sous-branche
+					#poidsBranches = [sum([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
+					#if len([e for e in poidsBranches if e > 0]) == 1:
+					#if min(poidsBranches) < 
+					#	print >> sys.stderr, "Clusterisation incoherente"
+					#	break
 				else:
-			
+					print >> sys.stderr, min(tmpNbEsp),
 					# Ne nous interessent que les clusterisations avec une relevance suffisante
 					if comm[1] >= options["minRelevance"]:
 						print >> sys.stderr, "Communaute recevable"
