@@ -1,8 +1,6 @@
 #! /users/ldog/muffato/python -OO
 
 __doc__ = """
-Lit sur l'entree standard des familles d'objets et les regroupe.
-Il ne s'agit que d'une interface pour l'objet myCombinator.
 """
 
 import sys
@@ -29,18 +27,18 @@ lastG = -1
 f = None
 dejaLus = set([])
 
+espOK = set([3, 4, 13, 15, 22, 25, 26, 28, 31, 36, 37, 38, 39, 42])
+
 for l in sys.stdin:
 	
 	t = l.split()
 
+	if (int(t[3]) not in espOK) or (int(t[4]) not in espOK):
+		continue
+		
 	a = int(t[1])
 	b = int(t[2])
-
-	n += 1
-	if n % 100000 == 0:
-		print >> sys.stderr, n
-
-		
+	
 	if a == b:
 		continue
 	

@@ -24,14 +24,17 @@ import utils.myCommunities
 #############
 
 # Charge le fichier de toutes les diagonales (supposees non chevauchantes)
-def loadDiagsFile(nom, diagEntry):
+def loadDiagsFile(nom, ancName):
 	
 	print >> sys.stderr, "Chargement du fichier de diagonales ...",
 	f = utils.myTools.myOpenFile(nom, 'r')
+	lst = []
 	for l in f:
 
 		ct = l[:-1].split('\t')
 		anc = ct[0]
+		if anc != ancName:
+			continue
 		l = int(ct[1])
 		d = [int(x) for x in ct[2].split(' ')]
 		esp = set([])
@@ -42,11 +45,12 @@ def loadDiagsFile(nom, diagEntry):
 			esp.update( set([tuple(x.split('/')) for x in ct[4].split('|')]) )
 		#print >> sys.stderr, esp
 		esp = set([(phylTree.officialName[e],c) for (e,c) in esp])
-		diagEntry[anc].append( (l, d, esp) )
+		lst.append( (l, d, esp) )
 
 	f.close()
-	print >> sys.stderr, "OK"
-	
+	print >> sys.stderr, "OK (%d diagonales)" % len(lst)
+	return lst
+
 
 ########
 # MAIN #
@@ -76,12 +80,7 @@ print >> sys.stderr, fils1, fils2, outgroup
 #geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.species[options["ancestr"]])
 
 # Les diagonales
-diagEntry = {}
-for anc in phylTree.items:
-	diagEntry[anc] = []
-loadDiagsFile(noms_fichiers["diagsList"], diagEntry)
-lstDiags = diagEntry[options["ancestr"]]
-del diagEntry
+lstDiags = loadDiagsFile(noms_fichiers["diagsList"], options["ancestr"])
 
 
 print >> sys.stderr, len(lstDiags)
@@ -119,9 +118,11 @@ def calcPoids(node):
 		par = phylTree.parent[anc]
 		outgroup.extend([(e,2*phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
 		anc = par
-	s = sum([1./math.log(a) for (_,a) in outgroup])
+	#s = sum([1./math.log(a) for (_,a) in outgroup])
+	s = sum([1./float(a) for (_,a) in outgroup])
 	for (e,a) in outgroup:
-		calcPoidsFils(e, 1. / (math.log(a)*s))
+		#calcPoidsFils(e, 1. / (math.log(a)*s))
+		calcPoidsFils(e, 1. / (float(a)*s))
 
 calcPoids(options["ancestr"])
 
@@ -142,13 +143,14 @@ def calcScore(i1, i2):
 	return propF1*propF2 + propF1*propOut + propF2*propOut
 	
 
-lstLstComm = utils.myCommunities.launchCommunitiesBuildB(items = range(len(lstDiags)), funcScore = calcScore)
+lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore)
 clusters = []
 
 # Chaque composante connexe
 for lst in lstLstComm:
 	# relevance >= 0.3 && noeudsOublies = 0
-	interessant = [comm for comm in lst if (len(comm[3]) == 0) and (comm[1] >= 0.3)]
+	#interessant = [comm for comm in lst if (len(comm[3]) == 0) and (comm[1] >= 0.3)]
+	interessant = lst
 	interessant.sort(key = operator.itemgetter(1), reverse = True)
 	if len(interessant) == 0:
 		clusters.append(utils.myMaths.flatten(lst[0][2])+lst[0][-1])
