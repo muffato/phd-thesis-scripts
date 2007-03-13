@@ -127,7 +127,12 @@ def getLongestDiags(oldDiags):
 			for i in g:
 				d = diags[i]
 				for j in xrange(len(d)-1):
-					if (d[j] not in res) or (d[j+1] not in res):
+					try:
+						i1 = res.index(d[j])
+						i2 = res.index(d[j+1])
+					except ValueError:
+						continue
+					if abs(i1-i2) != 1:
 						continue
 					ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
 					ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )

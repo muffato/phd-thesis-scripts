@@ -52,6 +52,32 @@ def loadDiagsFile(nom, ancName):
 	return lst
 
 
+def calcPoidsFils(node, calc):
+	if node in phylTree.listSpecies:
+		dicPoidsEspeces[node] = calc
+	else:
+		poids = calc / float(len(phylTree.items[node]))
+		for f in phylTree.branches[node]:
+			calcPoidsFils(f, poids)
+
+def calcPoids(node):
+	# Les fils a egalite avec un poids de 1
+	for f in phylTree.branches[node]:
+		calcPoidsFils(f, 1.)
+	outgroup = []
+	anc = node
+	while anc in phylTree.parent:
+		par = phylTree.parent[anc]
+		outgroup.extend([(e,phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
+		#outgroup.extend([(e,2*phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
+		anc = par
+	#s = sum([1./math.log(a) for (_,a) in outgroup])
+	s = sum([1./float(a) for (_,a) in outgroup])
+	for (e,a) in outgroup:
+		#calcPoidsFils(e, 1. / (math.log(a)*s))
+		calcPoidsFils(e, 0)
+		#calcPoidsFils(e, 1. / (float(a)*s))
+
 ########
 # MAIN #
 ########
@@ -71,10 +97,8 @@ genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fi
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
 
 # On separe les especes en trois
-(fils1, fils2) = phylTree.branchesSpecies[options["ancestr"]]
+fils = phylTree.branchesSpecies[options["ancestr"]]
 outgroup = phylTree.outgroupSpecies[options["ancestr"]]
-
-print >> sys.stderr, fils1, fils2, outgroup
 
 # Les genomes modernes
 #geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.species[options["ancestr"]])
@@ -82,8 +106,6 @@ print >> sys.stderr, fils1, fils2, outgroup
 # Les diagonales
 lstDiags = loadDiagsFile(noms_fichiers["diagsList"], options["ancestr"])
 
-
-print >> sys.stderr, len(lstDiags)
 # Les genes seuls vont devenir des diagonales de 1
 #genesSeuls = set(xrange(len(lstGenesAnc)))
 #for (_,d,_) in lstDiags:
@@ -100,29 +122,6 @@ print >> sys.stderr, len(lstDiags)
 
 # Il faut calculer l'apport de chaque espece
 dicPoidsEspeces = {}
-def calcPoidsFils(node, calc):
-	if node in phylTree.listSpecies:
-		dicPoidsEspeces[node] = calc
-	else:
-		poids = calc / float(len(phylTree.items[node]))
-		for f in phylTree.branches[node]:
-			calcPoidsFils(f, poids)
-
-def calcPoids(node):
-	# Les fils a egalite avec un poids de 1
-	for f in phylTree.branches[node]:
-		calcPoidsFils(f, 1.)
-	outgroup = []
-	anc = node
-	while anc in phylTree.parent:
-		par = phylTree.parent[anc]
-		outgroup.extend([(e,2*phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
-		anc = par
-	#s = sum([1./math.log(a) for (_,a) in outgroup])
-	s = sum([1./float(a) for (_,a) in outgroup])
-	for (e,a) in outgroup:
-		#calcPoidsFils(e, 1. / (math.log(a)*s))
-		calcPoidsFils(e, 1. / (float(a)*s))
 
 calcPoids(options["ancestr"])
 
@@ -130,17 +129,21 @@ print >> sys.stderr, dicPoidsEspeces
 
 def calcScore(i1, i2):
 
-	global lstDiags, dicPoidsEspeces, fils1, fils2, outgroup
+	global lstDiags, dicPoidsEspeces, outgroup, fils
 	
 	(_,_,e1) = lstDiags[i1]
 	(_,_,e2) = lstDiags[i2]
 	communEsp = set([e for (e,_) in e1.intersection(e2)])
 
-	propF1 = sum([dicPoidsEspeces[e] for e in communEsp.intersection(fils1)])
-	propF2 = sum([dicPoidsEspeces[e] for e in communEsp.intersection(fils2)])
+	propF = [sum([dicPoidsEspeces[e] for e in communEsp.intersection(f)]) for f in fils]
 	propOut = sum([dicPoidsEspeces[e] for e in communEsp.intersection(outgroup)])
 	
-	return propF1*propF2 + propF1*propOut + propF2*propOut
+	s = 0
+	for i in xrange(len(fils)):
+		s += propF[i] * propOut
+		for j in xrange(i+1, len(fils)):
+			s += propF[i] * propF[j]
+	return s
 	
 
 lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore)

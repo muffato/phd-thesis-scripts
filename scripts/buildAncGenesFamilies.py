@@ -220,6 +220,7 @@ def buildAncFile(anc, lastComb):
 			res.addLink(c)
 	
 	comb = None
+	aretes = None
 
 	add = 0
 	# 3. On rajoute les familles heritees

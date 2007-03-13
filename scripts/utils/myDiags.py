@@ -268,8 +268,9 @@ class WeightedDiagGraph:
 			for i in xrange(len(d)-1):
 				x = d[i]
 				y = d[i+1]
-				self.aretes[x][y] = self.aretes[x].get(y, 0) + 1
-				self.aretes[y][x] = self.aretes[y].get(x, 0) + 1
+				if x != y:
+					self.aretes[x][y] = self.aretes[x].get(y, 0) + 1
+					self.aretes[y][x] = self.aretes[y].get(x, 0) + 1
 
 
 
@@ -284,6 +285,7 @@ class WeightedDiagGraph:
 				continue
 			vois = self.aretes[x].keys()
 			vois.sort(lambda a, b: cmp(self.aretes[x][b], self.aretes[x][a]))
+			print >> sys.stderr, "Reduction", " ".join([str(self.aretes[x][y]) for y in vois])
 			for y in vois[3:]:
 				try:
 					del self.aretes[x][y]
@@ -304,6 +306,8 @@ class WeightedDiagGraph:
 				next = [x for x in self.aretes[s] if (x != pred) and (x not in alreadySeen)]
 				if len(next) == 0:
 					return res
+				elif len(next) >= 2:
+					print >> sys.stderr, "boudiou !", self.aretes[s], pred
 				pred = s
 				s = next[0]
 				
