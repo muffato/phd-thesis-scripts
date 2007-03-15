@@ -44,7 +44,7 @@ def loadDiagsFile(nom, ancName):
 			#print >> sys.stderr, ct[4], ct[4].split('|')
 			esp.update( set([tuple(x.split('/')) for x in ct[4].split('|')]) )
 		#print >> sys.stderr, esp
-		esp = set([(phylTree.officialName[e],c) for (e,c) in esp])
+		esp = set([(phylTree.officialName[e],c) for (e,c) in esp if e in phylTree.officialName])
 		lst.append( (l, d, esp) )
 
 	f.close()
@@ -66,17 +66,19 @@ def calcPoids(node):
 		calcPoidsFils(f, 1.)
 	outgroup = []
 	anc = node
-	while anc in phylTree.parent:
-		par = phylTree.parent[anc]
-		outgroup.extend([(e,phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
-		#outgroup.extend([(e,2*phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
-		anc = par
+	#while anc in phylTree.parent:
+	#	par = phylTree.parent[anc]
+	#	outgroup.extend([(e,phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
+	#	#outgroup.extend([(e,2*phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
+	#	anc = par
+	par = phylTree.parent[anc]
+	outgroup.extend([(e,phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
 	#s = sum([1./math.log(a) for (_,a) in outgroup])
 	s = sum([1./float(a) for (_,a) in outgroup])
 	for (e,a) in outgroup:
 		#calcPoidsFils(e, 1. / (math.log(a)*s))
-		calcPoidsFils(e, 0)
-		#calcPoidsFils(e, 1. / (float(a)*s))
+		#calcPoidsFils(e, 0)
+		calcPoidsFils(e, 1. / (float(a)*s))
 
 ########
 # MAIN #

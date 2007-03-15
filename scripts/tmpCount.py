@@ -65,18 +65,25 @@ modes = ["Matrix", "Karyotype", "OrthosChr"]
 
 
 # Chargement des fichiers
-genome1 = utils.myGenomes.loadGenome(noms_fichiers["studiedGenome"])
-genome2 = utils.myGenomes.loadGenome(noms_fichiers["referenceGenome"])
+#genome1 = utils.myGenomes.loadGenome(noms_fichiers["studiedGenome"])
+genome1 = utils.myGenomes.AncestralGenome(noms_fichiers["studiedGenome"])
+#genome2 = utils.myGenomes.loadGenome(noms_fichiers["referenceGenome"])
+genome2 = utils.myGenomes.AncestralGenome(noms_fichiers["referenceGenome"])
 
 nouveaux = 0
 for g in genome1:
 
+
 	for s in g.names:
 		if s in genome2.dicGenes:
+			(_,i) = genome2.dicGenes[s]
+			print " ".join(genome2.lstGenes[utils.myGenomes.Genome.defaultChr][i].names)
 			break
 	else:
+		print
 		nouveaux += 1
 
+sys.exit(0)
 dupliques = 0
 pertes = 0
 for g in genome2:
