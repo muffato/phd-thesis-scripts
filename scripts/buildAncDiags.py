@@ -26,13 +26,15 @@ import utils.myDiags
 
 def calcDiags(e1, e2):
 
+	
 	# La fonction qui permet de stocker les diagonales sur les ancetres
 	def combinDiag(c1, c2, d1, d2):
-		global diagEntry
+		global diagEntry, nbDiags
 
 		if len(d1) < options["minimalLength"]:
 			return
 		
+		nbDiags += 1
 		dn1 = [g1.lstGenes[c1][trans1[(c1,i)]].names[0] for i in d1]
 		dn2 = [g2.lstGenes[c2][trans2[(c2,i)]].names[0] for i in d2]
 
@@ -83,9 +85,12 @@ def calcDiags(e1, e2):
 			(ianc,s) = tmp[c][i]
 			if ianc != -1:
 				newLoc[ianc].append( (c,i,s) )
-	
-	utils.myDiags.iterateDiags(newGen, newLoc, options["fusionThreshold"], options["sameStrand"], combinDiag)
 
+	global nbDiags
+	print >> sys.stderr, "Extraction des diagonales entre %s et %s ..." % (e1,e2),
+	nbDiags = 0
+	utils.myDiags.iterateDiags(newGen, newLoc, options["fusionThreshold"], options["sameStrand"], combinDiag)
+	print >> sys.stderr, nbDiags
 
 def getLongestDiags(oldDiags):
 
@@ -121,7 +126,7 @@ def getLongestDiags(oldDiags):
 		else:
 			gr = utils.myDiags.WeightedDiagGraph([diags[i] for i in g])
 		for res in gr.getBestDiags():
-			if len(res) < 2:
+			if len(res) < options["minimalLength"]:
 				continue
 			ok = set([])
 			for i in g:
@@ -191,7 +196,7 @@ def findNewSpecies(d, esp, anc):
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
 	("ancestr",str,""),("useOutgroups",bool,False),\
 	("showProjected",bool,False), ("showAncestral",bool,True), ("searchUndetectedSpecies",bool,True), \
-	("extractLongestPath",bool,True), ("cutLongestPath",bool,True), \
+	("extractLongestPath",bool,False), ("cutLongestPath",bool,False), \
 	("genesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
 	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
@@ -211,7 +216,6 @@ phylTree.loadSpeciesFromList(listSpecies, options.genesFile)
 diagEntry = dict( [(anc, []) for anc in phylTree.items if options.useOutgroups or (phylTree.getFirstParent(anc, options.ancestr) == options.ancestr)] )
 # On compare toutes les especes entre elles
 for (i,j) in utils.myTools.myMatrixIterator(len(listSpecies), len(listSpecies), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-	print >> sys.stderr, '+',
 	calcDiags(listSpecies[i], listSpecies[j])
 
 # On a besoin des genes ancestraux

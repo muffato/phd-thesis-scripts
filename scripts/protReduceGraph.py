@@ -22,21 +22,26 @@ for l in f:
 	t = l.split()
 	comb.addLink(t)
 
+comb.reduce()
 
-nbNoeudsDejaLus = utils.myTools.leniter(comb)
+
 def getInd(node):
-	global nbNoeudsDejaLus,comb
+	
 	if node not in comb.dic:
 		comb.addLink( [node])
-		nbNoeudsDejaLus += 1
-		return nbNoeudsDejaLus-1
 		
 	i = comb.dic[node]
 	t = comb.grp[i]
+
 	if len(t) == 1:
 		return i
 	return -1 - i
 
+def revert(ind):
+	if ind < 0:
+		return -1-ind
+	else:
+		return ind
 
 # Le nouveau graphe
 todo = {}
@@ -48,25 +53,22 @@ for l in fg:
 	a = getInd(t[0])
 	b = getInd(t[1])
 
+	if a == b:
+		continue
+	
 	if a < 0 or b < 0:
 		todo[(a,b)] = todo.get( (a,b), 0) + float(t[2])
 	else:
 		print a, b, t[2]
 
-
-def revert(ind):
-	if ind < 0:
-		return -1-ind
-	else:
-		return ind
+fg.close()
 
 # On rajoute les aretes qui touchent des nouveaux noeuds fusionnes
 for (a,b) in todo:
-	if a <= b:
+	if (a < b) and ((b,a) in todo):
 		continue
 	print revert(a), revert(b), todo[(a,b)] + todo.get( (b,a), 0)
 
-fg.close()
 todo = None
 
 

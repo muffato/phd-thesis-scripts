@@ -85,6 +85,7 @@ def distInterGenes(tg1, tg2):
 	["genomeAncestral", "phylTree.conf"], \
 	[("ancestr",str,""), ("seuilMaxDistInterGenes",int,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
 	("nbConcorde",int,-1), ("withConcordeOutput",bool,False), ("withConcordeStats",bool,False),\
+	("concordeExec",str,"~/work/scripts/concorde"),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
@@ -175,7 +176,7 @@ for c in genesAnc.lstChr:
 	print >> sys.stderr, "Lancement de concorde ",
 	lstTot = []
 	for i in range(nbConcorde):
-		comm = '~/work/scripts/concorde -x ' + nom
+		comm = options["concordeExec"] + ' -x ' + nom
 		if options["withConcordeOutput"]:
 			os.system(comm + ' >&2')
 		else:

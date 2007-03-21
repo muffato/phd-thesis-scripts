@@ -64,15 +64,17 @@ def calcPoids(node):
 	# Les fils a egalite avec un poids de 1
 	for f in phylTree.branches[node]:
 		calcPoidsFils(f, 1.)
+	if not options["useOutgroups"]:
+		return
 	outgroup = []
 	anc = node
-	#while anc in phylTree.parent:
-	#	par = phylTree.parent[anc]
-	#	outgroup.extend([(e,phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
-	#	#outgroup.extend([(e,2*phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
-	#	anc = par
-	par = phylTree.parent[anc]
-	outgroup.extend([(e,phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
+	while anc in phylTree.parent:
+		par = phylTree.parent[anc]
+		outgroup.extend([(e,phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
+		#outgroup.extend([(e,2*phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
+		anc = par
+	#par = phylTree.parent[anc]
+	#outgroup.extend([(e,phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
 	#s = sum([1./math.log(a) for (_,a) in outgroup])
 	s = sum([1./float(a) for (_,a) in outgroup])
 	for (e,a) in outgroup:
@@ -87,7 +89,7 @@ def calcPoids(node):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "diagsList"], \
-	[("ancestr",str,""), ("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
+	[("useOutgroups",bool,True), ("ancestr",str,""), ("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
@@ -123,7 +125,7 @@ lstDiags = loadDiagsFile(noms_fichiers["diagsList"], options["ancestr"])
 
 
 # Il faut calculer l'apport de chaque espece
-dicPoidsEspeces = {}
+dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
 
 calcPoids(options["ancestr"])
 

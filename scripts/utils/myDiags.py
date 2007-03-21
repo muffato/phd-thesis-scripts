@@ -285,31 +285,38 @@ class WeightedDiagGraph:
 				continue
 			vois = self.aretes[x].keys()
 			vois.sort(lambda a, b: cmp(self.aretes[x][b], self.aretes[x][a]))
-			print >> sys.stderr, "Reduction", " ".join([str(self.aretes[x][y]) for y in vois])
-			for y in vois[3:]:
-				try:
-					del self.aretes[x][y]
-				except KeyError:
-					pass
-				try:
-					del self.aretes[y][x]
-				except KeyError:
-					pass
+			#print >> sys.stderr, "Reduction", x, " ".join([str(self.aretes[x][y]) for y in vois])
+			for y in vois[2:]:
+				del self.aretes[x][y]
+				del self.aretes[y][x]
+			#print >> sys.stderr, "Resultat", self.aretes[x]
 		
 		# Renvoie le chemin qui part de s (en venant de pred) tant qu'il ne croise pas de carrefours
 		def followSommet(s):
 			res = []
 			pred = None
+			# On part de s et on prend les successeurs jusqu'a la fin du chemin
+			#print >> sys.stderr, "DEBUT"
 			while True:
-				alreadySeen.add(s)
+				# On marque notre passage
 				res.append(s)
+				alreadySeen.add(s)
+				# Les prochains noeuds a visiter
+				# On doit verifier qu'on est pas deja passer par les noeuds sinon on boucle indefiniment
 				next = [x for x in self.aretes[s] if (x != pred) and (x not in alreadySeen)]
+				#print >> sys.stderr, pred, s, self.aretes[s], next
 				if len(next) == 0:
+					#print >> sys.stderr, "FIN"
+					#print >> sys.stderr
 					return res
-				elif len(next) >= 2:
-					print >> sys.stderr, "boudiou !", self.aretes[s], pred
+				# N'arrive jamais
+				#elif len(next) >= 2:
+				#	print >> sys.stderr, "boudiou"
 				pred = s
 				s = next[0]
+				# N'arrive jamais
+				#if s in alreadySeen:
+				#	print >> sys.stderr, "drame"
 				
 
 		alreadySeen = set()
@@ -317,10 +324,11 @@ class WeightedDiagGraph:
 			if (len(self.aretes[x]) == 1) and (x not in alreadySeen):
 				yield followSommet(x)
 
-		#for x in self.sommets:
-		#	if (len(self.aretes[x]) == 2) and (x not in alreadySeen):
-		#		a = followSommet(x)
-		#		yield a
+		#print >> sys.stderr, "BOUCLES-DEBUT"
+		for x in self.sommets:
+			if (len(self.aretes[x]) == 2) and (x not in alreadySeen):
+				yield followSommet(x)
+		#print >> sys.stderr, "BOUCLES-FIN"
 
 
 
