@@ -250,8 +250,8 @@ def buildAncFile(anc, lastComb):
 		nbA += 1
 		score = phylTree.findFamilyComposition(c)
 		l = [score[e][0] for e in score if len(score[e]) == 1]
+		print >> ff, " ".join(l)
 		if len(l) >= 1:
-			print >> ff, " ".join(l)
 			nbO += 1
 	f.close()
 	ff.close()

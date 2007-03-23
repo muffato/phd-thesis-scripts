@@ -47,7 +47,7 @@ lastNbVois = 0
 for i in xrange(nb):
 	val = lstGenomes[0][i]
 	i1 = i
-	vois = set([])
+	vois = set()
 	if i < (nb-1):
 		vois.add(lstGenomes[0][i+1])
 	pos = set([i])

@@ -38,7 +38,7 @@ def loadChrAncIni(nom):
 			cc = x.split('|')
 			if len(cc) != 2:
 				continue
-			s = set([])
+			s = set()
 			for x in cc[1].split():
 				# Un nom de chromosome
 				# On convertit en entier le nom du chromosome si possible
@@ -108,7 +108,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 		
 		bloc = []
 		lastCT = []
-		lastGT = set([])
+		lastGT = set()
 	
 		# On parcourt les genes du chromosomes
 		for tg in genome.lstGenes[c]:
@@ -139,7 +139,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 				if len(bloc) != 0:
 					lstBlocs.append(bloc)
 				bloc = []
-				lastGT = set([])
+				lastGT = set()
 				
 			# On rajoute les infos du gene qu'on vient de lire
 			bloc.append( g )
@@ -258,7 +258,7 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 			for fils in phylTree.branches[node]:
 				if len(espALL.intersection(phylTree.species[fils])) != 0:
 					r.append(recCalc(fils))
-			return utils.myMaths.moyenne(r)
+			return utils.myMaths.mean(r)
 
 		if options["usePhylTreeScoring"]:
 			espALL = set(espOK + espNO)
@@ -273,8 +273,8 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 				elif e in espNO:
 					r.append(0)
 			if len(r) > 0:
-				rTot.append( utils.myMaths.moyenne(r) )
-		return utils.myMaths.moyenne(rTot)
+				rTot.append( utils.myMaths.mean(r) )
+		return utils.myMaths.mean(rTot)
 		
 	
 	for i in xrange(len(genesAncCol)):

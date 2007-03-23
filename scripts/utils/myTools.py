@@ -3,8 +3,8 @@
 
 import os
 import sys
-from bz2 import BZ2File
-from gzip import GzipFile
+import bz2
+import gzip
 
 
 null = open('/dev/null', 'w')
@@ -29,9 +29,9 @@ def leniter(it):
 def myOpenFile(nom, mode):
 	nom = nom.replace("~", os.environ['HOME'])
 	if nom.endswith(".bz2"):
-		f = BZ2File(nom, mode)
+		f = bz2.BZ2File(nom, mode)
 	elif nom.endswith(".gz"):
-		f = GzipFile(nom, mode)
+		f = gzip.GzipFile(nom, mode)
 	else:
 		f = open(nom, mode)
 	return f
@@ -90,11 +90,11 @@ class myCombinator:
 	#
 	# Constructeur
 	#
-	def __init__(self, ini):
-		self.grp = ini
+	def __init__(self, ini = []):
+		self.grp = list(ini)
 		self.dic = {}
-		for i in xrange(len(ini)):
-			for x in ini[i]:
+		for i in xrange(len(self.grp)):
+			for x in self.grp[i]:
 				self.dic[x] = i
 	
 	#
@@ -105,20 +105,25 @@ class myCombinator:
 		if len(obj) == 0:
 			return
 	
-		deja = set([self.dic[x] for x in obj if x in self.dic])
-		if len(deja) == 0:
+		d = set([self.dic[x] for x in obj if x in self.dic])
+		
+		if len(d) == 0:
 			i = len(self.grp)
 			self.grp.append(obj)
+			for x in obj:
+				self.dic[x] = i
 		else:
-			i = deja.pop()
-			for x in deja:
+			i = d.pop()
+			for x in d:
 				self.grp[i].extend(self.grp[x])
+				for y in self.grp[x]:
+					self.dic[y] = i
 				self.grp[x] = []
-			self.grp[i].extend([x for x in obj if x not in self.dic])
-
-		for x in obj:
-			self.dic[x] = i
-
+			dd = [x for x in obj if x not in self.dic]
+			for x in dd:
+				self.dic[x] = i
+			self.grp[i].extend(dd)
+	
 
 	#
 	# Renvoie un iterateur sur les donnees
@@ -135,6 +140,12 @@ class myCombinator:
 		return leniter(self)
 
 
+	#
+	# Enleve les ensembles vides
+	#
+	def reduce(self):
+		newGrp = list(self)
+		self.__init__(newGrp)
 
 				
 

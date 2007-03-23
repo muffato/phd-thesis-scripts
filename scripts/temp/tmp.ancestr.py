@@ -38,7 +38,7 @@ genesAnc = utils.myOrthos.AncestralGenome(noms_fichiers[3], False)
 # La table d'association geneAncestral -> genetOugroup
 assocGeneOutgroup = {}
 for g in genesAnc.lstGenes[utils.myOrthos.AncestralGenome.defaultChr]:
-	a = set([])
+	a = set()
 	for s in g.names:
 		if s in genomeOutgroup.dicGenes:
 			a.add(genomeOutgroup.dicGenes[s])
@@ -53,7 +53,7 @@ for g in genesAnc.lstGenes[utils.myOrthos.AncestralGenome.defaultChr]:
 # Les genes sont des indices dans genesAnc
 
 def makeAncRegions(genome, outgroup, genesAnc):
-	blocsAncs = dict([(ca, dict([(c,set([])) for c in genome.lstChr])) for ca in genomeOutgroup.lstChr])
+	blocsAncs = dict([(ca, dict([(c,set()) for c in genome.lstChr])) for ca in genomeOutgroup.lstChr])
 	for c in genome.lstChr:
 		for g in genome.lstGenes[c]:
 			s = g.names[0]
@@ -158,7 +158,7 @@ for chrAnc in genomeOutgroup.lstChr:
 			for (_,l1,l2) in lst:
 				if x in l1:
 					break
-				r = set([])
+				r = set()
 				for y in l2:
 					r.update(xx & set(blocs2[y]))
 				if len(r) > s:
@@ -181,7 +181,7 @@ for chrAnc in genomeOutgroup.lstChr:
 			for (_,l1,l2) in lst:
 				if y in l2:
 					break
-				r = set([])
+				r = set()
 				for x in l1:
 					r.update(yy & set(blocs1[x]))
 				if len(r) > s:
@@ -197,10 +197,10 @@ for chrAnc in genomeOutgroup.lstChr:
 					print >> sys.stderr, "Rien trouve pour", y, "P", blocs2[y]
 				
 	for (c,l1,l2) in lst:
-		xH = set([])
+		xH = set()
 		for cH in l1:
 			xH.update(blocs1[cH])
-		xP = set([])
+		xP = set()
 		for cP in l2:
 			xP.update(blocs2[cP])
 
@@ -233,14 +233,14 @@ def rassembleSyntenies(g1, g2, genesAnc):
 	for c in g1.lstChr:
 		
 		last = ""
-		curr = set([])
+		curr = set()
 		
 		for (col,tg) in res[c]:
 			if col != last:
 				if len(curr) != 0:
 					res2.append(curr)
 				last = col
-				curr = set([])
+				curr = set()
 			curr.add(tg)
 		res2.append(curr)
 	return res2
@@ -251,7 +251,7 @@ ens2 = rassembleSyntenies(genome2, genome1, genesAnc)
 print >> sys.stderr, len(ens2), sum([len(a) for a in ens2])
 
 newEns = []
-tout = set([])
+tout = set()
 i = 0
 dic = {}
 for x in ens1:

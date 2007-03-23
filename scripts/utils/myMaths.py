@@ -8,12 +8,92 @@ import math
 import sys
 
 
-def fullStats(lst):
+#
+# Renvoie la moyenne d'une liste
+#
+def mean(lst):
 	if len(lst) == 0:
-		#return (None, None, None, None, None, 0)
-		#return (0, 0, None, None, None, 0)
-		return (0, 0, 0, 0, 0, 0)
-	return (moyenne(lst), ecartType(lst), mediane(lst), min(lst), max(lst), len(lst))
+		return 0.
+	return float(sum(lst))/float(len(lst))
+
+
+#
+# Ecart type
+#
+def stddev(lst):
+	if len(lst) == 0:
+		return 0
+	m = mean(lst)
+	return math.sqrt(mean([(x-m)*(x-m) for x in lst]))
+
+#
+# Mediane
+#
+def median(lst):
+	if len(lst) == 0:
+		return 0
+	l = lst[:]
+	l.sort()
+	return l[len(l)/2]
+
+
+#
+# Min et max
+#
+def getMinMax(lst):
+	mn = mx = None
+	for x in lst:
+		if mn == None:
+			mn = x
+			mx = x
+		elif x > mx:
+			mx = x
+		elif x < mn:
+			mn = x
+	return (mn, mx)
+
+
+
+
+#
+# Contient les stats classiques d'une serie de nombres
+#
+class myStats:
+
+	def __init__(self, lst):
+
+		self.data = list(lst)
+		self.data.sort()
+
+		self.min = self.data[0]
+		self.quart1 = self.getValue(25)
+		self.median = self.getValue(50)
+		self.quart3 = self.getValue(75)
+		self.max = self.data[-1]
+
+		if len(self.data) == 0:
+			self.mean = self.stddev = 0
+		else:
+			s = 0
+			for x in self.data:
+				s += x
+			self.mean = float(s) / float(len(self.data))
+			
+			s = 0
+			for x in self.data:
+				s += (x-self.mean)*(x-self.mean)
+			self.stddev = math.sqrt(float(s) / float(len(self.data)))
+
+	def getValue(self, x):
+		return self.data[int((x*len(self.data))/100.)]
+
+	def __repr__(self):
+		return "%s\t%s\t%s\t%s\t%s\t%.2f\t%.2f\t%d" % (self.min,self.quart1,self.median,self.quart3,self.max, self.mean,self.stddev, len(self.data))
+
+
+
+
+
 
 
 def issublist(l1, l2):
@@ -37,15 +117,6 @@ def sortDict(d):
 	k.sort(lambda x, y: cmp(d[y], d[x]))
 	return k
 
-
-#
-# Renvoie la moyenne d'une liste
-#
-def moyenne(lst):
-	if len(lst) == 0:
-		return 0.
-	return float(sum(lst))/float(len(lst))
-
 #
 # Renvoie la moyenne ponderee d'une liste
 #
@@ -60,47 +131,6 @@ def moyennePonderee(lst):
 	return sV/sP
 
 
-
-
-#
-# Ecart type
-#
-def ecartType(lst):
-	if len(lst) == 0:
-		return 0
-	m = moyenne(lst)
-	return math.sqrt(moyenne([(x-m)*(x-m) for x in lst]))
-
-#
-# Mediane
-#
-def mediane(lst):
-	if len(lst) == 0:
-		return 0
-	l = lst[:]
-	l.sort()
-	return l[len(l)/2]
-
-
-
-#
-# Min et max
-#
-def getMinMax(lst):
-	if len(lst) == 0:
-		return (None, None)
-	mn = lst[0]
-	mx = mn
-	for x in lst:
-		if x > mx:
-			mx = x
-		elif x < mn:
-			mn = x
-	#if mn != min(lst[0], lst[-1]):
-	#	print >> sys.stderr, "BOUDIOU.MIN", mn, lst
-	#if mx != max(lst[0], lst[-1]):
-	#	print >> sys.stderr, "BOUDIOU.MAX", mx, lst
-	return (mn, mx)
 
 
 #

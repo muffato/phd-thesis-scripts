@@ -128,7 +128,7 @@ def getLongestDiags(oldDiags):
 		for res in gr.getBestDiags():
 			if len(res) < options["minimalLength"]:
 				continue
-			ok = set([])
+			ok = set()
 			for i in g:
 				d = diags[i]
 				for j in xrange(len(d)-1):
@@ -158,7 +158,7 @@ def findNewSpecies(d, esp, anc):
 		# L'ancetre commun
 		a = phylTree.getFirstParent(anc, e)
 		# On va intersecter les chromosomes des orthologues de chaque gene
-		poss = set([])
+		poss = set()
 		for i in d:
 			
 			# Le gene chez l'ancetre commun

@@ -186,7 +186,7 @@ class DiagGraph:
 	
 	def doFloydWarshall():
 		# Tous les plus longs chemins
-		vide = set([])
+		vide = set()
 		chemins = dict([(x,dict([(y,vide) for y in self.newSommets])) for x in self.newSommets])
 		for x in self.newSommets:
 			for y in self.aretes[x]:
@@ -285,7 +285,7 @@ class WeightedDiagGraph:
 				continue
 			vois = self.aretes[x].keys()
 			vois.sort(lambda a, b: cmp(self.aretes[x][b], self.aretes[x][a]))
-			#print >> sys.stderr, "Reduction", x, " ".join([str(self.aretes[x][y]) for y in vois])
+			print >> sys.stderr, "Reduction", x, " ".join([str(self.aretes[x][y]) for y in vois])
 			for y in vois[2:]:
 				del self.aretes[x][y]
 				del self.aretes[y][x]

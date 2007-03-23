@@ -53,7 +53,7 @@ def mkTranslation(anc1, anc2):
 		for j in d:
 			# La diagonale de anc2 qui correspond a ce gene
 			tmp = genesAnc[anc].getPosition(genesAnc[anc1].lstGenes[utils.myGenomes.Genome.defaultChr][j])
-			tmp2 = set([])
+			tmp2 = set()
 			for (_,k) in tmp:
 				tmp2.update(genesAnc[anc2].getPosition(genesAnc[anc].lstGenes[utils.myGenomes.Genome.defaultChr][k]))
 			for (_,s) in tmp2:
@@ -123,7 +123,7 @@ def recCombin(node):
 
 	global espPositions, genesAnc, diagPositions, translate
 
-	vide = set([])
+	vide = set()
 	
 	# Retrouve sur quel scaffold de l'ancetre 'new' se trouve la diagonale i de l'ancetre 'anc'
 	def getScaffTranslation(anc, i, new):

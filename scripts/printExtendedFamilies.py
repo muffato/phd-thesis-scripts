@@ -17,10 +17,10 @@ import utils.myTools
 
 genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genesAncestraux"])
 
-lst = set([])
+lst = set()
 nb = 0
 for s in sys.stdin:
-	t = set([])
+	t = set()
 	for g in s.split():
 		if g in genesAnc.dicGenes:
 			t.add(genesAnc.dicGenes[g])

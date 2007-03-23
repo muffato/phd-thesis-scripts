@@ -18,29 +18,44 @@ def distInterGenes(tg1, tg2):
 
 	def calcDist(anc):
 
+		d = 0.
 		s = 0.
-		n = 0.
+		nb = 0
+		# Moyenne sur tous les fils du noeud
 		for (e,p) in phylTree.items[anc]:
-			if e not in distAnc:
-				if e in distEsp:
-					val = distEsp[e]
+			# Le fils est un nouveau noeud
+			if e in phylTree.items:
+				# Distance de 1 ou appel recursif
+				if e in lst1Anc:
+					val = 1
 				else:
-					val = 0
+					(val,x) = calcDist(e)
+					p += x
+			# C'est une espece representee par les deux genes ancestraux
+			elif e in distEsp:
+				val = distEsp[e]
+			# Une espece non representee
 			else:
-				if distAnc[e] != 0:
-					val = distAnc[e]
-				else:
-					val = calcDist(e)
-			if val > 0  and (val <= options["seuilMaxDistInterGenes"] or options["seuilMaxDistInterGenes"] == 0):
+				continue
+			
+			# Si on a une vraie valeur de distance, on continue la moyenne
+			if val != 0:
 				poids = 1./float(p)
-				s += val*poids
-				n += poids
-		if n != 0:
-			s /= n
-		distAnc[anc] = s
-		return s
+				d += val*poids
+				s += poids
+				nb += 1
 
-	#print >> sys.stderr, 0, len(tg1), len(tg2)
+		# Test final
+		if nb != 0:
+			d /= s
+			if (options["seuilMaxDistInterGenes"] == 0) or (d <= options["seuilMaxDistInterGenes"]):
+				if nb == 1:
+					return (d,1./s)
+				else:
+					return (d,0)
+		return (0,0)
+
+	# Les distances chez chaque espece
 	distEsp = {}
 	for (e1,c1,i1) in tg1:
 		for (e2,c2,i2) in tg2:
@@ -51,39 +66,28 @@ def distInterGenes(tg1, tg2):
 				else:
 					distEsp[e1] = x
 	
-	#print >> sys.stderr, 1, distEsp
-	distAnc = dict( [(a,0) for a in phylTree.items] )
-	lst1 = [e for e in distEsp if distEsp[e] == 1]
+	# On fait la liste des especes qui presentent une distance de 1
+	lst1Esp = [e for e in distEsp if distEsp[e] == 1]
 	
-	# On met les 1 dans l'arbre
-	for i in xrange(len(lst1)):
+	# On met les 1 dans les noeuds de l'arbre entre les especes
+	lst1Anc = set()
+	for i in xrange(len(lst1Esp)):
 		for j in xrange(i):
-			e1 = lst1[i]
-			e2 = lst1[j]
-			anc = phylTree.getFirstParent(e1, e2)
-			tmp = e1
-			while tmp != anc:
-				tmp = phylTree.parent[tmp]
-				distAnc[tmp] = 1
-			tmp = e2
-			while tmp != anc:
-				tmp = phylTree.parent[tmp]
-				distAnc[tmp] = 1
-			if distAnc[options["ancestr"]] == 1:
+			e1 = lst1Esp[i]
+			e2 = lst1Esp[j]
+			lst1Anc.update(dicNodesBetween[(e1,e2)])
+			if options["ancestr"] in lst1Anc:
 				return 1
 	
-	#print >> sys.stderr, 2, distAnc
 			
 	# On calcule par une moyenne les autres distances
-	calcDist(options["ancestr"])
-	#print >> sys.stderr, 3, distAnc
-	return distAnc[options["ancestr"]]
+	return calcDist(options["ancestr"])[0]
 	
 
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genomeAncestral", "phylTree.conf"], \
-	[("ancestr",str,""), ("seuilMaxDistInterGenes",int,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
+	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
 	("nbConcorde",int,-1), ("withConcordeOutput",bool,False), ("withConcordeStats",bool,False),\
 	("concordeExec",str,"~/work/scripts/concorde"),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
@@ -91,16 +95,25 @@ def distInterGenes(tg1, tg2):
 	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
 )
 
+
+# L'arbre phylogentique
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 if options["ancestr"] not in (phylTree.listAncestr + phylTree.listSpecies):
 	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["ancestr"]
 	sys.exit(1)
+
+# Les liens entre les paires d'especes
+dicNodesBetween = {}
+for e1 in phylTree.listSpecies:
+	for e2 in phylTree.listSpecies:
+		dicNodesBetween[(e1,e2)] = phylTree.getNodesBetween(e1,e2)
+
+# On charge les genomes
 phylTree.loadAllSpeciesSince(None, options["genesFile"])
 del phylTree.dicGenomes
 genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genomeAncestral"])
 
 # On etend la liste des genes ancestraux pour utiliser les outgroup
-
 anc = options["ancestr"]
 dicOutgroupGenes = {}
 while anc in phylTree.parent:
@@ -108,7 +121,7 @@ while anc in phylTree.parent:
 	tmpGenesAnc = utils.myGenomes.loadGenome(options["ancGenesFile"] % anc)
 	del tmpGenesAnc.dicGenes
 	for g in tmpGenesAnc:
-		ianc = set([])
+		ianc = set()
 		newGenes = []
 		for s in g.names:
 			if s in genesAnc.dicGenes:
@@ -166,7 +179,7 @@ for c in genesAnc.lstChr:
 			if y == 0:
 				print >> f, int(mult*options["penalite"]),
 			elif y == 1:
-				print >> f, 1,
+				print >> f, 0,
 			else:
 				print >> f, int(mult*y),
 		print >> f

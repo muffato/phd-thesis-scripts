@@ -21,27 +21,24 @@ import utils.myMaths
 import utils.myDiags
 import utils.myCommunities
 
+comb = utils.myTools.myCombinator([])
+random.seed(sys.argv[1])
 
-# Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf" ], [], \
-	__doc__ \
-)
+ll = []
+for i in xrange(1000):
+	
+	l = [random.randint(1,10000000) for i in xrange(random.randint(2,1000))]
 
-# L'arbre phylogenetique
-phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+	ll.extend(l)
+	#comb.addLink(l)
 
-
-print phylTree.parent['Homo sapiens']
-print phylTree.parent['Human']
-print phylTree.species['Boreoeutheria']
-print phylTree.species['Glires']
-print phylTree.branchesSpecies['Vertebreta']
-
-print phylTree.fileName
+#print comb.getNbGrp()
+#print len(utils.myMaths.flatten(ll))
+#print len(ll)
+print utils.myMaths.myStats(ll)
 
 sys.exit(0)
-dic = {}
+
 
 for i in xrange(100000):
 	dic[random.random()] = random.random()
@@ -108,6 +105,29 @@ print countAltern([[5],[6],[5],[5],[5,13],[7,13],[13],[5],[1],[5],[5],[13],[13],
 
 sys.exit(0)
 
+
+
+# Arguments
+(noms_fichiers, options) = utils.myTools.checkArgs( \
+	["phylTree.conf" ], [], \
+	__doc__ \
+)
+
+# L'arbre phylogenetique
+phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+
+
+print phylTree.parent['Homo sapiens']
+print phylTree.parent['Human']
+print phylTree.species['Boreoeutheria']
+print phylTree.species['Glires']
+print phylTree.branchesSpecies['Vertebreta']
+
+print phylTree.fileName
+
+
+
+
 #############
 # FONCTIONS #
 #############
@@ -126,7 +146,7 @@ def loadDiagsFile(nom):
 		d = [int(x) for x in ct[2].split(' ')]
 		if len(d) <= 2:
 			continue
-		#esp = set([])
+		#esp = set()
 		#if len(ct[3]) > 0:
 		#	esp.update( set([tuple(x.split('/')) for x in ct[3].split('|')]) )
 		#if len(ct) == 5 and len(ct[4]) > 0:
@@ -291,7 +311,7 @@ for lst in lstLstComm:
 print >> sys.stderr, "Impression des chromosomes ancestraux ...",
 lstChr = []
 for c in clusters:
-	lst = set([])
+	lst = set()
 	for i in c:
 		lst.update(lstDiags[i][1])
 	lstChr.append(lst)

@@ -27,7 +27,7 @@ def buildOrthosTable(genome1, chr1, genome2, chr2):
 	for c1 in chr1:
 		res[c1] = {}
 		for g1 in genome1.lstGenes[c1]:
-			tmp = set([])
+			tmp = set()
 			for s in g1.names:
 				if s in genome2.dicGenes:
 					tmp.add(genome2.dicGenes[s])
@@ -88,7 +88,7 @@ dupliques = 0
 pertes = 0
 for g in genome2:
 
-	ens = set([])
+	ens = set()
 	for s in g.names:
 		if s in genome1.dicGenes:
 			ens.add(genome1.dicGenes[s])

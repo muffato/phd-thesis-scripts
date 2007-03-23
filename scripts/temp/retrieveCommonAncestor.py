@@ -104,7 +104,7 @@ for chrAnc in genomeAnc.lstChr:
 			for (_,l1,l2) in lst:
 				if x in l1:
 					break
-				r = set([])
+				r = set()
 				for y in l2:
 					r.update(xx & set(blocs2[y]))
 				if len(r) > s:
@@ -125,7 +125,7 @@ for chrAnc in genomeAnc.lstChr:
 			for (_,l1,l2) in lst:
 				if y in l2:
 					break
-				r = set([])
+				r = set()
 				for x in l1:
 					r.update(yy & set(blocs1[x]))
 				if len(r) > s:
@@ -139,10 +139,10 @@ for chrAnc in genomeAnc.lstChr:
 					print >> sys.stderr, "Rien trouve pour", y, "P", blocs2[y]
 				
 	for (c,l1,l2) in lst:
-		xH = set([])
+		xH = set()
 		for cH in l1:
 			xH.update(blocs1[cH])
-		xP = set([])
+		xP = set()
 		for cP in l2:
 			xP.update(blocs2[cP])
 

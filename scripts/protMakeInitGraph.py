@@ -12,7 +12,7 @@ import utils.myTools
 (noms_fichiers, options) = utils.myTools.checkArgs( [], [], __doc__)
 
 
-dejaLus = set([])
+dejaLus = set()
 comb = utils.myTools.myCombinator([])
 
 for l in sys.stdin:

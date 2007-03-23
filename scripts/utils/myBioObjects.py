@@ -204,6 +204,26 @@ class PhylogeneticTree:
 			
 		return anc
 
+	# Renvoie tous les noeuds de l'arbre entre les deux especes (en remontant jusqu'a leur ancetre commun)
+	def getNodesBetween(self, anc1, anc2):
+		anc = self.getFirstParent(anc1, anc2)
+		if anc == None:
+			return []
+
+		res = [anc]
+		if anc != anc1:
+			a = self.parent[anc1]
+			while a != anc:
+				res.append(a)
+				a = self.parent[a]
+		if anc != anc2:
+			a = self.parent[anc2]
+			while a != anc:
+				res.append(a)
+				a = self.parent[a]
+		
+		return res
+
 
 	# Renvoie l'arbre au format avec des parentheses
 	def convertToFlatFile(self, anc):

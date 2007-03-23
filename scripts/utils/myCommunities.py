@@ -80,7 +80,8 @@ def launchCommunitiesBuild(**args):
 		for i in xrange(len(nodes)):
 			indNodes[nodes[i]] = i
 		
-		(stdin,stdout,stderr) = os.popen3('/users/ldog/muffato/work/scripts/walktrap/walktrap -t10')
+		#(stdin,stdout,stderr) = os.popen3('/users/ldog/muffato/work/scripts/walktrap/walktrap -t10')
+		(stdin,stdout,stderr) = os.popen3('/users/ldog/muffato/work/scripts/walktrap -t10')
 		stderr.close()
 		
 		# Envoi des donnees du graphe
@@ -104,7 +105,7 @@ def launchCommunitiesBuild(**args):
 		totalRes.append(res)
 		sys.stderr.write(".")
 	
-	print >> sys.stderr, "OK"
+	print >> sys.stderr, " OK"
 	return totalRes
 
 
@@ -151,7 +152,7 @@ def loadCommunitiesFile(file):
 			relevance = float(c[1])
 
 			# On extrait les communautes correspondantes
-			alreadySeen = set([])
+			alreadySeen = set()
 			lstClusters = []
 			for (s,pere) in allMerges:
 				if (s < scale) and (pere not in alreadySeen):
