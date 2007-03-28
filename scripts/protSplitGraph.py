@@ -31,7 +31,7 @@ dic = {}
 n = 0
 for l in f:
 	t = [x for x in l.split()]
-	fout = open(noms_fichiers["dossierGraphes"] + "nodes.%d" % n, 'w')
+	fout = utils.myTools.myOpenFile(noms_fichiers["dossierGraphes"] + "nodes.%d" % n, 'w')
 	for i in xrange(len(t)):
 		dic[t[i]] = (n,i)
 		print >> fout, i, " ".join(dicNodes[t[i]])
@@ -59,7 +59,7 @@ for l in fg:
 		if len(openFiles) > 800:
 			(x,f) = openFiles.popitem()
 			f.close()
-		f = open(noms_fichiers["dossierGraphes"] + "graph.%d" % g, 'a')
+		f = utils.myTools.myOpenFile(noms_fichiers["dossierGraphes"] + "graph.%d" % g, 'a')
 		openFiles[g] = f
 	else:
 		f = openFiles[g]

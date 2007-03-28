@@ -5,6 +5,7 @@
 #
 
 import sys
+import operator
 import myMaths
 import myGenomes
 import myTools
@@ -280,16 +281,26 @@ class WeightedDiagGraph:
 	def getBestDiags(self):
 
 		# Pour les noeuds qui ont plus de deux voisins, on ne considere que les meilleurs hits
+		todo = []
 		for x in self.sommets:
 			if len(self.aretes[x]) <= 2:
 				continue
 			vois = self.aretes[x].keys()
 			vois.sort(lambda a, b: cmp(self.aretes[x][b], self.aretes[x][a]))
-			print >> sys.stderr, "Reduction", x, " ".join([str(self.aretes[x][y]) for y in vois])
-			for y in vois[2:]:
+			todo.append( (self.aretes[x][vois[2]]-self.aretes[x][vois[1]], x, vois[2:]) )
+		
+		# Comme certaines suppressions en rendent inutiles d'autres, on fait les plus sures en premier
+		todo.sort()
+		for (a,x,s) in todo:
+			# On verifie l'utilite de la coupe
+			if len(self.aretes[x]) <= 2:
+				continue
+			print >> sys.stderr, "Reduction de %s (score %d)" % (x,a)
+			for y in s:
+				if y not in self.aretes[x]:
+					continue
 				del self.aretes[x][y]
 				del self.aretes[y][x]
-			#print >> sys.stderr, "Resultat", self.aretes[x]
 		
 		# Renvoie le chemin qui part de s (en venant de pred) tant qu'il ne croise pas de carrefours
 		def followSommet(s):

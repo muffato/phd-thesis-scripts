@@ -35,21 +35,72 @@ def loadDiagsFile(nom, ancName):
 		anc = ct[0]
 		if anc != ancName:
 			continue
-		l = int(ct[1])
 		d = [int(x) for x in ct[2].split(' ')]
-		esp = set([])
+		esp = set()
 		if len(ct[3]) > 0:
 			esp.update( set([tuple(x.split('/')) for x in ct[3].split('|')]) )
 		if len(ct) == 5 and len(ct[4]) > 0:
-			#print >> sys.stderr, ct[4], ct[4].split('|')
 			esp.update( set([tuple(x.split('/')) for x in ct[4].split('|')]) )
-		#print >> sys.stderr, esp
 		esp = set([(phylTree.officialName[e],c) for (e,c) in esp if e in phylTree.officialName])
-		lst.append( (l, d, esp) )
+		lst.append( (d, esp) )
 
 	f.close()
 	print >> sys.stderr, "OK (%d diagonales)" % len(lst)
 	return lst
+
+
+#
+# Rajoute les genes non presents dans des diagonales, en les considerant comme des diagonales de 1
+#
+def checkLonelyGenes():
+
+	# Les genomes modernes
+	phylTree.loadAllSpeciesSince(None, options["genesFile"])
+	genesAnc = {}
+	for a in phylTree.items:
+		if phylTree.getFirstParent(options["ancestr"], a) == a:
+			genesAnc[a] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[a])
+	
+	# Les genes seuls vont devenir des diagonales de 1
+	genesSeuls = set(xrange(len(lstGenesAnc)))
+	for (d,_) in lstDiags:
+		genesSeuls.difference_update(d)
+	nb = 0
+	new = {}
+	for i in genesSeuls:
+		esp = [phylTree.dicGenes[s] for s in lstGenesAnc[i].names]
+		lst = [(e,c) for (e,c,_) in esp]
+		# Les outgroup
+		
+		for e in phylTree.outgroupSpecies[options["ancestr"]]:
+			# L'ancetre commun
+			a = phylTree.getFirstParent(options["ancestr"], e)
+			# On va intersecter les chromosomes des orthologues de chaque gene
+			poss = set()
+			# Le gene chez l'ancetre commun
+			g = genesAnc[a].getPosition(lstGenesAnc[i])
+			# Cas d'un gene specifique de la lignee
+			if len(g) == 0:
+				continue
+			# Le gene dans l'autre espece
+			tmp = [c for (c,_) in phylTree.dicGenomes[e].getPosition(genesAnc[a].lstGenes[utils.myGenomes.Genome.defaultChr][g[0][1]])]
+			if len(tmp) == 1:
+				lst.append( (e,tmp[0]) )
+		
+		if len(lst) >= 2:
+			lst = tuple(sorted(set(lst)))
+			new[lst] = new.get(lst,[]) + [i]
+			nb += 1
+	
+	del phylTree.dicGenomes
+
+	lst = [(d,set(e)) for (e,d) in new.iteritems()]
+	print >> sys.stderr, "Ajout des %d (%d) genes solitaires" % (nb,len(new))
+	return lst
+
+
+
+
 
 
 def calcPoidsFils(node, calc):
@@ -89,63 +140,60 @@ def calcPoids(node):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "diagsList"], \
-	[("useOutgroups",bool,True), ("ancestr",str,""), ("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
+	[("useOutgroups",bool,True), ("useLonelyGenes",bool,False), ("ancestr",str,""), ("alreadyBuildAnc",str,""), \
+	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
+	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
-# L'arbre phylogenetique
+#  Chargement et initialisation
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-
-# Les genes ancestraux
 genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[options.ancestr])
+lstDiags = loadDiagsFile(noms_fichiers["diagsList"], options["ancestr"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
-
-# On separe les especes en trois
-fils = phylTree.branchesSpecies[options["ancestr"]]
+filsAnc = phylTree.branches[options["ancestr"]]
+filsEsp = phylTree.branchesSpecies[options["ancestr"]]
 outgroup = phylTree.outgroupSpecies[options["ancestr"]]
 
-# Les genomes modernes
-#geneBank = utils.myGenomes.GeneBank(noms_fichiers["genesList.conf"], phylTree.species[options["ancestr"]])
 
-# Les diagonales
-lstDiags = loadDiagsFile(noms_fichiers["diagsList"], options["ancestr"])
+# On doit rajouter les genes non presents dans des diagonales
+if options["useLonelyGenes"]:
+	checkLonelyGenes()
 
-# Les genes seuls vont devenir des diagonales de 1
-#genesSeuls = set(xrange(len(lstGenesAnc)))
-#for (_,d,_) in lstDiags:
-#	genesSeuls.difference_update(d)
-#for i in genesSeuls:
-#	esp = [geneBank.dicGenes[s] for s in lstGenesAnc[i].names]
-#	if len(esp) >= 2:
-#		lstDiags.append( (1,[i],set([(e,c) for (e,c,_) in esp])) )
-#	#print "ajout de ", lstDiags[-1]
-#
-#print >> sys.stderr, len(lstDiags)
-#sys.exit(0)
+
+# On doit noter les chromosomes des diagonales sur ces ancetres deja construits
+if options["alreadyBuildAnc"] != "":
+	genAlready = {}
+	for f in filsAnc:
+		if f in phylTree.items:
+			genAlready[f] = utils.myGenomes.AncestralGenome(options["alreadyBuildAnc"] % phylTree.fileName[f])
+	print >> sys.stderr, "Mise a jour des chromosomes des diagonales ...",
+	for (d,e) in lstDiags:
+		g = utils.myMaths.flatten([lstGenesAnc[i].names for i in d])
+		for f in genAlready:
+			e.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
+	print >> sys.stderr, "OK"
 
 
 # Il faut calculer l'apport de chaque espece
 dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
-
 calcPoids(options["ancestr"])
 
 print >> sys.stderr, dicPoidsEspeces
 
 def calcScore(i1, i2):
 
-	global lstDiags, dicPoidsEspeces, outgroup, fils
-	
-	(_,_,e1) = lstDiags[i1]
-	(_,_,e2) = lstDiags[i2]
+	(_,e1) = lstDiags[i1]
+	(_,e2) = lstDiags[i2]
 	communEsp = set([e for (e,_) in e1.intersection(e2)])
 
-	propF = [sum([dicPoidsEspeces[e] for e in communEsp.intersection(f)]) for f in fils]
+	propF = [max(sum([dicPoidsEspeces[e] for e in communEsp.intersection(filsEsp[i])]), filsAnc[i] in communEsp) for i in xrange(len(filsEsp))]
 	propOut = sum([dicPoidsEspeces[e] for e in communEsp.intersection(outgroup)])
 	
 	s = 0
-	for i in xrange(len(fils)):
+	for i in xrange(len(filsEsp)):
 		s += propF[i] * propOut
-		for j in xrange(i+1, len(fils)):
+		for j in xrange(i+1, len(filsEsp)):
 			s += propF[i] * propF[j]
 	return s
 	
@@ -157,9 +205,12 @@ clusters = []
 for lst in lstLstComm:
 	# relevance >= 0.3 && noeudsOublies = 0
 	#interessant = [comm for comm in lst if (len(comm[3]) == 0) and (comm[1] >= 0.3)]
-	interessant = lst
+	#interessant = lst
+	#interessant = [comm for comm in lst if (len(comm[3]) == 0) and (comm[1] >= 0.2)]
+	interessant = [comm for comm in lst if (len(comm[3]) == 0)]
 	interessant.sort(key = operator.itemgetter(1), reverse = True)
 	if len(interessant) == 0:
+		print >> sys.stderr, "souci"
 		clusters.append(utils.myMaths.flatten(lst[0][2])+lst[0][-1])
 	else:
 		clusters.extend(interessant[0][2])
@@ -168,9 +219,9 @@ for lst in lstLstComm:
 print >> sys.stderr, "Impression des chromosomes ancestraux ...",
 lstChr = []
 for c in clusters:
-	lst = set([])
+	lst = set()
 	for i in c:
-		lst.update(lstDiags[i][1])
+		lst.update(lstDiags[i][0])
 	lstChr.append(lst)
 
 for (i1,i2) in utils.myTools.myMatrixIterator(len(lstChr), len(lstChr), utils.myTools.myMatrixIterator.StrictUpperMatrix):

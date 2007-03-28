@@ -150,7 +150,7 @@ def buildAncFile(anc, lastComb):
 				print >> sys.stderr, "Test de [alpha=%f relevance=%f parts=%d N/A=%d/%d] :" % (comm[0],comm[1],len(comm[2]),len(comm[3]),len(x)),
 				(alpha,relevance,clusters,lonely) = comm
 				if options["graphDirectory"] != "" and len(lonely) == 0:
-					fa = open(options["graphDirectory"] + '/graph-%f-%f-%d-%d' % (relevance,alpha,len(clusters),len(lonely)), 'w')
+					fa = utils.myTools.myOpenFile(options["graphDirectory"] + '/graph-%f-%f-%d-%d' % (relevance,alpha,len(clusters),len(lonely)), 'w')
 					print >> fa, "graph {"
 					for ci in xrange(len(clusters)):
 						c = clusters[ci]
