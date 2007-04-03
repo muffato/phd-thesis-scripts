@@ -20,6 +20,51 @@ import utils.myTools
 import utils.myMaths
 import utils.myDiags
 import utils.myCommunities
+#import utils.myCommunities2
+
+
+genesAnc = utils.myGenomes.AncestralGenome(sys.argv[1])
+lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
+
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+random.shuffle(lstGenesAnc)
+
+for i in xrange(1000):
+	print "A", " ".join(lstGenesAnc[i].names)
+sys.exit(0)
+
+w = utils.myCommunities2.WalktrapWrapper()
+
+#f = open('/workspace/muffato/proteines/reducedGraphs/graph.0', 'r')
+f = open('/users/ldog/muffato/work/graph.3109', 'r')
+
+w.updateFromFile(f)
+w.doWalktrap()
+
+#print w.res
+#sys.exit(0)
+
+for (comp,best,d) in w.res:
+
+	print >> sys.stderr, "comp connexe"
+	for (scale,rel) in best:
+		print >> sys.stderr, "scale", scale
+		print >> sys.stderr, "relevance", rel
+		print >> sys.stderr, d.cut(scale)
+
+sys.exit(0)
 
 comb = utils.myTools.myCombinator([])
 random.seed(sys.argv[1])

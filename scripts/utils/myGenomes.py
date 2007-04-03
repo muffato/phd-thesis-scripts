@@ -25,8 +25,12 @@ def loadGenome(nom):
 		pass
 	
 	# 1. Noms de chromosomes ?
-	withChr = (len(c[0]) < 4)    # Les noms de genes font au minimum 4 caracteres
-	withChr |= c[0] in ["ALPHA", "BETA", "DELTA", "EPSILON", "GAMMA", "PHI"]
+	try:
+		int(c[0])
+		withChr = True
+	except ValueError:
+		withChr = (len(c[0]) < 4)    # Les noms de genes font au minimum 4 caracteres
+		withChr |= c[0] in ["ALPHA", "BETA", "DELTA", "EPSILON", "GAMMA", "PHI"]
 
 	# 2. Facteur de qualite de concorde
 	try:
@@ -255,9 +259,9 @@ class AncestralGenome(Genome):
 		Genome.__init__(self, nom)
 		
 		if chromPresents:
-			print >> sys.stderr, "Chargement du genome ancestral de", nom, "... ",
+			print >> sys.stderr, "Chargement du genome ancestral de", nom, "...",
 		else:
-			print >> sys.stderr, "Chargement des genes ancestraux de", nom, "... ",
+			print >> sys.stderr, "Chargement des genes ancestraux de", nom, "...",
 		
 		# On initialise tout
 		f = myTools.myOpenFile(nom, 'r')

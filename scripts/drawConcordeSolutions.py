@@ -32,6 +32,7 @@ for ligne in f:
 
 nb = len(gen)
 espacementX = 19. / (len(lstGenomes))
+#espacementX = 1.
 espacementY = 28. / nb
 
 # On ecrit le PostScipt
@@ -59,8 +60,8 @@ for i in xrange(nb):
 		if i1 != i2:
 			utils.myPsOutput.drawLine(1.+espacementX*j, 1.+espacementY*i1, espacementX, espacementY*(i2-i1), None)
 		i1 = i2
-	utils.myPsOutput.drawLine(1.+0.5*espacementX*(1.+float(lastNbVois)/len(lstGenomes)), 1.+espacementY*i, 0.5*espacementX*float(len(vois)-lastNbVois)/len(lstGenomes), espacementY, None)
-	utils.myPsOutput.drawLine(1.+0.5*espacementX*(1.-float(lastNbPos)/len(lstGenomes)), 1.+espacementY*i, 0.5*espacementX*float(lastNbPos-len(pos))/len(lstGenomes), espacementY, None)
+	#utils.myPsOutput.drawLine(1.+0.5*espacementX*(1.+float(lastNbVois)/len(lstGenomes)), 1.+espacementY*i, 0.5*espacementX*float(len(vois)-lastNbVois)/len(lstGenomes), espacementY, None)
+	#utils.myPsOutput.drawLine(1.+0.5*espacementX*(1.-float(lastNbPos)/len(lstGenomes)), 1.+espacementY*i, 0.5*espacementX*float(lastNbPos-len(pos))/len(lstGenomes), espacementY, None)
 	lastNbVois = len(vois)
 	lastNbPos = len(pos)
 

@@ -47,7 +47,7 @@ def makeConnectedComponents(file = None, items = None, scoreFunc = None, edgesDi
 			x2 = items[i2]
 			score = scoreFunc(x1, x2)
 			if score > 0:
-				if i1 not in edgesDict:
+				if x1 not in edgesDict:
 					edgesDict[x1] = {}
 				edgesDict[x1][x2] = score
 
