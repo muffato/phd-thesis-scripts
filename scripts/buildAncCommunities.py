@@ -55,7 +55,7 @@ def loadDiagsFile(nom, ancName):
 def checkLonelyGenes():
 
 	# Les genomes modernes
-	phylTree.loadAllSpeciesSince(None, options["genesFile"])
+	#phylTree.loadAllSpeciesSince(None, options["genesFile"])
 	genesAnc = {}
 	for a in phylTree.items:
 		if phylTree.getFirstParent(options["ancestr"], a) == a:
@@ -95,12 +95,9 @@ def checkLonelyGenes():
 			new[lst] = new.get(lst,[]) + [i]
 			nb += 1
 	
-	del phylTree.dicGenomes
 
-	lst = [(d,set(e)) for (e,d) in new.iteritems()]
+	lstDiags.extend([(d,set(e)) for (e,d) in new.iteritems()])
 	print >> sys.stderr, "%d (%d) OK" % (nb,len(new))
-	return lst
-
 
 
 
@@ -127,9 +124,9 @@ def calcPoids(node):
 		outgroup.extend([(e,2*phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
 		anc = par
 	s = sum([1./float(a) for (_,a) in outgroup])
-	k = float(phylTree.ages[node]) / float(phylTree.ages[phylTree.parent[node]])
+	#k = float(phylTree.ages[node]) / float(phylTree.ages[phylTree.parent[node]])
 	for (e,a) in outgroup:
-		calcPoidsFils(e, k / (float(a)*s))
+		calcPoidsFils(e, 1. / (float(a)*s))
 
 ########
 # MAIN #
@@ -150,19 +147,29 @@ genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fi
 lstDiags = loadDiagsFile(noms_fichiers["diagsList"], options["ancestr"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
 filsAnc = phylTree.branches[options["ancestr"]]
-filsEsp = phylTree.branchesSpecies[options["ancestr"]]
-outgroup = phylTree.outgroupSpecies[options["ancestr"]]
-
-
-# On doit rajouter les genes non presents dans des diagonales
-if options["useLonelyGenes"]:
-	checkLonelyGenes()
+filsEsp = [set(s) for s in phylTree.branchesSpecies[options["ancestr"]]]
+outgroup = set(phylTree.outgroupSpecies[options["ancestr"]])
 
 
 # Il faut calculer l'apport de chaque espece
 dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
 calcPoids(options["ancestr"])
 
+phylTree.loadAllSpeciesSince(None, options["genesFile"])
+dicNbChr = {}
+for e in phylTree.listSpecies:
+	s = len(phylTree.dicGenomes[e].lstChr)
+	if s == 0:
+		dicNbChr[e] = 0.
+	else:
+		dicNbChr[e] = 1. / float(s)
+	dicNbChr[e] = 0.
+
+# On doit rajouter les genes non presents dans des diagonales
+if options["useLonelyGenes"]:
+	checkLonelyGenes()
+
+del phylTree.dicGenomes
 
 # On doit noter les chromosomes des diagonales sur ces ancetres deja construits
 if options["alreadyBuiltAnc"] != "":
@@ -180,10 +187,12 @@ if options["alreadyBuiltAnc"] != "":
 		g = utils.myMaths.flatten([lstGenesAnc[i].names for i in d])
 		for f in genAlready:
 			e.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
+	genAlready = {}
 	print >> sys.stderr, "OK"
 
 
 print >> sys.stderr, dicPoidsEspeces
+print >> sys.stderr, dicNbChr
 
 
 def calcScore(i1, i2):
@@ -204,17 +213,22 @@ def calcScore(i1, i2):
 			propF.append(0.)
 		# Sinon, on revient aux genomes modernes
 		else:
-			propF.append( sum([dicPoidsEspeces[e] for e in communEsp.intersection(filsEsp[i])]) )
+			s = sum([dicPoidsEspeces[e]*(1.-dicNbChr[e]) for e in filsEsp[i].intersection(communEsp)])
+			if s > 0:
+				s += sum([dicPoidsEspeces[e]*dicNbChr[e] for e in filsEsp[i].difference(communEsp)])
+			propF.append(s)
 
 		
-	propOut = sum([dicPoidsEspeces[e] for e in communEsp.intersection(outgroup)])
+	#propOut = sum([dicPoidsEspeces[e] for e in communEsp.intersection(outgroup)])
+	propOut = sum([dicPoidsEspeces[e]*(1.-dicNbChr[e]) for e in communEsp.intersection(outgroup)])
+	if propOut > 0:
+		propOut += sum([dicPoidsEspeces[e]*dicNbChr[e] for e in communEsp.difference(outgroup)])
 	
 	s = 0.
 	for i in xrange(len(filsEsp)):
 		s += propF[i] * propOut
 		for j in xrange(i+1, len(filsEsp)):
 			s += propF[i] * propF[j]
-
 	return s
 	
 

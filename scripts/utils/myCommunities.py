@@ -80,8 +80,7 @@ def launchCommunitiesBuild(**args):
 		for i in xrange(len(nodes)):
 			indNodes[nodes[i]] = i
 		
-		#(stdin,stdout,stderr) = os.popen3('/users/ldog/muffato/work/scripts/walktrap/walktrap -t10')
-		(stdin,stdout,stderr) = os.popen3('/users/ldog/muffato/work/scripts/walktrap -t10')
+		(stdin,stdout,stderr) = os.popen3('/users/ldog/muffato/work/scripts/walktrap/walktrap -t10')
 		stderr.close()
 		
 		# Envoi des donnees du graphe

@@ -26,7 +26,7 @@ def loadGenome(nom):
 	
 	# 1. Noms de chromosomes ?
 	try:
-		int(c[0])
+		int(c[0][0])
 		withChr = True
 	except ValueError:
 		withChr = (len(c[0]) < 4)    # Les noms de genes font au minimum 4 caracteres
@@ -194,7 +194,7 @@ class EnsemblGenome(Genome):
 					self.lstChr.append(c)
 				else:
 					self.lstScaff.append(c)
-			elif ((c[-1] in "pqLRab") and (c != "c6_QBL")) or (c in "WXYZ"):
+			elif ((c[-1] in "pqLRab") and (c != "c6_QBL")) or (c in "WXYZ") or (c[:5] == "group"):
 				self.lstChr.append(c)
 			elif ("ando" in c) or (c == "UNKN"):
 				self.lstRand.append(c)
