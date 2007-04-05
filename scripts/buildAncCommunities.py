@@ -30,11 +30,10 @@ def loadDiagsFile(nom, ancName):
 	f = utils.myTools.myOpenFile(nom, 'r')
 	lst = []
 	for l in f:
-
-		ct = l[:-1].replace("_random", "").split('\t')
-		anc = ct[0]
-		if anc != ancName:
+		
+		if not l.startswith(ancName):
 			continue
+		ct = l[:-1].replace("_random", "").split('\t')
 		d = [int(x) for x in ct[2].split(' ')]
 		esp = set()
 		if len(ct[3]) > 0:
@@ -54,8 +53,8 @@ def loadDiagsFile(nom, ancName):
 #
 def checkLonelyGenes():
 
-	# Les genomes modernes
-	#phylTree.loadAllSpeciesSince(None, options["genesFile"])
+	if len(phylTree.dicGenomes) == 0:
+		phylTree.loadAllSpeciesSince(None, options["genesFile"])
 	genesAnc = {}
 	for a in phylTree.items:
 		if phylTree.getFirstParent(options["ancestr"], a) == a:
@@ -121,12 +120,11 @@ def calcPoids(node):
 	anc = node
 	while anc in phylTree.parent:
 		par = phylTree.parent[anc]
-		outgroup.extend([(e,2*phylTree.ages[par]-phylTree.ages[node]) for (e,_) in phylTree.items[par] if e != anc])
+		outgroup.extend([(e,1./float(2*phylTree.ages[par]-phylTree.ages[node])) for (e,_) in phylTree.items[par] if e != anc])
 		anc = par
-	s = sum([1./float(a) for (_,a) in outgroup])
-	#k = float(phylTree.ages[node]) / float(phylTree.ages[phylTree.parent[node]])
+	s = sum([a for (_,a) in outgroup])
 	for (e,a) in outgroup:
-		calcPoidsFils(e, 1. / (float(a)*s))
+		calcPoidsFils(e, a/s))
 
 ########
 # MAIN #
@@ -135,7 +133,8 @@ def calcPoids(node):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "diagsList"], \
-	[("useOutgroups",bool,True), ("useLonelyGenes",bool,False), ("ancestr",str,""), ("alreadyBuiltAnc",str,""), \
+	[("ancestr",str,""), ("alreadyBuiltAnc",str,""), \
+	("useOutgroups",bool,True), ("useLonelyGenes",bool,False), ("weightNbChromosomes",bool,True), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -151,25 +150,27 @@ filsEsp = [set(s) for s in phylTree.branchesSpecies[options["ancestr"]]]
 outgroup = set(phylTree.outgroupSpecies[options["ancestr"]])
 
 
-# Il faut calculer l'apport de chaque espece
+# L'apport en terme de couverture de l'arbre phylogenetique
 dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
 calcPoids(options["ancestr"])
 
-phylTree.loadAllSpeciesSince(None, options["genesFile"])
-dicNbChr = {}
-for e in phylTree.listSpecies:
-	s = len(phylTree.dicGenomes[e].lstChr)
-	if s == 0:
-		dicNbChr[e] = 0.
-	else:
-		dicNbChr[e] = 1. / float(s)
-	dicNbChr[e] = 0.
+# Le taux de précision de chaque espece
+
+dicNbChr = dict.fromkeys(phylTree.listSpecies, 0.)
+if options["weightNbChromosomes"]:
+	phylTree.loadAllSpeciesSince(None, options["genesFile"])
+	for e in phylTree.listSpecies:
+		s = len(phylTree.dicGenomes[e].lstChr)
+		if s == 0:
+			dicNbChr[e] = 0.
+		else:
+			dicNbChr[e] = 1. / float(s)
 
 # On doit rajouter les genes non presents dans des diagonales
 if options["useLonelyGenes"]:
 	checkLonelyGenes()
 
-del phylTree.dicGenomes
+phylTree.dicGenomes.clear()
 
 # On doit noter les chromosomes des diagonales sur ces ancetres deja construits
 if options["alreadyBuiltAnc"] != "":

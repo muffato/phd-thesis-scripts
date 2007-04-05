@@ -150,7 +150,7 @@ class PhylogeneticTree:
 			else:
 				self.fileName[n] = n.replace(' ', '.')
 			# Ancienne version
-			#self.fileName[n] = (self.commonNames[n]+[n])[0].replace(' ', '_').replace('/', '_')
+			self.fileName[n] = (self.commonNames[n]+[n])[0].replace(' ', '_').replace('/', '_')
 
 		print >> sys.stderr, "OK"
 		
