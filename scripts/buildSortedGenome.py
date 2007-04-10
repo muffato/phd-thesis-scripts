@@ -148,7 +148,7 @@ for c in genesAnc.lstChr:
 del phylTree.dicGenes
 del dicOutgroupGenes
 
-nom = "mat%d-%d-%d" % (os.getpid(), os.getppid(), random.randint(1,100000000))
+nom = "mat%d-%d-%d-concorde" % (os.getpid(), os.getppid(), random.randint(1,100000000))
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 
@@ -195,7 +195,7 @@ for c in genesAnc.lstChr:
 		else:
 			os.system(comm + ' > /dev/null')
 		lstTot.append(utils.myBioObjects.ConcordeFile(nom + ".sol"))
-		os.system('rm -f 0%s* %s.*' % (nom,nom) )
+		os.system('rm -f 0%s* %s*' % (nom,nom) )
 		sys.stderr.write(".")
 
 	# On remet chaque liste dans le meme sens que la premiere

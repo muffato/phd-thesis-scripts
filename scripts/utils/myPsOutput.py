@@ -2,8 +2,6 @@
 
 # Module d'ecriture dans un fichier PostScript
 
-import myTools
-
 # Les definitions des couleurs
 color = {}
 colorTable = {}
@@ -23,7 +21,6 @@ def printPsHeader(linewidth = 0.01):
 	
 	print "%%Page: 1 1"
 	print "/cm {28.3464567 mul} def"
-	#print "%%Bounding-Box: 0 cm 0 cm 21 cm 29.7 cm";
 
 	print
 	print "/Arial findfont"
@@ -65,7 +62,7 @@ def printColorDefinitionLine(C):
 #
 def initColor():
 
-	f = myTools.myOpenFile("~/work/scripts/utils/rgb.txt", 'r')
+	f = open("/users/ldog/muffato/work/scripts/utils/rgb.txt", 'r')
 	for l in f:
 		c = l.split()
 		colorTable["".join(c[6:])] = tuple([float(x) for x in c[:3]])
@@ -103,6 +100,7 @@ def getColor(s, d):
 		return color[s]
 
 	elif s[0] == '#':
+		#(r,g,b) = s[1:].split(':')
 		r = float(s[1:4])
 		g = float(s[5:8])
 		b = float(s[9:12])

@@ -150,7 +150,7 @@ class PhylogeneticTree:
 			else:
 				self.fileName[n] = n.replace(' ', '.')
 			# Ancienne version
-			self.fileName[n] = (self.commonNames[n]+[n])[0].replace(' ', '_').replace('/', '_')
+			#self.fileName[n] = (self.commonNames[n]+[n])[0].replace(' ', '_').replace('/', '_')
 
 		print >> sys.stderr, "OK"
 		
@@ -266,6 +266,24 @@ class PhylogeneticTree:
 		
 		return score
 
+	# A partir d'un noeud racine, liste les sous-arbres qui en partent dans toutes les directions
+	# Appelle la fonction func sur chacun de ces sous-arbres avec le poids dependant de la position et de l'eloignement
+	def travelFunc(self, node, func, useOutgroups):
+
+		# Les fils a egalite avec un poids de 1
+		for f in self.branches[node]:
+			func(f, 1.)
+		if not useOutgroups:
+			return
+		outgroup = []
+		anc = node
+		while anc in self.parent:
+			par = self.parent[anc]
+			outgroup.extend([(e,1./float(2*self.ages[par]-self.ages[node])) for (e,_) in self.items[par] if e != anc])
+			anc = par
+		s = sum([a for (_,a) in outgroup])
+		for (e,a) in outgroup:
+			func(e, a/s)
 
 
 

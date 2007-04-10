@@ -53,6 +53,7 @@ def loadDiagsFile(nom, ancName):
 #
 def checkLonelyGenes():
 
+
 	if len(phylTree.dicGenomes) == 0:
 		phylTree.loadAllSpeciesSince(None, options["genesFile"])
 	genesAnc = {}
@@ -68,22 +69,26 @@ def checkLonelyGenes():
 	nb = 0
 	new = {}
 	for i in genesSeuls:
+
+		lst = []
+		# Les especes filles
 		esp = [phylTree.dicGenes[s] for s in lstGenesAnc[i].names if s in phylTree.dicGenes]
-		lst = [(e,c) for (e,c,_) in esp]
-		# Les outgroup
-		
-		for e in phylTree.outgroupSpecies[options["ancestr"]]:
-			# L'ancetre commun
-			a = phylTree.getFirstParent(options["ancestr"], e)
-			# On va intersecter les chromosomes des orthologues de chaque gene
-			poss = set()
-			# Le gene chez l'ancetre commun
-			g = genesAnc[a].getPosition(lstGenesAnc[i])
-			# Cas d'un gene specifique de la lignee
-			if len(g) == 0:
-				continue
-			# Le gene dans l'autre espece
-			tmp = [c for (c,_) in phylTree.dicGenomes[e].getPosition(genesAnc[a].lstGenes[utils.myGenomes.Genome.defaultChr][g[0][1]])]
+
+		for e in phylTree.listSpecies:
+			if e in outgroup:
+				# Le gene chez l'ancetre commun
+				a = phylTree.getFirstParent(options["ancestr"], e)
+				g = genesAnc[a].getPosition(lstGenesAnc[i])
+				# Cas d'un gene specifique de la lignee
+				if len(g) == 0:
+					continue
+				# Le gene dans l'autre espece
+				tmp = [c for (c,_) in phylTree.dicGenomes[e].getPosition(genesAnc[a].lstGenes[utils.myGenomes.Genome.defaultChr][g[0][1]])]
+			else:
+				# Le gene dans l'autre espece
+				tmp = [c for (x,c,_) in esp if x == e]
+			
+			# Au final
 			if len(tmp) == 1:
 				c = str(tmp[0]).replace("_random","")
 				if 'Un' not in c:
@@ -94,7 +99,6 @@ def checkLonelyGenes():
 			new[lst] = new.get(lst,[]) + [i]
 			nb += 1
 	
-
 	lstDiags.extend([(d,set(e)) for (e,d) in new.iteritems()])
 	print >> sys.stderr, "%d (%d) OK" % (nb,len(new))
 
@@ -102,14 +106,6 @@ def checkLonelyGenes():
 
 
 def calcPoids(node):
-
-	def calcPoidsFils(node, calc):
-		if node in phylTree.listSpecies:
-			dicPoidsEspeces[node] = calc
-		else:
-			poids = calc / float(len(phylTree.items[node]))
-			for f in phylTree.branches[node]:
-				calcPoidsFils(f, poids)
 
 	# Les fils a egalite avec un poids de 1
 	for f in phylTree.branches[node]:
@@ -124,7 +120,8 @@ def calcPoids(node):
 		anc = par
 	s = sum([a for (_,a) in outgroup])
 	for (e,a) in outgroup:
-		calcPoidsFils(e, a/s))
+		calcPoidsFils(e, a/s)
+
 
 ########
 # MAIN #
@@ -145,6 +142,13 @@ phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[options.ancestr])
 lstDiags = loadDiagsFile(noms_fichiers["diagsList"], options["ancestr"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
+
+lstToutesEspeces = set(phylTree.listSpecies)
+lstEspOutgroup = set(phylTree.outgroupSpecies[options["ancestr"]])
+lstEspFilles = set(phylTree.species[options["ancestr"]])
+lstNoeudsFils = phylTree.branches[options["ancestr"]]
+lstEspParNoeudsFils = [set(s) for s in phylTree.branchesSpecies[options["ancestr"]]]
+
 filsAnc = phylTree.branches[options["ancestr"]]
 filsEsp = [set(s) for s in phylTree.branchesSpecies[options["ancestr"]]]
 outgroup = set(phylTree.outgroupSpecies[options["ancestr"]])
@@ -152,19 +156,28 @@ outgroup = set(phylTree.outgroupSpecies[options["ancestr"]])
 
 # L'apport en terme de couverture de l'arbre phylogenetique
 dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
-calcPoids(options["ancestr"])
+def calcPoidsFils(node, calc):
+	if node in phylTree.listSpecies:
+		dicPoidsEspeces[node] = calc
+	else:
+		poids = calc / float(len(phylTree.items[node]))
+		for f in phylTree.branches[node]:
+			calcPoidsFils(f, poids)
+phylTree.travelFunc(options["ancestr"], calcPoidsFils, options["useOutgroups"])
 
-# Le taux de précision de chaque espece
+
+# Le taux de precision de chaque espece
 
 dicNbChr = dict.fromkeys(phylTree.listSpecies, 0.)
 if options["weightNbChromosomes"]:
 	phylTree.loadAllSpeciesSince(None, options["genesFile"])
 	for e in phylTree.listSpecies:
 		s = len(phylTree.dicGenomes[e].lstChr)
-		if s == 0:
-			dicNbChr[e] = 0.
+		if s > 0:
+			#dicNbChr[e] = 1. / float(s)
+			dicNbChr[e] = s
 		else:
-			dicNbChr[e] = 1. / float(s)
+			dicNbChr[e] = 50
 
 # On doit rajouter les genes non presents dans des diagonales
 if options["useLonelyGenes"]:
@@ -200,8 +213,7 @@ def calcScore(i1, i2):
 
 	(_,e1) = lstDiags[i1]
 	(_,e2) = lstDiags[i2]
-	ee1 = set([e for (e,_) in e1])
-	ee2 = set([e for (e,_) in e2])
+	comparedEsp = set([e for (e,_) in e1]).intersection([e for (e,_) in e2])
 	communEsp = set([e for (e,_) in e1.intersection(e2)])
 
 	propF = []
@@ -210,47 +222,113 @@ def calcScore(i1, i2):
 		if filsAnc[i] in communEsp:
 			propF.append( dicPoidsEspeces[filsAnc[i]] )
 		# Chez l'ancetre du dessous - diff chr
-		elif (filsAnc[i] in ee1) and (filsAnc[i] in ee2):
+		elif filsAnc[i] in comparedEsp:
 			propF.append(0.)
 		# Sinon, on revient aux genomes modernes
 		else:
-			s = sum([dicPoidsEspeces[e]*(1.-dicNbChr[e]) for e in filsEsp[i].intersection(communEsp)])
+			#s = sum([dicPoidsEspeces[e]*(1.-dicNbChr[e]) for e in filsEsp[i].intersection(communEsp)])
+			s = sum([dicPoidsEspeces[e]*dicNbChr[e] for e in filsEsp[i].intersection(communEsp)])
 			if s > 0:
-				s += sum([dicPoidsEspeces[e]*dicNbChr[e] for e in filsEsp[i].difference(communEsp)])
+			#	s += sum([dicPoidsEspeces[e]*dicNbChr[e] for e in filsEsp[i].difference(communEsp)])
+				s += sum([dicPoidsEspeces[e]/dicNbChr[e] for e in filsEsp[i].difference(communEsp)])
 			propF.append(s)
 
 		
-	#propOut = sum([dicPoidsEspeces[e] for e in communEsp.intersection(outgroup)])
-	propOut = sum([dicPoidsEspeces[e]*(1.-dicNbChr[e]) for e in communEsp.intersection(outgroup)])
+	#propOut = sum([dicPoidsEspeces[e]*(1.-dicNbChr[e]) for e in communEsp.intersection(outgroup)])
+	propOut = sum([dicPoidsEspeces[e]*dicNbChr[e] for e in communEsp.intersection(outgroup)])
 	if propOut > 0:
-		propOut += sum([dicPoidsEspeces[e]*dicNbChr[e] for e in communEsp.difference(outgroup)])
+	#	propOut += sum([dicPoidsEspeces[e]*dicNbChr[e] for e in communEsp.difference(outgroup)])
+		propOut += sum([dicPoidsEspeces[e]/dicNbChr[e] for e in communEsp.difference(outgroup)])
 	
-	s = 0.
-	for i in xrange(len(filsEsp)):
-		s += propF[i] * propOut
-		for j in xrange(i+1, len(filsEsp)):
-			s += propF[i] * propF[j]
+	s = sum(propF) * propOut
+	for (i1,i2) in utils.myTools.myMatrixIterator(len(filsEsp), len(filsEsp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		s += propF[i1] * propF[i2]
+	
 	return s
 	
+
+def calcScore2(i1, i2):
+
+	(_,e1) = lstDiags[i1]
+	(_,e2) = lstDiags[i2]
+	comparedEsp = set([e for (e,_) in e1]).intersection([e for (e,_) in e2])
+	espOK = set([e for (e,_) in e1.intersection(e2)])
+	espNO = comparedEsp.difference(espOK)
+	espNA = lstToutesEspeces.difference(comparedEsp)
+
+
+	def calcDist(anc, poids):
+
+		res = []
+		# Moyenne sur tous les fils du noeud
+		poids2 = poids/len(phylTree.items[anc])
+		for (e,p) in phylTree.items[anc]:
+			if e in phylTree.items:
+				(val,x) = calcDist(e, poids2)
+				res.append((val,p+x))
+			elif e in espOK:
+				res.append((poids2,p))
+			elif e in espNO:
+				res.append((-poids2,p))
+			else:
+				res.append((0,p))
+			
+		if len(set([e for (e,_) in res])) == 1:
+			return (res[0][0]*len(phylTree.items[anc]),0)
+
+		s = 0.
+		p = 0.
+		for i in xrange(len(phylTree.items[anc])):
+
+			(val,x) = res[i]
+			(e,_) = phylTree.items[anc][i]
+			p += 1./x
+
+			#if val == None
+		
+			
+			# Si on a une vraie valeur de distance, on continue la moyenne
+			if val != 0:
+				poids = 1./float(p)
+				d += val*poids
+				s += poids
+				nb += 1
+
+		# Test final
+		if nb != 0:
+			d /= s
+			if (options["seuilMaxDistInterGenes"] == 0) or (d <= options["seuilMaxDistInterGenes"]):
+				if nb == 1:
+					return (d,1./s)
+				else:
+					return (d,0)
+		return (0,0)
+
+	res = phylTree.travelFunc(options["ancestr"], calcWeight, options["useOutgroups"])
+	
+	propF = res[:len(filsEsp)]
+	propOut = sum(res[len(filsEsp):])
+	s = sum(propF) * propOut
+	for (i1,i2) in utils.myTools.myMatrixIterator(len(filsEsp), len(filsEsp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		s += propF[i1] * propF[i2]
 
 lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore)
 clusters = []
 
 # Chaque composante connexe
 for lst in lstLstComm:
-	# relevance >= 0.3 && noeudsOublies = 0
-	interessant = [comm for comm in lst if (len(comm[3]) == 0) and (comm[1] >= 0.3)]
-	#interessant = lst
-	#interessant = [comm for comm in lst if (len(comm[3]) == 0) or (comm[1] >= 0.3)]
+	#interessant = [comm for comm in lst if (len(comm[3]) == 0) and (comm[1] >= 0.3)]
+	interessant = lst
 	#interessant = [comm for comm in lst if (len(comm[3]) == 0)]
 	interessant.sort(key = operator.itemgetter(1), reverse = True)
 	#interessant = []
 	if len(interessant) == 0:
-		print >> sys.stderr, "souci"
+		sys.stderr.write('-')
 		clusters.append(utils.myMaths.flatten(lst[0][2])+lst[0][-1])
 	else:
+		sys.stderr.write('+')
 		clusters.extend(interessant[0][2])
-
+print >> sys.stderr
 
 print >> sys.stderr, "Impression des chromosomes ancestraux ...",
 lstChr = []
@@ -259,21 +337,19 @@ for c in clusters:
 	ind += 1
 	lst = set()
 	for i in c:
-		#print ind, [(e,c) for (e,c) in lstDiags[i][1] if e in boudiou]
 		lst.update(lstDiags[i][0])
 	lstChr.append(lst)
-#sys.exit(0)
 
+inter = set()
 for (i1,i2) in utils.myTools.myMatrixIterator(len(lstChr), len(lstChr), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-	inter = lstChr[i1].intersection(lstChr[i2])
-	lstChr[i1].difference_update(inter)
-	lstChr[i2].difference_update(inter)
+	inter.update(lstChr[i1].intersection(lstChr[i2]))
 
 chrIndex = 0
 for c in lstChr:
 	chrIndex += 1
 	for i in c:
-		print chrIndex, " ".join(lstGenesAnc[i].names)
+		if i not in inter:
+			print chrIndex, " ".join(lstGenesAnc[i].names)
 
 
 print >> sys.stderr, "OK"
