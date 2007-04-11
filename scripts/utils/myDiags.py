@@ -33,11 +33,10 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 	for c1 in genome1:
 		
 		diag = []
-		lastI2 = []
-		lastC2 = []
-		lastS2 = []
 		listI1 = []
 		listI2 = []
+		lastPos2 = []
+		lastS1 = 0
 		
 		# Parcours du genome 1
 		for i1 in xrange(len(genome1[c1])):
@@ -46,43 +45,49 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 				presI2 = []
 			else:
 				presI2 = dic2[j1]
-
+			
 			# On regarde chaque orthologue du gene
-			for (c2,i2,s2) in presI2:
-				# Est-ce qu'on est dans le prolongement d'une diagonale
-				if c2 in lastC2 and (((i2+1) in lastI2) or ((i2-1) in lastI2)):
-					# Cas special: la diagonale commence avec un g1 qui a plusieurs orthologues
-					# Il faut corriger listI2 et lastI2 avec les bons orthologues
-					if len(listI1) == 1 and len(lastI2) > 1:
-						i = lastC2.index(c2)
-						newCS = currentStrand * lastS2[i]
-						if sameStrand and (s1*s2 != newCS):
-							continue
-						listI2 = [lastI2[i]]
-						currentStrand = newCS
-					listI2.append(i2)
-					lastI2 = [i2]
-					lastC2 = [c2]
-					break
+			for (x1,x2) in myTools.myMatrixIterator(len(presI2), len(lastPos2), myTools.myMatrixIterator.WholeMatrix):
+				(c2,i2,s2) = presI2[x1]
+				(lastC2,lastI2,lastS2) = lastPos2[x2]
+				# Chromosomes differents -> indiscutable
+				if c2 != lastC2:
+					continue
+				# Meme brin
+				if sameStrand:
+					# Les brins initiaux imposent le sens de parcours (+1 ou -1)
+					if i2 != lastI2 + lastS1*lastS2:
+						continue
+					# Le nouveau brin doit etre coherent
+					if lastS1*s1 != lastS2*s2:
+						continue
+				else:
+					if abs(i2-lastI2) != 1:
+						continue
+				
+				# On a passe les test, c'est OK
+				# On ecrit l'orthologue que l'on a choisi pour le coup d'avant (aucun effet si one2one)
+				listI2[-1] = lastI2
+				listI2.append(i2)
+				lastPos2 = [(c2,i2,s2)]
+				break
+
 			else:
 				# On n'a pas trouve de i2 satisfaisant, c'est la fin de la diagonale
 				if len(listI1) > 0 and len(listI2) > 0:
-					diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),getMinMaxDiag(listI2)) )
+					diag.append( (listI1,listI2,lastC2,(deb1,fin1),getMinMaxDiag(listI2)) )
 				deb1 = i1
+				lastPos2 = presI2
 				listI1 = []
-				lastC2 = [c for (c,_,_) in presI2]
-				lastI2 = [i for (_,i,_) in presI2]
-				lastS2 = [s for (_,_,s) in presI2]
-				listI2 = [i for (_,i,_) in presI2[:1]] # Pour que les diagonales de longueur 1 soient correctes
-				currentStrand = s1
-				if len(presI2) == 1:
-					currentStrand *= presI2[0][2]
-				
+				# Pour que les diagonales de longueur 1 soient correctes
+				listI2 = [i2 for (lastC2,i2,_) in presI2[:1]]
+			
 			listI1.append(i1)
+			lastS1 = s1
 			fin1 = i1
 		
 		if len(listI1) > 0 and len(listI2) > 0:
-			diag.append( (listI1,listI2,lastC2[0],(deb1,fin1),getMinMaxDiag(listI2)) )
+			diag.append( (listI1,listI2,lastC2,(deb1,fin1),getMinMaxDiag(listI2)) )
 
 		# On rassemble des diagonales separees par une espace pas trop large
 		while len(diag) > 0:

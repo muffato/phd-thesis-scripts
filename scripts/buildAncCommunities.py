@@ -165,19 +165,18 @@ def calcPoidsFils(node, calc):
 			calcPoidsFils(f, poids)
 phylTree.travelFunc(options["ancestr"], calcPoidsFils, options["useOutgroups"])
 
-
 # Le taux de precision de chaque espece
-
 dicNbChr = dict.fromkeys(phylTree.listSpecies, 0.)
+dicNbChr2 = dict.fromkeys(phylTree.listSpecies, 0.)
 if options["weightNbChromosomes"]:
 	phylTree.loadAllSpeciesSince(None, options["genesFile"])
 	for e in phylTree.listSpecies:
 		s = len(phylTree.dicGenomes[e].lstChr)
 		if s > 0:
-			#dicNbChr[e] = 1. / float(s)
-			dicNbChr[e] = s
-		else:
-			dicNbChr[e] = 50
+			dicNbChr[e] = 1. / float(s)
+	alpha = min(dicNbChr.values()) * max(dicNbChr.values())
+	for e in phylTree.listSpecies:
+		dicNbChr2[e] = len(phylTree.dicGenomes[e].lstChr) * alpha
 
 # On doit rajouter les genes non presents dans des diagonales
 if options["useLonelyGenes"]:
@@ -226,19 +225,15 @@ def calcScore(i1, i2):
 			propF.append(0.)
 		# Sinon, on revient aux genomes modernes
 		else:
-			#s = sum([dicPoidsEspeces[e]*(1.-dicNbChr[e]) for e in filsEsp[i].intersection(communEsp)])
-			s = sum([dicPoidsEspeces[e]*dicNbChr[e] for e in filsEsp[i].intersection(communEsp)])
+			s = sum([dicPoidsEspeces[e]*(1.-dicNbChr[e]) for e in filsEsp[i].intersection(communEsp)])
 			if s > 0:
-			#	s += sum([dicPoidsEspeces[e]*dicNbChr[e] for e in filsEsp[i].difference(communEsp)])
-				s += sum([dicPoidsEspeces[e]/dicNbChr[e] for e in filsEsp[i].difference(communEsp)])
+				s += sum([dicPoidsEspeces[e]*dicNbChr2[e] for e in filsEsp[i].difference(communEsp)])
 			propF.append(s)
 
 		
-	#propOut = sum([dicPoidsEspeces[e]*(1.-dicNbChr[e]) for e in communEsp.intersection(outgroup)])
-	propOut = sum([dicPoidsEspeces[e]*dicNbChr[e] for e in communEsp.intersection(outgroup)])
+	propOut = sum([dicPoidsEspeces[e]*(1.-dicNbChr[e]) for e in communEsp.intersection(outgroup)])
 	if propOut > 0:
-	#	propOut += sum([dicPoidsEspeces[e]*dicNbChr[e] for e in communEsp.difference(outgroup)])
-		propOut += sum([dicPoidsEspeces[e]/dicNbChr[e] for e in communEsp.difference(outgroup)])
+		propOut += sum([dicPoidsEspeces[e]*dicNbChr2[e] for e in communEsp.difference(outgroup)])
 	
 	s = sum(propF) * propOut
 	for (i1,i2) in utils.myTools.myMatrixIterator(len(filsEsp), len(filsEsp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
@@ -246,72 +241,6 @@ def calcScore(i1, i2):
 	
 	return s
 	
-
-def calcScore2(i1, i2):
-
-	(_,e1) = lstDiags[i1]
-	(_,e2) = lstDiags[i2]
-	comparedEsp = set([e for (e,_) in e1]).intersection([e for (e,_) in e2])
-	espOK = set([e for (e,_) in e1.intersection(e2)])
-	espNO = comparedEsp.difference(espOK)
-	espNA = lstToutesEspeces.difference(comparedEsp)
-
-
-	def calcDist(anc, poids):
-
-		res = []
-		# Moyenne sur tous les fils du noeud
-		poids2 = poids/len(phylTree.items[anc])
-		for (e,p) in phylTree.items[anc]:
-			if e in phylTree.items:
-				(val,x) = calcDist(e, poids2)
-				res.append((val,p+x))
-			elif e in espOK:
-				res.append((poids2,p))
-			elif e in espNO:
-				res.append((-poids2,p))
-			else:
-				res.append((0,p))
-			
-		if len(set([e for (e,_) in res])) == 1:
-			return (res[0][0]*len(phylTree.items[anc]),0)
-
-		s = 0.
-		p = 0.
-		for i in xrange(len(phylTree.items[anc])):
-
-			(val,x) = res[i]
-			(e,_) = phylTree.items[anc][i]
-			p += 1./x
-
-			#if val == None
-		
-			
-			# Si on a une vraie valeur de distance, on continue la moyenne
-			if val != 0:
-				poids = 1./float(p)
-				d += val*poids
-				s += poids
-				nb += 1
-
-		# Test final
-		if nb != 0:
-			d /= s
-			if (options["seuilMaxDistInterGenes"] == 0) or (d <= options["seuilMaxDistInterGenes"]):
-				if nb == 1:
-					return (d,1./s)
-				else:
-					return (d,0)
-		return (0,0)
-
-	res = phylTree.travelFunc(options["ancestr"], calcWeight, options["useOutgroups"])
-	
-	propF = res[:len(filsEsp)]
-	propOut = sum(res[len(filsEsp):])
-	s = sum(propF) * propOut
-	for (i1,i2) in utils.myTools.myMatrixIterator(len(filsEsp), len(filsEsp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-		s += propF[i1] * propF[i2]
-
 lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore)
 clusters = []
 

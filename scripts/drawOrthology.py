@@ -99,7 +99,7 @@ if (mode == 0):
 	print >> sys.stderr, "Affichage ",
 	
 	utils.myPsOutput.initColor()
-	utils.myPsOutput.printPsHeader()
+	utils.myPsOutput.printPsHeader(0.001)
 	sys.stderr.write('.')
 
 	# Initialisations

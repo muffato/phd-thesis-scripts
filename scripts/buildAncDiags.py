@@ -219,9 +219,10 @@ for (i,j) in utils.myTools.myMatrixIterator(len(listSpecies), len(listSpecies), 
 	calcDiags(listSpecies[i], listSpecies[j])
 
 # On a besoin des genes ancestraux
-genesAnc = {}
-for anc in diagEntry:
-	genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
+if options["showAncestral"]:
+	genesAnc = {}
+	for anc in diagEntry:
+		genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
 
 # Traitement final
 for anc in diagEntry:

@@ -22,7 +22,30 @@ import utils.myDiags
 import utils.myCommunities
 #import utils.myCommunities2
 
+genome = utils.myGenomes.EnsemblGenome("~/work/data43/genes/genes.Gallus.gallus.list.bz2")
+#for g in genome.lstGenes[4]:
+#	print g.beginning, g.strand, g.names
 
+genesAnc = utils.myGenomes.EnsemblOrthosListGenome("~/work/data43/orthologs/orthos.Gallus.gallus.Homo.sapiens.list.bz2", ancFilter = ["Amniota"])
+(c,i) = genesAnc.dicGenes["ENSGALG00000008006"]
+print genesAnc.lstGenes[c][i].names
+#print genesAnc.dicGenes["ENSGALG00000007993"].names
+#print genesAnc.dicGenes["ENSGALG00000008006"].names
+#print genesAnc.dicGenes["ENSG00000077279"].names
+#print genesAnc.dicGenes["ENSG00000077274"].names
+
+sys.exit(0)
+
+for i in xrange(8):
+	for j in xrange(3):
+		s = -1
+		if (i & (1 << j)) > 1:
+			s = 1
+		print i, j, j, s, "gene.%d.%d" % (i,j)
+
+
+
+sys.exit(0)
 genesAnc = utils.myGenomes.AncestralGenome(sys.argv[1])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
 
