@@ -98,7 +98,6 @@ if (mode == 0):
 
 	print >> sys.stderr, "Affichage ",
 	
-	utils.myPsOutput.initColor()
 	utils.myPsOutput.printPsHeader(0.001)
 	sys.stderr.write('.')
 
@@ -163,8 +162,7 @@ if (mode == 0):
 elif (mode == 1):
 
 	print >> sys.stderr, "Affichage ...",
-	
-	utils.myPsOutput.initColor()
+
 	utils.myPsOutput.printPsHeader()
 
 	# On dessine

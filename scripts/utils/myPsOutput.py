@@ -2,14 +2,18 @@
 
 # Module d'ecriture dans un fichier PostScript
 
-# Les definitions des couleurs
-color = {}
-colorTable = {}
+# Les petits noms que je donne a mes couleurs (nom -> nom UNIX)
+colorTransl = {}
+# Les definitions des couleurs (valeurs RGB -> nom UNIX) pour eviter de creer plusieurs fois la meme couleur
+colorTableRGB2UNIX = {}
+# La liste des noms de couleurs UNIX
+colorListUNIX = set()
+
 
 #
 # L'en-tete PostScript
 #
-def printPsHeader(linewidth = 0.01):
+def printPsHeader(linewidth = 0.001, landscape = False):
 	print "%!PS-Adobe-3.0"
 	print "%%DocumentData: Clean7bit"
 	print "%%Creator: myPsOutput"
@@ -30,18 +34,20 @@ def printPsHeader(linewidth = 0.01):
 	print "1 setlinejoin"
 	print linewidth, " cm setlinewidth"
 
-	# definition des couleurs dns l'en-tete du Postscript
+	if landscape:
+		print "90 rotate"
+		print "0 -21 cm translate"
+		print
+	
+	# definition des couleurs dans l'en-tete du Postscript
 	print
 	print "/color {"
 	print "\taload pop setrgbcolor"
 	print "} def"
 	print
-
-	# Toutes les couleurs
-	for coul in colorTable:
-		(r,g,b) = colorTable[coul]
-		print "/%s [%f %f %f] def" % (coul, r,g,b)
+	initColor()
 	print
+
 #
 # Le pied de page PostScript
 #
@@ -49,12 +55,6 @@ def printPsFooter():
 	print "showpage"
 
 
-#
-# Definit une nouvelle couleur dans le fichier PostScript
-#
-def printColorDefinitionLine(C):
-	(r,g,b) = colorTable[C]
-	print "/%s [%f %f %f] def" % (C, r,g,b)
 
 #
 # Charge le fichier de definitions des couleurs en RGB
@@ -62,10 +62,14 @@ def printColorDefinitionLine(C):
 #
 def initColor():
 
+	# La liste des couleurs et leurs valeurs RGB
 	f = open("/users/ldog/muffato/work/scripts/utils/rgb.txt", 'r')
 	for l in f:
 		c = l.split()
-		colorTable["".join(c[6:])] = tuple([float(x) for x in c[:3]])
+		s = "".join(c[6:])
+		colorTableRGB2UNIX[tuple([int(x) for x in c[3:6]])] = s
+		print "/%s [%s] def" % (s, " ".join(c[:3]))
+		colorListUNIX.add(s)
 
 	f.close()
 
@@ -77,37 +81,41 @@ def initColor():
 	greekLetters = ["ALPHA", "BETA", "DELTA", "EPSILON", "GAMMA", "PHI"]
 	craniateColors = ["DarkOrange", "RoyalBlue4", "chartreuse4", "gold", "DarkOrchid4", "red3"]
 
+	# Les couleurs claires sont pour les nombres negatifs et les lettres minuscules
 	ordre = lightColors + craniateColors + darkColors
 	for i in range(len(ordre)):
-		color[str(-(i+1))] = ordre[i]
-		color[chr(i+97)] = ordre[i]
-
+		colorTransl[str(-(i+1))] = ordre[i]
+		if i < 26:
+			colorTransl[chr(i+97)] = ordre[i]
+		
+	# Les couleurs foncees sont pour les nombres positifs et les lettres majuscules
 	ordre = darkColors + lightColors + craniateColors
 	for i in range(len(ordre)):
-		color[str(i+1)] = ordre[i]
-		color[chr(i+65)] = ordre[i]
-		
-	for i in range(len(greekLetters)):
-		color[greekLetters[i]] = craniateColors[i]
+		colorTransl[str(i+1)] = ordre[i]
+		if i < 26:
+			colorTransl[chr(i+65)] = ordre[i]
 
+	for i in range(len(greekLetters)):
+		colorTransl[greekLetters[i]] = craniateColors[i]
 
 #
-# Permet de rajouter une couleur creee en direct
+# Permet de rajouter une couleur creee a partir de valeurs rgb
 #
 def getColor(s, d):
 
-	if s in color:
-		return color[s]
+	s = str(s)
+	if s in colorTransl:
+		return colorTransl[s]
 
 	elif s[0] == '#':
-		#(r,g,b) = s[1:].split(':')
-		r = float(s[1:4])
-		g = float(s[5:8])
-		b = float(s[9:12])
-		
-		colorTable["tmp"] = (r/255., g/255., b/255.)
-		printColorDefinitionLine("tmp")
-		return "tmp"
+		(r,g,b) = [int(x) for x in s[1:].split(':')]
+		if (r,g,b) in colorTableRGB2UNIX:
+			return colorTableRGB2UNIX[(r,g,b)]
+		else:
+			colName = "tmp%d" % len(colorListUNIX)
+			colorTableRGB2UNIX[(r,g,b)] = colName
+			print "/%s [%f %f %f] def" % (colName, float(r)/255., float(g)/255., float(b)/255.)
+			return colName
 	else:
 		return d
 
@@ -117,10 +125,17 @@ def getColor(s, d):
 # Fonctions de dessin #
 #######################
 
+# Les coordonnes sont en cm
+#   X: de gauche (0) a droite (21/29.7)
+#   Y: de bas (0) en haut (29.7/21)
+# Les couleurs sont facultatives, utiliser "0" ou 0 ou None pour ne pas en specifier.
+#   Sinon, utiliser le nom UNIX (cf getColor pour avoir ce nom)
+# Les angles sont en degres
+
 def drawLine(X, Y, L, H, C):
 	print "newpath"
-	if C in colorTable:
-		print "%f %f %f setrgbcolor" % colorTable[C]
+	if C in colorListUNIX:
+		print C, "color"
 		
 	print X, "cm", Y, "cm", "moveto"
 	print L, "cm", H, "cm", "rlineto"
@@ -130,8 +145,8 @@ def drawLine(X, Y, L, H, C):
 
 def drawBox(X, Y, L, H, Cb, Cr):
 	print "newpath"
-	if Cb in colorTable:
-		print "%f %f %f setrgbcolor" % colorTable[Cb]
+	if Cb in colorListUNIX:
+		print Cb, "color"
 		
 	print X, "cm", Y, "cm", "moveto"
 	print L, "cm", 0, "cm", "rlineto"
@@ -139,7 +154,7 @@ def drawBox(X, Y, L, H, Cb, Cr):
 	print -L, "cm", 0, "cm", "rlineto"
 	print "closepath"
 	
-	if Cr != 0:
+	if Cr in colorListUNIX:
 		print "gsave"
 		print Cr, "color fill"
 		print "grestore"
@@ -147,8 +162,10 @@ def drawBox(X, Y, L, H, Cb, Cr):
 	print "stroke"
 
 
-def drawCross(X, Y, L, H):
+def drawCross(X, Y, L, H, C):
 	print "newpath"
+	if C in colorListUNIX:
+		print C, "color"
 	print X, "cm", Y, "cm", "moveto"
 	print L, "cm", H, "cm", "rlineto"
 	print X+L, "cm", Y, "cm", "moveto"
@@ -156,49 +173,54 @@ def drawCross(X, Y, L, H):
 	print "closepath"
 	print "stroke"
 
-def drawCircle(X, Y, R, A, B):
+def drawCircle(X, Y, R, A, B, Cb, Cr):
 	print "newpath"
-	print X, "cm", Y, "cm", R, "cm", A, "cm", B, "cm", "arc"
+	if Cb in colorListUNIX:
+		print Cb, "color"
+	print X, "cm", Y, "cm", R, "cm", A, B, "arc"
+	if Cr in colorListUNIX:
+		print "gsave"
+		print Cr, "color fill"
+		print "grestore"
 	print "stroke"
 
-def drawFilledCircle(X, Y, R, A, B, C):
+def drawArrowR(X, Y, L, H, P, Cb, Cr):
 	print "newpath"
-	print X, "cm", Y, "cm", R, "cm", A, "cm", B, "cm", "arc"
-	print "gsave"
-	print C, "color fill"
-	print "grestore"
-	print "stroke"
-
-def drawArrowR(X, Y, L, H, P, C):
-	print "newpath"
+	if Cb in colorListUNIX:
+		print Cb, "color"
 	print X, "cm", Y, "cm", "moveto"
 	print L, "cm", 0, "cm", "rlineto"
 	print P, "cm", H/2, "cm", "rlineto"
 	print -P, "cm", H/2, "cm", "rlineto"
 	print -L, "cm", 0, "cm", "rlineto"
 	print "closepath"
-	print "gsave"
-	print C, "color fill"
-	print "grestore"
+	if Cr in colorListUNIX:
+		print "gsave"
+		print Cr, "color fill"
+		print "grestore"
 	print "stroke"
 
-def drawArrowL(X, Y, L, H, P, C):
+def drawArrowL(X, Y, L, H, P, Cb, Cr):
 	print "newpath";
+	if Cb in colorListUNIX:
+		print Cb, "color"
 	print X, "cm", Y+(H/2), "cm", "moveto"
 	print P, "cm", H/2, "cm", "rlineto"
 	print L, "cm", 0, "cm", "rlineto"
 	print 0, "cm", -H, "cm", "rlineto"
 	print -L, "cm", 0, "cm", "rlineto"
 	print "closepath"
-	print "gsave"
-	print C, "color fill"
-	print "grestore"
+	if Cr in colorListUNIX:
+		print "gsave"
+		print Cr, "color fill"
+		print "grestore"
 	print "stroke"
 
 def drawText(X, Y, T, C):
-    print "newpath";
-    print C, "color";
-    print X, "cm", Y, "cm", "moveto";
-    print "(%s)" % T, "show";
+	print "newpath"
+	if C in colorListUNIX:
+		print C, "color"
+	print X, "cm", Y, "cm", "moveto"
+	print "(%s)" % T, "show"
 
 

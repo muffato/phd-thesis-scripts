@@ -36,7 +36,6 @@ espacementX = 19. / (len(lstGenomes))
 espacementY = 28. / nb
 
 # On ecrit le PostScipt
-utils.myPsOutput.initColor()
 utils.myPsOutput.printPsHeader()
 
 
