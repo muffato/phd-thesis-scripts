@@ -19,8 +19,40 @@ import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 import utils.myDiags
+import utils.myPsOutput
 import utils.myCommunities
 #import utils.myCommunities2
+
+
+#genome = utils.myGenomes.EnsemblGenome("~/work/data43/genes/genes.Gallus.gallus.list.bz2")
+#genome = utils.myGenomes.EnsemblGenome(sys.argv[1])
+phylTree = utils.myBioObjects.PhylogeneticTree(sys.argv[1])
+
+for e in phylTree.listSpecies:
+
+	genome = utils.myGenomes.EnsemblGenome("~/work/data43/genes/genes.%s.list.bz2" % phylTree.fileName[e])
+	
+	s = 0
+	lst = {}
+	for c in genome.lstChr + genome.lstScaff:
+		s += len(genome.lstGenes[c])
+		lst[len(genome.lstGenes[c])] = lst.get(len(genome.lstGenes[c]), 0) + 1
+		
+
+	lst2 = lst.items()
+	lst2.sort(reverse=True)
+
+	p = s
+	nbc = 0
+	for (l,n) in lst2:
+		nbc += n
+		p -= l
+		if p*100 < s*1:
+			break
+
+	print nbc, "\t", e
+
+sys.exit(0)
 
 genome = utils.myGenomes.EnsemblGenome("~/work/data43/genes/genes.Gallus.gallus.list.bz2")
 #for g in genome.lstGenes[4]:
@@ -36,6 +68,15 @@ print genesAnc.lstGenes[c][i].names
 
 sys.exit(0)
 
+utils.myPsOutput.printPsHeader()
+utils.myPsOutput.drawLine(10, 10, 1, 1, utils.myPsOutput.getColor(1, "black"))
+utils.myPsOutput.drawLine(10, 10, -1, 1, utils.myPsOutput.getColor(2, "black"))
+utils.myPsOutput.drawLine(10, 10, -1, -1, utils.myPsOutput.getColor(3, "black"))
+utils.myPsOutput.drawLine(10, 10, 1, -1, utils.myPsOutput.getColor(4, "black"))
+utils.myPsOutput.printPsFooter()
+
+
+sys.exit(0)
 for i in xrange(8):
 	for j in xrange(3):
 		s = -1
