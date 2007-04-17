@@ -28,11 +28,16 @@ import utils.myTools
 	__doc__ \
 )
 
-esp = options["speciesList"].split(',')
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-#phylTree.loadSpeciesFromList(esp, options["genesFile"])
-phylTree.loadAllSpeciesSince("Euteleostomi", options["genesFile"])
+if options["speciesList"] == "":
+	phylTree.loadAllSpeciesSince(None, options["genesFile"])
+else:
+	phylTree.loadSpeciesFromList(options["speciesList"].split(','), options["genesFile"])
 
+
+for e in phylTree.dicGenomes:
+	print "%s\t" % e,
+print
 
 for l in sys.stdin:
 	c = l.split()
@@ -48,6 +53,15 @@ for l in sys.stdin:
 		(e,_,_) = phylTree.dicGenes[g]
 		score[e] += 1
 	else:
+
+		if max(score.values()) <= 1:
+			continue
+
+		for e in phylTree.dicGenomes:
+			print "%d\t" % score[e],
+		print
+		continue
+
 		t = score.values()
 		t = [x for x in score.values() if x != 0]
 		t.sort()

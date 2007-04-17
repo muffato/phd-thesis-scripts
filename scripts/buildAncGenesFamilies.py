@@ -13,13 +13,11 @@ Affine la liste en exhibant les genes specifiques d'une lignee et ceux qui
 
 # Librairies
 import sys
+import math
 import operator
 import utils.myGenomes
 import utils.myTools
-import utils.myMaths
 import utils.myCommunities
-import utils.myPsOutput
-
 
 
 
@@ -30,22 +28,44 @@ import utils.myPsOutput
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("ancestr",str,""),("minRelevance",float,0), ("recursiveConstruction",bool,True), ("graphDirectory",str,""), \
+	[("ancestr",str,""),("minRelevance",float,100), ("recursiveConstruction",bool,True), ("graphDirectory",str,""), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("one2oneFile",str,"~/work/data/ancGenes/one2one.%s.list.bz2"), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
-	("orthoFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
-	("paraFile",str,"~/work/data/paralogs/paras.%s.list.bz2")], \
+	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
+	("paras2File",str,"~/work/data/orthologs/paras.%s.%s.list.bz2"), \
+	("paras1File",str,"~/work/data/paralogs/paras.%s.list.bz2")], \
 	__doc__ \
 )
 
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 phylTree.loadAllSpeciesSince(options["ancestr"], options["genesFile"])
-utils.myPsOutput.initColor()
 
 
 def buildAncFile(anc, lastComb):
 
+
+	# Analyse une composante connexe: renvoie le nombre d'aretes et le nombre attendu ainsi que le detail du nombre de genes pour chaque espece
+	def getStats(ensGenes):
+		score = phylTree.findFamilyComposition(ensGenes)
+		poidsBranches = [max([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
+
+		nbAretes = 0
+		for (i1,i2) in utils.myTools.myMatrixIterator(len(ensGenes), len(ensGenes), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+			if ensGenes[i1] in aretes and ensGenes[i2] in aretes[ensGenes[i1]]:
+				nbAretes += 1
+			elif ensGenes[i2] in aretes and ensGenes[i1] in aretes[ensGenes[i2]]:
+				nbAretes += 1
+		nbAretesAttendu = (len(ensGenes)*(len(ensGenes)-1))/2
+		for e in score:
+			nbAretesAttendu -= (len(score[e])*(len(score[e])-1))/2
+		
+		return (nbAretes, nbAretesAttendu, poidsBranches, score)
+
+
+
+
+	# Charge un fichier de definition d'homologues
 	def doLoad(s, age, combin):
 
 		f = utils.myTools.myOpenFile(s, 'r')
@@ -67,7 +87,6 @@ def buildAncFile(anc, lastComb):
 			combin.addLink([gA, gB])
 			if gA not in aretes:
 				aretes[gA] = {}
-			
 			aretes[gA][gB] = 1
 
 		f.close()
@@ -79,41 +98,38 @@ def buildAncFile(anc, lastComb):
 	aretes = {}
 	comb = utils.myTools.myCombinator([])
 	combDummy = utils.myTools.myCombinator([])
+	n = len(phylTree.species[anc])
 	print >> sys.stderr, "Construction des familles d'orthologues de %s " % anc,
-	for (i,j) in utils.myTools.myMatrixIterator(len(phylTree.species[anc]), len(phylTree.species[anc]), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	for (i,j) in utils.myTools.myMatrixIterator(n, n, utils.myTools.myMatrixIterator.StrictUpperMatrix):
 		e1 = phylTree.species[anc][i]
 		e2 = phylTree.species[anc][j]
-		f = options["orthoFile"] % (phylTree.fileName[e1],phylTree.fileName[e2])
+		f = options["orthosFile"] % (phylTree.fileName[e1],phylTree.fileName[e2])
 		if phylTree.getFirstParent(e1, e2) == anc:
 			doLoad(f, phylTree.ages[anc], comb)
-		else:
+		# Ne sert que si on cherche a clusteriser les familles
+		elif options["minRelevance"] < 1:
 			doLoad(f, phylTree.ages[anc], combDummy)
 		utils.myTools.stderr.write('.')
 	print >> sys.stderr, " OK"
-	print >> sys.stderr, "Insertion des genes paralogues ",
-	for e in phylTree.species[anc]:
-		doLoad(options["paraFile"] % phylTree.fileName[e], phylTree.ages[anc]-1, combDummy)
-		utils.myTools.stderr.write('.')
-	print >> sys.stderr, " OK"
-	combDummy = None
 
+	# On ne cherche que les familles transitives
+	if options["minRelevance"] < 1:
 
-	def getStats(ensGenes):
-		score = phylTree.findFamilyComposition(ensGenes)
-		poidsBranches = [max([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
-
-		nbAretes = 0
-		for (i1,i2) in utils.myTools.myMatrixIterator(len(ensGenes), len(ensGenes), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-			if ensGenes[i1] in aretes and ensGenes[i2] in aretes[ensGenes[i1]]:
-				nbAretes += 1
-			elif ensGenes[i2] in aretes and ensGenes[i1] in aretes[ensGenes[i2]]:
-				nbAretes += 1
-		nbAretesAttendu = (len(ensGenes)*(len(ensGenes)-1))/2
-		for e in score:
-			nbAretesAttendu -= (len(score[e])*(len(score[e])-1))/2
+		print >> sys.stderr, "Insertion des genes paralogues intra-especes ",
+		for e in phylTree.species[anc]:
+			doLoad(options["paras1File"] % phylTree.fileName[e], phylTree.ages[anc]-1, combDummy)
+			utils.myTools.stderr.write('.')
+		print >> sys.stderr, " OK"
 		
-		return (nbAretes, nbAretesAttendu, poidsBranches, score)
-
+		print >> sys.stderr, "Insertion des genes paralogues inter-especes ",
+		for (i,j) in utils.myTools.myMatrixIterator(n, n, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+			e1 = phylTree.species[anc][i]
+			e2 = phylTree.species[anc][j]
+			doLoad(options["paras2File"] % (phylTree.fileName[e1],phylTree.fileName[e2]), phylTree.ages[anc], combDummy)
+			utils.myTools.stderr.write('.')
+		print >> sys.stderr, " OK"
+	
+	combDummy = None
 
 	# 2. On affiche les groupes d'orthologues
 	print >> sys.stderr, "Construction des fichiers de", anc, "..."
@@ -121,6 +137,11 @@ def buildAncFile(anc, lastComb):
 	res = utils.myTools.myCombinator([])
 	for x in comb:
 	
+		# Les familles transitives sont exactement les familles recherchees
+		if options["minRelevance"] >= 1:
+			res.addLink(x)
+			continue
+		
 		(nbAretes,nbAretesAttendu,poidsBranches,score) = getStats(x)
 
 		# A.1/ On elimine les familles specifiques d'une sous-branche
@@ -152,11 +173,13 @@ def buildAncFile(anc, lastComb):
 				if options["graphDirectory"] != "" and len(lonely) == 0:
 					fa = utils.myTools.myOpenFile(options["graphDirectory"] + '/graph-%f-%f-%d-%d' % (relevance,alpha,len(clusters),len(lonely)), 'w')
 					print >> fa, "graph {"
-					for ci in xrange(len(clusters)):
-						c = clusters[ci]
-						(r,g,b) = utils.myPsOutput.colorTable[utils.myPsOutput.color[str(ci+1)]]
-						for cc in c:
-							print >> fa, "%s [style=\"filled\",color=\"#%02X%02X%02X\"]" % (cc, int(255*r),int(255*g),int(255*b))
+					interv = 85
+					for ci in xrange(1,len(clusters)+1):
+						r = ci % 4
+						g = (ci / 4) % 4
+						b = (ci / 16) % 4
+						for cc in clusters[ci-1]:
+							print >> fa, "%s [style=\"filled\",color=\"#%02X%02X%02X\"]" % (cc, 85*r,85*g,85*b)
 					for (i1,i2) in utils.myTools.myMatrixIterator(len(x), len(x), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 						if x[i1] in aretes and x[i2] in aretes[x[i1]]:
 							ss = aretes[x[i1]][x[i2]]

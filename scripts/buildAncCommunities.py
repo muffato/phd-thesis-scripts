@@ -131,7 +131,7 @@ def calcPoids(node):
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "diagsList"], \
 	[("ancestr",str,""), ("alreadyBuiltAnc",str,""), \
-	("useOutgroups",bool,True), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), \
+	("useOutgroups",bool,True), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("weightNbChr+",bool,False),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -177,7 +177,7 @@ if options["weightNbChr+"] or options["weightNbChr-"]:
 			if options["weightNbChr+"]:
 				espCertitude[e] = 1. - 1. / float(s)
 	if options["weightNbChr-"]:
-		alphaIncertitude = 1. / float(min(espCertitude.values()) * max(espCertitude.values()))
+		alphaIncertitude = 1. / float(min(tmp) * max(tmp))
 		for e in phylTree.listSpecies:
 			espIncertitude[e] = len(phylTree.dicGenomes[e].lstChr) * alphaIncertitude
 
@@ -209,9 +209,9 @@ if options["alreadyBuiltAnc"] != "":
 	print >> sys.stderr, "OK"
 
 
-print >> sys.stderr, dicPoidsEspeces
-print >> sys.stderr, espCertitude
-
+print >> sys.stderr, "%-25s\t%s\t%s\t%s" % ("Ancetre", "Poids", "Cert", "Incert")
+for e in dicPoidsEspeces:
+	print >> sys.stderr, "%-25s\t%.3f\t%.3f\t%.3f" % (e, dicPoidsEspeces[e], espCertitude[e], espIncertitude[e])
 
 def calcScore(i1, i2):
 
@@ -231,12 +231,17 @@ def calcScore(i1, i2):
 		# Sinon, on revient aux genomes modernes
 		else:
 			s = sum([dicPoidsEspeces[e]*espCertitude[e] for e in filsEsp[i].intersection(communEsp)])
-			s += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in filsEsp[i].difference(communEsp)])
+			# On peut rajouter l'incertitude des autres especes
+			#   - si au moins une espece a valide la fusion
+			#   - si la branche est constituee d'une unique espece
+			if (s > 0) or (len(filsEsp[i]) == 1):
+				s += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in filsEsp[i].difference(communEsp)])
 			propF.append(s)
 
 		
 	propOut = sum([dicPoidsEspeces[e]*espCertitude[e] for e in communEsp.intersection(outgroup)])
-	propOut += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in communEsp.difference(outgroup)])
+	if (propOut > 0):
+		propOut += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in communEsp.difference(outgroup)])
 	
 	s = sum(propF) * propOut
 	for (i1,i2) in utils.myTools.myMatrixIterator(len(filsEsp), len(filsEsp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
@@ -249,7 +254,8 @@ clusters = []
 
 # Chaque composante connexe
 for lst in lstLstComm:
-	interessant = [comm for comm in lst if (len(comm[3]) == 0) and (comm[1] >= 0.3)]
+	#interessant = [comm for comm in lst if (len(comm[3]) == 0) and (comm[1] >= 0.3)]
+	interessant = [comm for comm in lst if (len(comm[3]) < len(utils.myMaths.flatten(comm[2]))/2) and (comm[1] >= 0.2)]
 	#interessant = lst
 	#interessant = [comm for comm in lst if (len(comm[3]) == 0)]
 	interessant.sort(key = operator.itemgetter(1), reverse = True)
