@@ -103,6 +103,31 @@ def checkLonelyGenes():
 	print >> sys.stderr, "%d (%d) OK" % (nb,len(new))
 
 
+# Charge les ancetres deja construits et rajoute les infos dans les diagonales
+def checkAlreadyBuildAnc():
+	genAlready = {}
+	for f in filsAnc:
+		s = options["alreadyBuiltAnc"] % phylTree.fileName[f]
+		print >> sys.stderr, "Checking %s ..." % f,
+		if os.access(s, os.R_OK):
+			genAlready[f] = utils.myGenomes.AncestralGenome(s, chromPresents=True)
+			s = len(genAlready[f].lstChr)
+			if options["weightNbChr+"]:
+				espCertitude[f] = 1. - 1. / float(s)
+			if options["weightNbChr-"]:
+				espIncertitude[f] = s * alphaIncertitude
+		else:
+			print >> sys.stderr, "Not found"
+
+	print >> sys.stderr, "Mise a jour des chromosomes des diagonales ...",
+	for (d,e) in lstDiags:
+		g = utils.myMaths.flatten([lstGenesAnc[i].names for i in d])
+		for f in genAlready:
+			e.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
+	del genAlready
+	print >> sys.stderr, "OK"
+
+
 
 
 def calcPoids(node):
@@ -131,7 +156,7 @@ def calcPoids(node):
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "diagsList"], \
 	[("ancestr",str,""), ("alreadyBuiltAnc",str,""), \
-	("useOutgroups",bool,True), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("weightNbChr+",bool,False),\
+	("useOutgroups",bool,True), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("weightDiagsLength",bool,False),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -140,8 +165,8 @@ def calcPoids(node):
 #  Chargement et initialisation
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[options.ancestr])
-lstDiags = loadDiagsFile(noms_fichiers["diagsList"], options["ancestr"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
+lstDiags = loadDiagsFile(noms_fichiers["diagsList"], options["ancestr"])
 
 lstToutesEspeces = set(phylTree.listSpecies)
 lstEspOutgroup = set(phylTree.outgroupSpecies[options["ancestr"]])
@@ -181,33 +206,16 @@ if options["weightNbChr+"] or options["weightNbChr-"]:
 		for e in phylTree.listSpecies:
 			espIncertitude[e] = len(phylTree.dicGenomes[e].lstChr) * alphaIncertitude
 
+
 # On doit rajouter les genes non presents dans des diagonales
 if options["useLonelyGenes"]:
 	checkLonelyGenes()
 
-phylTree.dicGenomes.clear()
-
 # On doit noter les chromosomes des diagonales sur ces ancetres deja construits
 if options["alreadyBuiltAnc"] != "":
-	genAlready = {}
-	for f in phylTree.items:
-		s = options["alreadyBuiltAnc"] % phylTree.fileName[f]
-		if os.access(s, os.R_OK):
-			genAlready[f] = utils.myGenomes.AncestralGenome(s, chromPresents=True)
-			s = len(genAlready[f].lstChr)
-			if options["weightNbChr+"]:
-				espCertitude[f] = 1. - 1. / float(s)
-			if options["weightNbChr-"]:
-				espIncertitude[f] = s * alphaIncertitude
+	checkAlreadyBuildAnc()
 
-	print >> sys.stderr, "Mise a jour des chromosomes des diagonales ...",
-	for (d,e) in lstDiags:
-		g = utils.myMaths.flatten([lstGenesAnc[i].names for i in d])
-		for f in genAlready:
-			e.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
-	genAlready = {}
-	print >> sys.stderr, "OK"
-
+phylTree.dicGenomes.clear()
 
 print >> sys.stderr, "%-25s\t%s\t%s\t%s" % ("Ancetre", "Poids", "Cert", "Incert")
 for e in dicPoidsEspeces:
@@ -246,7 +254,10 @@ def calcScore(i1, i2):
 	s = sum(propF) * propOut
 	for (i1,i2) in utils.myTools.myMatrixIterator(len(filsEsp), len(filsEsp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 		s += propF[i1] * propF[i2]
-	
+
+	if options["weightDiagsLength"]:
+		s *= len(lstDiags[i1][0]) * len(lstDiags[i1][1])
+
 	return s
 	
 lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore)

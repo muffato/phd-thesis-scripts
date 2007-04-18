@@ -49,6 +49,7 @@ for l in sys.stdin:
 			if options["breakWhenFamilyNotComplete"]:
 				break
 			else:
+				print >> sys.stderr, "Can't find %s" % g
 				continue
 		(e,_,_) = phylTree.dicGenes[g]
 		score[e] += 1
