@@ -88,6 +88,7 @@ class myStats:
 		return self.data[int((x*len(self.data))/100.)]
 
 	def __repr__(self):
+		# min quart1 median quart3 max mean stddev len
 		return "%s\t%s\t%s\t%s\t%s\t%.2f\t%.2f\t%d" % (self.min,self.quart1,self.median,self.quart3,self.max, self.mean,self.stddev, len(self.data))
 
 

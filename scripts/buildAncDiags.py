@@ -29,12 +29,12 @@ def calcDiags(e1, e2):
 	
 	# La fonction qui permet de stocker les diagonales sur les ancetres
 	def combinDiag(c1, c2, d1, d2):
-		global diagEntry, nbDiags
+		global diagEntry, statsDiags
 
 		if len(d1) < options["minimalLength"]:
 			return
 		
-		nbDiags += 1
+		statsDiags.append(len(d1))
 		dn1 = [g1.lstGenes[c1][trans1[(c1,i)]].names[0] for i in d1]
 		dn2 = [g2.lstGenes[c2][trans2[(c2,i)]].names[0] for i in d2]
 
@@ -86,11 +86,11 @@ def calcDiags(e1, e2):
 			if ianc != -1:
 				newLoc[ianc].append( (c,i,s) )
 
-	global nbDiags
+	global statsDiags
 	print >> sys.stderr, "Extraction des diagonales entre %s et %s ..." % (e1,e2),
-	nbDiags = 0
+	statsDiags = []
 	utils.myDiags.iterateDiags(newGen, newLoc, options["fusionThreshold"], options["sameStrand"], combinDiag)
-	print >> sys.stderr, nbDiags
+	print >> sys.stderr, utils.myMaths.myStats(statsDiags)
 
 def getLongestDiags(oldDiags):
 
