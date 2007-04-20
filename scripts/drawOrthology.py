@@ -57,7 +57,7 @@ def buildOrthosTable(genome1, chr1, genome2, chr2):
 ########
 
 # Arguments
-modes = ["Matrix", "Karyotype", "OrthosChr"]
+modes = ["Matrix", "Karyotype", "OrthosChr", "OrthosGenes"]
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["studiedGenome", "referenceGenome"], \
 	[("orthologuesList",str,""), ("includeGaps", bool, False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
@@ -78,7 +78,6 @@ try:
 	colors = utils.myGenomes.loadGenome(options["colorFile"])
 except Exception:
 	colors = options["defaultColor"]
-mode = modes.index(options["output"])
 
 # Les chromosomes a etudier
 chr1 = genome1.lstChr
@@ -94,7 +93,7 @@ if options["includeRandoms"]:
 table12 = buildOrthosTable(genome1, chr1, genome2, chr2)
 
 # Matrice
-if (mode == 0):
+if (options["output"] == modes[0]):
 
 	print >> sys.stderr, "Affichage ",
 	
@@ -159,7 +158,7 @@ if (mode == 0):
 
 
 # Caryotype
-elif (mode == 1):
+elif (options["output"] == modes[1]):
 
 	print >> sys.stderr, "Affichage ...",
 
@@ -204,7 +203,7 @@ elif (mode == 1):
 
 
 # Liste de chromosomes orthologues
-elif (mode == 2):
+elif (options["output"] == modes[2]):
 
 	for c1 in chr1:
 
@@ -222,4 +221,24 @@ elif (mode == 2):
 			if nb <= 0:
 				break
 		print s
+
+# Fichier avec les noms des paires de genes orthologues et leurs coordonnees
+elif (options["output"] == modes[3]):
+
+
+	for c1 in chr1:
+		for i1 in xrange(len(genome1.lstGenes[c1])):
+			
+			if i1 not in table12[c1]:
+				continue
+				
+			g1 = genome1.lstGenes[c1][i1]
+			for (c2,i2) in table12[c1][i1]:
+
+				g2 = genome2.lstGenes[c2][i2]
+	
+				r = [c1, g1.beginning, g1.end, g1.strand, g1.names[0]]
+				r.extend([c2, g2.beginning, g2.end, g2.strand, g2.names[0]])
+				print "\t".join([str(x) for x in r])
+
 

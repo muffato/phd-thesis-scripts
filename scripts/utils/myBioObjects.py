@@ -19,6 +19,9 @@ class Gene:
 		self.end = end
 		self.strand = strand
 
+	def __repr__(self):
+		return "Gene %s on chr %s from %d to %d on strand %d" % ("/".join(self.names), self.chromosome, self.beginning, self.end, self.strand)
+
 
 #############################################
 # Cette classe gere un arbre phylogenetique #
@@ -306,6 +309,7 @@ class ConcordeFile:
 		i = tmp.index(0)
 		self.res = tmp[i+1:] + tmp[1:i]
 		self.buildIndex()
+			
 
 	def buildIndex(self):
 		self.dic = {}

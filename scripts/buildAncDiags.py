@@ -56,7 +56,7 @@ def calcDiags(e1, e2):
 				x = tmp[i]
 				new = newGenome[c].index(x, last)
 				transNewOld[(c,i)] = new
-				last = new
+				last = new + 1
 			newGenome[c] = tmp
 					
 		return (newGenome,transNewOld)

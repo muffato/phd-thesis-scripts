@@ -62,6 +62,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 					if lastS1*s1 != lastS2*s2:
 						continue
 				else:
+					# On demande juste a ce que les deux genes soient cote a cote
 					if abs(i2-lastI2) != 1:
 						continue
 				
@@ -72,10 +73,12 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 				lastPos2 = [(c2,i2,s2)]
 				break
 
+			# On n'a pas trouve de i2 satisfaisant, c'est la fin de la diagonale
 			else:
-				# On n'a pas trouve de i2 satisfaisant, c'est la fin de la diagonale
+				# On l'enregistre si elle n'est pas vide
 				if len(listI1) > 0 and len(listI2) > 0:
 					diag.append( (listI1,listI2,lastC2,(deb1,fin1),getMinMaxDiag(listI2)) )
+				# On recommence a zero
 				deb1 = i1
 				lastPos2 = presI2
 				listI1 = []

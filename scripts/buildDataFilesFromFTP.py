@@ -27,7 +27,7 @@ import utils.myTools
 # Permet de telecharger, decompresser et lire a la volee un fichier
 #
 def fileIterator(nom):
-	(stdin,stdout,stderr) = os.popen3("wget %s/%s -O - | gunzip" % (options["IN.EnsemblURL"],nom) )
+	(stdin,stdout,stderr) = os.popen3( ("wget %s/%s -O - | gunzip" % (options["IN.EnsemblURL"],nom)).replace("XXX", str(options["releaseID"])) )
 	stdin.close()
 	stderr.close()
 	tmp = ""
@@ -69,15 +69,23 @@ def proceedFile(fin, fout, foutR):
 	try:
 		fin = fileIterator(fin)
 		c = fin.next().split('\t')
-		i2 = c.index(esp2B,40)
+		i1 = c.index(esp1B, 2) # Pour eviter le pb des genes paralogues pour lesquels anc=esp
+		i2 = c.index(esp2B, i1+1)
 		while True:
 			nb1 += 1
 			newAnc = mkEnsemblPhylAdjustment(c[1], theoryAnc)
-			print >> fout, "\t".join([c[3],c[25],c[44], c[i2-8],c[i2+14],c[i2+33], newAnc, c[29],c[30], c[i2+18],c[i2+19], c[0]])
-			if foutR != None:
-				print >> foutR, "\t".join([c[i2-8],c[i2+14],c[i2+33], c[3],c[25],c[44], newAnc, c[i2+18],c[i2+19], c[29],c[30], c[0]])
 			if newAnc == theoryAnc:
 				nb2 += 1
+			
+			if options["releaseID"] == 44:
+				r = (c[7],c[4],c[24], c[i1+15],c[i1+12],c[i1+32], newAnc, c[i1+4],c[i1+5], c[i2+4],c[i2+5], c[0])
+			else:
+				r = (c[3],c[25],c[44], c[i2-8],c[i2+14],c[i2+33], newAnc, c[29],c[30], c[i2+18],c[i2+19], c[0])
+			
+			print >> fout, "\t".join(r)
+			if foutR != None:
+				print >> foutR, "\t".join([r[i] for i in (3,4,5, 0,1,2, 6, 9,10, 7,8, 11)])
+			
 			c = fin.next().split('\t')
 	except StopIteration:
 		pass
@@ -95,16 +103,18 @@ def proceedFile(fin, fout, foutR):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("OUT.genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
+	[("releaseID",int,[42,43,44]),
+	("OUT.genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("OUT.orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
 	("OUT.paras2File",str,"~/work/data/orthologs/paras.%s.%s.list.bz2"), \
 	("OUT.paras1File",str,"~/work/data/paralogs/paras.%s.list.bz2"), \
-	("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-43/mart_43/data/mysql/"), \
-	("IN.genesFile",str,"ensembl_mart_43/%s_gene_ensembl__gene__main.txt.table.gz"), \
-	("IN.parasFile",str,"compara_mart_homology_43/compara_%s_%s_paralogs__paralogs__main.txt.table.gz"), \
-	("IN.orthosFile",str,"compara_mart_homology_43/compara_%s_%s_orthologs__orthologs__main.txt.table.gz")], \
+	("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mart_XXX/data/mysql/"), \
+	("IN.genesFile",str,"ensembl_mart_XXX/%s_gene_ensembl__gene__main.txt.table.gz"), \
+	("IN.parasFile",str,"compara_mart_homology_XXX/compara_%s_%s_paralogs__paralogs__main.txt.table.gz"), \
+	("IN.orthosFile",str,"compara_mart_homology_XXX/compara_%s_%s_orthologs__orthologs__main.txt.table.gz")], \
 	__doc__ \
 )
+
 
 
 # L'arbre phylogenetique

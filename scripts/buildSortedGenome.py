@@ -148,7 +148,7 @@ for c in genesAnc.lstChr:
 del phylTree.dicGenes
 del dicOutgroupGenes
 
-nom = "mat%d-%d-%d-concorde" % (os.getpid(), os.getppid(), random.randint(1,100000000))
+nom = "mat%08d" % ((os.getpid() ^ os.getppid() ^ random.randint(1,16777215)) & 16777215)
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 
@@ -194,12 +194,13 @@ for c in genesAnc.lstChr:
 			os.system(comm + ' >&2')
 		else:
 			os.system(comm + ' > /dev/null')
-		lstTot.append(utils.myBioObjects.ConcordeFile(nom + ".sol"))
+		if os.access(nom + ".sol", os.R_OK):
+			lstTot.append(utils.myBioObjects.ConcordeFile(nom + ".sol"))
 		os.system('rm -f 0%s* %s*' % (nom,nom) )
 		sys.stderr.write(".")
 
 	# On remet chaque liste dans le meme sens que la premiere
-	for i in range(1, nbConcorde):
+	for i in range(1, len(lstTot)):
 		if not lstTot[i].isMemeSens(lstTot[0]):
 			lstTot[i].reverse()
 
@@ -208,7 +209,10 @@ for c in genesAnc.lstChr:
 		print c,
 		if (options["nbConcorde"] > 1) and options["withConcordeStats"]:
 			print len(q),
-		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
+		if len(lstTot) == 0:
+			print " ".join(genesAnc.lstGenes[c][i].names)
+		else:
+			print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 	
 	solUniq = utils.myMaths.unique([l.res for l in lstTot])
 	print >> sys.stderr, len(solUniq), "solutions"

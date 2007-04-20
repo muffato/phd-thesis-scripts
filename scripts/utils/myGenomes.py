@@ -225,7 +225,7 @@ class EnsemblOrthosListGenome(Genome):
 		
 		# On lit chaque ligne
 		for ligne in f:
-			champs = ligne.split()
+			champs = ligne[:-1].split('\t')
 			if len(champs) == 12:
 				# Nouvelle version des fichiers
 				if (champs[-1] not in homologyFilter) and (len(homologyFilter) != 0):

@@ -137,8 +137,8 @@ def drawLine(X, Y, L, H, C):
 	if C in colorListUNIX:
 		print C, "color"
 		
-	print X, "cm", Y, "cm", "moveto"
-	print L, "cm", H, "cm", "rlineto"
+	print "%.3f cm %.3f cm moveto" % (X, Y)
+	print "%.3f cm %.3f cm rlineto" % (L, H)
 	print "closepath"
 	print "stroke"
 
@@ -148,10 +148,10 @@ def drawBox(X, Y, L, H, Cb, Cr):
 	if Cb in colorListUNIX:
 		print Cb, "color"
 		
-	print X, "cm", Y, "cm", "moveto"
-	print L, "cm", 0, "cm", "rlineto"
-	print 0, "cm", H, "cm", "rlineto"
-	print -L, "cm", 0, "cm", "rlineto"
+	print "%.3f cm %.3f cm moveto" % (X, Y)
+	print "%.3f cm 0 cm rlineto" % L
+	print "0 cm %.3f cm rlineto" % H
+	print "%.3f cm 0 cm rlineto" % (-L)
 	print "closepath"
 	
 	if Cr in colorListUNIX:
@@ -166,10 +166,10 @@ def drawCross(X, Y, L, H, C):
 	print "newpath"
 	if C in colorListUNIX:
 		print C, "color"
-	print X, "cm", Y, "cm", "moveto"
-	print L, "cm", H, "cm", "rlineto"
-	print X+L, "cm", Y, "cm", "moveto"
-	print -L, "cm", H, "cm", "rlineto"
+	print "%.3f cm %.3f cm moveto" % (X, Y)
+	print "%.3f cm %.3f cm rlineto" % (L, H)
+	print "%.3f cm %.3f cm moveto" % (X+L, Y)
+	print "%.3f cm %.3f cm rlineto" % (-L, H)
 	print "closepath"
 	print "stroke"
 
@@ -177,7 +177,7 @@ def drawCircle(X, Y, R, A, B, Cb, Cr):
 	print "newpath"
 	if Cb in colorListUNIX:
 		print Cb, "color"
-	print X, "cm", Y, "cm", R, "cm", A, B, "arc"
+	print "%.3f cm %.3f cm %.3f cm %.3f %.3f arc" % (X, Y, R, A, B)
 	if Cr in colorListUNIX:
 		print "gsave"
 		print Cr, "color fill"
@@ -188,11 +188,11 @@ def drawArrowR(X, Y, L, H, P, Cb, Cr):
 	print "newpath"
 	if Cb in colorListUNIX:
 		print Cb, "color"
-	print X, "cm", Y, "cm", "moveto"
-	print L, "cm", 0, "cm", "rlineto"
-	print P, "cm", H/2, "cm", "rlineto"
-	print -P, "cm", H/2, "cm", "rlineto"
-	print -L, "cm", 0, "cm", "rlineto"
+	print "%.3f cm %.3f cm moveto" % (X, Y)
+	print "%.3f cm 0 cm rlineto" % L
+	print "%.3f cm %.3f cm rlineto" % (P, H/2)
+	print "%.3f cm %.3f cm rlineto" % (-P, H/2)
+	print "%.3f cm 0 cm rlineto" % (-L)
 	print "closepath"
 	if Cr in colorListUNIX:
 		print "gsave"
@@ -204,11 +204,11 @@ def drawArrowL(X, Y, L, H, P, Cb, Cr):
 	print "newpath";
 	if Cb in colorListUNIX:
 		print Cb, "color"
-	print X, "cm", Y+(H/2), "cm", "moveto"
-	print P, "cm", H/2, "cm", "rlineto"
-	print L, "cm", 0, "cm", "rlineto"
-	print 0, "cm", -H, "cm", "rlineto"
-	print -L, "cm", 0, "cm", "rlineto"
+	print "%.3f cm %.3f cm moveto" % (X, Y+(H/2))
+	print "%.3f cm %.3f cm rlineto" % (P, H/2)
+	print "%.3f cm 0 cm rlineto" % L
+	print "0 cm %.3f cm rlineto" % (-H)
+	print "%.3f cm 0 cm rlineto" % (-L)
 	print "closepath"
 	if Cr in colorListUNIX:
 		print "gsave"
@@ -220,7 +220,7 @@ def drawText(X, Y, T, C):
 	print "newpath"
 	if C in colorListUNIX:
 		print C, "color"
-	print X, "cm", Y, "cm", "moveto"
+	print "%.3f cm %.3f cm moveto" % (X, Y)
 	print "(%s)" % T, "show"
 
 

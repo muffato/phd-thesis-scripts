@@ -215,14 +215,13 @@ def checkArgs(args, options, info):
 				# Parametre non connu
 				if not s in valOpt:
 					error_usage()
-				# Valeur de parametre non autorisee
-				if (type(opt[s][1]) == list) and (v not in opt[s][1]):
-					error_usage()
 				# Mauvaise syntaxe pour les bool
 				if opt[s][0] == bool:
 					error_usage()
-				# oki
+				# Valeur de parametre non autorisee
 				valOpt[s] = opt[s][0](v)
+				if (type(opt[s][1]) == list) and (valOpt[s] not in opt[s][1]):
+					error_usage()
 				
 			except ValueError:
 				s = t[1:]
