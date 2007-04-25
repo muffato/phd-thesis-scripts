@@ -5,6 +5,8 @@ __doc__ = """
 		- Dessine la matrice des genes orthologues entre deux genomes.
 		- Dessine le karyotype d'un genome face a l'autre
 		- Renvoie les couples de chromosomes orthologues
+		- Renvoie la liste des couples de genes orthologues avec les details sur leurs positions
+		- Renvoie l'evolution du nombre de genes (gain / perte / duplications)
 """
 
 ##################
@@ -57,7 +59,7 @@ def buildOrthosTable(genome1, chr1, genome2, chr2):
 ########
 
 # Arguments
-modes = ["Matrix", "Karyotype", "OrthosChr", "OrthosGenes"]
+modes = ["Matrix", "Karyotype", "OrthosChr", "OrthosGenes", "GeneNumberEvolution"]
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["studiedGenome", "referenceGenome"], \
 	[("orthologuesList",str,""), ("includeGaps", bool, False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
@@ -225,7 +227,6 @@ elif (options["output"] == modes[2]):
 # Fichier avec les noms des paires de genes orthologues et leurs coordonnees
 elif (options["output"] == modes[3]):
 
-
 	for c1 in chr1:
 		for i1 in xrange(len(genome1.lstGenes[c1])):
 			
@@ -240,5 +241,44 @@ elif (options["output"] == modes[3]):
 				r = [c1, g1.beginning, g1.end, g1.strand, g1.names[0]]
 				r.extend([c2, g2.beginning, g2.end, g2.strand, g2.names[0]])
 				print "\t".join([str(x) for x in r])
+
+
+# Evolution du nombre de genes
+elif (options["output"] == modes[4]):
+
+	nouveaux = 0
+	nb2 = 0
+	for g in genome2:
+		nb2 += 1
+		for s in g.names:
+			if s in genome1.dicGenes:
+				(_,i) = genome1.dicGenes[s]
+				break
+		else:
+			nouveaux += 1
+
+	dupliques = {}
+	pertes = 0
+	nb1 = 0
+	for g in genome1:
+
+		nb1 += 1
+		ens = set()
+		for s in g.names:
+			if s in genome2.dicGenes:
+				ens.add(genome2.dicGenes[s])
+		if len(ens) == 0:
+			pertes += 1
+		elif len(ens) > 1:
+			dupliques[len(ens)] = dupliques.get(len(ens), 0) + 1
+
+
+	print "Evolution de A (%d genes) vers B (%d genes)" % (nb1, nb2)
+	print "Nb nouveaux genes", nouveaux
+	print "Nb duplications", sum(dupliques.values()), dupliques
+	print "Nb genes perdus", pertes
+
+
+
 
 

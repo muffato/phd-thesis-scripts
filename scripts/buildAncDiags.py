@@ -194,7 +194,7 @@ def findNewSpecies(d, esp, anc):
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
-	("ancestr",str,""),("useOutgroups",bool,False),\
+	("ancestr",str,""),("useOutgroups",bool,False), ("target",str,""), \
 	("showProjected",bool,False), ("showAncestral",bool,True), ("searchUndetectedSpecies",bool,True), \
 	("extractLongestPath",bool,False), ("cutLongestPath",bool,False), \
 	("genesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
@@ -204,16 +204,28 @@ def findNewSpecies(d, esp, anc):
 )
 
 
-# 1. On lit tous les fichiers
+# L'arbre phylogenetique
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-if options.useOutgroups:
-	listSpecies = phylTree.listSpecies
+
+# Les especes a utiliser
+tmp = options["target"].split(',')
+if len(tmp) == 0:
+	print >> sys.stderr, "Je veux un ancetre !!!"
+	sys.exit(1)
+elif len(tmp) == 1:
+	listSpecies = phylTree.species[tmp[0]]
 else:
-	listSpecies = phylTree.species[options.ancestr]
+	listSpecies = [phylTree.officialName[x] for x in tmp]
+if options.useOutgroups:
+	listSpecies += phylTree.outgroupSpecies[target]
 phylTree.loadSpeciesFromList(listSpecies, options.genesFile)
 
-# La structure qui accueillera les diagonales
-diagEntry = dict( [(anc, []) for anc in phylTree.items if options.useOutgroups or (phylTree.getFirstParent(anc, options.ancestr) == options.ancestr)] )
+# Les ancetres correspondants et la structure qui accueillera les diagonales
+target = set()
+for (i,j) in utils.myTools.myMatrixIterator(len(listSpecies), len(listSpecies), utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	target.update(phylTree.getNodesBetween(listSpecies[i], listSpecies[j]))
+diagEntry = dict( [(anc, []) for anc in target] )
+
 # On compare toutes les especes entre elles
 for (i,j) in utils.myTools.myMatrixIterator(len(listSpecies), len(listSpecies), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 	calcDiags(listSpecies[i], listSpecies[j])

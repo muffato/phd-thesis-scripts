@@ -204,15 +204,17 @@ for c in genesAnc.lstChr:
 		if not lstTot[i].isMemeSens(lstTot[0]):
 			lstTot[i].reverse()
 
+	if len(lstTot) == 0:
+		lstTot.append(range(1, n+1))
+	
 	for i in xrange(n):
-		q = set([s.res[i] for s in lstTot])
 		print c,
 		if (options["nbConcorde"] > 1) and options["withConcordeStats"]:
-			print len(q),
-		if len(lstTot) == 0:
-			print " ".join(genesAnc.lstGenes[c][i].names)
-		else:
-			print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
+			print len(set([s.res[i] for s in lstTot])),
+		#if len(lstTot) == 0:
+		#	print " ".join(genesAnc.lstGenes[c][i].names)
+		#else:
+		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 	
 	solUniq = utils.myMaths.unique([l.res for l in lstTot])
 	print >> sys.stderr, len(solUniq), "solutions"
