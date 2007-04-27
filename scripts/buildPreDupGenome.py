@@ -59,7 +59,7 @@ def loadChrAncIni(nom):
 #
 def buildParaOrtho(lstGenesAnc):
 
-	print >> sys.stderr, "Creation des listes d'orthologues et de paralogues ...",
+	print >> sys.stderr, "Formattage des listes d'orthologues et de paralogues ...",
 	para = dict([(e,{}) for e in especesDup])
 	ortho = dict([(e,{}) for e in especesDup])
 	
@@ -295,7 +295,7 @@ def printColorAncestr(genesAnc, chrAncGenes):
 	lstChr = sorted(chrAncGenes)
 	
 	if options["showQuality"]:
-		print "\t\t%s" % "\t".join(lstChr)
+		print "\t\t%s" % "\t".join([str(c) for c in lstChr])
 	
 	for c in lstChr:
 		nb = 0
@@ -328,7 +328,9 @@ phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 especesDup = options["especesDup"].split(',')
 especesNonDupGrp = [x.split('+') for x in options["especesNonDup"].split(',')]
 especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
-rootNonDup = [x for x in phylTree.branches[phylTree.root] if len(set(phylTree.species[x]).intersection(especesDup)) == 0][0]
+for x in phylTree.branches[phylTree.root]:
+	if phylTree.getFirstParent(x, especesDup[0]) != x:
+		rootNonDup = x
 phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
 genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAncestraux.list"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]

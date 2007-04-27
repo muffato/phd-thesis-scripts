@@ -53,11 +53,13 @@ def loadDiagsFile(nom, ancName):
 #
 def checkLonelyGenes():
 
-
+	# Charge les genomes des especes modernes si ca n'a pas encore ete fait
 	if len(phylTree.dicGenomes) == 0:
 		phylTree.loadAllSpeciesSince(None, options["genesFile"])
+	
+	# Charge les genomes des ancetres outgroup
 	genesAnc = {}
-	for a in phylTree.items:
+	for a in phylTree.listAncestr:
 		if phylTree.getFirstParent(options["ancestr"], a) == a:
 			genesAnc[a] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[a])
 	
@@ -141,7 +143,7 @@ def calcPoids(node):
 	anc = node
 	while anc in phylTree.parent:
 		par = phylTree.parent[anc]
-		outgroup.extend([(e,1./float(2*phylTree.ages[par]-phylTree.ages[node])) for (e,_) in phylTree.items[par] if e != anc])
+		outgroup.extend([(e,1./float(2*phylTree.ages[par]-phylTree.ages[node])) for e in phylTree.branches[par] if e != anc])
 		anc = par
 	s = sum([a for (_,a) in outgroup])
 	for (e,a) in outgroup:
@@ -183,8 +185,8 @@ outgroup = set(phylTree.outgroupSpecies[options["ancestr"]])
 dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
 def calcPoidsFils(node, calc):
 	dicPoidsEspeces[node] = calc
-	if node in phylTree.items:
-		poids = calc / float(len(phylTree.items[node]))
+	if node in phylTree.listAncestr:
+		poids = calc / float(len(phylTree.branches[node]))
 		for f in phylTree.branches[node]:
 			calcPoidsFils(f, poids)
 phylTree.travelFunc(options["ancestr"], calcPoidsFils, options["useOutgroups"])

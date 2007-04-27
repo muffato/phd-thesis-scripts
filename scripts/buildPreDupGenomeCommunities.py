@@ -20,46 +20,13 @@ import utils.myCommunities
 
 # FONCTIONS #
 
-
-#
-# Charge le fichier qui contient les alternances que l'on doit observer
-# Format de chaque ligne: "A	*Tetraodon.nigroviridis 2 3 5	*Gastero ..."
-# Renvoie un dictionnaire des chromosomes ancestraux, qui contient les dictionnaires (par especes) des alternances
-#
-def loadChrAncIni(nom):
-
-	chrAnc = {}
-	f = utils.myTools.myOpenFile(nom, 'r')
-	for ligne in f:
-
-		c = ligne.split('\t')
-		dic = phylTree.newCommonNamesMapperInstance()
-		for x in c[1:]:
-			cc = x.split('|')
-			if len(cc) != 2:
-				continue
-			s = set()
-			for x in cc[1].split():
-				# Un nom de chromosome
-				# On convertit en entier le nom du chromosome si possible
-				try:
-					x = int(x)
-				except Exception:
-					pass
-				s.add(x)
-			dic[cc[0]] = s
-		chrAnc[c[0]] = dic
-	f.close()
-	return chrAnc
-
-
 #
 # Construit les tables d'associations pour chaque especes dupliquee
 #  des paralogues et des orthologues
 #
 def buildParaOrtho(lstGenesAnc):
 
-	print >> sys.stderr, "Creation des listes d'orthologues et de paralogues ...",
+	print >> sys.stderr, "Formattage des listes d'orthologues et de paralogues ...",
 	para = dict([(e,{}) for e in especesDup])
 	ortho = dict([(e,{}) for e in especesDup])
 	
@@ -160,7 +127,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 #
 # Pour une espece non dupliquee donnee, fait la synthese de tous les DCS chevauchants
 #
-def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
+def doSynthese(combin, eND, orthos):
 	
 	print >> sys.stderr, "Synthese des decoupages de", eND, "...",
 	
@@ -178,65 +145,89 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 			l.append( (p,g,a) )
 		l.sort()
 		lstBlocs.append(l)
+	
 	lstBlocs.sort()
-	
 	print >> sys.stderr, len(lstBlocs), "blocs pour", sum([len(x) for x in lstBlocs]), "orthologues",
-
-	if options["showDCS"]:
-		print "%s\t\t\t\t%s\t" % (eND, "\t".join(especesDup))
 	
-	nbDCS = 0
-	DCSlen = 0
 	res = []
+	DCSlen = 0
 
-	# On va assigner un chromosome ancestral a chaque DCS en fonction des alternances predefinies
+	# On extrait le profil d'alternance de chaque DCS et on ne garde que les DCS qui alternent
 	for gr in lstBlocs:
-		cc = addDCS(gr, col, dicGenesAnc, chrAnc, eND)
 		# Alternance detectee
-		if cc != None:
-			nbDCS += 1
+		if addDCS(gr):
+			res.append(gr)
 			DCSlen += len(gr)
-		#if cc == 'N':
-		res.append(gr)
-			
 		if options["showDCS"]:
 			for ((c,i),g,a) in gr:
-				print "%s\t%d\t%s\t\t%s\t%s" % \
-				(c, i, g, "\t".join(["/".join([str(x) for x in set(a[eD])]) for eD in especesDup]), cc)
+				print "%s\t%d\t%s\t\t%s" % \
+				(c, i, g, "\t".join(["/".join([str(x) for x in set(a[eD])]) for eD in especesDup]))
 			print "---"
 
-	print >> sys.stderr, "/", nbDCS, "DCS pour", DCSlen, "orthologues"
-
+	print >> sys.stderr, "/", len(res), "DCS pour", DCSlen, "orthologues"
 	return res
-	return lstBlocs
 
 
 #
 # Construit les tables d'association "nom de gene" -> couleur
 # Prend la couleur la plus probable
 #
-def addDCS(bloc, col, dicGenesAnc, chrAnc, eNonDup):
+def addDCS(dcs):
 
-	score = dict([(c,0) for c in chrAnc])
-	for eDup in especesDup:
-		l = [a[eDup] for (_,_,a) in bloc if len(a[eDup]) > 0]
-		# On veut une veritable alternance
-		if len(set(utils.myMaths.flatten(l))) < 2:
-			continue
-		for c in chrAnc:
-			score[c] += float(len([x for x in l if len(chrAnc[c][eDup].intersection(x))>0 ])) / float(len(l))
-			
-	s = max(score.values())
+	#
+	# Compte le score d'alternance de chaque paire de chromosomes de l'espece eD
+	#
+	def countAltern(lstDCS, eD):
+		
+		lst = [x[eD] for (_,_,x) in lstDCS]
 
-	if s == 0:
-		return None
-	
-	for c in chrAnc:
-		if score[c] == s:
-			for g in bloc:
-				col[dicGenesAnc[g[1]][1]].append( (len(bloc),c,eNonDup) )
-			return c
-	return None
+		def countChr(c):
+			nb = 0
+			for x in lst:
+				if c not in x:
+					break
+				nb += 1
+			return nb
+		
+		count = {}
+		last = {}
+		while len(lst) > 0:
+			curr = lst.pop(0)
+			for x in curr:
+				for y in last:
+					if y == x:
+						continue
+					s = (countChr(x)+1) * last[y] + count.get((x,y), 0)
+					count[(x,y)] = count[(y,x)] = s
+				for y in curr:
+					if y >= x:
+						continue
+					s = 1 + count.get((x,y), 0)
+					count[(x,y)] = count[(y,x)] = s
+					
+					
+			for y in last:
+				if y not in curr:
+					last[y] = 0
+			for x in curr:
+				last[x] = last.get(x,0) + 1
+
+		return count
+
+	global allDCSe1, allDCSe2
+	# On parcourt les DCS en ne gardant que ceux qui alternent
+	res = {}
+	altern = False
+	for eD in especesDup:
+		res[eD] = countAltern(dcs, eD)
+		if len(res[eD]) > 0 and max(res[eD].values()) > 0:
+			altern = True
+	if altern:
+		for eD in res:
+			allDCSe1[eD].append(res[eD])
+			allDCSe2[eD].append(set(res[eD]))
+
+	return altern
 
 
 #
@@ -301,14 +292,14 @@ def printColorAncestr(genesAnc, chrAncGenes):
 
 	lstChr = sorted(chrAncGenes)
 	
-	if options.showQuality:
-		print "\t\t%s" % "\t".join(lstChr)
+	if options["showQuality"]:
+		print "\t\t%s" % "\t".join([str(c) for c in lstChr])
 	
 	for c in lstChr:
 		nb = 0
 		for i in chrAncGenes[c]:
 			nb += 1
-			if options.showQuality:
+			if options["showQuality"]:
 				print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*col[i][x]) for x in lstChr]), 100*col[i][c])
 			if options["showAncestralGenome"]:
 				print c, " ".join(genesAnc[i].names)
@@ -322,7 +313,7 @@ def printColorAncestr(genesAnc, chrAncGenes):
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genesAncestraux.list", "draftPreDupGenome.conf", "phylTree.conf"],
+	["genesAncestraux.list", "phylTree.conf"],
 	[("minChrLen",int,20), ("precisionChrAnc",int,25), ("usePhylTreeScoring",bool,False), \
 	("especesNonDup",str,""), ("especesDup",str,""), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
@@ -340,13 +331,14 @@ phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
 genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAncestraux.list"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
 (para,orthos) = buildParaOrtho(lstGenesAnc)
-chrAnc = loadChrAncIni(noms_fichiers["draftPreDupGenome.conf"])
 
-# On colorie les matrices actuelles
+# De quoi stocker les DCS
 col = [[] for i in xrange(len(lstGenesAnc))]
+allDCSe1 = dict( [(eD,[]) for eD in especesDup] )
+allDCSe2 = dict( [(eD,[]) for eD in especesDup] )
+allDCS = []
 
 # Decoupage de chaque tetrapode
-resDCS = {}
 for eND in especesNonDup:
 	combin = utils.myTools.myCombinator([])
 	# Avec chaque poisson
@@ -355,83 +347,8 @@ for eND in especesNonDup:
 		for bloc in lstBlocs:
 			combin.addLink(bloc)
 	
-	resDCS[eND] = doSynthese(combin, eND, orthos, col, genesAnc.dicGenes, chrAnc)
-
-def countAltern(lstDCS, eD):
-	
-	lst = [x[eD] for (_,_,x) in lstDCS]
-
-	def countChr(c):
-		nb = 0
-		for x in lst:
-			if c not in x:
-				break
-			nb += 1
-		return nb
-	
-	count = {}
-	last = {}
-	while len(lst) > 0:
-		curr = lst.pop(0)
-		for x in curr:
-			for y in last:
-				if y == x:
-					continue
-				s = (countChr(x)+1) * last[y] + count.get((x,y), 0)
-				count[(x,y)] = count[(y,x)] = s
-			for y in curr:
-				if y >= x:
-					continue
-				s = 1 + count.get((x,y), 0)
-				count[(x,y)] = count[(y,x)] = s
-				
-				
-		for y in last:
-			if y not in curr:
-				last[y] = 0
-		for x in curr:
-			last[x] = last.get(x,0) + 1
-
-	return count
-
-
-
-allDCS = utils.myMaths.flatten(resDCS.values())
-
-allDCSe1 = dict( [(eD,[]) for eD in especesDup] )
-allDCSe2 = dict( [(eD,[]) for eD in especesDup] )
-allDCSindex = {}
-nbDCSutil = 0
-
-#count = dict( [(eD,{}) for eD in especesDup] )
-for iDCS in xrange(len(allDCS)):
-	dcs = allDCS[iDCS]
-	res = {}
-	altern = False
-	for eD in especesDup:
-		res[eD] = countAltern(dcs, eD)
-		if len(res[eD]) > 0 and max(res[eD].values()) > 0:
-			altern = True
-	
-	if not altern:
-		continue
-	for eD in res:
-		allDCSe1[eD].append(res[eD])
-		allDCSe2[eD].append(set(res[eD]))
-	allDCSindex[nbDCSutil] = iDCS
-	nbDCSutil += 1
-	
-print >> sys.stderr, "nbBlocsUtiles", nbDCSutil
+	allDCS.extend( doSynthese(combin, eND, orthos))
 		
-for eD in especesDup:
-	continue
-	print eD
-	for c in count[eD]:
-		print "%s\t%d" % (c, count[eD][c])
-
-
-#sys.exit(0)
-
 def scorePaireDCS(i1, i2):
 	score = 0
 	for eD in especesDup:
@@ -440,26 +357,31 @@ def scorePaireDCS(i1, i2):
 
 	return score
 
-print >> sys.stderr, "Lancement des communautes"
-lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(nbDCSutil), scoreFunc = scorePaireDCS)
+print >> sys.stderr, "Lancement des communautes sur les %d DCS :" % len(allDCS),
+lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(allDCS)), scoreFunc = scorePaireDCS)
 
-aa = 0
+# A partir d'ici, on a une association DCS <-> chromosomes, on retombe sur la regle de base, le vote a la majorite
+
+chrInd = 1
 for lstComm in lstLstComm:
-	print >> sys.stderr, "Nouvelle composante connexe"
-	aa += 1
-	for (alpha,relevance,clusters,lonely) in lstComm:
-		print >> sys.stderr, "Resultat alpha=%f relevance=%f clusters=%d size=%d lonely=%d" % \
+	if len(lstComm) == 0:
+		continue
+	(alpha,relevance,clusters,lonely) = lstComm[0]
+	print >> sys.stderr, "Resultat alpha=%f relevance=%f clusters=%d size=%d lonely=%d" % \
 		(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely))
-		for i in range(len(clusters)):
-			for g in clusters[i]:
-				for (_,nnn,_) in allDCS[allDCSindex[g]]:
-					print "%d.%d" % (aa,i+1), nnn
+	for i in range(len(clusters)):
+		for g in clusters[i]:
+			for (_,s,_) in allDCS[g]:
+				(_,anc) = genesAnc.dicGenes[s]
+				(e,_,_) = phylTree.dicGenes[s]
+				col[anc].append( (None, chrInd, e) )
+		chrInd += 1
 
-sys.exit(0)
+print >> sys.stderr, "%d chromosomes ancestraux" % chrInd
 
 # On construit les chromosomes ancestraux
 print >> sys.stderr, "Synthese des genes ancestraux ...",
-chrAncGenes = dict([ (x,[]) for x in chrAnc])
+chrAncGenes = dict([ (x,[]) for x in xrange(1, chrInd) ])
 buildChrAnc(col, chrAncGenes)
 print >> sys.stderr, "OK"
 	

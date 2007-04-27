@@ -61,19 +61,17 @@ def calcDiags(e1, e2):
 					
 		return (newGenome,transNewOld)
 
-	# Les noeuds de l'arbre entre l'ancetre et les especes actuelles
-	toStudy = [phylTree.getFirstParent(e1,e2)]
-	for tmp in phylTree.items:
-		s = phylTree.species[tmp]
-		if (e1 in s) and (e2 not in s):
-			toStudy.append( tmp )
-		elif (e2 in s) and (e1 not in s):
-			toStudy.append( tmp )
 
 	# Chargement des orthologues
 	genesAnc = utils.myGenomes.EnsemblOrthosListGenome(options["orthosFile"] % (phylTree.fileName[e1],phylTree.fileName[e2]), ancFilter=[phylTree.getFirstParent(e1,e2)])
 	newLoc = [[] for x in xrange(len(genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]))]
 	del genesAnc.lstGenes
+	
+	# Les noeuds de l'arbre entre l'ancetre et les especes actuelles
+	toStudy = phylTree.getNodesBetween(e1, e2)
+	global diagEntry
+	for tmp in toStudy:
+		diagEntry[tmp] = diagEntry.get(tmp, [])
 
 	g1 = phylTree.dicGenomes[e1]
 	g2 = phylTree.dicGenomes[e2]
@@ -194,7 +192,7 @@ def findNewSpecies(d, esp, anc):
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
-	("ancestr",str,""),("useOutgroups",bool,False), ("target",str,""), \
+	("useOutgroups",bool,False), ("target",str,""), \
 	("showProjected",bool,False), ("showAncestral",bool,True), ("searchUndetectedSpecies",bool,True), \
 	("extractLongestPath",bool,False), ("cutLongestPath",bool,False), \
 	("genesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
@@ -210,7 +208,7 @@ phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 # Les especes a utiliser
 tmp = options["target"].split(',')
 if len(tmp) == 0:
-	print >> sys.stderr, "Je veux un ancetre !!!"
+	print >> sys.stderr, "Aucune cible indiquee pour l'extraction des diagonales"
 	sys.exit(1)
 elif len(tmp) == 1:
 	listSpecies = phylTree.species[tmp[0]]
@@ -220,14 +218,10 @@ if options.useOutgroups:
 	listSpecies += phylTree.outgroupSpecies[target]
 phylTree.loadSpeciesFromList(listSpecies, options.genesFile)
 
-# Les ancetres correspondants et la structure qui accueillera les diagonales
-target = set()
+# On compare toutes les especes entre elles
+diagEntry = {}
 for (i,j) in utils.myTools.myMatrixIterator(len(listSpecies), len(listSpecies), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 	target.update(phylTree.getNodesBetween(listSpecies[i], listSpecies[j]))
-diagEntry = dict( [(anc, []) for anc in target] )
-
-# On compare toutes les especes entre elles
-for (i,j) in utils.myTools.myMatrixIterator(len(listSpecies), len(listSpecies), utils.myTools.myMatrixIterator.StrictUpperMatrix):
 	calcDiags(listSpecies[i], listSpecies[j])
 
 # On a besoin des genes ancestraux

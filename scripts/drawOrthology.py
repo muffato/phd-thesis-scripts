@@ -240,6 +240,8 @@ elif (options["output"] == modes[3]):
 	
 				r = [c1, g1.beginning, g1.end, g1.strand, g1.names[0]]
 				r.extend([c2, g2.beginning, g2.end, g2.strand, g2.names[0]])
+				#r = [c1, g1.beginning, g1.end, g1.names[0]]
+				#r.extend([c2, g2.beginning, g2.end, g2.names[0]])
 				print "\t".join([str(x) for x in r])
 
 

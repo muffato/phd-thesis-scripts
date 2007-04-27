@@ -14,39 +14,101 @@ colorListUNIX = set()
 # L'en-tete PostScript
 #
 def printPsHeader(linewidth = 0.001, landscape = False):
-	print "%!PS-Adobe-3.0"
-	print "%%DocumentData: Clean7bit"
-	print "%%Creator: myPsOutput"
-	print "%%PageOrder: Ascend"
-	print "%%Pages: 1"
-	print "%%DocumentFonts: Helvetica"
-	print "%%LanguageLevel: 1"
-	print "%%EndComments"
-	
-	print "%%Page: 1 1"
-	print "/cm {28.3464567 mul} def"
+	# En-tete Postscript
+	print """
+%!PS-Adobe-3.0
+%%DocumentData: Clean7bit
+%%Creator: myPsOutput
+%%PageOrder: Ascend
+%%Pages: 1
+%%DocumentFonts: Helvetica
+%%LanguageLevel: 1
+%%EndComments
 
+/color { aload pop setrgbcolor } def
+/cm {28.3464567 mul} def
+/2cm { cm exch cm exch } def
+/myline { newpath 2cm moveto 2cm rlineto closepath stroke } def
+/mybox { newpath 2cm moveto 2cm exch dup 0 rlineto exch 0 exch rlineto neg 0 rlineto closepath } def
+/myfill { gsave color fill grestore } def
+/mytext { 2cm moveto show } def
+
+1 setlinejoin
+
+%%BeginProlog
+
+% Font encoding-vector for iso-8859-1 (latin-1)
+/font_encoding_vector [
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclam /quotedbl /numbersign /dollar /percent /ampersand /quoteright 
+/parenleft /parenright /asterisk /plus /comma /hyphen /period /slash 
+/zero /one /two /three /four /five /six /seven /eight /nine /colon 
+/semicolon /less /equal /greater /question /at /A /B /C /D /E /F /G 
+/H /I /J /K /L /M /N /O /P /Q /R /S /T /U /V /W /X /Y /Z /bracketleft 
+/backslash /bracketright /asciicircum /underscore /quoteleft /a /b /c 
+/d /e /f /g /h /i /j /k /l /m /n /o /p /q /r /s /t /u /v /w /x /y /z 
+/braceleft /bar /braceright /asciitilde /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclamdown /cent /sterling /currency /yen /brokenbar /section 
+/dieresis /copyright /ordfeminine /guillemotleft /logicalnot /hyphen 
+/registered /macron /degree /plusminus /twosuperior /threesuperior /acute 
+/mu /paragraph /bullet /cedilla /dotlessi /ordmasculine /guillemotright 
+/onequarter /onehalf /threequarters /questiondown /Agrave /Aacute 
+/Acircumflex /Atilde /Adieresis /Aring /AE /Ccedilla /Egrave /Eacute 
+/Ecircumflex /Edieresis /Igrave /Iacute /Icircumflex /Idieresis /Eth 
+/Ntilde /Ograve /Oacute /Ocircumflex /Otilde /Odieresis /multiply /Oslash 
+/Ugrave /Uacute /Ucircumflex /Udieresis /Yacute /Thorn /germandbls 
+/agrave /aacute /acircumflex /atilde /adieresis /aring /ae /ccedilla 
+/egrave /eacute /ecircumflex /edieresis /igrave /iacute /icircumflex 
+/idieresis /eth /ntilde /ograve /oacute /ocircumflex /otilde /odieresis 
+/divide /oslash /ugrave /uacute /ucircumflex /udieresis /yacute /thorn 
+/ydieresis 
+] def
+
+/MF {   % fontname newfontname -> -     make a new encoded font
+  /newfontname exch def
+  /fontname exch def
+  /fontdict fontname findfont def
+  /newfont fontdict maxlength dict def
+  fontdict { exch
+    dup /FID eq { pop pop } 
+      {  % copy to the new font dictionary
+         exch newfont 3 1 roll put } ifelse
+  } forall
+  newfont /FontName newfontname put
+  % insert only valid encoding vectors
+  font_encoding_vector length 256 eq { newfont /Encoding font_encoding_vector put } if
+  newfontname newfont definefont pop
+} bind def
+
+/Arial /font_Arial MF
+%%EndProlog
+%%Page: 1 1
+
+/font_Arial findfont
+10 scalefont
+setfont
+"""
 	print
-	print "/Arial findfont"
-	print "10 scalefont"
-	print "setfont"
-	# style de trait (coins ronds)
-	print "1 setlinejoin"
-	print linewidth, " cm setlinewidth"
+	print linewidth, "cm setlinewidth"
+	print
 
 	if landscape:
 		print "90 rotate"
 		print "0 -21 cm translate"
 		print
-	
-	# definition des couleurs dans l'en-tete du Postscript
-	print
-	print "/color {"
-	print "\taload pop setrgbcolor"
-	print "} def"
-	print
+
 	initColor()
 	print
+
+
+
 
 #
 # Le pied de page PostScript
@@ -66,7 +128,9 @@ def initColor():
 	f = open("/users/ldog/muffato/work/scripts/utils/rgb.txt", 'r')
 	for l in f:
 		c = l.split()
-		s = "".join(c[6:])
+		s = "".join(c[6:]).lower()
+		if s in colorListUNIX:
+			continue
 		colorTableRGB2UNIX[tuple([int(x) for x in c[3:6]])] = s
 		print "/%s [%s] def" % (s, " ".join(c[:3]))
 		colorListUNIX.add(s)
@@ -105,7 +169,7 @@ def getColor(s, d):
 
 	s = str(s)
 	if s in colorTransl:
-		return colorTransl[s]
+		return colorTransl[s].lower()
 
 	elif s[0] == '#':
 		(r,g,b) = [int(x) for x in s[1:].split(':')]
@@ -125,40 +189,29 @@ def getColor(s, d):
 # Fonctions de dessin #
 #######################
 
-# Les coordonnes sont en cm
+# Les coordonnes sont en cm (portrait/paysage)
 #   X: de gauche (0) a droite (21/29.7)
 #   Y: de bas (0) en haut (29.7/21)
-# Les couleurs sont facultatives, utiliser "0" ou 0 ou None pour ne pas en specifier.
+# Les couleurs sont facultatives, utiliser None pour ne pas en specifier.
 #   Sinon, utiliser le nom UNIX (cf getColor pour avoir ce nom)
 # Les angles sont en degres
 
-def drawLine(X, Y, L, H, C):
-	print "newpath"
+def setLineColor(C):
 	if C in colorListUNIX:
 		print C, "color"
-		
-	print "%.3f cm %.3f cm moveto" % (X, Y)
-	print "%.3f cm %.3f cm rlineto" % (L, H)
-	print "closepath"
-	print "stroke"
+
+def drawLine(X, Y, L, H, C):
+	setLineColor(C)
+	print "%.3f %.3f %.3f %.3f myline" % (L,H, X,Y)
 
 
 def drawBox(X, Y, L, H, Cb, Cr):
-	print "newpath"
-	if Cb in colorListUNIX:
-		print Cb, "color"
-		
-	print "%.3f cm %.3f cm moveto" % (X, Y)
-	print "%.3f cm 0 cm rlineto" % L
-	print "0 cm %.3f cm rlineto" % H
-	print "%.3f cm 0 cm rlineto" % (-L)
-	print "closepath"
-	
-	if Cr in colorListUNIX:
-		print "gsave"
-		print Cr, "color fill"
-		print "grestore"
+	print "%.3f %.3f %.3f %.3f mybox" % (L,H, X,Y)
 
+	if Cr in colorListUNIX:
+		print Cr, "myfill"
+
+	setLineColor(Cb)
 	print "stroke"
 
 
@@ -217,10 +270,8 @@ def drawArrowL(X, Y, L, H, P, Cb, Cr):
 	print "stroke"
 
 def drawText(X, Y, T, C):
-	print "newpath"
 	if C in colorListUNIX:
 		print C, "color"
-	print "%.3f cm %.3f cm moveto" % (X, Y)
-	print "(%s)" % T, "show"
+	print "(%s) %.3f %.3f mytext" % (T, X,Y)
 
 

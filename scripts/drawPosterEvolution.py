@@ -72,12 +72,13 @@ for anc in order:
 	genomesAnc.append( utils.myGenomes.AncestralGenome( options["ancGenesFile"] % phylTree.fileName[anc], chromPresents=True) )
 
 utils.myPsOutput.printPsHeader(0.001)
+print "1 cm 1 cm translate"
 print "0.1 0.1 scale"
 
 for ia1 in xrange(len(order)):
 	for ia2 in xrange(len(order)):
 
-		print >> sys.stderr, order[ia1], order[ia2]
+		print >> sys.stderr, "%s _/\_ %s " % (order[ia1], order[ia2]),
 		print "%f cm %f cm translate" % (20*ia1, 20*ia2)
 
 		genome1 = genomesAnc[ia1]
@@ -112,11 +113,11 @@ for ia1 in xrange(len(order)):
 			func(y)
 			for c in sorted(dicOrthos):
 				y += len(dicOrthos[c])
-				#func(y)
+				func(y)
 				for gene in dicOrthos[c]:
 					lstNum[(c,gene)] = i
 					i += 1
-			func(y)
+			#func(y)
 			return lstNum
 
 		lstNum1 = prepareGenome(table12, lambda x: utils.myPsOutput.drawLine(1 + x*scaleX, 1, 0, float(sum([len(table21[c]) for c in table21]))*scaleY, options["penColor"]))
@@ -134,7 +135,7 @@ for ia1 in xrange(len(order)):
 					yy = 1 + float(lstNum2[(c2,i2)]) * scaleY
 					utils.myPsOutput.drawLine( xx, yy, dp, dp, None)
 
-		sys.stderr.write('+')
+		sys.stderr.write('+\n')
 
 		print "%f cm %f cm translate" % (-20*ia1, -20*ia2)
 

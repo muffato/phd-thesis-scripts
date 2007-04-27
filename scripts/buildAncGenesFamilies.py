@@ -282,7 +282,7 @@ def buildAncFile(anc, lastComb):
 	print >> sys.stderr, "OK (%d\\%d+%d)" % (nbA,nbO,add)
 
 	if options["recursiveConstruction"]:
-		for (esp,_) in phylTree.items[anc]:
+		for esp in phylTree.branches[anc]:
 			if esp not in phylTree.dicGenomes:
 				buildAncFile(esp, res)
 

@@ -214,27 +214,34 @@ def checkArgs(args, options, info):
 				v = t[i+1:]
 				# Parametre non connu
 				if not s in valOpt:
+					print >> sys.stderr, "Option non reconnue:", s
 					error_usage()
 				# Mauvaise syntaxe pour les bool
 				if opt[s][0] == bool:
+					print >> sys.stderr, "Utiliser +%s ou -%s, sans '='" % (s,s)
 					error_usage()
 				# Valeur de parametre non autorisee
 				valOpt[s] = opt[s][0](v)
 				if (type(opt[s][1]) == list) and (valOpt[s] not in opt[s][1]):
+					print >> sys.stderr, "Les valeurs autorisees pour '%s' sont %s (ligne de commande: '%s')" \
+						% (s,'/'.join([str(x) for x in opt[s][1]]),valOpt[s])
 					error_usage()
 				
+			# Si on ne trouve pas de '=', c'est une type bool
 			except ValueError:
 				s = t[1:]
 				if not s in valOpt:
+					print >> sys.stderr, "Option non reconnue:", s
 					error_usage()
 				if opt[s][0] != bool:
+					print >> sys.stderr, "Utiliser -%s=valeur" % s
 					error_usage()
 				# Ici, on affecte False
 				valOpt[s] = (t[0] == '+')
 		elif os.access(t, os.R_OK):
 			valArg.append(t)
 		else:
-			print >> sys.stderr, "No access to", t
+			print >> sys.stderr, "Fichier %s non accessible" % t
 			error_usage()
 
 	# Il n'y a pas le nombre d'arguments minimal
