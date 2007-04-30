@@ -110,7 +110,7 @@ class PhylogeneticTree:
 					self.branches[node].append(f)
 					self.branchesSpecies[node].append(self.species[f])
 					self.species[node].extend(self.species[f])
-				for (f,_) in self.items[node]:
+				for f in self.branches[node]:
 					self.outgroupNode[f] = self.branches[node][:]
 					self.outgroupNode[f].remove(f)
 					
@@ -143,17 +143,16 @@ class PhylogeneticTree:
 		
 		# Les especes qui peuvent servir d'outgroup
 		self.outgroupSpecies = self.newCommonNamesMapperInstance()
-		for node in self.items:
+		for node in self.listAncestr:
 			self.outgroupSpecies[node] = list(set(self.listSpecies).difference(self.species[node]))
 		# Les noms a donner aux fichiers
 		self.fileName = self.newCommonNamesMapperInstance()
-		for n in self.commonNames:
-			if n in self.items:
-				self.fileName[n] = n.replace(' ', '_').replace('/', '-')
-			else:
-				self.fileName[n] = n.replace(' ', '.')
-			# Ancienne version
-			#self.fileName[n] = (self.commonNames[n]+[n])[0].replace(' ', '_').replace('/', '_')
+		for n in self.listAncestr:
+			self.fileName[n] = n.replace(' ', '_').replace('/', '-')
+		for n in self.listSpecies:
+			self.fileName[n] = n.replace(' ', '.')
+
+		self.buildPhylLinks()
 
 		print >> sys.stderr, "OK"
 		
@@ -207,6 +206,7 @@ class PhylogeneticTree:
 			
 		return anc
 
+	
 	# Renvoie tous les noeuds de l'arbre entre les deux especes (en remontant jusqu'a leur ancetre commun)
 	def getNodesBetween(self, anc1, anc2):
 		anc = self.getFirstParent(anc1, anc2)
@@ -226,6 +226,28 @@ class PhylogeneticTree:
 				a = self.parent[a]
 		
 		return res
+
+	def buildPhylLinks(self):
+		# Construit les liens entre les ancetres et les especes
+		def recDo(anc):
+			for f in self.branches[anc]:
+				recDo(f)
+				for e in self.species[f]:
+					chemin = dicAncEsp.get((e,f),[])
+					dicAncEsp[(e,anc)] = chemin+[f]
+		dicAncEsp = {}
+		recDo(self.root)
+		# Construit les liens entre les especes entre elles
+		self.dicLinks = {}
+		for anc in self.listAncestr:
+			for i1 in range(len(self.branches[anc])):
+				for i2 in range(i1):
+					for e1 in self.branchesSpecies[anc][i1]:
+						for e2 in self.branchesSpecies[anc][i2]:
+							self.dicLinks[(e1,e2)] = (anc, dicAncEsp[(e1,anc)][1:], dicAncEsp[(e2,anc)][1:])
+							self.dicLinks[(e2,e1)] = (anc, dicAncEsp[(e2,anc)][1:], dicAncEsp[(e1,anc)][1:])
+		print self.dicLinks
+		
 
 
 	# Renvoie l'arbre au format avec des parentheses
@@ -251,6 +273,7 @@ class PhylogeneticTree:
 	def loadSpeciesFromList(self, lst, template):
 
 		for esp in lst:
+			esp = self.officialName[esp]
 			g = myGenomes.EnsemblGenome(template % self.fileName[esp])
 			self.dicGenomes[esp] = g
 			for x in g.dicGenes:
@@ -282,13 +305,60 @@ class PhylogeneticTree:
 		anc = node
 		while anc in self.parent:
 			par = self.parent[anc]
-			outgroup.extend([(e,1./float(2*self.ages[par]-self.ages[node])) for (e,_) in self.items[par] if e != anc])
+			outgroup.extend([(e,1./float(2*self.ages[par]-self.ages[node])) for e in self.branches[par] if e != anc])
 			anc = par
 		s = sum([a for (_,a) in outgroup])
 		for (e,a) in outgroup:
 			func(e, a/s)
 
 
+	def initCalcDist(self, node, useOutgroups):
+		self.tmpItems = self.items.copy()
+		self.tmpItems[0] = self.tmpItems[node]
+		if useOutgroups:
+			anc = node
+			while anc in self.parent:
+				par = self.parent[anc]
+				self.tmpItems[0].extend([(e,2*self.ages[par]-self.ages[node]-self.ages[e]) for e in self.branches[par] if e != anc])
+				anc = par
+
+	def calcDist(self, values):
+
+		# La partie recursive
+		def recCalc(anc):
+			d = 0.
+			s = 0.
+			nb = 0
+		
+			# Moyenne sur tous les fils du noeud
+			for (e,p) in self.tmpItems[anc]:
+				# Des valeurs d'ancetres / d'especes fixees
+				if e in values:
+					val = values[e]
+				# Le fils est un nouveau noeud - Appel recursif
+				elif e in self.tmpItems:
+					(val,x) = recCalc(e)
+					p += x
+				# Aucune info
+				else:
+					continue
+				
+				# Si on a une vraie valeur de distance, on continue la moyenne
+				if val != None:
+					poids = 1./float(p)
+					d += val*poids
+					s += poids
+					nb += 1
+
+			# Test final
+			if nb != 0:
+				d /= s
+				if nb == 1:
+					return (d,1./s)
+				return (d,0)
+			return (None,0)
+
+		return recCalc(0)[0]
 
 
 

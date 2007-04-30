@@ -16,55 +16,17 @@ import utils.myMaths
 
 def distInterGenes(tg1, tg2):
 
-	def calcDist(anc):
-
-		d = 0.
-		s = 0.
-		nb = 0
-		# Moyenne sur tous les fils du noeud
-		for (e,p) in phylTree.items[anc]:
-			# Le fils est un nouveau noeud
-			if e in phylTree.items:
-				# Distance de 1 ou appel recursif
-				if e in lst1Anc:
-					val = 1
-				else:
-					(val,x) = calcDist(e)
-					p += x
-			# C'est une espece representee par les deux genes ancestraux
-			elif e in distEsp:
-				val = distEsp[e]
-			# Une espece non representee
-			else:
-				continue
-			
-			# Si on a une vraie valeur de distance, on continue la moyenne
-			if val != 0:
-				poids = 1./float(p)
-				d += val*poids
-				s += poids
-				nb += 1
-
-		# Test final
-		if nb != 0:
-			d /= s
-			if (options["seuilMaxDistInterGenes"] == 0) or (d <= options["seuilMaxDistInterGenes"]):
-				if nb == 1:
-					return (d,1./s)
-				else:
-					return (d,0)
-		return (0,0)
-
 	# Les distances chez chaque espece
 	distEsp = {}
 	for (e1,c1,i1) in tg1:
 		for (e2,c2,i2) in tg2:
 			if e1 == e2 and c1 == c2:
 				x = abs(i1-i2)
-				if e1 in distEsp:
-					distEsp[e1] = min(distEsp[e1], x)
-				else:
-					distEsp[e1] = x
+				# Au dela d'un certain seuil, on considere que l'information n'est plus valable
+				if (options["seuilMaxDistInterGenes"] > 0) and (x > options["seuilMaxDistInterGenes"]):
+					continue
+				# On garde la plus petite distance trouvee
+				distEsp[e1] = min(distEsp.get(e1,x), x)
 	
 	# On fait la liste des especes qui presentent une distance de 1
 	lst1Esp = [e for e in distEsp if distEsp[e] == 1]
@@ -78,17 +40,19 @@ def distInterGenes(tg1, tg2):
 			lst1Anc.update(dicNodesBetween[(e1,e2)])
 			if options["ancestr"] in lst1Anc:
 				return 1
-	
-			
+	for a in lst1Anc:
+		distEsp[a] = 1
+
 	# On calcule par une moyenne les autres distances
-	return calcDist(options["ancestr"])[0]
+	return phylTree.calcDist(distEsp)
+
 	
 
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genomeAncestral", "phylTree.conf"], \
 	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
-	("nbConcorde",int,-1), ("withConcordeOutput",bool,False), ("withConcordeStats",bool,False),\
+	("useOutgroups",bool,False), ("nbConcorde",int,-1), ("withConcordeOutput",bool,False), ("withConcordeStats",bool,False),\
 	("concordeExec",str,"~/work/scripts/concorde"),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
@@ -106,7 +70,7 @@ if options["ancestr"] not in (phylTree.listAncestr + phylTree.listSpecies):
 dicNodesBetween = {}
 for e1 in phylTree.listSpecies:
 	for e2 in phylTree.listSpecies:
-		dicNodesBetween[(e1,e2)] = phylTree.getNodesBetween(e1,e2)
+		dicNodesBetween[(e1,e2)] = utils.myMaths.flatten(phylTree.dicLinks[(e1,e2)])
 
 # On charge les genomes
 phylTree.loadAllSpeciesSince(None, options["genesFile"])
@@ -116,18 +80,26 @@ genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genomeAncestral"])
 # On etend la liste des genes ancestraux pour utiliser les outgroup
 anc = options["ancestr"]
 dicOutgroupGenes = {}
+# On remonte l'arbre jusqu'a la racine
 while anc in phylTree.parent:
 	anc = phylTree.parent[anc]
-	tmpGenesAnc = utils.myGenomes.loadGenome(options["ancGenesFile"] % anc)
+	# Le genome de l'ancetre superieur
+	tmpGenesAnc = utils.myGenomes.loadGenome(options["ancGenesFile"] % phylTree.fileName[anc])
 	del tmpGenesAnc.dicGenes
+	# Chaque gene
 	for g in tmpGenesAnc:
 		ianc = set()
 		newGenes = []
 		for s in g.names:
+			# On se sert des genes qu'on retrouve dans le genome a ordonner comme ancre
 			if s in genesAnc.dicGenes:
 				ianc.add(genesAnc.dicGenes[s])
+			# Les autres sont les orthologues dans les autres especes
 			elif s in phylTree.dicGenes:
-				newGenes.append(phylTree.dicGenes[s])
+				tt = phylTree.dicGenes[s]
+				if tt[0] not in phylTree.species[options["ancestr"]]:
+					newGenes.append(tt)
+		# On enregistre le lien entre les genes du genome a ordonner et les genes des outgroups
 		for i in ianc:
 			if i in dicOutgroupGenes:
 				dicOutgroupGenes[i].update(newGenes)
@@ -141,9 +113,8 @@ for c in genesAnc.lstChr:
 	genome[c] = []
 	for i in xrange(len(genesAnc.lstGenes[c])):
 		g = genesAnc.lstGenes[c][i]
-		tmp = set([phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes])
-		if i in dicOutgroupGenes:
-			tmp.extend(dicOutgroupGenes[i])
+		tmp = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
+		tmp.extend(dicOutgroupGenes.get( (c,i), []))
 		genome[c].append(tmp)
 del phylTree.dicGenes
 del dicOutgroupGenes
@@ -151,6 +122,7 @@ del dicOutgroupGenes
 nom = "mat%08d" % ((os.getpid() ^ os.getppid() ^ random.randint(1,16777215)) & 16777215)
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
+phylTree.initCalcDist(options["ancestr"], options["useOutgroups"])
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
 for c in genesAnc.lstChr:
@@ -176,7 +148,7 @@ for c in genesAnc.lstChr:
 		for j in xrange(i+1,n):
 			y = distInterGenes(tab[i], tab[j])
 			#print >> sys.stderr, tab[i], tab[j], y
-			if y == 0:
+			if y == None:
 				print >> f, int(mult*options["penalite"]),
 			elif y == 1:
 				print >> f, 0,
@@ -205,16 +177,17 @@ for c in genesAnc.lstChr:
 			lstTot[i].reverse()
 
 	if len(lstTot) == 0:
-		lstTot.append(range(1, n+1))
-	
-	for i in xrange(n):
-		print c,
-		if (options["nbConcorde"] > 1) and options["withConcordeStats"]:
-			print len(set([s.res[i] for s in lstTot])),
-		#if len(lstTot) == 0:
-		#	print " ".join(genesAnc.lstGenes[c][i].names)
-		#else:
-		print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
+		for i in xrange(n):
+			print c,
+			if (options["nbConcorde"] > 1) and options["withConcordeStats"]:
+				print 1,
+			print " ".join(genesAnc.lstGenes[c][i].names)
+	else:
+		for i in xrange(n):
+			print c,
+			if (options["nbConcorde"] > 1) and options["withConcordeStats"]:
+				print len(set([s.res[i] for s in lstTot])),
+			print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 	
 	solUniq = utils.myMaths.unique([l.res for l in lstTot])
 	print >> sys.stderr, len(solUniq), "solutions"

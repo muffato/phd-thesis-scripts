@@ -7,6 +7,7 @@ __doc__ = """
 		- Renvoie les couples de chromosomes orthologues
 		- Renvoie la liste des couples de genes orthologues avec les details sur leurs positions
 		- Renvoie l'evolution du nombre de genes (gain / perte / duplications)
+		- Reordonne le genome 1 pour qu'il soit plus ressemblant au genome 2
 """
 
 ##################
@@ -24,7 +25,7 @@ import utils.myPsOutput
 # FONCTIONS #
 #############
 
-# Fabrique la liste des orthologues utilises pour le dessin
+# Fabrique la liste des orthologues entre les deux genomes
 def buildOrthosTable(genome1, chr1, genome2, chr2):
 
 	# Tous les orthologues entre pour les chromosomes OK du genome 1
@@ -54,16 +55,39 @@ def buildOrthosTable(genome1, chr1, genome2, chr2):
 	return res
 
 
+# Renvoie la liste des chromosomes orthologues
+def getOrthosChr(table, chr):
+	
+	res = {}
+	for c1 in chr:
+
+		# On ne garde que les chromosomes orthologues majoritaires
+		lst = [x for (x,_) in utils.myMaths.flatten(table[c1].itervalues())]
+		count = [(lst.count(x),x) for x in set(lst)]
+		count.sort()
+		nb = (len(lst)*options["minHomology"])/100
+		tmp = []
+		for (n,c2) in count.__reversed__():
+			tmp.append( (c2,n) )
+			nb -= n
+			if nb <= 0:
+				break
+		res[c1] = tmp
+	return res
+
+
+
+
 ########
 # MAIN #
 ########
 
 # Arguments
-modes = ["Matrix", "Karyotype", "OrthosChr", "OrthosGenes", "GeneNumberEvolution"]
+modes = ["Matrix", "Karyotype", "OrthosChr", "OrthosGenes", "GenomeEvolution", "ReindexedChr"]
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["studiedGenome", "referenceGenome"], \
 	[("orthologuesList",str,""), ("includeGaps", bool, False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
-	("output",str,modes), ("scaleY",bool,False), \
+	("output",str,modes), ("reverse",bool,False), ("scaleY",bool,False), \
 	("pointSize",float,-1), ("colorFile",str,""), ("defaultColor",str,"black"), ("penColor",str,"black"), ("minHomology",int,90)], \
 	__doc__
 )
@@ -72,6 +96,10 @@ modes = ["Matrix", "Karyotype", "OrthosChr", "OrthosGenes", "GeneNumberEvolution
 # Chargement des fichiers
 genome1 = utils.myGenomes.loadGenome(noms_fichiers["studiedGenome"])
 genome2 = utils.myGenomes.loadGenome(noms_fichiers["referenceGenome"])
+if options["reverse"]:
+	x = genome1
+	genome1 = genome2
+	genome2 = x
 if options["orthologuesList"] != "":
 	genesAnc = utils.myGenomes.AncestralGenome(options["orthologuesList"])
 else:
@@ -207,22 +235,11 @@ elif (options["output"] == modes[1]):
 # Liste de chromosomes orthologues
 elif (options["output"] == modes[2]):
 
+	res = getOrthosChr(table12, chr1)
 	for c1 in chr1:
 
-		s = str(c1)
-		
-		# On ne garde que les chromosomes orthologues majoritaires
-		lst = [x for (x,_) in utils.myMaths.flatten(table12[c1].itervalues())]
-		count = [(lst.count(x),x) for x in set(lst)]
-		count.sort()
-		count.reverse()
-		nb = (len(lst)*options["minHomology"])/100
-		for (n,c2) in count:
-			s += "\t%s (%d)" % (c2,n)
-			nb -= n
-			if nb <= 0:
-				break
-		print s
+		print "%s\t%s" % (c1, "\t".join(["%s (%d)" % (c2,n) for (c2,n) in res[c1]]))
+		continue
 
 # Fichier avec les noms des paires de genes orthologues et leurs coordonnees
 elif (options["output"] == modes[3]):
@@ -240,47 +257,145 @@ elif (options["output"] == modes[3]):
 	
 				r = [c1, g1.beginning, g1.end, g1.strand, g1.names[0]]
 				r.extend([c2, g2.beginning, g2.end, g2.strand, g2.names[0]])
-				#r = [c1, g1.beginning, g1.end, g1.names[0]]
-				#r.extend([c2, g2.beginning, g2.end, g2.names[0]])
 				print "\t".join([str(x) for x in r])
 
 
 # Evolution du nombre de genes
 elif (options["output"] == modes[4]):
 
-	nouveaux = 0
-	nb2 = 0
-	for g in genome2:
-		nb2 += 1
-		for s in g.names:
-			if s in genome1.dicGenes:
-				(_,i) = genome1.dicGenes[s]
-				break
-		else:
-			nouveaux += 1
-
-	dupliques = {}
+	# On a besoin des equivalences d'un genome a l'autre
+	res1 = getOrthosChr(table12, chr1)
+	table21 = buildOrthosTable(genome2, chr2, genome1, chr1)
+	res2 = getOrthosChr(table21, chr2)
+	# Et d'en tirer les best-hits reciproques chromosomiques
+	besthits1 = {}
+	besthits2 = {}
+	for c1 in chr1:
+		for (c2,_) in res1[c1]:
+			if len([(c,x) for (c,x) in res2[c2] if c == c1]) > 0:
+				besthits1[c1] = besthits1.get(c1,[]) + [c2]
+				besthits2[c2] = besthits2.get(c2,[]) + [c1]
+				#besthits.append( (c1,c2) )
+	print besthits1
+	print besthits2
+	
+	# Initialisation
+	cassures = 0
+	translocations = 0
+	nbChr1 = 0
 	pertes = 0
 	nb1 = 0
-	for g in genome1:
-
-		nb1 += 1
-		ens = set()
-		for s in g.names:
-			if s in genome2.dicGenes:
-				ens.add(genome2.dicGenes[s])
-		if len(ens) == 0:
-			pertes += 1
-		elif len(ens) > 1:
-			dupliques[len(ens)] = dupliques.get(len(ens), 0) + 1
-
-
+	dupliques = {}
+	tmp2 = {}
+	
+	# Parcours du genome 1
+	for c1 in chr1:
+		# On met a jour le nombre de genes du genome 1
+		nb1 += len(genome1.lstGenes[c1])
+		# Les pertes du genome 1 vers le genome 2
+		pertes += len(genome1.lstGenes[c1]) - len(table12[c1])
+		# Le nombre de chromosomes
+		if len(besthits1.get(c1,[])) == 0:
+			continue
+		nbChr1 += 1
+		for c2 in besthits1[c1][1:]:
+			#if len(besthits2[c2]) == 1:
+				print >> sys.stderr, "Cassure de %s vers %s" % (c1, c2)
+				cassures += 1
+			#else:
+			#	print >> sys.stderr, "Translocation de %s vers %s" % (c1, c2)
+			#	besthits2[c2].remove(c1)
+			#	translocations += 1
+			
+		for (g1,g2) in table12[c1].iteritems():
+			# Les duplications du genome 2 vers le genome 1
+			for x in g2:
+				tmp2[x] = tmp2.get(x,0) + 1
+			# Des pertes du genome 1 vers le genome 2
+			if len(g2) == 0:
+				pertes += 1
+			# Les duplications du genome 1 vers le genome 2
+			elif len(g2) > 1:
+				dupliques[len(g2)] = dupliques.get(len(g2),0) + 1
+		
+	# Parcours du genome 2
+	nb2 = 0
+	nbChr2 = 0
+	fusions = 0
+	tt = 0
+	for c2 in chr2:
+		# On met a jour le nombre de genes du genome 1
+		nb2 += len(genome2.lstGenes[c2])
+		# Le nombre de chromosomes
+		if len(besthits2.get(c2,[])) > 0:
+			nbChr2 += 1
+			for c1 in besthits2[c2][1:]:
+				if len(besthits1[c1]) == 1:
+					print >> sys.stderr, "Fusion de %s vers %s" % (c1, c2)
+					fusions += 1
+				else:
+					print >> sys.stderr, "Translocation2 de %s vers %s" % (c1, c2)
+					#res1[c1] = [(c,x) for (c,x) in res1[c1] if c != c2]
+					tt += 1
+					cassures -= 1
+	
+	nouveaux = nb2 - len(tmp2)
+	#translocations = nbChr1-nbChr2 + cassures-fusions
+	
+	# Les duplications dans l'autre sens
+	dupliques2 = {}
+	for x in tmp2.itervalues():
+		dupliques2[x] = dupliques2.get(x,0) + 1
+	dupliques2.pop(1, None)
+	
 	print "Evolution de A (%d genes) vers B (%d genes)" % (nb1, nb2)
 	print "Nb nouveaux genes", nouveaux
 	print "Nb duplications", sum(dupliques.values()), dupliques
+	print "Nb duplications (inverse)", sum(dupliques2.values()), dupliques2
 	print "Nb genes perdus", pertes
+	print "Nb cassures", cassures
+	print "Nb fusions", fusions
+	print "Nb translocations", translocations, tt
+	print "EvolutionChr de A (%d chr) vers B (%d chr)" % (nbChr1, nbChr2)
 
 
+# On echange l'ordre des chromosomes pour que les deux genomes paraissent plus colineaires
+elif (options["output"] == modes[5]):
 
+	# D'abord on fait la liste des paires de chromosomes homologues
+	res1 = getOrthosChr(table12, chr1)
+	besthits = []
+	for c1 in chr1:
+		if len(res1[c1]) == 0:
+			besthits.append( (100000,0,c1) )
+		else:
+			(c2,nb) = res[c1][0]
+			besthits.append( (c2,-nb,c1) )
+
+	# On renvoie les chromosomes du genome 1 dans l'ordre des best hits avec le genome 2
+	besthits.sort()
+	for i in xrange(len(besthits)):
+		(c2,nb,c1) = besthits[i]
+		# Faut-il retourner le chromosome ?
+		memeSens = 0
+		# On restreint c1 a ses orthologues avec c2
+		tmp = []
+		for i1 in xrange(len(genome1.lstGenes[c1])):
+			tg2 = [i2 for (cc2,i2) in table12[c1].get(i1,[]) if cc2 == c2]
+			if len(tg2) > 0:
+				tmp.append(tg2)
+		# Le test de colinearite
+		for j in xrange(len(tmp)-1):
+			if max(tmp[j]) < min(tmp[j+1]):
+				memeSens += 1
+			elif min(tmp[j]) > max(tmp[j+1]):
+				memeSens -= 1
+		# Le resultat
+		if memeSens > 0:
+			res = genome1.lstGenes[c1].__iter__()
+		else:
+			res = genome1.lstGenes[c1].__reversed__()
+		for g in res:
+			print i+1, " ".join(g.names)
 
 

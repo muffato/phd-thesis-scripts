@@ -27,6 +27,8 @@ import utils.myCommunities
 #genome = utils.myGenomes.EnsemblGenome("~/work/data43/genes/genes.Gallus.gallus.list.bz2")
 #genome = utils.myGenomes.EnsemblGenome(sys.argv[1])
 phylTree = utils.myBioObjects.PhylogeneticTree(sys.argv[1])
+phylTree.buildPhylLinks()
+sys.exit(0)
 
 for e in phylTree.listSpecies:
 

@@ -179,8 +179,10 @@ def addDCS(dcs):
 	#
 	def countAltern(lstDCS, eD):
 		
+		# La liste des chromosomes de l'alternance
 		lst = [x[eD] for (_,_,x) in lstDCS]
 
+		# Compte le nombre d'occurrences de c dans la liste courante
 		def countChr(c):
 			nb = 0
 			for x in lst:
@@ -189,23 +191,28 @@ def addDCS(dcs):
 				nb += 1
 			return nb
 		
+		# Le compte final
 		count = {}
+		# La derniere ligne lue
 		last = {}
+		# On parcourt la liste
 		while len(lst) > 0:
 			curr = lst.pop(0)
 			for x in curr:
+				# Les alternances sont mesurees entre deux positions consecutives
 				for y in last:
 					if y == x:
 						continue
 					s = (countChr(x)+1) * last[y] + count.get((x,y), 0)
 					count[(x,y)] = count[(y,x)] = s
+				# Et aussi entre les paralogues
 				for y in curr:
 					if y >= x:
 						continue
 					s = 1 + count.get((x,y), 0)
 					count[(x,y)] = count[(y,x)] = s
-					
-					
+			
+			# On met a jour last
 			for y in last:
 				if y not in curr:
 					last[y] = 0
@@ -326,7 +333,11 @@ phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 especesDup = options["especesDup"].split(',')
 especesNonDupGrp = [x.split('+') for x in options["especesNonDup"].split(',')]
 especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
-rootNonDup = [x for x in phylTree.branches[phylTree.root] if len(set(phylTree.species[x]).intersection(especesDup)) == 0][0]
+for x in phylTree.branches[phylTree.root]:
+	if phylTree.getFirstParent(x, especesDup[0]) == x:
+		rootDup = x
+	else:
+		rootNonDup = x
 phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
 genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAncestraux.list"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
@@ -350,19 +361,27 @@ for eND in especesNonDup:
 	allDCS.extend( doSynthese(combin, eND, orthos))
 		
 def scorePaireDCS(i1, i2):
-	score = 0
-	for eD in especesDup:
-		for x in (allDCSe2[eD][i1] & allDCSe2[eD][i2]):
-			score += min(allDCSe1[eD][i1][x], allDCSe1[eD][i2][x])
 
-	return score
+	scores = phylTree.newCommonNamesMapperInstance()
+	for e in especesDup:
+		if len(allDCSe2[e][i1]) == 0 or len(allDCSe2[e][i2]) == 0:
+			continue
+		val = 0
+		for x in (allDCSe2[e][i1] & allDCSe2[e][i2]):
+			val += min(allDCSe1[e][i1][x], allDCSe1[e][i2][x])
+		scores[e] = val
+
+	# On calcule par une moyenne les autres distances
+	return phylTree.calcDist(scores)
+
 
 print >> sys.stderr, "Lancement des communautes sur les %d DCS :" % len(allDCS),
+phylTree.initCalcDist(rootDup, False)
 lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(allDCS)), scoreFunc = scorePaireDCS)
 
 # A partir d'ici, on a une association DCS <-> chromosomes, on retombe sur la regle de base, le vote a la majorite
 
-chrInd = 1
+chrInd = 0
 for lstComm in lstLstComm:
 	if len(lstComm) == 0:
 		continue
@@ -370,12 +389,12 @@ for lstComm in lstLstComm:
 	print >> sys.stderr, "Resultat alpha=%f relevance=%f clusters=%d size=%d lonely=%d" % \
 		(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely))
 	for i in range(len(clusters)):
+		chrInd += 1
 		for g in clusters[i]:
 			for (_,s,_) in allDCS[g]:
 				(_,anc) = genesAnc.dicGenes[s]
 				(e,_,_) = phylTree.dicGenes[s]
 				col[anc].append( (None, chrInd, e) )
-		chrInd += 1
 
 print >> sys.stderr, "%d chromosomes ancestraux" % chrInd
 

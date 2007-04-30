@@ -68,7 +68,7 @@ def calcDiags(e1, e2):
 	del genesAnc.lstGenes
 	
 	# Les noeuds de l'arbre entre l'ancetre et les especes actuelles
-	toStudy = phylTree.getNodesBetween(e1, e2)
+	toStudy = utils.myMaths.flatten(phylTree.dicLinks[(e1,e2)])
 	global diagEntry
 	for tmp in toStudy:
 		diagEntry[tmp] = diagEntry.get(tmp, [])
@@ -221,7 +221,6 @@ phylTree.loadSpeciesFromList(listSpecies, options.genesFile)
 # On compare toutes les especes entre elles
 diagEntry = {}
 for (i,j) in utils.myTools.myMatrixIterator(len(listSpecies), len(listSpecies), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-	target.update(phylTree.getNodesBetween(listSpecies[i], listSpecies[j]))
 	calcDiags(listSpecies[i], listSpecies[j])
 
 # On a besoin des genes ancestraux
