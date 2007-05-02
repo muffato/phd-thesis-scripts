@@ -38,8 +38,8 @@ def calcDiags(e1, e2):
 		dn1 = [g1.lstGenes[c1][trans1[(c1,i)]].names[0] for i in d1]
 		dn2 = [g2.lstGenes[c2][trans2[(c2,i)]].names[0] for i in d2]
 
-		for tmp in toStudy:
-			diagEntry[tmp].append( ((e1,c1,dn1), (e2,c2,dn2)) )
+		for anc in toStudy:
+			diagEntry[anc].append( ((e1,c1,dn1), (e2,c2,dn2)) )
 	
 	# Ecrire un genome en suite de genes ancestraux
 	def translateGenome(genome):
@@ -63,15 +63,14 @@ def calcDiags(e1, e2):
 
 
 	# Chargement des orthologues
-	genesAnc = utils.myGenomes.EnsemblOrthosListGenome(options["orthosFile"] % (phylTree.fileName[e1],phylTree.fileName[e2]), ancFilter=[phylTree.getFirstParent(e1,e2)])
+	genesAnc = utils.myGenomes.EnsemblOrthosListGenome(options["orthosFile"] % (phylTree.fileName[e1], phylTree.fileName[e2]), \
+		ancFilter = [phylTree.dicParents[e1][e2]])
 	newLoc = [[] for x in xrange(len(genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]))]
 	del genesAnc.lstGenes
 	
 	# Les noeuds de l'arbre entre l'ancetre et les especes actuelles
-	toStudy = utils.myMaths.flatten(phylTree.dicLinks[(e1,e2)])
 	global diagEntry
-	for tmp in toStudy:
-		diagEntry[tmp] = diagEntry.get(tmp, [])
+	toStudy = [anc for anc in phylTree.dicLinks[e1][e2] if anc in diagEntry]
 
 	g1 = phylTree.dicGenomes[e1]
 	g2 = phylTree.dicGenomes[e2]
@@ -154,7 +153,7 @@ def findNewSpecies(d, esp, anc):
 	res = []
 	for e in lstEsp:
 		# L'ancetre commun
-		a = phylTree.getFirstParent(anc, e)
+		a = phylTree.dicParents[anc][e]
 		# On va intersecter les chromosomes des orthologues de chaque gene
 		poss = set()
 		for i in d:
@@ -195,7 +194,7 @@ def findNewSpecies(d, esp, anc):
 	("useOutgroups",bool,False), ("target",str,""), \
 	("showProjected",bool,False), ("showAncestral",bool,True), ("searchUndetectedSpecies",bool,True), \
 	("extractLongestPath",bool,False), ("cutLongestPath",bool,False), \
-	("genesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
+	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -207,21 +206,34 @@ phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
 # Les especes a utiliser
 tmp = options["target"].split(',')
-if len(tmp) == 0:
+if len(options["target"]) == 0:
 	print >> sys.stderr, "Aucune cible indiquee pour l'extraction des diagonales"
 	sys.exit(1)
 elif len(tmp) == 1:
 	listSpecies = phylTree.species[tmp[0]]
 else:
 	listSpecies = [phylTree.officialName[x] for x in tmp]
+
+# Initialisation de diagEntry
+diagEntry = {}
+target = listSpecies[0]
+tmp = set()
+for (e1,e2) in utils.myTools.myMatrixIterator(listSpecies, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	target = phylTree.dicParents[target][e1]
+	tmp.update(phylTree.dicLinks[e1][e2][1:-1])
+for anc in tmp:
+	diagEntry[anc] = []
+
+# Les outgroup du noeud le plus ancien
 if options.useOutgroups:
 	listSpecies += phylTree.outgroupSpecies[target]
+
+# On charge donc les genomes des especes a aligner et eventuellement les outgroup
 phylTree.loadSpeciesFromList(listSpecies, options.genesFile)
 
 # On compare toutes les especes entre elles
-diagEntry = {}
-for (i,j) in utils.myTools.myMatrixIterator(len(listSpecies), len(listSpecies), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-	calcDiags(listSpecies[i], listSpecies[j])
+for (e1,e2) in utils.myTools.myMatrixIterator(listSpecies, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	calcDiags(e1, e2)
 
 # On a besoin des genes ancestraux
 if options["showAncestral"]:

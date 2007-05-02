@@ -87,8 +87,8 @@ modes = ["Matrix", "Karyotype", "OrthosChr", "OrthosGenes", "GenomeEvolution", "
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["studiedGenome", "referenceGenome"], \
 	[("orthologuesList",str,""), ("includeGaps", bool, False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
-	("output",str,modes), ("reverse",bool,False), ("scaleY",bool,False), \
-	("pointSize",float,-1), ("colorFile",str,""), ("defaultColor",str,"black"), ("penColor",str,"black"), ("minHomology",int,90)], \
+	("output",str,modes), ("reverse",bool,False), ("scaleY",bool,False), ("minHomology",int,90), \
+	("pointSize",float,-1), ("colorFile",str,""), ("defaultColor",str,"black"), ("penColor",str,"black"), ("backgroundColor",str,"white")], \
 	__doc__
 )
 
@@ -128,6 +128,7 @@ if (options["output"] == modes[0]):
 	print >> sys.stderr, "Affichage ",
 	
 	utils.myPsOutput.printPsHeader(0.001)
+	utils.myPsOutput.drawBox(0,0, 21,29.7, options["backgroundColor"], options["backgroundColor"])
 	sys.stderr.write('.')
 
 	# Initialisations

@@ -329,7 +329,7 @@ especesDup = options["especesDup"].split(',')
 especesNonDupGrp = [x.split('+') for x in options["especesNonDup"].split(',')]
 especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
 for x in phylTree.branches[phylTree.root]:
-	if phylTree.getFirstParent(x, especesDup[0]) != x:
+	if phylTree.dicParents[x][especesDup[0]] != x:
 		rootNonDup = x
 phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
 genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAncestraux.list"])

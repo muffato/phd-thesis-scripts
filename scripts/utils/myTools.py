@@ -48,15 +48,18 @@ class myMatrixIterator:
 	OnlyDiag = 4
 	WholeWithoutDiag = 5
 
-	def __init__(self, n, p, mode):
-		self.n = n
-		self.p = p
+	def __init__(self, lstX, lstY, mode):
+		self.x = lstX
+		if lstY == None:
+			self.y = lstX
+		else:
+			self.y = lstY
 		self.mode = mode
 
 	def __iter__(self):
 	
-		for i in xrange(0, self.n):
-			for j in xrange(0, self.p):
+		for i in xrange(0, len(self.x)):
+			for j in xrange(0, len(self.y)):
 			
 				# Les valeurs a eviter pour chaque mode
 				if self.mode == myMatrixIterator.OnlyDiag:
@@ -77,7 +80,7 @@ class myMatrixIterator:
 				# Mode inconnu
 				else:
 					continue
-				yield (i,j)
+				yield (self.x[i],self.y[j])
 		
 
 ########################################################################

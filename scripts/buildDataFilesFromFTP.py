@@ -148,14 +148,12 @@ for esp in sorted(phylTree.listSpecies):
 
 
 # On genere les fichiers d'homologues
-for (i,j) in utils.myTools.myMatrixIterator(len(nomReel), len(nomReel), utils.myTools.myMatrixIterator.UpperMatrix):
+for (esp1,esp2) in utils.myTools.myMatrixIterator(nomReel, None, utils.myTools.myMatrixIterator.UpperMatrix):
 
-	esp1 = nomReel[i]
-	esp2 = nomReel[j]
 	esp1B = dicNomsReels[esp1]
 	esp2B = dicNomsReels[esp2]
 
-	theoryAnc = phylTree.getFirstParent(esp1B, esp2B)
+	theoryAnc = phylTree.dicParents[esp1][esp2]
 		
 	if esp1 == esp2:
 		print >> sys.stderr, "Telechargement de la liste des genes paralogues de %s ..." % esp1B,

@@ -51,10 +51,8 @@ def buildAncFile(anc, lastComb):
 		poidsBranches = [max([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
 
 		nbAretes = 0
-		for (i1,i2) in utils.myTools.myMatrixIterator(len(ensGenes), len(ensGenes), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-			if ensGenes[i1] in aretes and ensGenes[i2] in aretes[ensGenes[i1]]:
-				nbAretes += 1
-			elif ensGenes[i2] in aretes and ensGenes[i1] in aretes[ensGenes[i2]]:
+		for (i1,i2) in utils.myTools.myMatrixIterator(ensGenes, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+			if (i2 in aretes.get(i1,[])) or (i1 in aretes.get(i2,[])):
 				nbAretes += 1
 		nbAretesAttendu = (len(ensGenes)*(len(ensGenes)-1))/2
 		for e in score:
@@ -100,11 +98,9 @@ def buildAncFile(anc, lastComb):
 	combDummy = utils.myTools.myCombinator([])
 	n = len(phylTree.species[anc])
 	print >> sys.stderr, "Construction des familles d'orthologues de %s " % anc,
-	for (i,j) in utils.myTools.myMatrixIterator(n, n, utils.myTools.myMatrixIterator.StrictUpperMatrix):
-		e1 = phylTree.species[anc][i]
-		e2 = phylTree.species[anc][j]
+	for (e1,e2) in utils.myTools.myMatrixIterator(phylTree.species[anc], None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
 		f = options["orthosFile"] % (phylTree.fileName[e1],phylTree.fileName[e2])
-		if phylTree.getFirstParent(e1, e2) == anc:
+		if phylTree.dicParents[e1][e2] == anc:
 			doLoad(f, phylTree.ages[anc], comb)
 		# Ne sert que si on cherche a clusteriser les familles
 		elif options["minRelevance"] < 1:
@@ -112,7 +108,7 @@ def buildAncFile(anc, lastComb):
 		utils.myTools.stderr.write('.')
 	print >> sys.stderr, " OK"
 
-	# On ne cherche que les familles transitives
+	# On cherche a clusteriser les familles transitives
 	if options["minRelevance"] < 1:
 
 		print >> sys.stderr, "Insertion des genes paralogues intra-especes ",
@@ -122,9 +118,7 @@ def buildAncFile(anc, lastComb):
 		print >> sys.stderr, " OK"
 		
 		print >> sys.stderr, "Insertion des genes paralogues inter-especes ",
-		for (i,j) in utils.myTools.myMatrixIterator(n, n, utils.myTools.myMatrixIterator.StrictUpperMatrix):
-			e1 = phylTree.species[anc][i]
-			e2 = phylTree.species[anc][j]
+		for (e1,e2) in utils.myTools.myMatrixIterator(phylTree.species[anc], None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
 			doLoad(options["paras2File"] % (phylTree.fileName[e1],phylTree.fileName[e2]), phylTree.ages[anc], combDummy)
 			utils.myTools.stderr.write('.')
 		print >> sys.stderr, " OK"
@@ -180,21 +174,21 @@ def buildAncFile(anc, lastComb):
 						b = (ci / 16) % 4
 						for cc in clusters[ci-1]:
 							print >> fa, "%s [style=\"filled\",color=\"#%02X%02X%02X\"]" % (cc, 85*r,85*g,85*b)
-					for (i1,i2) in utils.myTools.myMatrixIterator(len(x), len(x), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-						if x[i1] in aretes and x[i2] in aretes[x[i1]]:
-							ss = aretes[x[i1]][x[i2]]
-						elif x[i2] in aretes and x[i1] in aretes[x[i2]]:
-							ss = aretes[x[i2]][x[i1]]
-						elif phylTree.dicGenes[x[i1]][0] == phylTree.dicGenes[x[i2]][0]:
+					for (i1,i2) in utils.myTools.myMatrixIterator(x, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+						if i2 in aretes.get(i1, []):
+							ss = aretes[i1][i2]
+						elif i1 in aretes.get(i2, []):
+							ss = aretes[i2][i1]
+						elif phylTree.dicGenes[i1][0] == phylTree.dicGenes[i2][0]:
 							ss = -1
 						else:
 							ss = 0
 						if ss == -1:
-							print >> fa, "%s -- %s [style=\"dotted\"]" % (x[i1], x[i2])
+							print >> fa, "%s -- %s [style=\"dotted\"]" % (i1, i2)
 						elif ss == 0.5:
-							print >> fa, "%s -- %s [style=\"dashed\"]" % (x[i1], x[i2])
+							print >> fa, "%s -- %s [style=\"dashed\"]" % (i1, i2)
 						elif ss == 1:
-							print >> fa, "%s -- %s" % (x[i1], x[i2])
+							print >> fa, "%s -- %s" % (i1, i2)
 					print >> fa, "}"
 					fa.close()
 

@@ -40,11 +40,8 @@ def makeConnectedComponents(file = None, items = None, scoreFunc = None, edgesDi
 	# Chargement avec une fonction
 	if (items != None) and (scoreFunc != None):
 		# Iteration des couples (i1,i2)
-		for (i1,i2) in myTools.myMatrixIterator(len(items), len(items), myTools.myMatrixIterator.StrictUpperMatrix):
-		
+		for (x1,x2) in myTools.myMatrixIterator(items, None, myTools.myMatrixIterator.StrictUpperMatrix):
 			# Le poids de l'arete
-			x1 = items[i1]
-			x2 = items[i2]
 			score = scoreFunc(x1, x2)
 			if score > 0:
 				if x1 not in edgesDict:

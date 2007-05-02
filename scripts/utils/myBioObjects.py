@@ -118,13 +118,53 @@ class PhylogeneticTree:
 				self.listSpecies.append(node)
 				self.branchesSpecies[node].append(node)
 				self.species[node].append(node)
-	
+		
+		def buildPhylLinks():
+			
+			# Initialisation de la table de tous les liens entre les objets
+			self.dicLinks = self.newCommonNamesMapperInstance()
+			self.dicParents = self.newCommonNamesMapperInstance()
+			for f1 in self.commonNames:
+				self.dicLinks[f1] = self.newCommonNamesMapperInstance()
+				self.dicParents[f1] = self.newCommonNamesMapperInstance()
+				for f2 in self.commonNames:
+					self.dicLinks[f1][f2] = []
+				self.dicLinks[f1][f1] = [f1]
+				self.dicParents[f1][f1] = f1
+			
+			# Remplissage de chaque objet avec tous ses parents et vice-versa
+			for f1 in self.commonNames:
+				parent = f1
+				while parent != self.root:
+					f2 = parent
+					parent = self.parent[f2]
+					self.dicLinks[f1][parent] = self.dicLinks[f1][f2] + [parent]
+					self.dicLinks[parent][f1] = [parent] + self.dicLinks[f2][f1]
+					self.dicParents[f1][parent] = self.dicParents[parent][f1] = parent
+					
+			# Liens entre objets de branches differentes
+			for f1 in self.commonNames:
+				for f2 in self.commonNames:
+					if len(self.dicLinks[f1][f2]) != 0:
+						continue
+					for f3 in self.commonNames:
+						if len(set(self.dicLinks[f1][f3]).intersection(self.dicLinks[f3][f2])) == 1:
+							self.dicLinks[f1][f2] = self.dicLinks[f1][f3][:-1] + self.dicLinks[f3][f2]
+							self.dicParents[f1][f2] = f3
+							break
 				
 		self.officialName = {}
 		self.commonNames = self.newCommonNamesMapperInstance()
 		self.items = self.newCommonNamesMapperInstance()
 		self.parent = self.newCommonNamesMapperInstance()
 		self.ages = self.newCommonNamesMapperInstance()
+
+		print >> sys.stderr, "Chargement de l'arbre phylogenique de %s ..." % nom,
+		lignes = loadFile(nom)
+		self.root = recLoad(0)
+		
+		print >> sys.stderr, "Analyse des donnees ...",
+		
 		self.branches = self.newCommonNamesMapperInstance()
 		self.branchesSpecies = self.newCommonNamesMapperInstance()
 		self.species = self.newCommonNamesMapperInstance()
@@ -133,12 +173,6 @@ class PhylogeneticTree:
 		self.outgroupNode = self.newCommonNamesMapperInstance()
 		self.dicGenes = self.newCommonNamesMapperInstance()
 		self.dicGenomes = self.newCommonNamesMapperInstance()
-
-		print >> sys.stderr, "Chargement de l'arbre phylogenique de %s ..." % nom,
-		lignes = loadFile(nom)
-		self.root = recLoad(0)
-		
-		print >> sys.stderr, "Analyse des donnees ...",
 		recInitialize(self.root)
 		
 		# Les especes qui peuvent servir d'outgroup
@@ -152,7 +186,7 @@ class PhylogeneticTree:
 		for n in self.listSpecies:
 			self.fileName[n] = n.replace(' ', '.')
 
-		self.buildPhylLinks()
+		buildPhylLinks()
 
 		print >> sys.stderr, "OK"
 		
@@ -178,77 +212,6 @@ class PhylogeneticTree:
 			
 		return commonNamesMapper()
 		
-
-	# Renvoie le dernier ancetre commun des deux entites
-	def getFirstParent(self, anc1, anc2):
-		if anc1 not in self.officialName:
-			return None
-		elif anc1 in self.listSpecies:
-			e1 = set([anc1])
-		else:
-			e1 = set(self.species[anc1])
-		
-		if anc2 not in self.officialName:
-			return None
-		elif anc2 in self.listSpecies:
-			e2 = set([anc2])
-		else:
-			e2 = set(self.species[anc2])
-		
-		if e1.issubset(e2):
-			return anc2
-		elif e2.issubset(e1):
-			return anc1
-			
-		anc = self.parent[anc1]
-		while not e2.issubset(self.species[anc]):
-			anc = self.parent[anc]
-			
-		return anc
-
-	
-	# Renvoie tous les noeuds de l'arbre entre les deux especes (en remontant jusqu'a leur ancetre commun)
-	def getNodesBetween(self, anc1, anc2):
-		anc = self.getFirstParent(anc1, anc2)
-		if anc == None:
-			return []
-
-		res = [anc]
-		if anc != anc1:
-			a = self.parent[anc1]
-			while a != anc:
-				res.append(a)
-				a = self.parent[a]
-		if anc != anc2:
-			a = self.parent[anc2]
-			while a != anc:
-				res.append(a)
-				a = self.parent[a]
-		
-		return res
-
-	def buildPhylLinks(self):
-		# Construit les liens entre les ancetres et les especes
-		def recDo(anc):
-			for f in self.branches[anc]:
-				recDo(f)
-				for e in self.species[f]:
-					chemin = dicAncEsp.get((e,f),[])
-					dicAncEsp[(e,anc)] = chemin+[f]
-		dicAncEsp = {}
-		recDo(self.root)
-		# Construit les liens entre les especes entre elles
-		self.dicLinks = {}
-		for anc in self.listAncestr:
-			for i1 in range(len(self.branches[anc])):
-				for i2 in range(i1):
-					for e1 in self.branchesSpecies[anc][i1]:
-						for e2 in self.branchesSpecies[anc][i2]:
-							self.dicLinks[(e1,e2)] = (anc, dicAncEsp[(e1,anc)][1:], dicAncEsp[(e2,anc)][1:])
-							self.dicLinks[(e2,e1)] = (anc, dicAncEsp[(e2,anc)][1:], dicAncEsp[(e1,anc)][1:])
-		print self.dicLinks
-		
-
 
 	# Renvoie l'arbre au format avec des parentheses
 	def convertToFlatFile(self, anc):
@@ -292,37 +255,27 @@ class PhylogeneticTree:
 		
 		return score
 
-	# A partir d'un noeud racine, liste les sous-arbres qui en partent dans toutes les directions
-	# Appelle la fonction func sur chacun de ces sous-arbres avec le poids dependant de la position et de l'eloignement
-	def travelFunc(self, node, func, useOutgroups):
 
-		# Les fils a egalite avec un poids de 1
-		for f in self.branches[node]:
-			func(f, 1.)
-		if not useOutgroups:
-			return
-		outgroup = []
-		anc = node
-		while anc in self.parent:
-			par = self.parent[anc]
-			outgroup.extend([(e,1./float(2*self.ages[par]-self.ages[node])) for e in self.branches[par] if e != anc])
-			anc = par
-		s = sum([a for (_,a) in outgroup])
-		for (e,a) in outgroup:
-			func(e, a/s)
-
-
+	#
+	# Cree une structure d'arbre secondaire pour le calcul d'une moyenne sur les especes
+	# Si on utilise les outgroups, il faut faire basculer l'arbre pour que les outgroups
+	#    soient des fils (de fils de fils ...) de plus en plus eloignes
+	#
 	def initCalcDist(self, node, useOutgroups):
 		self.tmpItems = self.items.copy()
-		self.tmpItems[0] = self.tmpItems[node]
 		if useOutgroups:
 			anc = node
 			while anc in self.parent:
 				par = self.parent[anc]
-				self.tmpItems[0].extend([(e,2*self.ages[par]-self.ages[node]-self.ages[e]) for e in self.branches[par] if e != anc])
+				self.tmpItems[anc].append( (par,self.ages[par]-self.ages[anc]) )
+				self.tmpItems[par] = [x for x in self.tmpItems[par] if x[0] != anc]
 				anc = par
+		self.tmpItems[0] = self.tmpItems[node]
 
-	def calcDist(self, values):
+	#
+	# Lance le calcul de la moyenne etant donne les valeurs stockees dans values
+	#
+	def calcDist(self, values, init=0):
 
 		# La partie recursive
 		def recCalc(anc):
@@ -358,7 +311,7 @@ class PhylogeneticTree:
 				return (d,0)
 			return (None,0)
 
-		return recCalc(0)[0]
+		return recCalc(init)[0]
 
 
 

@@ -60,7 +60,7 @@ def checkLonelyGenes():
 	# Charge les genomes des ancetres outgroup
 	genesAnc = {}
 	for a in phylTree.listAncestr:
-		if phylTree.getFirstParent(options["ancestr"], a) == a:
+		if phylTree.dicParents[options["ancestr"]][a] == a:
 			genesAnc[a] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[a])
 	
 	print >> sys.stderr, "Ajout des genes solitaires ...",
@@ -79,7 +79,7 @@ def checkLonelyGenes():
 		for e in phylTree.listSpecies:
 			if e in outgroup:
 				# Le gene chez l'ancetre commun
-				a = phylTree.getFirstParent(options["ancestr"], e)
+				a = phylTree.dicParents[options["ancestr"]][e]
 				g = genesAnc[a].getPosition(lstGenesAnc[i])
 				# Cas d'un gene specifique de la lignee
 				if len(g) == 0:
@@ -158,7 +158,7 @@ def calcPoids(node):
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "diagsList"], \
 	[("ancestr",str,""), ("alreadyBuiltAnc",str,""), \
-	("useOutgroups",bool,True), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("weightDiagsLength",bool,False),\
+	("useOutgroups",bool,True), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("newScoring",bool,False), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -182,14 +182,17 @@ outgroup = set(phylTree.outgroupSpecies[options["ancestr"]])
 
 
 # L'apport en terme de couverture de l'arbre phylogenetique
-dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
 def calcPoidsFils(node, calc):
 	dicPoidsEspeces[node] = calc
-	if node in phylTree.listAncestr:
-		poids = calc / float(len(phylTree.branches[node]))
-		for f in phylTree.branches[node]:
+	if node in phylTree.tmpItems:
+		poids = calc / float(len(phylTree.tmpItems[node]))
+		for (f,_) in phylTree.tmpItems[node]:
 			calcPoidsFils(f, poids)
-phylTree.travelFunc(options["ancestr"], calcPoidsFils, options["useOutgroups"])
+dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
+phylTree.initCalcDist(options["ancestr"], options["useOutgroups"])
+calcPoidsFils(0, float(len(phylTree.tmpItems[0])))
+
+
 
 # Le taux de precision de chaque espece
 espCertitude = dict.fromkeys(phylTree.commonNames, 1.)
@@ -222,6 +225,8 @@ phylTree.dicGenomes.clear()
 print >> sys.stderr, "%-25s\t%s\t%s\t%s" % ("Ancetre", "Poids", "Cert", "Incert")
 for e in dicPoidsEspeces:
 	print >> sys.stderr, "%-25s\t%.3f\t%.3f\t%.3f" % (e, dicPoidsEspeces[e], espCertitude[e], espIncertitude[e])
+sys.exit(0)
+
 
 def calcScore(i1, i2):
 
@@ -254,15 +259,40 @@ def calcScore(i1, i2):
 		propOut += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in communEsp.difference(outgroup)])
 	
 	s = sum(propF) * propOut
-	for (i1,i2) in utils.myTools.myMatrixIterator(len(filsEsp), len(filsEsp), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-		s += propF[i1] * propF[i2]
-
-	if options["weightDiagsLength"]:
-		s *= len(lstDiags[i1][0]) * len(lstDiags[i1][1])
+	for (f1,f2) in utils.myTools.myMatrixIterator(propF, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		s += f1 * f2
 
 	return s
 	
-lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore)
+def calcScore2(i1, i2):
+
+	(_,e1) = lstDiags[i1]
+	(_,e2) = lstDiags[i2]
+	comparedEsp = set([e for (e,_) in e1]).intersection([e for (e,_) in e2])
+	communEsp = set([e for (e,_) in e1.intersection(e2)])
+
+	values = {}
+	for e in comparedEsp:
+		values[e] = espIncertitude[e]
+	for e in communEsp:
+		values[e] = espCertitude[e]
+
+	propF = [phylTree.calcDist(values, f) for f in filsEsp]
+	if len(outgroup) == 0:
+		propOut = 0
+	else:
+		propOut = phylTree.calcDist(values, phylTree.parent[options["ancestr"])
+	
+	s = sum(propF) * propOut
+	for (f1,f2) in utils.myTools.myMatrixIterator(propF, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		s += f1 * f2
+
+	return s
+	
+if options["newScoring"]:
+	lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore2)
+else:
+	lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore)
 clusters = []
 
 # Chaque composante connexe
@@ -292,8 +322,8 @@ for c in clusters:
 	lstChr.append(lst)
 
 inter = set()
-for (i1,i2) in utils.myTools.myMatrixIterator(len(lstChr), len(lstChr), utils.myTools.myMatrixIterator.StrictUpperMatrix):
-	inter.update(lstChr[i1].intersection(lstChr[i2]))
+for (l1,l2) in utils.myTools.myMatrixIterator(lstChr, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	inter.update(l1.intersection(l2))
 
 chrIndex = 0
 for c in lstChr:

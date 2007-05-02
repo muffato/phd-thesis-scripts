@@ -13,6 +13,7 @@ A partir de toutes les diagonales extraites entre les especes,
 # Librairies
 import sys
 import math
+import time
 import random
 import operator
 import utils.myGenomes
@@ -27,7 +28,15 @@ import utils.myCommunities
 #genome = utils.myGenomes.EnsemblGenome("~/work/data43/genes/genes.Gallus.gallus.list.bz2")
 #genome = utils.myGenomes.EnsemblGenome(sys.argv[1])
 phylTree = utils.myBioObjects.PhylogeneticTree(sys.argv[1])
-phylTree.buildPhylLinks()
+phylTree.initCalcDist("Boreoeutheria", True)
+#phylTree.buildPhylLinks()
+#print phylTree.dicLinks["Homo sapiens"]
+#print phylTree.dicLinks["Boreoeutheria"]
+#print phylTree.dicParents["Homo sapiens"]
+#print phylTree.dicParents["Boreoeutheria"]
+
+print phylTree.tmpItems
+
 sys.exit(0)
 
 for e in phylTree.listSpecies:

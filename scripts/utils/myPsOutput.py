@@ -141,9 +141,11 @@ def initColor():
 	lightColors = ["salmon", "PaleTurquoise2", "DarkSeaGreen1","khaki1", "thistle2", "PeachPuff","LightBlue", "SkyBlue1","LightGoldenrod3", "wheat1",  "DarkOliveGreen1", "lavender"]
 	
 	darkColors = ["red1", "turquoise2", "DarkGreen", "yellow", "coral2", "OliveDrab2", "orange", "MediumAquamarine", "blue2", "firebrick4", "LightSalmon", "DarkViolet", "magenta2", "DarkSeaGreen4", "DarkSlateBlue", "yellow4", "grey62", "gold", "PeachPuff2", "HotPink4", "firebrick", "purple4"]
+	#darkColors = ["turquoise2", "gray85", "yellow", "coral2", "OliveDrab2", "MediumAquamarine", "blue2", "LightSalmon", "magenta2", "DarkSeaGreen2", "PaleTurquoise3", "khaki2", "thistle3", "PeachPuff2", "HotPink2", "firebrick", "purple2"]
 
 	greekLetters = ["ALPHA", "BETA", "DELTA", "EPSILON", "GAMMA", "PHI"]
 	craniateColors = ["DarkOrange", "RoyalBlue4", "chartreuse4", "gold", "DarkOrchid4", "red3"]
+	#craniateColors = ["DarkOrange", "RoyalBlue2", "chartreuse2", "gold", "DarkOrchid1", "red2"]
 
 	# Les couleurs claires sont pour les nombres negatifs et les lettres minuscules
 	ordre = lightColors + craniateColors + darkColors
@@ -154,6 +156,7 @@ def initColor():
 		
 	# Les couleurs foncees sont pour les nombres positifs et les lettres majuscules
 	ordre = darkColors + lightColors + craniateColors
+	#ordre = craniateColors + darkColors + lightColors
 	for i in range(len(ordre)):
 		colorTransl[str(i+1)] = ordre[i]
 		if i < 26:

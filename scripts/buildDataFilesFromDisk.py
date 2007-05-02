@@ -117,7 +117,7 @@ def mkEnsemblPhylAdjustment(oldAnc, theoryAnc):
 for esp1 in phylTree.listSpecies:
 	for esp2 in phylTree.listSpecies:
 
-		theoryAnc = phylTree.getFirstParent(esp1, esp2)
+		theoryAnc = phylTree.dicParents[esp1][esp2]
 		
 		if esp1 == esp2:
 			print >> sys.stderr, "Mise en forme de la liste des genes paralogues de %s ..." % esp1,

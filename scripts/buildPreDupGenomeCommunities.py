@@ -145,9 +145,12 @@ def doSynthese(combin, eND, orthos):
 			l.append( (p,g,a) )
 		l.sort()
 		lstBlocs.append(l)
-	
 	lstBlocs.sort()
+	
 	print >> sys.stderr, len(lstBlocs), "blocs pour", sum([len(x) for x in lstBlocs]), "orthologues",
+
+	if options["showDCS"]:
+		print "%s\t\t\t\t%s\t" % (eND, "\t".join(especesDup))
 	
 	res = []
 	DCSlen = 0
@@ -334,10 +337,10 @@ especesDup = options["especesDup"].split(',')
 especesNonDupGrp = [x.split('+') for x in options["especesNonDup"].split(',')]
 especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
 for x in phylTree.branches[phylTree.root]:
-	if phylTree.getFirstParent(x, especesDup[0]) == x:
-		rootDup = x
-	else:
+	if phylTree.dicParents[x][especesDup[0]] != x:
 		rootNonDup = x
+	else:
+		rootDup = x
 phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
 genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAncestraux.list"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]

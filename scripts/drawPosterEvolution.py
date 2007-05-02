@@ -64,8 +64,9 @@ def buildOrthosTable(genome1, chr1, genome2, chr2):
 
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
-order = ["Euteleostomi", "Tetrapoda", "Amniota", "Mammalia", "Theria", "Boreoeutheria", "Euarchontoglires", "Catarrhini", "Homo/Pan/Gorilla group"]
+#order = ["Euteleostomi", "Tetrapoda", "Amniota", "Mammalia", "Theria", "Boreoeutheria", "Euarchontoglires", "Catarrhini", "Homo/Pan/Gorilla group"]
 #order = ["Euteleostomi", "Tetrapoda", "Amniota"]
+order = ["Euteleostomi", "Homo/Pan/Gorilla group"]
 
 genomesAnc = []
 for anc in order:

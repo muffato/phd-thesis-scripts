@@ -33,15 +33,20 @@ def distInterGenes(tg1, tg2):
 	
 	# On met les 1 dans les noeuds de l'arbre entre les especes
 	lst1Anc = set()
-	for i in xrange(len(lst1Esp)):
-		for j in xrange(i):
-			e1 = lst1Esp[i]
-			e2 = lst1Esp[j]
-			lst1Anc.update(dicNodesBetween[(e1,e2)])
-			if options["ancestr"] in lst1Anc:
-				return 1
+	for (e1,e2) in utils.myTools.myMatrixIterator(lst1Esp, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		lst1Anc.update(phylTree.dicLinks[e1][e2])
+		if options["ancestr"] in lst1Anc:
+			return 1
 	for a in lst1Anc:
 		distEsp[a] = 1
+
+	# En mode outgroups/2 les outgroups qui montrent une distance plus grande que les fils sont supprimes
+	if options["useOutgroups"] == 2:
+		m = [distEsp[e] for e in phylTree.species[options["ancestr"]] if e in distEsp]
+		if len(m) > 0:
+			eNO = [e for e in phylTree.outgroupSpecies[options["ancestr"]] if distEsp.get(e,0) > max(m)]
+			for e in eNO:
+				del distEsp[e]
 
 	# On calcule par une moyenne les autres distances
 	return phylTree.calcDist(distEsp)
@@ -52,7 +57,7 @@ def distInterGenes(tg1, tg2):
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genomeAncestral", "phylTree.conf"], \
 	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
-	("useOutgroups",bool,False), ("nbConcorde",int,-1), ("withConcordeOutput",bool,False), ("withConcordeStats",bool,False),\
+	("useOutgroups",int,[0,1,2]), ("nbConcorde",int,-1), ("withConcordeOutput",bool,False), ("withConcordeStats",bool,False),\
 	("concordeExec",str,"~/work/scripts/concorde"),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
@@ -65,12 +70,6 @@ phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 if options["ancestr"] not in (phylTree.listAncestr + phylTree.listSpecies):
 	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["ancestr"]
 	sys.exit(1)
-
-# Les liens entre les paires d'especes
-dicNodesBetween = {}
-for e1 in phylTree.listSpecies:
-	for e2 in phylTree.listSpecies:
-		dicNodesBetween[(e1,e2)] = utils.myMaths.flatten(phylTree.dicLinks[(e1,e2)])
 
 # On charge les genomes
 phylTree.loadAllSpeciesSince(None, options["genesFile"])
@@ -122,7 +121,7 @@ del dicOutgroupGenes
 nom = "mat%08d" % ((os.getpid() ^ os.getppid() ^ random.randint(1,16777215)) & 16777215)
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
-phylTree.initCalcDist(options["ancestr"], options["useOutgroups"])
+phylTree.initCalcDist(options["ancestr"], options["useOutgroups"] != 0)
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
 for c in genesAnc.lstChr:
