@@ -88,7 +88,7 @@ modes = ["Matrix", "Karyotype", "OrthosChr", "OrthosGenes", "GenomeEvolution", "
 	["studiedGenome", "referenceGenome"], \
 	[("orthologuesList",str,""), ("includeGaps", bool, False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
 	("output",str,modes), ("reverse",bool,False), ("scaleY",bool,False), ("minHomology",int,90), \
-	("pointSize",float,-1), ("colorFile",str,""), ("defaultColor",str,"black"), ("penColor",str,"black"), ("backgroundColor",str,"white")], \
+	("pointSize",float,-1), ("colorFile",str,""), ("defaultColor",str,"black"), ("penColor",str,"black"), ("backgroundColor",str,"")], \
 	__doc__
 )
 
@@ -128,7 +128,8 @@ if (options["output"] == modes[0]):
 	print >> sys.stderr, "Affichage ",
 	
 	utils.myPsOutput.printPsHeader(0.001)
-	utils.myPsOutput.drawBox(0,0, 21,29.7, options["backgroundColor"], options["backgroundColor"])
+	if len(options["backgroundColor"]) > 0:
+		utils.myPsOutput.drawBox(0,0, 21,29.7, options["backgroundColor"], options["backgroundColor"])
 	sys.stderr.write('.')
 
 	# Initialisations
@@ -173,15 +174,17 @@ if (options["output"] == modes[0]):
 				if type(colors) == str:
 					coul = colors
 				else:
+					flag = False
 					for gt in genome1.lstGenes[c1][i1].names + genome2.lstGenes[c2][i2].names:
 						if gt in colors.dicGenes:
 							coul = colors.dicGenes[gt][0]
+							flag = True
 							break
-					else:
+					if not flag:
 						continue
 				
 				yy = 1 + float(lstNum2[(c2,i2)]) * scaleY
-				coul = utils.myPsOutput.getColor(str(coul), options["defaultColor"])
+				coul = utils.myPsOutput.getColor(coul, options["defaultColor"])
 				utils.myPsOutput.drawBox( xx, yy, dp, dp, coul, coul)
 
 	utils.myPsOutput.printPsFooter()
@@ -256,8 +259,8 @@ elif (options["output"] == modes[3]):
 
 				g2 = genome2.lstGenes[c2][i2]
 	
-				r = [c1, g1.beginning, g1.end, g1.strand, g1.names[0]]
-				r.extend([c2, g2.beginning, g2.end, g2.strand, g2.names[0]])
+				r = (c1, g1.beginning, g1.end, g1.strand, "/".join(g1.names), \
+					c2, g2.beginning, g2.end, g2.strand, "/".join(g2.names))
 				print "\t".join([str(x) for x in r])
 
 

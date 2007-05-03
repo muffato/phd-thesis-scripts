@@ -65,11 +65,13 @@ class myStats:
 		self.data = list(lst)
 		self.data.sort()
 
-		self.min = self.data[0]
+		#self.min = self.data[0]
+		self.min = self.getValue(0)
 		self.quart1 = self.getValue(25)
 		self.median = self.getValue(50)
 		self.quart3 = self.getValue(75)
-		self.max = self.data[-1]
+		self.max = self.getValue(100)
+		#self.max = self.data[-1]
 
 		if len(self.data) == 0:
 			self.mean = self.stddev = 0
@@ -85,7 +87,9 @@ class myStats:
 			self.stddev = math.sqrt(float(s) / float(len(self.data)))
 
 	def getValue(self, x):
-		return self.data[int((x*len(self.data))/100.)]
+		if len(self.data) == 0:
+			return None
+		return self.data[int((x*(len(self.data)-1))/100.)]
 
 	def __repr__(self):
 		# min quart1 median quart3 max mean stddev len

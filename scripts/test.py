@@ -25,6 +25,11 @@ import utils.myCommunities
 #import utils.myCommunities2
 
 
+print utils.myMaths.myStats(range(101))
+
+
+sys.exit(0)
+
 #genome = utils.myGenomes.EnsemblGenome("~/work/data43/genes/genes.Gallus.gallus.list.bz2")
 #genome = utils.myGenomes.EnsemblGenome(sys.argv[1])
 phylTree = utils.myBioObjects.PhylogeneticTree(sys.argv[1])

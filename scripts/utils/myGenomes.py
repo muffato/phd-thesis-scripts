@@ -11,15 +11,32 @@ import myBioObjects
 # Cette fonction determine le type du fichier de genome a partir de la premiere ligne #
 #######################################################################################
 def loadGenome(nom):
+
+	# Classe qui simule un fichier
+	# Le but est de pouvoir acceder au fichier et lire la premiere ligne sans devoir le fermer pour le reouvrir juste apres
+	class myFileChecker:
+		def __init__(self, nom):
+			self.nom = nom
+			self.f = myTools.myOpenFile(nom, 'r')
+			self.firstLine = self.f.next()
+
+		def __iter__(self):
+			return self
+
+		def next(self):
+			self.next = self.f.next
+			return self.firstLine
+
+		def close(self):
+			return self.f.close()
 	
-	f = myTools.myOpenFile(nom, 'r')
-	c = f.readline().split()
-	f.close()
+	f = myFileChecker(nom)
+	c = f.firstLine.split()
 	
 	# Fichier de genome d'Ensembl: les trois champs du milieu sont des nombres
 	try:
 		x = int(c[1]) + int(c[2]) + int(c[3])
-		return EnsemblGenome(nom)
+		return EnsemblGenome(f)
 	except ValueError:
 		# On a un genome ancestral
 		pass
@@ -39,7 +56,7 @@ def loadGenome(nom):
 	except Exception:
 		conc = False
 		
-	return AncestralGenome(nom, chromPresents=withChr, concordeQualityFactor=conc)
+	return AncestralGenome(f, chromPresents=withChr, concordeQualityFactor=conc)
 
 
 ##########################################
@@ -54,10 +71,16 @@ class Genome:
 	#
 	def __init__(self, nom):
 
+		# le nom et l'instance de file
+		if type(nom) == str:
+			self.nom = nom
+			self.f = myTools.myOpenFile(nom, 'r')
+		else:
+			self.nom = nom.nom
+			self.f = nom
+		
 		# la liste des genes par chromosome
 		self.lstGenes = {}
-		# le nom	
-		self.nom = nom
 		# Associer un nom de gene a sa position sur le genome
 		self.dicGenes = {}
 		# La liste triee des noms des chromosomes, des scaffolds et des randoms
@@ -104,7 +127,7 @@ class Genome:
 			if g.end >= beg and g.beginning <= end:
 				yield g
 	#
-	# Renvoie les noms des genes presents aux alentours d'un gene donne
+	# Renvoie les noms des genes presents aux alentours d'un gene donne (fenetre l en nombre de bases)
 	#	
 	def getGenesNearB(self, chr, index, l):
 		if chr not in self.lstGenes:
@@ -124,7 +147,7 @@ class Genome:
 				break
 			yield g
 	#
-	# Renvoie les noms des genes presents aux alentours d'un gene donne
+	# Renvoie les noms des genes presents aux alentours d'un gene donne (fenetre l en nombre de genes)
 	#	
 	def getGenesNearN(self, chr, index, l):
 		if chr not in self.lstGenes:
@@ -167,12 +190,10 @@ class EnsemblGenome(Genome):
 		
 		Genome.__init__(self, nom)
 		
-		print >> sys.stderr, "Chargement de", nom, "...",
-		
-		f = myTools.myOpenFile(nom, 'r')
+		print >> sys.stderr, "Chargement de", self.nom, "...",
 		
 		# On lit chaque ligne
-		for ligne in f:
+		for ligne in self.f:
 			champs = ligne.split()
 			
 			# On convertit en entier le nom du chromosome si possible
@@ -183,7 +204,7 @@ class EnsemblGenome(Genome):
 	
 			self.addGene( myBioObjects.Gene([champs[-1]], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
 			
-		f.close()
+		self.f.close()
 		
 		# Les veritables chromosomes sont des entiers < 50 ou des entiers suivis de p/q/L/R/a/b ou W/X/Y/Z
 		# Les chromosomes '*random*' ou 'UNKN' sont des scaffold mis bout a bout -> pas d'ordre utilisable
@@ -194,9 +215,9 @@ class EnsemblGenome(Genome):
 					self.lstChr.append(c)
 				else:
 					self.lstScaff.append(c)
-			elif ((c[-1] in "pqLRab") and (c != "c6_QBL")) or (c in "WXYZ") or (c[:5] == "group"):
+			elif ((c[-1] in "pqLRab") and (c != "c6_QBL")) or ((c[0] in "WXYZ") and len(c) <= 2) or (c in self.dicConvRomain) or (c[:5] == "group"):
 				self.lstChr.append(c)
-			elif ("ando" in c) or (c == "UNKN"):
+			elif ("andom" in c) or (c == "UNKN"):
 				self.lstRand.append(c)
 			else:
 				self.lstScaff.append(c)
@@ -218,13 +239,12 @@ class EnsemblOrthosListGenome(Genome):
 		
 		Genome.__init__(self, nom)
 		
-		print >> sys.stderr, "Chargement de", nom, "...",
+		print >> sys.stderr, "Chargement de", self.nom, "...",
 		
-		f = myTools.myOpenFile(nom, 'r')
 		combin = myTools.myCombinator([])
 		
 		# On lit chaque ligne
-		for ligne in f:
+		for ligne in self.f:
 			champs = ligne[:-1].split('\t')
 			if len(champs) == 12:
 				# Nouvelle version des fichiers
@@ -237,7 +257,7 @@ class EnsemblOrthosListGenome(Genome):
 				if (champs[6] not in homologyFilter) and (len(homologyFilter) != 0):
 					continue
 			combin.addLink([champs[0], champs[3]])
-		f.close()
+		self.f.close()
 		
 		nb = 0
 		for g in combin:
@@ -259,14 +279,13 @@ class AncestralGenome(Genome):
 		Genome.__init__(self, nom)
 		
 		if chromPresents:
-			print >> sys.stderr, "Chargement du genome ancestral de", nom, "...",
+			print >> sys.stderr, "Chargement du genome ancestral de", self.nom, "...",
 		else:
-			print >> sys.stderr, "Chargement des genes ancestraux de", nom, "...",
+			print >> sys.stderr, "Chargement des genes ancestraux de", self.nom, "...",
 		
 		# On initialise tout
-		f = myTools.myOpenFile(nom, 'r')
 		strand = 0
-		for ligne in f:
+		for ligne in self.f:
 			champs = ligne.split()
 
 			# Le chromosome du gene lu
@@ -294,7 +313,7 @@ class AncestralGenome(Genome):
 			# On ajoute le gene
 			self.addGene( myBioObjects.Gene(champs, c, i, i, strand) )
 		
-		f.close()
+		self.f.close()
 		self.lstChr = sorted(self.lstGenes)
 		
 		print >> sys.stderr, "OK"

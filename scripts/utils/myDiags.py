@@ -35,6 +35,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 		diag = []
 		listI1 = []
 		listI2 = []
+		lastA = []
 		lastPos2 = []
 		lastS1 = 0
 		
@@ -75,28 +76,30 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 			else:
 				# On l'enregistre si elle n'est pas vide
 				if len(listI1) > 0 and len(listI2) > 0:
-					diag.append( (listI1,listI2,lastC2,(deb1,fin1),getMinMaxDiag(listI2)) )
+					diag.append( (listI1,listI2,lastA, lastC2, (deb1,fin1),getMinMaxDiag(listI2)) )
 				# On recommence a zero
 				deb1 = i1
 				lastPos2 = presI2
 				listI1 = []
 				# Pour que les diagonales de longueur 1 soient correctes
 				listI2 = [i2 for (lastC2,i2,_) in presI2[:1]]
+				lastA = []
 			
 			listI1.append(i1)
+			lastA.append(j1)
 			lastS1 = s1
 			fin1 = i1
 		
 		if len(listI1) > 0 and len(listI2) > 0:
-			diag.append( (listI1,listI2,lastC2,(deb1,fin1),getMinMaxDiag(listI2)) )
+			diag.append( (listI1,listI2,lastA, lastC2, (deb1,fin1),getMinMaxDiag(listI2)) )
 
 		# On rassemble des diagonales separees par une espace pas trop large
 		while len(diag) > 0:
 			#print >> sys.stderr, "on est sur", diag[0]
-			(d1,d2,c2,(deb1,fin1),(deb2,fin2)) = diag.pop(0)
+			(d1,d2,a,c2,(deb1,fin1),(deb2,fin2)) = diag.pop(0)
 			i = 0
 			while i < len(diag):
-				(dd1,dd2,cc2,(debb1,finn1),(debb2,finn2)) = diag[i]
+				(dd1,dd2,aa,cc2,(debb1,finn1),(debb2,finn2)) = diag[i]
 				#print >> sys.stderr, "test de", diag[i]
 
 				# Aucune chance de poursuivre la diagonale
@@ -108,6 +111,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 					#print >> sys.stderr, "OK"
 					d1.extend(dd1)
 					d2.extend(dd2)
+					a.extend(aa)
 					fin1 = finn1
 					deb2 = min(deb2,debb2)
 					fin2 = max(fin2,finn2)
@@ -117,7 +121,66 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 					i += 1
 			#print >> sys.stderr, "envoi"
 			#yield (d1,d2,c2,(deb1,fin1),(deb2,fin2))
-			callBackFunc(c1, c2, d1, d2)
+			callBackFunc(c1, c2, d1, d2, a)
+
+
+
+def calcDiags(e1, e2, g1, g2, orthos, callBack, minimalLength, fusionThreshold, sameStrand, keepOnlyOrthos):
+
+	
+	# La fonction qui permet de stocker les diagonales sur les ancetres
+	def combinDiag(c1, c2, d1, d2, a):
+
+		if len(d1) < minimalLength:
+			return
+		
+		statsDiags.append(len(d1))
+		callBack( ((e1,c1,[trans1[(c1,i)] for i in d1]), (e2,c2,[trans2[(c2,i)] for i in d2]), a) )
+	
+	# Ecrire un genome en suite de genes ancestraux
+	def translateGenome(genome):
+		newGenome = {}
+		transNewOld = {}
+		for c in genome.lstChr + genome.lstScaff:
+			newGenome[c] = [(orthos.dicGenes.get(g.names[0], (0,-1))[1],g.strand) for g in genome.lstGenes[c]]
+			if keepOnlyOrthos:
+				tmp = [x for x in newGenome[c] if x[0] != -1]
+			else:
+				tmp = newGenome[c]
+			last = 0
+			for i in xrange(len(tmp)):
+				x = tmp[i]
+				new = newGenome[c].index(x, last)
+				transNewOld[(c,i)] = "/".join(genome.lstGenes[c][new].names)
+				last = new + 1
+			newGenome[c] = tmp
+					
+		return (newGenome,transNewOld)
+
+
+	# Les noeuds de l'arbre entre l'ancetre et les especes actuelles
+	print >> sys.stderr, "Extraction des diagonales entre %s et %s " % (e1,e2),
+
+	# Les dictionnaires pour accelerer la recherche de diagonales
+	(newGen,trans1) = translateGenome(g1)
+	sys.stderr.write(".")
+	(tmp,trans2) = translateGenome(g2)
+	sys.stderr.write(".")
+	
+	newLoc = [[] for x in xrange(len(orthos.lstGenes[myGenomes.Genome.defaultChr]))]
+	for c in g2.lstChr + g2.lstScaff:
+		for i in xrange(len(tmp[c])):
+			(ianc,s) = tmp[c][i]
+			if ianc != -1:
+				newLoc[ianc].append( (c,i,s) )
+	sys.stderr.write(".")
+
+	statsDiags = []
+	iterateDiags(newGen, newLoc, fusionThreshold, sameStrand, combinDiag)
+	print >> sys.stderr, "", myMaths.myStats(statsDiags)
+
+
+
 
 
 #
@@ -301,7 +364,7 @@ class WeightedDiagGraph:
 			# On verifie l'utilite de la coupe
 			if len(self.aretes[x]) <= 2:
 				continue
-			print >> sys.stderr, "Reduction de %s (score %d)" % (x,a)
+			#print >> sys.stderr, "Reduction de %s (score %d)" % (x,a)
 			for y in s:
 				if y not in self.aretes[x]:
 					continue

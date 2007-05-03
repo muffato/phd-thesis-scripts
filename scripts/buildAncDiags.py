@@ -24,70 +24,6 @@ import utils.myDiags
 # FONCTIONS #
 #############
 
-def calcDiags(e1, e2):
-
-	
-	# La fonction qui permet de stocker les diagonales sur les ancetres
-	def combinDiag(c1, c2, d1, d2):
-		global diagEntry, statsDiags
-
-		if len(d1) < options["minimalLength"]:
-			return
-		
-		statsDiags.append(len(d1))
-		dn1 = [g1.lstGenes[c1][trans1[(c1,i)]].names[0] for i in d1]
-		dn2 = [g2.lstGenes[c2][trans2[(c2,i)]].names[0] for i in d2]
-
-		for anc in toStudy:
-			diagEntry[anc].append( ((e1,c1,dn1), (e2,c2,dn2)) )
-	
-	# Ecrire un genome en suite de genes ancestraux
-	def translateGenome(genome):
-		newGenome = {}
-		transNewOld = {}
-		for c in genome.lstChr + genome.lstScaff:
-			newGenome[c] = [(genesAnc.dicGenes.get(g.names[0], (0,-1))[1],g.strand) for g in genome.lstGenes[c]]
-			if options["keepOnlyOrthos"]:
-				tmp = [x for x in newGenome[c] if x[0] != -1]
-			else:
-				tmp = newGenome[c]
-			last = 0
-			for i in xrange(len(tmp)):
-				x = tmp[i]
-				new = newGenome[c].index(x, last)
-				transNewOld[(c,i)] = new
-				last = new + 1
-			newGenome[c] = tmp
-					
-		return (newGenome,transNewOld)
-
-
-	# Chargement des orthologues
-	genesAnc = utils.myGenomes.EnsemblOrthosListGenome(options["orthosFile"] % (phylTree.fileName[e1], phylTree.fileName[e2]), \
-		ancFilter = [phylTree.dicParents[e1][e2]])
-	newLoc = [[] for x in xrange(len(genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]))]
-	del genesAnc.lstGenes
-	
-	# Les noeuds de l'arbre entre l'ancetre et les especes actuelles
-	global diagEntry
-	toStudy = [anc for anc in phylTree.dicLinks[e1][e2] if anc in diagEntry]
-
-	g1 = phylTree.dicGenomes[e1]
-	g2 = phylTree.dicGenomes[e2]
-	(newGen,trans1) = translateGenome(g1)
-	(tmp,trans2) = translateGenome(g2)
-	
-	for c in g2.lstChr + g2.lstScaff:
-		for i in xrange(len(tmp[c])):
-			(ianc,s) = tmp[c][i]
-			if ianc != -1:
-				newLoc[ianc].append( (c,i,s) )
-
-	global statsDiags
-	print >> sys.stderr, "Extraction des diagonales entre %s et %s ..." % (e1,e2),
-	statsDiags = []
-	utils.myDiags.iterateDiags(newGen, newLoc, options["fusionThreshold"], options["sameStrand"], combinDiag)
-	print >> sys.stderr, utils.myMaths.myStats(statsDiags)
 
 def getLongestDiags(oldDiags):
 
@@ -95,12 +31,10 @@ def getLongestDiags(oldDiags):
 	diags = []
 	combin = utils.myTools.myCombinator([])
 	for i in xrange(len(oldDiags)):
-		d1 = oldDiags[i][0][2]
-		d2 = oldDiags[i][1][2]
+		((_,_,d1),(_,_,d2),_) = oldDiags[i]
 		da1 = [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d1]
-		da2 = [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d2]
 		if "" in da1:
-			diags.append(da2)
+			diags.append( [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d2] )
 		else:
 			diags.append(da1)
 		for s in d1+d2:
@@ -164,7 +98,7 @@ def findNewSpecies(d, esp, anc):
 			if len(g) == 0:
 				continue
 			# Le gene dans l'autre espece
-			tmp = [c for (c,_) in phylTree.dicGenomes[e].getPosition(genesAnc[a].lstGenes[utils.myGenomes.Genome.defaultChr][g[0][1]])]
+			tmp = [c for (c,_) in dicGenomes[e].getPosition(genesAnc[a].lstGenes[g[0][0]][g[0][1]])]
 			# Gene non trouve, on passe au suivant
 			if len(tmp) == 0:
 				continue
@@ -195,7 +129,7 @@ def findNewSpecies(d, esp, anc):
 	("showProjected",bool,False), ("showAncestral",bool,True), ("searchUndetectedSpecies",bool,True), \
 	("extractLongestPath",bool,False), ("cutLongestPath",bool,False), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
-	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
+	("genesAncFile",str,"~/work/ancestralGenomes/Genome.%s.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
@@ -205,41 +139,53 @@ def findNewSpecies(d, esp, anc):
 phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
 # Les especes a utiliser
+dicGenomes = {}
 tmp = options["target"].split(',')
 if len(options["target"]) == 0:
 	print >> sys.stderr, "Aucune cible indiquee pour l'extraction des diagonales"
 	sys.exit(1)
-elif len(tmp) == 1:
-	listSpecies = phylTree.species[tmp[0]]
 else:
-	listSpecies = [phylTree.officialName[x] for x in tmp]
-
-# Initialisation de diagEntry
-diagEntry = {}
-target = listSpecies[0]
-tmp = set()
-for (e1,e2) in utils.myTools.myMatrixIterator(listSpecies, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
-	target = phylTree.dicParents[target][e1]
-	tmp.update(phylTree.dicLinks[e1][e2][1:-1])
-for anc in tmp:
-	diagEntry[anc] = []
+	listSpecies = []
+	for x in tmp:
+		if x[0] != '.':
+			listSpecies.extend(phylTree.species[x])
+			for e in phylTree.species[x]:
+				dicGenomes[e] = utils.myGenomes.EnsemblGenome(options["genesFile"] % phylTree.fileName[e])
+		else:
+			listSpecies.append(x[1:])
+			dicGenomes[x[1:]] = utils.myGenomes.AncestralGenome(options["genesAncFile"] % phylTree.fileName[x[1:]], chromPresents=True)
 
 # Les outgroup du noeud le plus ancien
 if options.useOutgroups:
+	target = listSpecies[0]
+	for e in listSpecies:
+		target = phylTree.dicParents[target][e]
 	listSpecies += phylTree.outgroupSpecies[target]
+	for e in phylTree.outgroupSpecies[target]:
+		dicGenomes[e] = utils.myGenomes.EnsemblGenome(options["genesFile"] % phylTree.fileName[e])
 
-# On charge donc les genomes des especes a aligner et eventuellement les outgroup
-phylTree.loadSpeciesFromList(listSpecies, options.genesFile)
+# La liste des ancetres edites
+tmp = set()
+for (e1,e2) in utils.myTools.myMatrixIterator(listSpecies, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	tmp.update(phylTree.dicLinks[e1][e2][1:-1])
+	tmp.add(phylTree.dicParents[e1][e2])
+diagEntry = {}
+genesAnc = {}
+for anc in tmp:
+	diagEntry[anc] = []
+	genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
 
+	
+# La fonction qui permet de stocker les diagonales sur les ancetres
+def storeDiag(da):
+	for anc in toStudy:
+		diagEntry[anc].append( da )
+	
 # On compare toutes les especes entre elles
 for (e1,e2) in utils.myTools.myMatrixIterator(listSpecies, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
-	calcDiags(e1, e2)
-
-# On a besoin des genes ancestraux
-if options["showAncestral"]:
-	genesAnc = {}
-	for anc in diagEntry:
-		genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
+	toStudy = set(phylTree.dicLinks[e1][e2][1:-1] + [phylTree.dicParents[e1][e2]])
+	utils.myDiags.calcDiags(e1, e2, dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], storeDiag, options["minimalLength"], \
+		options["fusionThreshold"], options["sameStrand"] and (e1 not in genesAnc) and (e2 not in genesAnc), options["keepOnlyOrthos"])
 
 # Traitement final
 for anc in diagEntry:
@@ -248,7 +194,7 @@ for anc in diagEntry:
 		lst = diagEntry[anc]
 		print >> sys.stderr, "Impression des %d diagonales projetees de %s ..." % (len(lst),anc),
 		s = []
-		for ((e1,c1,d1),(e2,c2,d2)) in lst:
+		for ((e1,c1,d1),(e2,c2,d2),da) in lst:
 			s.append( len(d1) )
 			print '\t'.join([anc, str(len(d1)), e1,str(c1)," ".join(d1), e2,str(c2)," ".join(d2)])
 		ss = sum(s)
@@ -266,7 +212,7 @@ for anc in diagEntry:
 			print >> sys.stderr, "OK (%d -> %d)" % (len(diagEntry[anc]), len(lst))
 		else:
 			lst = []
-			for ((e1,c1,d1),(e2,c2,d2)) in diagEntry[anc]:
+			for ((e1,c1,d1),(e2,c2,d2),da) in diagEntry[anc]:
 				da = [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d1]
 				if "" in da:
 					da = [genesAnc[anc].dicGenes[s][1] for s in d2]
