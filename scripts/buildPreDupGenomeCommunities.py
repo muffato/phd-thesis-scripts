@@ -365,6 +365,19 @@ for eND in especesNonDup:
 		
 def scorePaireDCS(i1, i2):
 
+	val = 0
+	nb = 0
+	for e in especesDup:
+		if (len(allDCSe2[e][i1]) != 0) and (len(allDCSe2[e][i2]) == 0):
+			nb += 1
+		for x in (allDCSe2[e][i1] & allDCSe2[e][i2]):
+			val += min(allDCSe1[e][i1][x], allDCSe1[e][i2][x])
+	
+	if nb == 0:
+		return 0
+	return val / nb
+
+	# On calcule par une moyenne les autres distances
 	scores = phylTree.newCommonNamesMapperInstance()
 	for e in especesDup:
 		if len(allDCSe2[e][i1]) == 0 or len(allDCSe2[e][i2]) == 0:

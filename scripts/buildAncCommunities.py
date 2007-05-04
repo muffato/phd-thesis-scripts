@@ -190,7 +190,7 @@ def calcPoidsFils(node, calc):
 			calcPoidsFils(f, poids)
 dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
 phylTree.initCalcDist(options["ancestr"], options["useOutgroups"])
-calcPoidsFils(0, float(len(phylTree.tmpItems[0])))
+calcPoidsFils(options["ancestr"], float(len(phylTree.tmpItems[0])))
 
 
 
@@ -225,7 +225,6 @@ phylTree.dicGenomes.clear()
 print >> sys.stderr, "%-25s\t%s\t%s\t%s" % ("Ancetre", "Poids", "Cert", "Incert")
 for e in dicPoidsEspeces:
 	print >> sys.stderr, "%-25s\t%.3f\t%.3f\t%.3f" % (e, dicPoidsEspeces[e], espCertitude[e], espIncertitude[e])
-sys.exit(0)
 
 
 def calcScore(i1, i2):
@@ -281,7 +280,7 @@ def calcScore2(i1, i2):
 	if len(outgroup) == 0:
 		propOut = 0
 	else:
-		propOut = phylTree.calcDist(values, phylTree.parent[options["ancestr"])
+		propOut = phylTree.calcDist(values, phylTree.parent[options["ancestr"]])
 	
 	s = sum(propF) * propOut
 	for (f1,f2) in utils.myTools.myMatrixIterator(propF, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):

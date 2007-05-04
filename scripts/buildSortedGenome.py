@@ -18,13 +18,11 @@ def distInterGenes(tg1, tg2):
 
 	# Les distances chez chaque espece
 	distEsp = {}
-	for (e1,c1,i1) in tg1:
-		for (e2,c2,i2) in tg2:
-			if e1 == e2 and c1 == c2:
-				x = abs(i1-i2)
-				# Au dela d'un certain seuil, on considere que l'information n'est plus valable
-				if (options["seuilMaxDistInterGenes"] > 0) and (x > options["seuilMaxDistInterGenes"]):
-					continue
+	for ((e1,c1,i1), (e2,c2,i2)) in utils.myTools.myMatrixIterator(tg1, tg2, utils.myTools.myMatrixIterator.WholeMatrix):
+		if e1 == e2 and c1 == c2:
+			x = abs(i1-i2)
+			# Au dela d'un certain seuil, on considere que l'information n'est plus valable
+			if (options["seuilMaxDistInterGenes"] <= 0) or (x <= options["seuilMaxDistInterGenes"]):
 				# On garde la plus petite distance trouvee
 				distEsp[e1] = min(distEsp.get(e1,x), x)
 	

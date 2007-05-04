@@ -194,7 +194,7 @@ for anc in diagEntry:
 		lst = diagEntry[anc]
 		print >> sys.stderr, "Impression des %d diagonales projetees de %s ..." % (len(lst),anc),
 		s = []
-		for ((e1,c1,d1),(e2,c2,d2),da) in lst:
+		for ((e1,c1,d1),(e2,c2,d2),_) in lst:
 			s.append( len(d1) )
 			print '\t'.join([anc, str(len(d1)), e1,str(c1)," ".join(d1), e2,str(c2)," ".join(d2)])
 		ss = sum(s)

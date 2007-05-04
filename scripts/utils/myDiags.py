@@ -96,22 +96,21 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 		# On rassemble des diagonales separees par une espace pas trop large
 		while len(diag) > 0:
 			#print >> sys.stderr, "on est sur", diag[0]
-			(d1,d2,a,c2,(deb1,fin1),(deb2,fin2)) = diag.pop(0)
+			(d1,d2,da,c2,(deb1,fin1),(deb2,fin2)) = diag.pop(0)
 			i = 0
 			while i < len(diag):
-				(dd1,dd2,aa,cc2,(debb1,finn1),(debb2,finn2)) = diag[i]
+				(dd1,dd2,dda,cc2,(debb1,finn1),(debb2,finn2)) = diag[i]
 				#print >> sys.stderr, "test de", diag[i]
 
 				# Aucune chance de poursuivre la diagonale
 				if debb1 > (fin1+largeurTrou+1):
 					#print >> sys.stderr, "meme pas la peine"
 					break
-				a = min(abs(deb2-finn2), abs(debb2-fin2))
-				if a <= (largeurTrou+1) and c2==cc2:
+				if min(abs(deb2-finn2), abs(debb2-fin2)) <= (largeurTrou+1) and c2==cc2:
 					#print >> sys.stderr, "OK"
 					d1.extend(dd1)
 					d2.extend(dd2)
-					a.extend(aa)
+					da.extend(dda)
 					fin1 = finn1
 					deb2 = min(deb2,debb2)
 					fin2 = max(fin2,finn2)
@@ -121,7 +120,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 					i += 1
 			#print >> sys.stderr, "envoi"
 			#yield (d1,d2,c2,(deb1,fin1),(deb2,fin2))
-			callBackFunc(c1, c2, d1, d2, a)
+			callBackFunc(c1, c2, d1, d2, da)
 
 
 
@@ -129,13 +128,13 @@ def calcDiags(e1, e2, g1, g2, orthos, callBack, minimalLength, fusionThreshold, 
 
 	
 	# La fonction qui permet de stocker les diagonales sur les ancetres
-	def combinDiag(c1, c2, d1, d2, a):
+	def combinDiag(c1, c2, d1, d2, da):
 
 		if len(d1) < minimalLength:
 			return
 		
-		statsDiags.append(len(d1))
-		callBack( ((e1,c1,[trans1[(c1,i)] for i in d1]), (e2,c2,[trans2[(c2,i)] for i in d2]), a) )
+		statsDiags.append(len(da))
+		callBack( ((e1,c1,[trans1[(c1,i)] for i in d1]), (e2,c2,[trans2[(c2,i)] for i in d2]), da) )
 	
 	# Ecrire un genome en suite de genes ancestraux
 	def translateGenome(genome):
@@ -152,6 +151,7 @@ def calcDiags(e1, e2, g1, g2, orthos, callBack, minimalLength, fusionThreshold, 
 				x = tmp[i]
 				new = newGenome[c].index(x, last)
 				transNewOld[(c,i)] = "/".join(genome.lstGenes[c][new].names)
+				#transNewOld[(c,i)] = genome.lstGenes[c][new].names
 				last = new + 1
 			newGenome[c] = tmp
 					

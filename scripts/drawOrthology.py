@@ -4,10 +4,10 @@ __doc__ = """
 	Compare deux genomes:
 		- Dessine la matrice des genes orthologues entre deux genomes.
 		- Dessine le karyotype d'un genome face a l'autre
-		- Renvoie les couples de chromosomes orthologues
+		- Renvoie les couples de chromosomes orthologues avec des stats sur l'evolution des genomes (nb genes, rearrangements)
 		- Renvoie la liste des couples de genes orthologues avec les details sur leurs positions
-		- Renvoie l'evolution du nombre de genes (gain / perte / duplications)
 		- Reordonne le genome 1 pour qu'il soit plus ressemblant au genome 2
+		- Renvoie les diagonales entre les deux genomes
 """
 
 ##################
@@ -18,6 +18,7 @@ __doc__ = """
 import sys
 import utils.myGenomes
 import utils.myTools
+import utils.myDiags
 import utils.myPsOutput
 
 
@@ -83,7 +84,13 @@ def getOrthosChr(table, chr):
 ########
 
 # Arguments
-modes = ["Matrix", "Karyotype", "OrthosChr", "OrthosGenes", "GenomeEvolution", "ReindexedChr"]
+modeMatrix = "Matrix"
+modeKaryo = "Karyotype"
+modeGenomeEvol = "GenomeEvolution"
+modeOrthos = "OrthosGenes"
+modeReindexedChr = "ReindexedChr"
+modeDiags = "Diags"
+modes = [modeMatrix, modeKaryo, modeOrthos, modeGenomeEvol, modeReindexedChr, modeDiags]
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["studiedGenome", "referenceGenome"], \
 	[("orthologuesList",str,""), ("includeGaps", bool, False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
@@ -123,7 +130,7 @@ if options["includeRandoms"]:
 table12 = buildOrthosTable(genome1, chr1, genome2, chr2)
 
 # Matrice
-if (options["output"] == modes[0]):
+if (options["output"] == modeMatrix):
 
 	print >> sys.stderr, "Affichage ",
 	
@@ -192,7 +199,7 @@ if (options["output"] == modes[0]):
 
 
 # Caryotype
-elif (options["output"] == modes[1]):
+elif (options["output"] == modeKaryo):
 
 	print >> sys.stderr, "Affichage ...",
 
@@ -236,17 +243,8 @@ elif (options["output"] == modes[1]):
 	print >> sys.stderr, "OK"
 
 
-# Liste de chromosomes orthologues
-elif (options["output"] == modes[2]):
-
-	res = getOrthosChr(table12, chr1)
-	for c1 in chr1:
-
-		print "%s\t%s" % (c1, "\t".join(["%s (%d)" % (c2,n) for (c2,n) in res[c1]]))
-		continue
-
 # Fichier avec les noms des paires de genes orthologues et leurs coordonnees
-elif (options["output"] == modes[3]):
+elif (options["output"] == modeOrthos):
 
 	for c1 in chr1:
 		for i1 in xrange(len(genome1.lstGenes[c1])):
@@ -264,13 +262,14 @@ elif (options["output"] == modes[3]):
 				print "\t".join([str(x) for x in r])
 
 
-# Evolution du nombre de genes
-elif (options["output"] == modes[4]):
+# Liste de chromosomes orthologues
+elif (options["output"] == modeGenomeEvol):
 
 	# On a besoin des equivalences d'un genome a l'autre
 	res1 = getOrthosChr(table12, chr1)
 	table21 = buildOrthosTable(genome2, chr2, genome1, chr1)
 	res2 = getOrthosChr(table21, chr2)
+	
 	# Et d'en tirer les best-hits reciproques chromosomiques
 	besthits1 = {}
 	besthits2 = {}
@@ -279,13 +278,9 @@ elif (options["output"] == modes[4]):
 			if len([(c,x) for (c,x) in res2[c2] if c == c1]) > 0:
 				besthits1[c1] = besthits1.get(c1,[]) + [c2]
 				besthits2[c2] = besthits2.get(c2,[]) + [c1]
-				#besthits.append( (c1,c2) )
-	print besthits1
-	print besthits2
 	
 	# Initialisation
 	cassures = 0
-	translocations = 0
 	nbChr1 = 0
 	pertes = 0
 	nb1 = 0
@@ -294,23 +289,10 @@ elif (options["output"] == modes[4]):
 	
 	# Parcours du genome 1
 	for c1 in chr1:
-		# On met a jour le nombre de genes du genome 1
+		
+		# Les calculs sur les nombres de genes
 		nb1 += len(genome1.lstGenes[c1])
-		# Les pertes du genome 1 vers le genome 2
 		pertes += len(genome1.lstGenes[c1]) - len(table12[c1])
-		# Le nombre de chromosomes
-		if len(besthits1.get(c1,[])) == 0:
-			continue
-		nbChr1 += 1
-		for c2 in besthits1[c1][1:]:
-			#if len(besthits2[c2]) == 1:
-				print >> sys.stderr, "Cassure de %s vers %s" % (c1, c2)
-				cassures += 1
-			#else:
-			#	print >> sys.stderr, "Translocation de %s vers %s" % (c1, c2)
-			#	besthits2[c2].remove(c1)
-			#	translocations += 1
-			
 		for (g1,g2) in table12[c1].iteritems():
 			# Les duplications du genome 2 vers le genome 1
 			for x in g2:
@@ -322,29 +304,30 @@ elif (options["output"] == modes[4]):
 			elif len(g2) > 1:
 				dupliques[len(g2)] = dupliques.get(len(g2),0) + 1
 		
+		# Les calculs sur les rearrangements
+		if len(besthits1.get(c1,[])) == 0:
+			continue
+		nbChr1 += 1
+		cassures += len(besthits1[c1]) - 1
+			
+		
 	# Parcours du genome 2
 	nb2 = 0
 	nbChr2 = 0
 	fusions = 0
-	tt = 0
+	#tt = 0
 	for c2 in chr2:
 		# On met a jour le nombre de genes du genome 1
 		nb2 += len(genome2.lstGenes[c2])
-		# Le nombre de chromosomes
-		if len(besthits2.get(c2,[])) > 0:
-			nbChr2 += 1
-			for c1 in besthits2[c2][1:]:
-				if len(besthits1[c1]) == 1:
-					print >> sys.stderr, "Fusion de %s vers %s" % (c1, c2)
-					fusions += 1
-				else:
-					print >> sys.stderr, "Translocation2 de %s vers %s" % (c1, c2)
-					#res1[c1] = [(c,x) for (c,x) in res1[c1] if c != c2]
-					tt += 1
-					cassures -= 1
+		
+		# Les calculs sur les rearrangements
+		if len(besthits2.get(c2,[])) == 0:
+			continue
+			
+		nbChr2 += 1
+		fusions += len(besthits2[c2]) - 1
 	
 	nouveaux = nb2 - len(tmp2)
-	#translocations = nbChr1-nbChr2 + cassures-fusions
 	
 	# Les duplications dans l'autre sens
 	dupliques2 = {}
@@ -352,19 +335,19 @@ elif (options["output"] == modes[4]):
 		dupliques2[x] = dupliques2.get(x,0) + 1
 	dupliques2.pop(1, None)
 	
-	print "Evolution de A (%d genes) vers B (%d genes)" % (nb1, nb2)
-	print "Nb nouveaux genes", nouveaux
-	print "Nb duplications", sum(dupliques.values()), dupliques
-	print "Nb duplications (inverse)", sum(dupliques2.values()), dupliques2
-	print "Nb genes perdus", pertes
-	print "Nb cassures", cassures
-	print "Nb fusions", fusions
-	print "Nb translocations", translocations, tt
-	print "EvolutionChr de A (%d chr) vers B (%d chr)" % (nbChr1, nbChr2)
+	print >> sys.stderr, "Evolution de A (%d chr / %d genes) vers B (%d chr / %d genes)" % (nbChr1,nb1, nbChr2,nb2)
+	print >> sys.stderr, "Nb nouveaux genes", nouveaux
+	print >> sys.stderr, "Nb duplications", sum(dupliques.values()), dupliques
+	print >> sys.stderr, "Nb duplications (inverse)", sum(dupliques2.values()), dupliques2
+	print >> sys.stderr, "Nb genes perdus", pertes
+	print >> sys.stderr, "Nb points de cassures", cassures
+	print >> sys.stderr, "Nb points de fusions", fusions
 
+	for c1 in chr1:
+		print "%s\t%s" % (c1, "\t".join(["%s (%d)" % (c2,n) for (c2,n) in res1[c1]]))
 
 # On echange l'ordre des chromosomes pour que les deux genomes paraissent plus colineaires
-elif (options["output"] == modes[5]):
+elif (options["output"] == modeReindexedChr):
 
 	# D'abord on fait la liste des paires de chromosomes homologues
 	res1 = getOrthosChr(table12, chr1)
@@ -401,5 +384,19 @@ elif (options["output"] == modes[5]):
 			res = genome1.lstGenes[c1].__reversed__()
 		for g in res:
 			print i+1, " ".join(g.names)
+
+
+# Les diagonales entre les deux genomes
+elif (options["output"] == modeDiags):
+	def printDiag( ((e1,c1,d1), (e2,c2,d2), _) ):
+		print '\t'.join([str(len(d1)), str(c1)," ".join(d1), str(c2)," ".join(d2)])
+
+	genome1.lstChr = chr1
+	genome1.lstScaff = []
+	genome2.lstChr = chr2
+	genome2.lstScaff = []
+
+	utils.myDiags.calcDiags(genome1.nom, genome2.nom, genome1, genome2, genesAnc, printDiag, \
+		options["minHomology"], -1, options["scaleY"], not options["includeGaps"])
 
 
