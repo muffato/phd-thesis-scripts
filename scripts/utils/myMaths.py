@@ -64,14 +64,11 @@ class myStats:
 
 		self.data = list(lst)
 		self.data.sort()
+		self.update()
+		
 
-		#self.min = self.data[0]
-		self.min = self.getValue(0)
-		self.quart1 = self.getValue(25)
-		self.median = self.getValue(50)
-		self.quart3 = self.getValue(75)
-		self.max = self.getValue(100)
-		#self.max = self.data[-1]
+	# Met a jour la moyenne et l'ecart-type
+	def update(self):
 
 		if len(self.data) == 0:
 			self.mean = self.stddev = 0
@@ -85,18 +82,30 @@ class myStats:
 			for x in self.data:
 				s += (x-self.mean)*(x-self.mean)
 			self.stddev = math.sqrt(float(s) / float(len(self.data)))
+	
 
+	# Renvoie la valeur comprise a x% des donnees (x=50 -> mediane)
 	def getValue(self, x):
 		if len(self.data) == 0:
 			return None
 		return self.data[int((x*(len(self.data)-1))/100.)]
 
+	# renvoie la valeur telle que x% soit au dessus (x=50 -> N50)
+	def getValueNX(self, x):
+		if len(self.data) == 0:
+			return None
+		tmp = (sum(self.data) * float(x)) / 100.
+		for x in self.data.__reversed__():
+			tmp -= x
+			if tmp <= 0:
+				return x
+
+
 	def __repr__(self):
 		# min quart1 median quart3 max mean stddev len
-		return "%s\t%s\t%s\t%s\t%s\t%.2f\t%.2f\t%d" % (self.min,self.quart1,self.median,self.quart3,self.max, self.mean,self.stddev, len(self.data))
-
-
-
+		return "%s [%s/%s/%s] [%s/%s/%s] %s [%.2f/%.2f-%d]" % \
+		(self.getValue(0), self.getValue(25),self.getValue(50),self.getValue(75), self.getValueNX(75),self.getValueNX(50),self.getValueNX(25),
+			self.getValue(100), self.mean,self.stddev, len(self.data))
 
 
 

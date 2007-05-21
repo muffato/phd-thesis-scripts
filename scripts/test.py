@@ -24,9 +24,37 @@ import utils.myPsOutput
 import utils.myCommunities
 #import utils.myCommunities2
 
+nbb = 10
 
-print utils.myMaths.myStats(range(101))
+x = "1"
+x = x.zfill(int(sys.argv[1]))
+xx = [int(x[i:i+nbb],2) for i in xrange(0,len(x)+1-nbb,nbb)]
 
+y = "1"
+y = y.zfill(int(sys.argv[2]))
+yy = [int(y[i:i+nbb],2) for i in xrange(0,len(y)+1-nbb,nbb)]
+
+dic = {}
+for i in xrange(2**nbb):
+	dic[i] = {}
+	for j in xrange(2**nbb):
+		n = i ^ j
+		tmp = n - ((n >> 1) & 033333333333) - ((n >> 2) & 011111111111)
+		dic[i][j] = ((tmp + (tmp >> 3)) & 030707070707) % 63
+tyy = [dic[i] for i in yy]
+
+for i in xrange(0, len(xx)-len(yy)):
+	s = sum([tyy[j][xx[i+j]] for j in xrange(len(yy))])
+	print i, 2*s-len(y)
+
+sys.exit(0)
+
+n = len(y)
+while len(x) >= n:
+
+	s = len([None for j in xrange(-1,-n-1,-1) if x[j] == y[j]])
+	print len(x)-n, 2*s-n
+	x.pop()
 
 sys.exit(0)
 

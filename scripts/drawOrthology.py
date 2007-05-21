@@ -127,7 +127,8 @@ if options["includeRandoms"]:
 	chr2.extend(genome2.lstRand)
 
 
-table12 = buildOrthosTable(genome1, chr1, genome2, chr2)
+if (options["output"] != modeDiags):
+	table12 = buildOrthosTable(genome1, chr1, genome2, chr2)
 
 # Matrice
 if (options["output"] == modeMatrix):
@@ -170,6 +171,8 @@ if (options["output"] == modeMatrix):
 	sys.stderr.write('.')
 	lstNum2 = prepareGenome(table21, lambda y: utils.myPsOutput.drawLine(1, 1 + y*scaleY, 19, 0, options["penColor"]))
 	sys.stderr.write('.')
+	
+	print "0 setlinewidth"
 
 	for c1 in table12:
 		for i1 in table12[c1]:
