@@ -75,8 +75,8 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 			# On n'a pas trouve de i2 satisfaisant, c'est la fin de la diagonale
 			else:
 				# On l'enregistre si elle n'est pas vide
-				if len(listI1) > 0 and len(listI2) > 0:
-					diag.append( (listI1,listI2,lastA, lastC2, (deb1,fin1),getMinMaxDiag(listI2)) )
+				if len(listI2) > 0:
+					diag.append( (listI1,listI2,lastA, lastPos2[0][0], (deb1,fin1),getMinMaxDiag(listI2)) )
 				# On recommence a zero
 				deb1 = i1
 				lastPos2 = presI2
@@ -90,7 +90,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 			lastS1 = s1
 			fin1 = i1
 		
-		if len(listI1) > 0 and len(listI2) > 0:
+		if len(listI2) > 0:
 			diag.append( (listI1,listI2,lastA, lastC2, (deb1,fin1),getMinMaxDiag(listI2)) )
 
 		# On rassemble des diagonales separees par une espace pas trop large
@@ -106,7 +106,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 				if debb1 > (fin1+largeurTrou+1):
 					#print >> sys.stderr, "meme pas la peine"
 					break
-				if min(abs(deb2-finn2), abs(debb2-fin2)) <= (largeurTrou+1) and c2==cc2:
+				if (min(abs(deb2-finn2), abs(debb2-fin2)) <= (largeurTrou+1)) and (c2 == cc2):
 					#print >> sys.stderr, "OK"
 					d1.extend(dd1)
 					d2.extend(dd2)
@@ -118,8 +118,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 				else:
 					#print >> sys.stderr, "non"
 					i += 1
-			#print >> sys.stderr, "envoi"
-			#yield (d1,d2,c2,(deb1,fin1),(deb2,fin2))
+			#print >> sys.stderr, "envoi", (d1,d2,c2,(deb1,fin1),(deb2,fin2))
 			callBackFunc(c1, c2, d1, d2, da)
 
 
@@ -130,10 +129,10 @@ def calcDiags(e1, e2, g1, g2, orthos, callBack, minimalLength, fusionThreshold, 
 	# La fonction qui permet de stocker les diagonales sur les ancetres
 	def combinDiag(c1, c2, d1, d2, da):
 
-		if len(d1) < minimalLength:
+		if len(da) < minimalLength:
 			return
-		
 		statsDiags.append(len(da))
+
 		callBack( ((e1,c1,[trans1[(c1,i)] for i in d1]), (e2,c2,[trans2[(c2,i)] for i in d2]), da) )
 	
 	# Ecrire un genome en suite de genes ancestraux
@@ -146,13 +145,10 @@ def calcDiags(e1, e2, g1, g2, orthos, callBack, minimalLength, fusionThreshold, 
 				tmp = [x for x in newGenome[c] if x[0] != -1]
 			else:
 				tmp = newGenome[c]
-			last = 0
+			last = -1
 			for i in xrange(len(tmp)):
-				x = tmp[i]
-				new = newGenome[c].index(x, last)
-				transNewOld[(c,i)] = "/".join(genome.lstGenes[c][new].names)
-				#transNewOld[(c,i)] = genome.lstGenes[c][new].names
-				last = new + 1
+				last = newGenome[c].index(tmp[i], last + 1)
+				transNewOld[(c,i)] = "/".join(genome.lstGenes[c][last].names)
 			newGenome[c] = tmp
 					
 		return (newGenome,transNewOld)

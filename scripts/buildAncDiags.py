@@ -197,11 +197,7 @@ for anc in diagEntry:
 		for ((e1,c1,d1),(e2,c2,d2),_) in lst:
 			s.append( len(d1) )
 			print '\t'.join([anc, str(len(d1)), e1,str(c1)," ".join(d1), e2,str(c2)," ".join(d2)])
-		ss = sum(s)
-		if len(lst) == 0:
-			print >> sys.stderr, ss, "%.2f" % 0, 0, "OK"
-			continue
-		print >> sys.stderr, ss, "%.2f" % (float(ss)/float(len(lst))), max(s), "OK"
+		print >> sys.stderr, utils.myMaths.myStats(s), "OK"
 
 
 	if options["showAncestral"]:
@@ -212,7 +208,7 @@ for anc in diagEntry:
 			print >> sys.stderr, "OK (%d -> %d)" % (len(diagEntry[anc]), len(lst))
 		else:
 			lst = []
-			for ((e1,c1,d1),(e2,c2,d2),da) in diagEntry[anc]:
+			for ((e1,c1,d1),(e2,c2,d2),_) in diagEntry[anc]:
 				da = [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d1]
 				if "" in da:
 					da = [genesAnc[anc].dicGenes[s][1] for s in d2]
@@ -229,9 +225,5 @@ for anc in diagEntry:
 				ss += '\t' + '|'.join(["%s/%s" % (e,c) for (e,c) in supp])
 			print ss
 	
-		ss = sum(s)
-		if len(lst) == 0:
-			print >> sys.stderr, ss, "%.2f" % 0, 0, "OK"
-			continue
-		print >> sys.stderr, ss, "%.2f" % (float(ss)/float(len(lst))), max(s), "OK"
+		print >> sys.stderr, utils.myMaths.myStats(s), "OK"
 

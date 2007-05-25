@@ -15,8 +15,7 @@ colorListUNIX = set()
 #
 def printPsHeader(linewidth = 0.001, landscape = False):
 	# En-tete Postscript
-	print """
-%!PS-Adobe-3.0
+	print """%!PS-Adobe-3.0
 %%DocumentData: Clean7bit
 %%Creator: myPsOutput
 %%PageOrder: Ascend

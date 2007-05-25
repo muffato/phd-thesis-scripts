@@ -37,7 +37,7 @@ def loadGenome(nom):
 	try:
 		x = int(c[1]) + int(c[2]) + int(c[3])
 		return EnsemblGenome(f)
-	except ValueError:
+	except (ValueError, IndexError):
 		# On a un genome ancestral
 		pass
 	
