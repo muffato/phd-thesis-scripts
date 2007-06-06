@@ -1,6 +1,7 @@
 #! /users/ldog/muffato/python -OO
 
 import sys
+import operator
 import myMaths
 import myTools
 import myBioObjects
@@ -37,6 +38,14 @@ def loadGenome(nom):
 	try:
 		x = int(c[1]) + int(c[2]) + int(c[3])
 		return EnsemblGenome(f)
+	except (ValueError, IndexError):
+		# On a un genome ancestral
+		pass
+		
+	# Fichier d'orthologues classique, 4 champs indiquent les scores de similarite
+	try:
+		x = int(c[7]) + int(c[8]) + int(c[9]) + int(c[10])
+		return EnsemblOrthosListGenome(f)
 	except (ValueError, IndexError):
 		# On a un genome ancestral
 		pass
@@ -114,7 +123,8 @@ class Genome:
 		
 		self.dicGenes = {}
 		for c in self.lstGenes:
-			self.lstGenes[c].sort(lambda g1, g2: cmp(g1.beginning, g2.beginning))
+			#self.lstGenes[c].sort(lambda g1, g2: cmp(g1.beginning, g2.beginning))
+			self.lstGenes[c].sort(key = operator.attrgetter('beginning'))
 			for i in xrange(len(self.lstGenes[c])):
 				for s in self.lstGenes[c][i].names:
 					self.dicGenes[s] = (c, i)
@@ -153,24 +163,22 @@ class Genome:
 		if chr not in self.lstGenes:
 			return
 		
-		for i in xrange(index+1, min(len(self.lstGenes[chr]), index+l+1)):
-			yield self.lstGenes[chr][i]
-		
-		for i in xrange(index-1, max(-1, index-1-l), -1):
-			yield self.lstGenes[chr][i]
+		return self.lstGenes[chr][max(0, index-l):index+l+1]
 
-
-	def iterOnChromosome(self, c):
-		for g in self.lstGenes[c]:
-			yield g
-	
 	def __iter__(self):
 		for c in self.lstGenes:
+			#for i in xrange(len(self.lstGenes[c])):
 			for g in self.lstGenes[c]:
 				yield g
 
 	def getPosition(self, gene):
 		return myMaths.unique([self.dicGenes[s] for s in gene.names if s in self.dicGenes])
+
+	def getOtherNames(self, name):
+		if name not in self.dicGenes:
+			return []
+		(c,i) = self.dicGenes[name]
+		return [x for x in self.lstGenes[c][i].names if x != name]
 
 
 

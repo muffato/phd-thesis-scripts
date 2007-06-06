@@ -143,15 +143,19 @@ class PhylogeneticTree:
 					self.dicParents[f1][parent] = self.dicParents[parent][f1] = parent
 					
 			# Liens entre objets de branches differentes
+			tmp = set()
 			for f1 in self.commonNames:
 				for f2 in self.commonNames:
 					if len(self.dicLinks[f1][f2]) != 0:
 						continue
 					for f3 in self.commonNames:
 						if len(set(self.dicLinks[f1][f3]).intersection(self.dicLinks[f3][f2])) == 1:
-							self.dicLinks[f1][f2] = self.dicLinks[f1][f3][:-1] + self.dicLinks[f3][f2]
-							self.dicParents[f1][f2] = f3
+							tmp.add( (f1, f2, f3) )
 							break
+			# On enregistre le tout
+			for (f1, f2, f3) in tmp:
+				self.dicLinks[f1][f2] = self.dicLinks[f1][f3][:-1] + self.dicLinks[f3][f2]
+				self.dicParents[f1][f2] = f3
 				
 		self.officialName = {}
 		self.commonNames = self.newCommonNamesMapperInstance()

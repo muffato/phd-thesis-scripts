@@ -93,7 +93,7 @@ modeDiags = "Diags"
 modes = [modeMatrix, modeKaryo, modeOrthos, modeGenomeEvol, modeReindexedChr, modeDiags]
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["studiedGenome", "referenceGenome"], \
-	[("orthologuesList",str,""), ("includeGaps", bool, False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
+	[("orthologuesList",str,""), ("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
 	("output",str,modes), ("reverse",bool,False), ("scaleY",bool,False), ("minHomology",int,90), \
 	("pointSize",float,-1), ("colorFile",str,""), ("defaultColor",str,"black"), ("penColor",str,"black"), ("backgroundColor",str,"")], \
 	__doc__
@@ -108,7 +108,7 @@ if options["reverse"]:
 	genome1 = genome2
 	genome2 = x
 if options["orthologuesList"] != "":
-	genesAnc = utils.myGenomes.AncestralGenome(options["orthologuesList"])
+	genesAnc = utils.myGenomes.loadGenome(options["orthologuesList"])
 else:
 	genesAnc = genome2
 try:

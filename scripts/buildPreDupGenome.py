@@ -32,14 +32,14 @@ def loadChrAncIni(nom):
 	f = utils.myTools.myOpenFile(nom, 'r')
 	for ligne in f:
 
-		c = ligne.split('\t')
+		c = ligne[:-1].split('\t')
 		dic = phylTree.newCommonNamesMapperInstance()
 		for x in c[1:]:
-			cc = x.split('|')
-			if len(cc) != 2:
-				continue
+			(e,x) = x.split('|')
+			(c1,c2) = x.split('/')
+
 			s = set()
-			for x in cc[1].split():
+			for x in c1.split()+c2.split():
 				# Un nom de chromosome
 				# On convertit en entier le nom du chromosome si possible
 				try:
@@ -47,7 +47,7 @@ def loadChrAncIni(nom):
 				except Exception:
 					pass
 				s.add(x)
-			dic[cc[0]] = s
+			dic[e] = s
 		chrAnc[c[0]] = dic
 	f.close()
 	return chrAnc

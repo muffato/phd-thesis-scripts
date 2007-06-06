@@ -4,9 +4,9 @@
 # Fonctions communes de chargement et de traitement des donnees
 #
 
-import math
 import sys
-
+import math
+import operator
 
 #
 # Renvoie la moyenne d'une liste
@@ -126,10 +126,10 @@ def issublist(l1, l2):
 #
 # Renvoie les cles d'un dictionnaire, triees suivant les valeurs associees
 #
-def sortDict(d):
-	k = d.keys()
-	k.sort(lambda x, y: cmp(d[y], d[x]))
-	return k
+#def sortDict(d):
+#	k = d.keys()
+#	k.sort(lambda x, y: cmp(d[y], d[x]))
+#	return k
 
 #
 # Renvoie la moyenne ponderee d'une liste
