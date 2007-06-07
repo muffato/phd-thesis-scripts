@@ -11,6 +11,8 @@ Chaque gene ancestral recoit son chromosome ancestral par un vote a la majorite 
 
 # Librairies
 import sys
+import operator
+import itertools
 import utils.myBioObjects
 import utils.myGenomes
 import utils.myTools
@@ -73,7 +75,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 		if len(genome.lstGenes[c]) < options["minChrLen"]:
 			continue
 		
-		bloc = []
+		bloc = None
 		lastCT = []
 		lastGT = set()
 	
@@ -89,21 +91,22 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 			# On parcourt les orthologues
 			for (cT,i) in orthosDup[g]:
 				# La region environnante (chez l'espece dupliquee)
-				gTn = [gT.names[0] for gT in genomeDup.getGenesNearN(cT, i, options["precisionChrAnc"]) if gT.names[0] in parasDup]
+				gTn = [gT.names[0] for gT in genomeDup.getGenesNearN(cT, i, options["windowSize"])]
 				
 				# Si on reste sur le meme chromosome, on continue le DCS
 				if cT in lastCT:
 					break
-				# Sinon, il faut qu'il y ait un paralogue qui nous fasse revenir vers une region environnante deja visitee
-				else:
-					gTp = utils.myMaths.flatten([parasDup[s] for s in gTn])
-					if len(lastGT.intersection(gTp)) > 0:
-						break
+				# Autre solution, on revient dans le voisinage d'une region deja visitee
+				elif len(lastGT.intersection(gTn)) > 0:
+					break
+				# Sinon, il faut qu'il y ait un paralogue qui justifie le saut de chromosome
+				elif len(lastGT.intersection(utils.myMaths.flatten([parasDup.get(s,[]) for s in gTn]))) > 0:
+					break
 				
 			# Si on n'a pas fait de break, c'est qu'aucun orthologue ne convient, il faut arreter le DCS
 			else:
 				# On l'enregistre et on repart de zero
-				if len(bloc) != 0:
+				if bloc != None:
 					lstBlocs.append(bloc)
 				bloc = []
 				lastGT = set()
@@ -114,7 +117,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 			lastGT.update(gTn)
 		
 		# Ne pas oublier le bloc courant
-		if len(bloc) != 0:
+		if bloc != None:
 			lstBlocs.append(bloc)
 		sys.stderr.write(".")
 	
@@ -324,7 +327,7 @@ def printColorAncestr(genesAnc, chrAncGenes):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesAncestraux.list", "phylTree.conf"],
-	[("minChrLen",int,20), ("precisionChrAnc",int,25), ("usePhylTreeScoring",bool,False), \
+	[("minChrLen",int,20), ("windowSize",int,25), ("usePhylTreeScoring",bool,False), \
 	("especesNonDup",str,""), ("especesDup",str,""), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("showDCS",bool,False), ("showQuality",bool,False), ("showAncestralGenome",bool,True)], \

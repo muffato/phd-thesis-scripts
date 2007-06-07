@@ -11,6 +11,8 @@ Chaque gene ancestral recoit son chromosome ancestral par un vote a la majorite 
 
 # Librairies
 import sys
+import operator
+import itertools
 import utils.myBioObjects
 import utils.myGenomes
 import utils.myTools
@@ -22,34 +24,36 @@ import utils.myMaths
 
 
 #
-# Charge le fichier qui contient les alternances que l'on doit observer
-# Format de chaque ligne: "A	*Tetraodon.nigroviridis 2 3 5	*Gastero ..."
+# Charge le fichier qui contient les alternances que l'on doit observer pour les especes utilisees
+# Format de chaque ligne: 
+# A	Tetraodon nigroviridis|2/3 5	Gasterosteus aculeatus|16/1	Oryzias latipes|21/2	Takifugu rubripes|/	Danio rerio|9/6 1
 # Renvoie un dictionnaire des chromosomes ancestraux, qui contient les dictionnaires (par especes) des alternances
 #
-def loadChrAncIni(nom):
+def loadChrAncIni(nom, especesDup):
 
+	# On convertit en entier le nom du chromosome si possible
+	def getEasierName(x):
+		try:
+			return int(x)
+		except Exception:
+			return x
+
+	print >> sys.stderr, "Chargement des alternances predefinies ...",
+	
 	chrAnc = {}
 	f = utils.myTools.myOpenFile(nom, 'r')
 	for ligne in f:
 
 		c = ligne[:-1].split('\t')
-		dic = phylTree.newCommonNamesMapperInstance()
+		dic = {}
 		for x in c[1:]:
 			(e,x) = x.split('|')
 			(c1,c2) = x.split('/')
-
-			s = set()
-			for x in c1.split()+c2.split():
-				# Un nom de chromosome
-				# On convertit en entier le nom du chromosome si possible
-				try:
-					x = int(x)
-				except Exception:
-					pass
-				s.add(x)
-			dic[e] = s
-		chrAnc[c[0]] = dic
+			dic[phylTree.officialName[e]] = (set([getEasierName(x) for x in c1.split()]), set([getEasierName(x) for x in c2.split()]))
+		chrAnc[c[0]] = [dic.get(phylTree.officialName[e], (set(),set())) for e in especesDup]
 	f.close()
+	print >> sys.stderr, "OK"
+
 	return chrAnc
 
 
@@ -106,7 +110,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 		if len(genome.lstGenes[c]) < options["minChrLen"]:
 			continue
 		
-		bloc = []
+		bloc = None
 		lastCT = []
 		lastGT = set()
 	
@@ -122,21 +126,22 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 			# On parcourt les orthologues
 			for (cT,i) in orthosDup[g]:
 				# La region environnante (chez l'espece dupliquee)
-				gTn = [gT.names[0] for gT in genomeDup.getGenesNearN(cT, i, options["precisionChrAnc"]) if gT.names[0] in parasDup]
+				gTn = [gT.names[0] for gT in genomeDup.getGenesNearN(cT, i, options["windowSize"])]
 				
 				# Si on reste sur le meme chromosome, on continue le DCS
 				if cT in lastCT:
 					break
-				# Sinon, il faut qu'il y ait un paralogue qui nous fasse revenir vers une region environnante deja visitee
-				else:
-					gTp = utils.myMaths.flatten([parasDup[s] for s in gTn])
-					if len(lastGT.intersection(gTp)) > 0:
-						break
+				# Autre solution, on revient dans le voisinage d'une region deja visitee
+				elif len(lastGT.intersection(gTn)) > 0:
+					break
+				# Sinon, il faut qu'il y ait un paralogue qui justifie le saut de chromosome
+				elif len(lastGT.intersection(utils.myMaths.flatten([parasDup.get(s,[]) for s in gTn]))) > 0:
+					break
 				
 			# Si on n'a pas fait de break, c'est qu'aucun orthologue ne convient, il faut arreter le DCS
 			else:
 				# On l'enregistre et on repart de zero
-				if len(bloc) != 0:
+				if bloc != None:
 					lstBlocs.append(bloc)
 				bloc = []
 				lastGT = set()
@@ -147,7 +152,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 			lastGT.update(gTn)
 		
 		# Ne pas oublier le bloc courant
-		if len(bloc) != 0:
+		if bloc != None:
 			lstBlocs.append(bloc)
 		sys.stderr.write(".")
 	
@@ -168,14 +173,8 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 	# Il faut le lire pour avoir chaque DCS final (qu'il faut reformatter)
 	lstBlocs = []
 	for gr in combin:
-		l = []
 		# On fait la liste des positions et des chromosomes des orthologues
-		for g in gr:
-			p = phylTree.dicGenomes[eND].dicGenes[g]
-			a = {}
-			for eD in especesDup:
-				a[eD] = [c for (c,_) in orthos[eD].get(g,[])]
-			l.append( (p,g,a) )
+		l = [ (phylTree.dicGenomes[eND].dicGenes[g], g, [[c for (c,_) in orthos[eD].get(g,[])] for eD in especesDup]) for g in gr]
 		l.sort()
 		lstBlocs.append(l)
 	lstBlocs.sort()
@@ -198,7 +197,7 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 		if options["showDCS"]:
 			for ((c,i),g,a) in gr:
 				print "%s\t%d\t%s\t\t%s\t%s" % \
-				(c, i, g, "\t".join(["/".join([str(x) for x in set(a[eD])]) for eD in especesDup]), cc)
+				(c, i, g, "\t".join(["/".join([str(x) for x in set(y)]) for y in a]), cc)
 			print "---"
 
 	print >> sys.stderr, "/", nbDCS, "DCS pour", DCSlen, "orthologues"
@@ -210,27 +209,38 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 #
 def addDCS(bloc, col, dicGenesAnc, chrAnc, eNonDup):
 
-	score = dict([(c,0) for c in chrAnc])
-	for eDup in especesDup:
-		l = [a[eDup] for (_,_,a) in bloc if len(a[eDup]) > 0]
-		# On veut une veritable alternance
-		if len(set(utils.myMaths.flatten(l))) < 2:
-			continue
-		for c in chrAnc:
-			score[c] += float(len([x for x in l if len(chrAnc[c][eDup].intersection(x))>0 ])) / float(len(l))
-			
-	s = max(score.values())
+	score = {}
+	# On calcule le score de chaque chromosome ancestral
+	for c in chrAnc:
+		(nb1,nb2) = (0,0)
+		for (_,_,a) in bloc:
+			(flag1,flag2) = (False,False)
+			# On parcourt les especes
+			for ((expected1,expected2),observed) in itertools.izip(chrAnc[c],a):
+				flag1 |= len(expected1.intersection(observed)) > 0
+				flag2 |= len(expected2.intersection(observed)) > 0
+			# On met a jour nb1 et nb2: le nombre de genes vus a gauche / a droite
+			nb1 += flag1
+			nb2 += flag2
+		
+		# Est-ce qu'on observe bien une alternance sur ce chromosome
+		#   <-> Est-ce qu'on a vu au moins un gene a gauche et un gene a droite
+		if (nb1 == 0) or (nb2 == 0):
+			# Non -> score = 0
+			score[c] = 0
+		else:
+			# Oui -> score = nb de genes qui appartiennent au chromosome
+			score[c] = nb1 + nb2
 
+	(c,s) = max(score.items(), key = operator.itemgetter(1))
+	
 	if s == 0:
 		return None
 	
-	for c in chrAnc:
-		if score[c] == s:
-			for g in bloc:
-				col[dicGenesAnc[g[1]][1]].append( (len(bloc),c,eNonDup) )
-			return c
-	return None
-
+	for g in bloc:
+		col[dicGenesAnc[g[1]][1]].append( (len(bloc),c,eNonDup) )
+	
+	return c
 
 #
 # Range chaque gene ancestral dans son chromosome
@@ -241,48 +251,46 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 	# Renvoie un score (~pourcentage d'especes) qui soutiennent l'attribution d'un gene a un chromosome
 	#
 	def calcChrAncScore(col, ch):
-		espOK = [eND for (_,c,eND) in col if c == ch]
-		espNO = [eND for (_,c,eND) in col if c != ch]
 		
-		def recCalc(node):
-			if node in espALL:
-				return float(espOK.count(node))/float(espOK.count(node)+espNO.count(node))
-			r = []
-			for fils in phylTree.branches[node]:
-				if len(espALL.intersection(phylTree.species[fils])) != 0:
-					r.append(recCalc(fils))
-			return utils.myMaths.mean(r)
-
+		# phylTree.calcDist requiert les noms latins
 		if options["usePhylTreeScoring"]:
-			espALL = set(espOK + espNO)
-			return recCalc(rootNonDup)
-
-		rTot = []
-		for gr in especesNonDupGrp:
-			r = []
-			for e in gr:
-				if e in espOK:
-					r.append(1)
-				elif e in espNO:
-					r.append(0)
-			if len(r) > 0:
-				rTot.append( utils.myMaths.mean(r) )
-		return utils.myMaths.mean(rTot)
+			values = phylTree.newCommonNamesMapperInstance()
+		else:
+			values = {}
 		
+		# Une tetrapode rapporte 1 si un de ses representants a vote pour le chromosome ancestral
+		for (_,c,eND) in col:
+			values[eND] = max(values.get(eND,0), float(c == ch))
+
+		# Soit on fait un calcul phylogenetique
+		if options["usePhylTreeScoring"]:
+			return phylTree.calcDist(values)
+
+		# On fait les groupes
+		rTot = [[values[e] for e in gr if e in values] for gr in especesNonDupGrp]
+		# La moyenne des moyennes de chaque groupe non vide
+		return utils.myMaths.mean([utils.myMaths.mean(r) for r in rTot if len(r) > 0])
+
 	
+	if options["usePhylTreeScoring"]:
+		phylTree.initCalcDist(rootNonDup, False)
+
+	chrNames = sorted(chrAncGenes)
 	for i in xrange(len(genesAncCol)):
 	
 		if len(genesAncCol[i]) == 0:
 			# Certains genes n'ont pas de chance !
 			continue
 	
-		nb = dict([(x,calcChrAncScore(genesAncCol[i], x)) for x in chrAncGenes])
-
-		tmp = utils.myMaths.sortDict(nb)
-		c = tmp[0]
-		genesAncCol[i] = nb
+		nb = [(calcChrAncScore(genesAncCol[i],x), x) for x in chrNames]
 		
-		chrAncGenes[c].append(i)
+		# On verifie les egalites
+		s = sorted(nb, reverse=True)
+		if (s[0][0] == s[1][0]) and not options["keepUncertainGenes"]:
+			continue
+
+		genesAncCol[i] = nb
+		chrAncGenes[s[0][1]].append(i)
 
 
 #
@@ -292,31 +300,33 @@ def printColorAncestr(genesAnc, chrAncGenes):
 	
 	print >> sys.stderr, "Impression des associations genes / chromosomes ancestraux ... ",
 
-	lstChr = sorted(chrAncGenes)
+	chrNames = sorted(chrAncGenes)
 	
 	if options["showQuality"]:
-		print "\t\t%s" % "\t".join([str(c) for c in lstChr])
+		print "\t\t%s" % "\t".join([str(c) for c in chrNames])
 	
-	for c in lstChr:
+	for j in xrange(len(chrNames)):
+		c = chrNames[j]
 		nb = 0
 		for i in chrAncGenes[c]:
 			nb += 1
 			if options["showQuality"]:
-				print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*col[i][x]) for x in lstChr]), 100*col[i][c])
+				print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][j][0])
 			if options["showAncestralGenome"]:
 				print c, " ".join(genesAnc[i].names)
 		
-	print >> sys.stderr, sum([len(chrAncGenes[c]) for c in lstChr]), "genes dans le genome ancestral"
+	print >> sys.stderr, sum([len(chrAncGenes[c]) for c in chrNames]), "genes dans le genome ancestral"
 
 
-
+########
 # MAIN #
+########
 
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesAncestraux.list", "draftPreDupGenome.conf", "phylTree.conf"],
-	[("minChrLen",int,20), ("precisionChrAnc",int,25), ("usePhylTreeScoring",bool,False), \
+	[("minChrLen",int,20), ("windowSize",int,25), ("usePhylTreeScoring",bool,False), ("keepUncertainGenes",bool,False), \
 	("especesNonDup",str,""), ("especesDup",str,""), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("showDCS",bool,False), ("showQuality",bool,False), ("showAncestralGenome",bool,True)], \
@@ -335,7 +345,7 @@ phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
 genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAncestraux.list"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
 (para,orthos) = buildParaOrtho(lstGenesAnc)
-chrAnc = loadChrAncIni(noms_fichiers["draftPreDupGenome.conf"])
+chrAnc = loadChrAncIni(noms_fichiers["draftPreDupGenome.conf"], especesDup)
 
 # On colorie les matrices actuelles
 col = [[] for i in xrange(len(lstGenesAnc))]
