@@ -24,6 +24,20 @@ import utils.myPsOutput
 import utils.myCommunities
 #import utils.myCommunities2
 
+phylTree = utils.myBioObjects.PhylogeneticTree(sys.argv[1])
+
+for anc in phylTree.listAncestr:
+	
+	nbO = len(phylTree.outgroupSpecies[anc])
+	f = [len(x) for x in phylTree.branchesSpecies[anc]]
+	s = nbO * sum(f)
+	for (n1,n2) in utils.myTools.myMatrixIterator(f, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		s += n1*n2
+
+	print anc, s
+
+
+sys.exit(0)
 nbb = 10
 
 x = "1"

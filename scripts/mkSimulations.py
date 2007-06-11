@@ -92,7 +92,10 @@ def launchRecSimu(node, genomeIni):
 	# On ecrit les familles de genes ancestraux correspondantes
 	print >> sys.stderr, "Writing %s ancestral genes ..." % node,
 	f = utils.myTools.myOpenFile(options["ancGenesFile"] % s, 'w')
-	tmp = [phylTree.fileName[x] for x in phylTree.species[node]] + [s]
+	tmp = set()
+	for (e1,e2) in utils.myTools.myMatrixIterator(phylTree.species[node], None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		tmp.update(phylTree.dicLinks[e1][e2])
+	tmp = [phylTree.fileName[x] for x in tmp]
 	for c in xrange(len(genomeIni)):
 		for (gene,_) in genomeIni[c]:
 			print >> f, '\t'.join(["%s.%d" % (x,gene) for x in tmp])

@@ -32,11 +32,18 @@ def getLongestDiags(oldDiags):
 	combin = utils.myTools.myCombinator([])
 	for i in xrange(len(oldDiags)):
 		((_,_,d1),(_,_,d2),_) = oldDiags[i]
+		((e1,c1,d1),(e2,c2,d2),da) = oldDiags[i]
 		da1 = [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d1]
 		if "" in da1:
 			diags.append( [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d2] )
 		else:
 			diags.append(da1)
+		if "" in diags[-1]:
+			print >> sys.stderr, e1,c1
+			print >> sys.stderr, e2,c2
+			print >> sys.stderr, d1
+			print >> sys.stderr, d2
+			print >> sys.stderr, da
 		for s in d1+d2:
 			if s not in dic:
 				dic[s] = []
