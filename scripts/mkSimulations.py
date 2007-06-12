@@ -14,7 +14,7 @@ Genere des fichiers similaires a ceux d'Ensembl
 import sys
 import math
 import random
-import utils.myBioObjects
+import utils.myPhylTree
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
@@ -206,7 +206,7 @@ def launchRecSimu(node, genomeIni):
 
 
 # L'arbre phylogenetique
-phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 if options["root"] not in phylTree.listAncestr:
 	print >> sys.stderr, "Unknown root '%s'" % options["root"]
 	sys.exit(1)

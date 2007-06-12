@@ -21,10 +21,11 @@ import utils.myTools
 import utils.myMaths
 import utils.myDiags
 import utils.myPsOutput
+import utils.myPhylTree
 import utils.myCommunities
 #import utils.myCommunities2
 
-phylTree = utils.myBioObjects.PhylogeneticTree(sys.argv[1])
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
 
 for anc in phylTree.listAncestr:
 	
@@ -74,7 +75,7 @@ sys.exit(0)
 
 #genome = utils.myGenomes.EnsemblGenome("~/work/data43/genes/genes.Gallus.gallus.list.bz2")
 #genome = utils.myGenomes.EnsemblGenome(sys.argv[1])
-phylTree = utils.myBioObjects.PhylogeneticTree(sys.argv[1])
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
 phylTree.initCalcDist("Boreoeutheria", True)
 #phylTree.buildPhylLinks()
 #print phylTree.dicLinks["Homo sapiens"]
@@ -281,7 +282,7 @@ sys.exit(0)
 )
 
 # L'arbre phylogenetique
-phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
 
 print phylTree.parent['Homo sapiens']

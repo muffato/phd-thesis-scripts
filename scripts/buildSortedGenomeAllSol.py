@@ -34,16 +34,16 @@ def distInterGenes(tg1, tg2):
 	lst1Anc = set()
 	for (e1,e2) in utils.myTools.myMatrixIterator(lst1Esp, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
 		lst1Anc.update(phylTree.dicLinks[e1][e2])
-		if options["ancestr"] in lst1Anc:
+		if anc in lst1Anc:
 			return 1
 	for a in lst1Anc:
 		distEsp[a] = 1
 
 	# En mode outgroups/2 les outgroups qui montrent une distance plus grande que les fils sont supprimes
 	if options["useOutgroups"] == 2:
-		m = [distEsp[e] for e in phylTree.species[options["ancestr"]] if e in distEsp]
+		m = [distEsp[e] for e in ancSpecies if e in distEsp]
 		if len(m) > 0:
-			eNO = [e for e in phylTree.outgroupSpecies[options["ancestr"]] if distEsp.get(e,0) > max(m)]
+			eNO = [e for e in ancOutgroupSpecies if distEsp.get(e,0) > max(m)]
 			for e in eNO:
 				del distEsp[e]
 
@@ -58,7 +58,7 @@ class ConcordeFile:
 
 	def __init__(self, nom):
 		tmp = []
-		f = myTools.myOpenFile(nom, 'r')
+		f = utils.myTools.myOpenFile(nom, 'r')
 		for ligne in f:
 			for x in ligne.split():
 				tmp.append(int(x))
@@ -93,7 +93,7 @@ class ConcordeFile:
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genomeAncestral", "phylTree.conf"], \
 	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
-	("useOutgroups",int,[0,1,2]), ("nbConcorde",int,-1), ("withConcordeOutput",bool,False), ("withConcordeStats",bool,False),\
+	("useOutgroups",int,[0,1,2]), ("withConcordeOutput",bool,False), \
 	("concordeExec",str,"~/work/scripts/concorde"),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
@@ -114,6 +114,9 @@ genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genomeAncestral"])
 
 # On etend la liste des genes ancestraux pour utiliser les outgroup
 anc = options["ancestr"]
+ancSpecies = phylTree.species[anc]
+ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
+
 dicOutgroupGenes = {}
 # On remonte l'arbre jusqu'a la racine
 while anc in phylTree.parent:
@@ -155,7 +158,6 @@ del phylTree.dicGenes
 del dicOutgroupGenes
 
 nom = "mat%08d" % ((os.getpid() ^ os.getppid() ^ random.randint(1,16777215)) & 16777215)
-nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 phylTree.initCalcDist(options["ancestr"], options["useOutgroups"] != 0)
 
@@ -168,9 +170,10 @@ for c in genesAnc.lstChr:
 	print >> sys.stderr
 	print >> sys.stderr, "- Chromosome %s (%d genes) -" % (c, n)
 	
+	mat = [range(n) for i in xrange(n)]
+	
 	print >> sys.stderr, "Ecriture de la matrice ... ",
 	f = open(nom, 'w')
-	
 	print >> f, "NAME: CHRANC"
 	print >> f, "TYPE: TSP"
 	print >> f, "DIMENSION: %d" % (n+1)
@@ -178,11 +181,10 @@ for c in genesAnc.lstChr:
 	print >> f, "EDGE_WEIGHT_FORMAT: UPPER_ROW"
 	print >> f, "EDGE_WEIGHT_SECTION"
 	print >> f, "0 " * n
-	
 	for i in xrange(n):
 		for j in xrange(i+1,n):
 			y = distInterGenes(tab[i], tab[j])
-			#print >> sys.stderr, tab[i], tab[j], y
+			mat[i][j] = mat[j][i] = y
 			if y == None:
 				print >> f, int(mult*options["penalite"]),
 			elif y == 1:
@@ -192,43 +194,44 @@ for c in genesAnc.lstChr:
 		print >> f
 	print >> f, "EOF"
 	f.close()
+
 	print >> sys.stderr, "OK"
 	print >> sys.stderr, "Lancement de concorde ",
-	lstTot = []
-	for i in range(nbConcorde):
-		comm = options["concordeExec"] + ' -x ' + nom
-		if options["withConcordeOutput"]:
-			os.system(comm + ' >&2')
-		else:
-			os.system(comm + ' > /dev/null')
-		if os.access(nom + ".sol", os.R_OK):
-			lstTot.append(ConcordeFile(nom + ".sol"))
-		os.system('rm -f 0%s* %s*' % (nom,nom) )
-		sys.stderr.write(".")
-
-	# On remet chaque liste dans le meme sens que la premiere
-	for i in range(1, len(lstTot)):
-		if not lstTot[i].isMemeSens(lstTot[0]):
-			lstTot[i].reverse()
-
-	if len(lstTot) == 0:
-		for i in xrange(n):
-			print c,
-			if (options["nbConcorde"] > 1) and options["withConcordeStats"]:
-				print 1,
-			print " ".join(genesAnc.lstGenes[c][i].names)
-	else:
-		for i in xrange(n):
-			print c,
-			if (options["nbConcorde"] > 1) and options["withConcordeStats"]:
-				print len(set([s.res[i] for s in lstTot])),
-			print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
 	
-	solUniq = utils.myMaths.unique([l.res for l in lstTot])
-	print >> sys.stderr, len(solUniq), "solutions"
-	if options["withConcordeStats"]:
-		for sol in solUniq:
-			print ".%s" % c, " ".join([str(i) for i in sol])
+	comm = options["concordeExec"] + ' -x ' + nom
+	if options["withConcordeOutput"]:
+		os.system(comm + ' >&2')
+	else:
+		os.system(comm + ' > /dev/null')
+	if os.access(nom + ".sol", os.R_OK):
+		res = ConcordeFile(nom + ".sol").res
+	else:
+		res = None
+		print >> sys.stderr, "No solution found"
+	os.system('rm -f 0%s* %s*' % (nom,nom) )
+	sys.stderr.write(".")
+
+	if res == None:
+		continue
+
+	#for i in xrange(n):
+	#	print c," ".join(genesAnc.lstGenes[c][i].names)
+	
+	reversalPoints = []
+	tmp = [(i,res[i]-1,res[i+1]-1,mat[res[i]-1][res[i+1]-1]) for i in xrange(n-1)]
+	for (i,xi,xip,diip) in tmp:
+		for (j,xj,xjp,djjp) in tmp[:i]:
+			dij = mat[xi][xj]
+			if dij == None:
+				continue
+			dijpp = mat[xip][xjp]
+			if dijpp == None:
+				continue
+			if int(mult * (diip+djjp-dij-dijpp)) == 0:
+				# On a detecte une inversion potentielle
+				reversalPoints.append( (i,j) )
+	
+	print >> sys.stderr, len(reversalPoints), "inversions"
 
 
 os.system('rm -f *%s*' % nom )

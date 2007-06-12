@@ -13,7 +13,7 @@ Les diagonales apportent les genes qui etaient sur un meme chromosome
 
 # Librairies
 import sys
-import utils.myBioObjects
+import utils.myPhylTree
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
@@ -143,7 +143,7 @@ def findNewSpecies(d, esp, anc):
 
 
 # L'arbre phylogenetique
-phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
 # Les especes a utiliser
 dicGenomes = {}

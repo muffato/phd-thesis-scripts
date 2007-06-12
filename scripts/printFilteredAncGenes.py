@@ -14,6 +14,7 @@ import sys
 import utils.myGenomes
 import utils.myMaths
 import utils.myTools
+import utils.myPhylTree
 
 
 ########
@@ -28,7 +29,7 @@ import utils.myTools
 	__doc__ \
 )
 
-phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 if options["speciesList"] == "":
 	phylTree.loadAllSpeciesSince(None, options["genesFile"])
 else:

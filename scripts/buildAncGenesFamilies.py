@@ -17,6 +17,7 @@ import math
 import operator
 import utils.myGenomes
 import utils.myTools
+import utils.myPhylTree
 import utils.myCommunities
 
 
@@ -28,7 +29,7 @@ import utils.myCommunities
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("ancestr",str,""),("minRelevance",float,100), ("recursiveConstruction",bool,True), ("graphDirectory",str,""), \
+	[("ancestr",str,""),("minRelevance",float,100), ("recursiveConstruction",bool,True), ("graphDirectory",str,""), ("withApparent",bool,True), ("allLinks",bool,False), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("one2oneFile",str,"~/work/data/ancGenes/one2one.%s.list.bz2"), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
@@ -38,7 +39,7 @@ import utils.myCommunities
 	__doc__ \
 )
 
-phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 phylTree.loadAllSpeciesSince(options["ancestr"], options["genesFile"])
 
 
@@ -70,7 +71,7 @@ def buildAncFile(anc, lastComb):
 		
 		# On lit chaque ligne
 		for ligne in f:
-			champs = ligne.split('\t')
+			champs = ligne[:-1].split('\t')
 			gA = champs[0]
 			gB = champs[3]
 			
@@ -81,11 +82,18 @@ def buildAncFile(anc, lastComb):
 			# Si la date du lien d'orthologie est trop ancienne, on ne le prend pas en compte
 			if phylTree.ages[champs[6]] > age:
 				continue
+
+			# On ne veut pas les apparent
+			if ("parent" in champs[-1]) and (not options["withApparent"]):
+				continue
 			
 			combin.addLink([gA, gB])
-			if gA not in aretes:
-				aretes[gA] = {}
-			aretes[gA][gB] = 1
+
+			# Le tableau des aretes entre genes
+			if options["minRelevance"] < 1:
+				if gA not in aretes:
+					aretes[gA] = {}
+				aretes[gA][gB] = 1
 
 		f.close()
 		
@@ -103,8 +111,12 @@ def buildAncFile(anc, lastComb):
 		if phylTree.dicParents[e1][e2] == anc:
 			doLoad(f, phylTree.ages[anc], comb)
 		# Ne sert que si on cherche a clusteriser les familles
-		elif options["minRelevance"] < 1:
-			doLoad(f, phylTree.ages[anc], combDummy)
+		#elif options["minRelevance"] < 1:
+		else:
+			if options["allLinks"]:
+				doLoad(f, phylTree.ages[anc], comb)
+			else:
+				doLoad(f, phylTree.ages[anc], combDummy)
 		utils.myTools.stderr.write('.')
 	print >> sys.stderr, " OK"
 
@@ -132,9 +144,9 @@ def buildAncFile(anc, lastComb):
 	for x in comb:
 	
 		# Les familles transitives sont exactement les familles recherchees
-		if options["minRelevance"] >= 1:
-			res.addLink(x)
-			continue
+		#if options["minRelevance"] >= 1:
+		#	res.addLink(x)
+		#	continue
 		
 		(nbAretes,nbAretesAttendu,poidsBranches,score) = getStats(x)
 
@@ -142,6 +154,9 @@ def buildAncFile(anc, lastComb):
 		if len([e for e in poidsBranches if e > 0]) == 1:
 			print >> sys.stderr, "Sous-famille"
 			continue
+
+		res.addLink(x)
+		continue
 
 		# A.2/ Tous les liens sont presents
 		if nbAretes >= nbAretesAttendu:

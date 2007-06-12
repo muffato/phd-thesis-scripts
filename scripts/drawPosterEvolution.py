@@ -16,6 +16,7 @@ import sys
 import utils.myGenomes
 import utils.myTools
 import utils.myPsOutput
+import utils.myPhylTree
 
 
 #############
@@ -108,7 +109,7 @@ def reorderGenome(genome1, genome2):
 			genome1.lstGenes[c1].reverse()
 		for j in xrange(len(genome1.lstGenes[c1])):
 			g = genome1.lstGenes[c1][j]
-			newGenome.addGene( utils.myBioObjects.Gene(g.names, i+1, j, j, 0) )
+			newGenome.addGene( utils.myPhylTree.Gene(g.names, i+1, j, j, 0) )
 	newGenome.lstChr = range(1,len(besthits)+1)
 	newGenome.sortGenome()
 	return newGenome
@@ -122,7 +123,7 @@ def reorderGenome(genome1, genome2):
 (noms_fichiers, options) = utils.myTools.checkArgs( ["phylTree.conf"], [("penColor",str,"black"), ("minHomology",int,90), ("ancGenesFile",str,"")], __doc__)
 
 
-phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
 order = ["Euteleostomi", "Tetrapoda", "Amniota", "Mammalia", "Theria", "Boreoeutheria", "Euarchontoglires", "Catarrhini", "Homo/Pan/Gorilla group"]
 #order = order[:2]

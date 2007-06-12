@@ -15,7 +15,7 @@ __doc__ = """
 # Librairies
 import os
 import sys
-import utils.myBioObjects
+import utils.myPhylTree
 import utils.myTools
 
 
@@ -105,6 +105,7 @@ def proceedFile(fin, fout, foutR):
 	["phylTree.conf"], \
 	[("releaseID",int,[42,43,44]),
 	("OUT.genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
+	("OUT.fullGenesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
 	("OUT.orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
 	("OUT.paras2File",str,"~/work/data/orthologs/paras.%s.%s.list.bz2"), \
 	("OUT.paras1File",str,"~/work/data/paralogs/paras.%s.list.bz2"), \
@@ -118,22 +119,28 @@ def proceedFile(fin, fout, foutR):
 
 
 # L'arbre phylogenetique
-phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
 
 # Les fichiers de genes
 for esp in phylTree.listSpecies:
 	print >> sys.stderr, "Telechargement de la liste des genes de %s ..." % esp,
-	fo = utils.myTools.myOpenFile(options["OUT.genesFile"] % phylTree.fileName[esp], 'w')
+	fo1 = utils.myTools.myOpenFile(options["OUT.genesFile"] % phylTree.fileName[esp], 'w')
+	fo2 = utils.myTools.myOpenFile(options["OUT.fullGenesFile"] % phylTree.fileName[esp], 'w')
 	tmp = esp.lower().split()
-	nb = 0
+	nb1 = 0
+	nb2 = 0
 	for ligne in fileIterator(options["IN.genesFile"] % (tmp[0][0] + tmp[1])):
 		c = ligne.split('\t')
-		print >> fo, "\t".join( [c[11],c[7],c[8],c[9],c[1]] )
-		nb += 1
+		if ("RNA" not in c[3]) and ("pseudogene" not in c[3]):
+			print >> fo1, "\t".join( [c[11],c[7],c[8],c[9],c[1]] )
+			nb1 += 1
+		print >> fo2, "\t".join( [c[11],c[7],c[8],c[9],c[1]] )
+		nb2 += 1
 	
-	fo.close()
-	print >> sys.stderr, "%d genes OK" % nb
+	fo1.close()
+	fo2.close()
+	print >> sys.stderr, "%d/%d genes OK" % (nb1,nb2)
 
 
 
@@ -153,7 +160,7 @@ for (esp1,esp2) in utils.myTools.myMatrixIterator(nomReel, None, utils.myTools.m
 	esp1B = dicNomsReels[esp1]
 	esp2B = dicNomsReels[esp2]
 
-	theoryAnc = phylTree.dicParents[esp1][esp2]
+	theoryAnc = phylTree.dicParents[esp1B][esp2B]
 		
 	if esp1 == esp2:
 		print >> sys.stderr, "Telechargement de la liste des genes paralogues de %s ..." % esp1B,

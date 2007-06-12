@@ -17,6 +17,7 @@ import operator
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
+import utils.myPhylTree
 import utils.myCommunities
 
 #############
@@ -165,7 +166,7 @@ def calcPoids(node):
 )
 
 #  Chargement et initialisation
-phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 genesAnc = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[options.ancestr])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.Genome.defaultChr]
 lstDiags = loadDiagsFile(noms_fichiers["diagsList"], options["ancestr"])

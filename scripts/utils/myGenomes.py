@@ -4,7 +4,23 @@ import sys
 import operator
 import myMaths
 import myTools
-import myBioObjects
+
+
+##############
+# Un gene :) #
+##############
+class Gene:
+
+	def __init__(self, names, chromosome, beg, end, strand):
+	
+		self.names = tuple(names)
+		self.chromosome = chromosome
+		self.beginning = beg
+		self.end = end
+		self.strand = strand
+
+	def __repr__(self):
+		return "Gene %s on chr %s from %d to %d on strand %d" % ("/".join(self.names), self.chromosome, self.beginning, self.end, self.strand)
 
 
 
@@ -210,7 +226,7 @@ class EnsemblGenome(Genome):
 			except ValueError:
 				pass
 	
-			self.addGene( myBioObjects.Gene([champs[-1]], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
+			self.addGene( Gene([champs[-1]], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
 			
 		self.f.close()
 		
@@ -269,7 +285,7 @@ class EnsemblOrthosListGenome(Genome):
 		
 		nb = 0
 		for g in combin:
-			self.addGene( myBioObjects.Gene(tuple(g), Genome.defaultChr, nb, nb, 0) )
+			self.addGene( Gene(tuple(g), Genome.defaultChr, nb, nb, 0) )
 			nb += 1
 
 		print >> sys.stderr, "OK"
@@ -319,7 +335,7 @@ class AncestralGenome(Genome):
 				i = 0
 			
 			# On ajoute le gene
-			self.addGene( myBioObjects.Gene(champs, c, i, i, strand) )
+			self.addGene( Gene(champs, c, i, i, strand) )
 		
 		self.f.close()
 		self.lstChr = sorted(self.lstGenes)

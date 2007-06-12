@@ -6,23 +6,6 @@ import myMaths
 import myGenomes
 
 
-##############
-# Un gene :) #
-##############
-class Gene:
-
-	def __init__(self, names, chromosome, beg, end, strand):
-	
-		self.names = tuple(names)
-		self.chromosome = chromosome
-		self.beginning = beg
-		self.end = end
-		self.strand = strand
-
-	def __repr__(self):
-		return "Gene %s on chr %s from %d to %d on strand %d" % ("/".join(self.names), self.chromosome, self.beginning, self.end, self.strand)
-
-
 #############################################
 # Cette classe gere un arbre phylogenetique #
 #############################################
@@ -247,15 +230,16 @@ class PhylogeneticTree:
 				self.dicGenes[x] = (esp, g.dicGenes[x][0], g.dicGenes[x][1])
 
 	# Renvoie le nombre de genes dans chaque espece pour une famille donnee
-	def findFamilyComposition(self, fam, breakWhenIncomplete=False):
+	def findFamilyComposition(self, fam):
 		
-		score = dict( [(e,[]) for e in self.dicGenomes] )
+		score = self.newCommonNamesMapperInstance()
+		for e in self.officialName:
+			score[e] = []
 		
 		for g in fam:
-			if (g not in self.dicGenes) and breakWhenIncomplete:
-				return None
-			(e,_,_) = self.dicGenes[g]
-			score[e].append(g)
+			if g in self.dicGenes:
+				(e,_,_) = self.dicGenes[g]
+				score[e].append(g)
 		
 		return score
 
@@ -319,41 +303,4 @@ class PhylogeneticTree:
 
 
 
-
-#####################################################
-# Cette classe gere un fichier resultat de Concorde #
-#####################################################
-class ConcordeFile:
-
-	def __init__(self, nom):
-		tmp = []
-		f = myTools.myOpenFile(nom, 'r')
-		for ligne in f:
-			for x in ligne.split():
-				tmp.append(int(x))
-		
-		f.close()
-		i = tmp.index(0)
-		self.res = tmp[i+1:] + tmp[1:i]
-		self.buildIndex()
-			
-
-	def buildIndex(self):
-		self.dic = {}
-		for i in xrange(len(self.res)):
-			self.dic[self.res[i]] = i
-	
-	def isMemeSens(self, other):
-		s = 0
-		for i in xrange(len(self.res)-1):
-			if other.dic[self.res[i]] < other.dic[self.res[i+1]]:
-				s += 1
-			else:
-				s -= 1
-		return s>0
-
-	def reverse(self):
-		self.res.reverse()
-		self.buildIndex()
-	
 

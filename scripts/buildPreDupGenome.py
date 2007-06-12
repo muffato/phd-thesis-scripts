@@ -13,7 +13,7 @@ Chaque gene ancestral recoit son chromosome ancestral par un vote a la majorite 
 import sys
 import operator
 import itertools
-import utils.myBioObjects
+import utils.myPhylTree
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
@@ -334,7 +334,7 @@ def printColorAncestr(genesAnc, chrAncGenes):
 )
 
 # Chargement des fichiers
-phylTree = utils.myBioObjects.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 especesDup = options["especesDup"].split(',')
 especesNonDupGrp = [x.split('+') for x in options["especesNonDup"].split(',')]
 especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
