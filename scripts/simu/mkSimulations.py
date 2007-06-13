@@ -3,6 +3,10 @@
 __doc__ = """
 Prend un arbre phylogenetique et simule l'evolution d'un genome ancestral.
 Genere des fichiers similaires a ceux d'Ensembl
+-> Variante pour ressembler a la vraie evolution:
+    - Contraintes de rearrangements sur poulet/opossum/rongeurs
+    - Especes en cours d'assemblage: orny/xenope
+    - Especes a 2X de couverture
 """
 
 
@@ -32,7 +36,7 @@ def randomStrand():
 
 # Un taux specifique compris entre 1/rate et rate
 def randomRate():
-	return math.pow(options["rearrRateAccel"], random.vonmisesvariate(0, 1) / math.pi)
+	return math.pow(options["rearrRateAccel"], random.vonmisesvariate(0, options["vonMisesKappa"]) / math.pi)
 
 # Retourne la region genomique si necessaire
 def applyStrand(chr, strand):
@@ -69,21 +73,45 @@ def randomSlice(genome):
 			return (c,x1,x2)
 
 
+# Imprime un genome, en le transformant en scaffolds si necessaire
+def printGenome(name, genome):
+
+	if options["realLifeConstraints"]:
+		if name in ["Loxodonta africana", "Echinops telfairi", "Dasypus novemcinctus", "Felis catus", "Erinaceus europaeus", "Myotis lucifugus", "Tupaia belangeri", "Otolemur garnettii", "Oryctolagus cuniculus", "Cavia porcellus", "Spermophilus tridecemlineatus"]:
+			# especes en 2X
+			for i in xrange(15000):
+				(c,x) = randomPlace(genome)
+				genome.append(genome[c][x:])
+				genome[c] = genome[c][:x]
+			random.shuffle(genome)
+			genome = genome[:(len(genome)*2)/3]
+
+		
+		elif name in ["Xenopus tropicalis", "Ornithorhynchus anatinus", "Takifugu rubripes"]:
+			# Larges scaffolds
+			for i in xrange(3000):
+				(c,x) = randomPlace(genome)
+				genome.append(genome[c][x:])
+				genome[c] = genome[c][:x]
+	
+	print >> sys.stderr, "Writing %s genome (nbChr=%d) ..." % (name,len(genome)),
+	s = phylTree.fileName[name]
+	f = utils.myTools.myOpenFile(options["genomeFile"] % s, 'w')
+	for c in xrange(len(genome)):
+		for i in xrange(len(genome[c])):
+			(gene,strand) = genome[c][i]
+			print >> f, "%d\t%d\t%d\t%d\t%s.%d" % (c+1,i,i,strand,s,gene)
+	f.close()
+	print >> sys.stderr, "OK"
+
+
 # La construction recursive des genomes
 def launchRecSimu(node, genomeIni):
 
 	global nbTotalGenes
 
 	# On ecrit le genome en question
-	print >> sys.stderr, "Writing %s genome (nbChr=%d) ..." % (node,len(genomeIni)),
-	s = phylTree.fileName[node]
-	f = utils.myTools.myOpenFile(options["genomeFile"] % s, 'w')
-	for c in xrange(len(genomeIni)):
-		for i in xrange(len(genomeIni[c])):
-			(gene,strand) = genomeIni[c][i]
-			print >> f, "%d\t%d\t%d\t%d\t%s.%d" % (c+1,i,i,strand,s,gene)
-	f.close()
-	print >> sys.stderr, "OK"
+	printGenome(node, genomeIni)
 
 	# Si il n'y a pas de fils, c'est qu'on est arrive sur une espece moderne, on peut s'arreter
 	if node not in phylTree.items:
@@ -91,7 +119,7 @@ def launchRecSimu(node, genomeIni):
 
 	# On ecrit les familles de genes ancestraux correspondantes
 	print >> sys.stderr, "Writing %s ancestral genes ..." % node,
-	f = utils.myTools.myOpenFile(options["ancGenesFile"] % s, 'w')
+	f = utils.myTools.myOpenFile(options["ancGenesFile"] % phylTree.fileName[node], 'w')
 	tmp = set()
 	for (e1,e2) in utils.myTools.myMatrixIterator(phylTree.species[node], None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
 		tmp.update(phylTree.dicLinks[e1][e2])
@@ -112,6 +140,12 @@ def launchRecSimu(node, genomeIni):
 		
 		newGenome = [list(x) for x in genomeIni]
 		evolRate = randomRate()
+		# CONSTRAINT-SET1
+		if options["realLifeConstraints"]:
+			if (fils == "Murinae") or (node == "Murinae"):
+				evolRate = 4.
+			elif fils == "Gallus gallus":
+				evolRate = 0.2
 		print >> sys.stderr, "rate=%.3f" % evolRate,
 
 		# Perte de genes
@@ -131,14 +165,21 @@ def launchRecSimu(node, genomeIni):
 
 		# Rearrangements
 		nbEvents = int(options["chrEventRate"] * dist * evolRate * randomRate())
-		s = (options["chrInvertWeight"] * randomRate()) + (options["chrTranslocWeight"] * randomRate()) \
-		+ (options["chrFusionWeight"] * randomRate()) + (options["chrBreakWeight"] * randomRate())
+		(InvertRate,TranslocRate,FusionRate,BreakRate) = [options[x]*randomRate() for x in ["chrInvertWeight","chrTranslocWeight","chrFusionWeight","chrBreakWeight"]]
+		# CONSTRAINT-SET2
+		if options["realLifeConstraints"]:
+			if fils == "Monodelphis domestica":
+				(InvertRate,TranslocRate,FusionRate,BreakRate)=(75,10,15,0)
+			elif fils == "Gallus gallus":
+				(InvertRate,TranslocRate,FusionRate,BreakRate)=(90,9,1,5)
+		
+		s = InvertRate + TranslocRate + FusionRate + BreakRate
 		nb = [0,0,0,0]
 		for i in xrange(nbEvents):
 			r = random.uniform(0, s)
 			
 			# C'est une inversion
-			if r < options["chrInvertWeight"]:
+			if r < InvertRate:
 				# La region qui s'inverse
 				(c,x1,x2) = randomSlice(newGenome)
 				# Le nouveau chromosome avec la region qui s'inverse au milieu
@@ -146,9 +187,9 @@ def launchRecSimu(node, genomeIni):
 				nb[0] += 1
 				continue
 			
-			r -= options["chrInvertWeight"]
+			r -= InvertRate
 			# C'est une translocation
-			if r < options["chrTranslocWeight"]:
+			if r < TranslocRate:
 				# La region qui se deplace
 				(c,x1,x2) = randomSlice(newGenome)
 				# On l'enleve
@@ -161,9 +202,9 @@ def launchRecSimu(node, genomeIni):
 				nb[1] += 1
 				continue
 			
-			r -= options["chrTranslocWeight"]
+			r -= TranslocRate
 			# C'est une fusion
-			if r < options["chrFusionWeight"]:
+			if r < FusionRate:
 				# Les deux chromosomes a fusionnerr
 				(c1,c2) = random.sample(xrange(len(newGenome)), 2)
 				# On met l'un au bout de l'autre (eventuellement en le retournant)
@@ -195,9 +236,9 @@ def launchRecSimu(node, genomeIni):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("root",str,""), \
+	[("root",str,""), ("realLifeConstraints",bool,False), \
 	("nbOrigGenes",int,20000), ("nbMaxChr",int,20), \
-	("geneLossRate",float,10), ("geneGainRate",float,10), ("chrEventRate",float,1), ("rearrRateAccel",float,2), \
+	("geneLossRate",float,10), ("geneGainRate",float,10), ("chrEventRate",float,1), ("rearrRateAccel",float,1.7), ("vonMisesKappa",float,2), \
 	("chrInvertWeight",float,90), ("chrTranslocWeight",float,5), ("chrFusionWeight",float,2.5), ("chrBreakWeight",float,2.5), \
 	("genomeFile",str,"~/work/simu/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/simu/ancGenes/ancGenes.%s.list.bz2")], \

@@ -64,28 +64,9 @@ class ConcordeFile:
 				tmp.append(int(x))
 		
 		f.close()
-		i = tmp.index(0)
-		self.res = tmp[i+1:] + tmp[1:i]
-		self.buildIndex()
-			
-
-	def buildIndex(self):
-		self.dic = {}
-		for i in xrange(len(self.res)):
-			self.dic[self.res[i]] = i
-	
-	def isMemeSens(self, other):
-		s = 0
-		for i in xrange(len(self.res)-1):
-			if other.dic[self.res[i]] < other.dic[self.res[i+1]]:
-				s += 1
-			else:
-				s -= 1
-		return s>0
-
-	def reverse(self):
-		self.res.reverse()
-		self.buildIndex()
+		#i = tmp.index(0)
+		#self.res = tmp[i+1:] + tmp[1:i]
+		self.res = tmp[1:]
 	
 
 
@@ -170,7 +151,7 @@ for c in genesAnc.lstChr:
 	print >> sys.stderr
 	print >> sys.stderr, "- Chromosome %s (%d genes) -" % (c, n)
 	
-	mat = [range(n) for i in xrange(n)]
+	mat = [range(n+1) for i in xrange(n+1)]
 	
 	print >> sys.stderr, "Ecriture de la matrice ... ",
 	f = open(nom, 'w')
@@ -184,7 +165,7 @@ for c in genesAnc.lstChr:
 	for i in xrange(n):
 		for j in xrange(i+1,n):
 			y = distInterGenes(tab[i], tab[j])
-			mat[i][j] = mat[j][i] = y
+			mat[i+1][j+1] = mat[j+1][i+1] = y
 			if y == None:
 				print >> f, int(mult*options["penalite"]),
 			elif y == 1:
@@ -192,6 +173,9 @@ for c in genesAnc.lstChr:
 			else:
 				print >> f, int(mult*y),
 		print >> f
+	for i in xrange(n+1):
+		mat[i][0] = mat[0][i] = 0
+
 	print >> f, "EOF"
 	f.close()
 
@@ -218,9 +202,9 @@ for c in genesAnc.lstChr:
 	#	print c," ".join(genesAnc.lstGenes[c][i].names)
 	
 	reversalPoints = []
-	tmp = [(i,res[i]-1,res[i+1]-1,mat[res[i]-1][res[i+1]-1]) for i in xrange(n-1)]
+	tmp = [(i,res[i],res[i+1],mat[res[i]][res[i+1]]) for i in xrange(n)]
 	for (i,xi,xip,diip) in tmp:
-		for (j,xj,xjp,djjp) in tmp[:i]:
+		for (j,xj,xjp,djjp) in tmp[:i-1]:
 			dij = mat[xi][xj]
 			if dij == None:
 				continue
@@ -231,7 +215,9 @@ for c in genesAnc.lstChr:
 				# On a detecte une inversion potentielle
 				reversalPoints.append( (i,j) )
 	
-	print >> sys.stderr, len(reversalPoints), "inversions"
+	print >> sys.stderr, len(reversalPoints), "inversions possibles"
 
 
 os.system('rm -f *%s*' % nom )
+
+
