@@ -77,7 +77,7 @@ def proceedFile(fin, fout, foutR):
 			if newAnc == theoryAnc:
 				nb2 += 1
 			
-			if options["releaseID"] == 44:
+			if options["releaseID"] in [44,45]:
 				r = (c[7],c[4],c[24], c[i1+15],c[i1+12],c[i1+32], newAnc, c[i1+4],c[i1+5], c[i2+4],c[i2+5], c[0])
 			else:
 				r = (c[3],c[25],c[44], c[i2-8],c[i2+14],c[i2+33], newAnc, c[29],c[30], c[i2+18],c[i2+19], c[0])
@@ -103,7 +103,7 @@ def proceedFile(fin, fout, foutR):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("releaseID",int,[42,43,44]),
+	[("releaseID",int,[42,43,44,45]),
 	("OUT.genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("OUT.fullGenesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
 	("OUT.orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \

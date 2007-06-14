@@ -67,6 +67,13 @@ def loadDiagsFile(nom):
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 lstDiags = loadDiagsFile(noms_fichiers["diagsList"])
 
+allOK = 0.
+allPerfect = 0.
+allPerfectPairs = 0.
+allDiags = 0.
+allPairs = 0.
+allShift = 0.
+
 for anc in lstDiags:
 	genome = utils.myGenomes.EnsemblGenome(options["genesFile"] % phylTree.fileName[anc])
 	ancGenes = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
@@ -99,7 +106,14 @@ for anc in lstDiags:
 
 
 	print "%s\t%.2f\t%.2f\t%.2f\t%.2f" % (anc,100.*nbOK/len(lstDiags[anc]),100.*nbPerfect/len(lstDiags[anc]),averageShift/nbTotPairs,100.*nbPerfectPairs/nbTotPairs)
+	
+	allOK += nbOK
+	allPerfect += nbPerfect
+	allPerfectPairs += nbPerfectPairs
+	allDiags += len(lstDiags[anc])
+	allPairs += nbTotPairs
+	allShift += averageShift
 
-print >> sys.stderr, "OK"
 
+print  "%.2f\t%.2f\t%.2f\t%.2f" % (100.*allOK/allDiags, 100.*allPerfect/allDiags, allShift/allPairs, 100.*allPerfectPairs/allPairs)
 

@@ -29,7 +29,7 @@ import utils.myCommunities
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("ancestr",str,""),("minRelevance",float,100), ("recursiveConstruction",bool,True), ("graphDirectory",str,""), ("withApparent",bool,True), ("allLinks",bool,False), \
+	[("ancestr",str,""), ("recursiveConstruction",bool,True), ("homologyFilter",str,"ortholog_one2one,ortholog_one2many,ortholog_many2many"), ("withSubLinks",bool,True), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("one2oneFile",str,"~/work/data/ancGenes/one2one.%s.list.bz2"), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
@@ -41,7 +41,7 @@ import utils.myCommunities
 
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 phylTree.loadAllSpeciesSince(options["ancestr"], options["genesFile"])
-
+homologies = set(options["homologyFilter"].split(","))
 
 def buildAncFile(anc, lastComb):
 
@@ -83,17 +83,9 @@ def buildAncFile(anc, lastComb):
 			if phylTree.ages[champs[6]] > age:
 				continue
 
-			# On ne veut pas les apparent
-			if ("parent" in champs[-1]) and (not options["withApparent"]):
-				continue
-			
-			combin.addLink([gA, gB])
-
-			# Le tableau des aretes entre genes
-			if options["minRelevance"] < 1:
-				if gA not in aretes:
-					aretes[gA] = {}
-				aretes[gA][gB] = 1
+			# Si on ne veut pas les apparent par exemple
+			if champs[-1] in homologies:
+				combin.addLink([gA, gB])
 
 		f.close()
 		
@@ -103,153 +95,39 @@ def buildAncFile(anc, lastComb):
 	#    On fait les familles par transitivite en ne tenant compte que des liens entre les deux branches
 	aretes = {}
 	comb = utils.myTools.myCombinator([])
-	combDummy = utils.myTools.myCombinator([])
 	n = len(phylTree.species[anc])
 	print >> sys.stderr, "Construction des familles d'orthologues de %s " % anc,
 	for (e1,e2) in utils.myTools.myMatrixIterator(phylTree.species[anc], None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
 		f = options["orthosFile"] % (phylTree.fileName[e1],phylTree.fileName[e2])
 		if phylTree.dicParents[e1][e2] == anc:
 			doLoad(f, phylTree.ages[anc], comb)
-		# Ne sert que si on cherche a clusteriser les familles
-		#elif options["minRelevance"] < 1:
-		else:
-			if options["allLinks"]:
-				doLoad(f, phylTree.ages[anc], comb)
-			else:
-				doLoad(f, phylTree.ages[anc], combDummy)
+		elif options["withSubLinks"]:
+			doLoad(f, phylTree.ages[anc], comb)
 		utils.myTools.stderr.write('.')
 	print >> sys.stderr, " OK"
 
 	# On cherche a clusteriser les familles transitives
-	if options["minRelevance"] < 1:
-
+	if "within_species_paralog" in homologies:
 		print >> sys.stderr, "Insertion des genes paralogues intra-especes ",
 		for e in phylTree.species[anc]:
-			doLoad(options["paras1File"] % phylTree.fileName[e], phylTree.ages[anc]-1, combDummy)
+			doLoad(options["paras1File"] % phylTree.fileName[e], phylTree.ages[anc]-1, comb)
 			utils.myTools.stderr.write('.')
 		print >> sys.stderr, " OK"
 		
-		print >> sys.stderr, "Insertion des genes paralogues inter-especes ",
-		for (e1,e2) in utils.myTools.myMatrixIterator(phylTree.species[anc], None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
-			doLoad(options["paras2File"] % (phylTree.fileName[e1],phylTree.fileName[e2]), phylTree.ages[anc], combDummy)
-			utils.myTools.stderr.write('.')
-		print >> sys.stderr, " OK"
-	
-	combDummy = None
-
 	# 2. On affiche les groupes d'orthologues
 	print >> sys.stderr, "Construction des fichiers de", anc, "..."
 	
 	res = utils.myTools.myCombinator([])
 	for x in comb:
 	
-		# Les familles transitives sont exactement les familles recherchees
-		#if options["minRelevance"] >= 1:
-		#	res.addLink(x)
-		#	continue
-		
 		(nbAretes,nbAretesAttendu,poidsBranches,score) = getStats(x)
 
 		# A.1/ On elimine les familles specifiques d'une sous-branche
 		if len([e for e in poidsBranches if e > 0]) == 1:
-			print >> sys.stderr, "Sous-famille"
+			#print >> sys.stderr, "Sous-famille"
 			continue
 
 		res.addLink(x)
-		continue
-
-		# A.2/ Tous les liens sont presents
-		if nbAretes >= nbAretesAttendu:
-			print >> sys.stderr, "Graphe complet"
-			clusters = [x]
-		
-		# A.3/ Dans une des sous-branches, tous les genes sont en 1 copie
-		elif min(poidsBranches) == 1:
-			print >> sys.stderr, "Branche sans duplication"
-			clusters = [x]
-
-		# B. On est oblige de clusteriser
-		else:
-			# B.1/ On lance les communautes
-			lstCommunitiesOrig = utils.myCommunities.launchCommunitiesBuild(items = x, edgesDict = aretes)[0]
-			
-			# B.2/ On selectionne celles qui sont convenables
-			lstCommunities = []
-			for comm in lstCommunitiesOrig:
-			
-				print >> sys.stderr, "Test de [alpha=%f relevance=%f parts=%d N/A=%d/%d] :" % (comm[0],comm[1],len(comm[2]),len(comm[3]),len(x)),
-				(alpha,relevance,clusters,lonely) = comm
-				if options["graphDirectory"] != "" and len(lonely) == 0:
-					fa = utils.myTools.myOpenFile(options["graphDirectory"] + '/graph-%f-%f-%d-%d' % (relevance,alpha,len(clusters),len(lonely)), 'w')
-					print >> fa, "graph {"
-					interv = 85
-					for ci in xrange(1,len(clusters)+1):
-						r = ci % 4
-						g = (ci / 4) % 4
-						b = (ci / 16) % 4
-						for cc in clusters[ci-1]:
-							print >> fa, "%s [style=\"filled\",color=\"#%02X%02X%02X\"]" % (cc, 85*r,85*g,85*b)
-					for (i1,i2) in utils.myTools.myMatrixIterator(x, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
-						if i2 in aretes.get(i1, []):
-							ss = aretes[i1][i2]
-						elif i1 in aretes.get(i2, []):
-							ss = aretes[i2][i1]
-						elif phylTree.dicGenes[i1][0] == phylTree.dicGenes[i2][0]:
-							ss = -1
-						else:
-							ss = 0
-						if ss == -1:
-							print >> fa, "%s -- %s [style=\"dotted\"]" % (i1, i2)
-						elif ss == 0.5:
-							print >> fa, "%s -- %s [style=\"dashed\"]" % (i1, i2)
-						elif ss == 1:
-							print >> fa, "%s -- %s" % (i1, i2)
-					print >> fa, "}"
-					fa.close()
-
-
-				# Ne nous interessent que les clusterisations completes
-				if len(comm[-1]) != 0:
-					print >> sys.stderr, "genes oublies"
-					continue
-				
-				# Une clusterisation est correcte si tous les clusters sont repartis sur les deux sous-branches
-				tmpNbEsp = []
-				for c in comm[2]:
-					(nbAr, nbArAtt, poidsBranches, score) = getStats(c)
-					tmpNbEsp.append(   float(len([e for e in score if len(score[e]) > 0])) )
-					if len([e for e in poidsBranches if e > 0]) == 1:
-						print >> sys.stderr, "Clusterisation incoherente"
-						break
-				else:
-					print >> sys.stderr, min(tmpNbEsp),
-					# Ne nous interessent que les clusterisations avec une relevance suffisante
-					if comm[1] >= options["minRelevance"]:
-						print >> sys.stderr, "Communaute recevable"
-						lstCommunities.append(comm)
-					else:
-						print >> sys.stderr, "relevance insuffisante"
-					
-			# On trie suivant la meilleure relevance
-			lstCommunities.sort(key = operator.itemgetter(1), reverse = True)
-
-			# B.3/ Aucune clusterisation satisfaisante
-			if len(lstCommunities) == 0:
-				print >> sys.stderr, "Aucune communaute satisfaisante"
-				clusters = [x]
-				
-			# B.4/ Unique solution
-			elif len(lstCommunities) == 1:
-				clusters = lstCommunities[0][2]
-				print >> sys.stderr, "Resultat unique [alpha=%f relevance=%f parts=%d]" % (lstCommunities[0][0],lstCommunities[0][1],len(clusters))
-			# B.5/ Le choix s'impose
-			else:
-				clusters = lstCommunities[0][2]
-				print >> sys.stderr, "Hesitation ... Choix: [alpha=%f relevance=%f parts=%d]" % (lstCommunities[0][0],lstCommunities[0][1],len(clusters))
-			
-		# Ecriture
-		for c in clusters:
-			res.addLink(c)
 	
 	comb = None
 	aretes = None

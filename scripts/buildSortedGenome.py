@@ -1,7 +1,8 @@
 #! /users/ldog/muffato/python -OO
 
-
-# INITIALISATION #
+__doc__ = """
+Trie les gens selon l'ordre consensus issu des especes de l'arbre phylogenetique
+"""
 
 # Librairies
 import os
@@ -12,9 +13,14 @@ import utils.myTools
 import utils.myMaths
 import utils.myPhylTree
 
-
+#############
 # FONCTIONS #
+#############
 
+#
+# Calcule la distance inter-genes moyenne entre les deux genes
+#   Utilise la fonction d'inference de valeur de phylTree
+#
 def distInterGenes(tg1, tg2):
 
 	# Les distances chez chaque espece
@@ -34,16 +40,16 @@ def distInterGenes(tg1, tg2):
 	lst1Anc = set()
 	for (e1,e2) in utils.myTools.myMatrixIterator(lst1Esp, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
 		lst1Anc.update(phylTree.dicLinks[e1][e2])
-		if options["ancestr"] in lst1Anc:
+		if anc in lst1Anc:
 			return 1
 	for a in lst1Anc:
 		distEsp[a] = 1
 
 	# En mode outgroups/2 les outgroups qui montrent une distance plus grande que les fils sont supprimes
 	if options["useOutgroups"] == 2:
-		m = [distEsp[e] for e in phylTree.species[options["ancestr"]] if e in distEsp]
+		m = [distEsp[e] for e in ancSpecies if e in distEsp]
 		if len(m) > 0:
-			eNO = [e for e in phylTree.outgroupSpecies[options["ancestr"]] if distEsp.get(e,0) > max(m)]
+			eNO = [e for e in ancOutgroupSpecies if distEsp.get(e,0) > max(m)]
 			for e in eNO:
 				del distEsp[e]
 
@@ -97,7 +103,7 @@ class ConcordeFile:
 	("concordeExec",str,"~/work/scripts/concorde"),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
-	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
+	__doc__ \
 )
 
 
@@ -112,10 +118,9 @@ phylTree.loadAllSpeciesSince(None, options["genesFile"])
 del phylTree.dicGenomes
 genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genomeAncestral"])
 
-# On etend la liste des genes ancestraux pour utiliser les outgroup
-anc = options["ancestr"]
+# On etend la liste des genes ancestraux pour utiliser les outgroup en remontant l'arbre jusqu'a la racine
 dicOutgroupGenes = {}
-# On remonte l'arbre jusqu'a la racine
+anc = options["ancestr"]
 while anc in phylTree.parent:
 	anc = phylTree.parent[anc]
 	# Le genome de l'ancetre superieur
@@ -142,7 +147,9 @@ while anc in phylTree.parent:
 				dicOutgroupGenes[i] = set(newGenes)
 	del tmpGenesAnc
 
-# On reecrit le genome en terme d'especes
+
+# On reecrit le genome a trier
+# Chaque gene devient la liste des distances inter-genes chez chaque espece
 genome = {}
 for c in genesAnc.lstChr:
 	genome[c] = []
@@ -157,7 +164,10 @@ del dicOutgroupGenes
 nom = "mat%08d" % ((os.getpid() ^ os.getppid() ^ random.randint(1,16777215)) & 16777215)
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
-phylTree.initCalcDist(options["ancestr"], options["useOutgroups"] != 0)
+anc = options["ancestr"]
+ancSpecies = phylTree.species[anc]
+ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
+phylTree.initCalcDist(anc, options["useOutgroups"] != 0)
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
 for c in genesAnc.lstChr:
@@ -168,9 +178,9 @@ for c in genesAnc.lstChr:
 	print >> sys.stderr
 	print >> sys.stderr, "- Chromosome %s (%d genes) -" % (c, n)
 	
+	# La matrice des distances intergenes
 	print >> sys.stderr, "Ecriture de la matrice ... ",
 	f = open(nom, 'w')
-	
 	print >> f, "NAME: CHRANC"
 	print >> f, "TYPE: TSP"
 	print >> f, "DIMENSION: %d" % (n+1)
@@ -178,11 +188,9 @@ for c in genesAnc.lstChr:
 	print >> f, "EDGE_WEIGHT_FORMAT: UPPER_ROW"
 	print >> f, "EDGE_WEIGHT_SECTION"
 	print >> f, "0 " * n
-	
 	for i in xrange(n):
 		for j in xrange(i+1,n):
 			y = distInterGenes(tab[i], tab[j])
-			#print >> sys.stderr, tab[i], tab[j], y
 			if y == None:
 				print >> f, int(mult*options["penalite"]),
 			elif y == 1:
@@ -232,3 +240,4 @@ for c in genesAnc.lstChr:
 
 
 os.system('rm -f *%s*' % nom )
+

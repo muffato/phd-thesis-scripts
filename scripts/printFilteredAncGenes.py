@@ -56,8 +56,9 @@ for l in sys.stdin:
 		score[e] += 1
 	else:
 
-		#if max(score.values()) <= 1:
-		#	continue
+		if min(score.values()) >= 1:
+			print l,
+		continue
 
 		for e in phylTree.dicGenomes:
 			print "%d\t" % score[e],

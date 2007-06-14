@@ -1,7 +1,9 @@
 #! /users/ldog/muffato/python -OO
 
-
-# INITIALISATION #
+__doc__ = """
+Trie les gens selon l'ordre consensus issu des especes de l'arbre phylogenetique
+Indique les points d'inversions potentiels
+"""
 
 # Librairies
 import os
@@ -12,9 +14,14 @@ import utils.myTools
 import utils.myMaths
 import utils.myPhylTree
 
-
+#############
 # FONCTIONS #
+#############
 
+#
+# Calcule la distance inter-genes moyenne entre les deux genes
+#   Utilise la fonction d'inference de valeur de phylTree
+#
 def distInterGenes(tg1, tg2):
 
 	# Les distances chez chaque espece
@@ -50,25 +57,11 @@ def distInterGenes(tg1, tg2):
 	# On calcule par une moyenne les autres distances
 	return phylTree.calcDist(distEsp)
 
-	
-#####################################################
-# Cette classe gere un fichier resultat de Concorde #
-#####################################################
-class ConcordeFile:
 
-	def __init__(self, nom):
-		tmp = []
-		f = utils.myTools.myOpenFile(nom, 'r')
-		for ligne in f:
-			for x in ligne.split():
-				tmp.append(int(x))
-		
-		f.close()
-		#i = tmp.index(0)
-		#self.res = tmp[i+1:] + tmp[1:i]
-		self.res = tmp[1:]
-	
 
+########
+# MAIN #
+########
 
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
@@ -78,7 +71,7 @@ class ConcordeFile:
 	("concordeExec",str,"~/work/scripts/concorde"),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
-	"Trie les gens dans l'ordre indique par l'arbre phylogenetique" \
+	__doc__ \
 )
 
 
@@ -93,13 +86,9 @@ phylTree.loadAllSpeciesSince(None, options["genesFile"])
 del phylTree.dicGenomes
 genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genomeAncestral"])
 
-# On etend la liste des genes ancestraux pour utiliser les outgroup
-anc = options["ancestr"]
-ancSpecies = phylTree.species[anc]
-ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
-
+# On etend la liste des genes ancestraux pour utiliser les outgroup en remontant l'arbre jusqu'a la racine
 dicOutgroupGenes = {}
-# On remonte l'arbre jusqu'a la racine
+anc = options["ancestr"]
 while anc in phylTree.parent:
 	anc = phylTree.parent[anc]
 	# Le genome de l'ancetre superieur
@@ -126,7 +115,9 @@ while anc in phylTree.parent:
 				dicOutgroupGenes[i] = set(newGenes)
 	del tmpGenesAnc
 
-# On reecrit le genome en terme d'especes
+
+# On reecrit le genome a trier
+# Chaque gene devient la liste des distances inter-genes chez chaque espece
 genome = {}
 for c in genesAnc.lstChr:
 	genome[c] = []
@@ -140,7 +131,10 @@ del dicOutgroupGenes
 
 nom = "mat%08d" % ((os.getpid() ^ os.getppid() ^ random.randint(1,16777215)) & 16777215)
 mult = pow(10, options["nbDecimales"])
-phylTree.initCalcDist(options["ancestr"], options["useOutgroups"] != 0)
+anc = options["ancestr"]
+ancSpecies = phylTree.species[anc]
+ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
+phylTree.initCalcDist(anc, options["useOutgroups"] != 0)
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
 for c in genesAnc.lstChr:
@@ -151,7 +145,8 @@ for c in genesAnc.lstChr:
 	print >> sys.stderr
 	print >> sys.stderr, "- Chromosome %s (%d genes) -" % (c, n)
 	
-	mat = [range(n+1) for i in xrange(n+1)]
+	# La matrice des distances intergenes
+	mat = [[None] * (n+1) for i in xrange(n+1)]
 	
 	print >> sys.stderr, "Ecriture de la matrice ... ",
 	f = open(nom, 'w')
@@ -173,6 +168,7 @@ for c in genesAnc.lstChr:
 			else:
 				print >> f, int(mult*y),
 		print >> f
+	# Le n+1 eme point pour lier les deux extremites du chromosome
 	for i in xrange(n+1):
 		mat[i][0] = mat[0][i] = 0
 
@@ -180,15 +176,26 @@ for c in genesAnc.lstChr:
 	f.close()
 
 	print >> sys.stderr, "OK"
-	print >> sys.stderr, "Lancement de concorde ",
 	
+	# Lancement de concorde
 	comm = options["concordeExec"] + ' -x ' + nom
 	if options["withConcordeOutput"]:
 		os.system(comm + ' >&2')
 	else:
+		print >> sys.stderr, "Lancement de concorde"
 		os.system(comm + ' > /dev/null')
+	
+	# Chargement des resultats
 	if os.access(nom + ".sol", os.R_OK):
-		res = ConcordeFile(nom + ".sol").res
+		tmp = []
+		f = utils.myTools.myOpenFile(nom + ".sol", 'r')
+		for ligne in f:
+			for x in ligne.split():
+				tmp.append(int(x))
+		
+		f.close()
+		i = tmp.index(0)
+		res = tmp[i:] + tmp[1:i]
 	else:
 		res = None
 		print >> sys.stderr, "No solution found"
@@ -198,13 +205,15 @@ for c in genesAnc.lstChr:
 	if res == None:
 		continue
 
-	#for i in xrange(n):
-	#	print c," ".join(genesAnc.lstGenes[c][i].names)
-	
-	reversalPoints = []
+	# Impression du chromosome trie
+	for i in xrange(n):
+		print c," ".join(genesAnc.lstGenes[c][res[i+1]-1].names)
+
+	print >> sys.stderr, "Etude des solutions alternatives ...",
+	nb = 0
 	tmp = [(i,res[i],res[i+1],mat[res[i]][res[i+1]]) for i in xrange(n)]
 	for (i,xi,xip,diip) in tmp:
-		for (j,xj,xjp,djjp) in tmp[:i-1]:
+		for (j,xj,xjp,djjp) in tmp[:max(i-1,0)]:
 			dij = mat[xi][xj]
 			if dij == None:
 				continue
@@ -213,11 +222,11 @@ for c in genesAnc.lstChr:
 				continue
 			if int(mult * (diip+djjp-dij-dijpp)) == 0:
 				# On a detecte une inversion potentielle
-				reversalPoints.append( (i,j) )
+				print "# ... %d / %d ... %d / %d ..." % (j,j+1,i,i+1)
+				nb += 1
 	
-	print >> sys.stderr, len(reversalPoints), "inversions possibles"
+	print >> sys.stderr, nb, "inversions possibles"
 
 
 os.system('rm -f *%s*' % nom )
-
 

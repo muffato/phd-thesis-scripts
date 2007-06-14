@@ -407,7 +407,7 @@ for lstComm in lstLstComm:
 	(alpha,relevance,clusters,lonely) = lstComm[0]
 	print >> sys.stderr, "Resultat alpha=%f relevance=%f clusters=%d size=%d lonely=%d" % \
 		(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely))
-	for i in range(len(clusters)):
+	for i in xrange(len(clusters)):
 		chrInd += 1
 		for g in clusters[i]:
 			for (_,s,_) in allDCS[g]:
