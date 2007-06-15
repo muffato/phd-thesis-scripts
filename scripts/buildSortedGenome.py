@@ -64,7 +64,7 @@ class ConcordeFile:
 
 	def __init__(self, nom):
 		tmp = []
-		f = myTools.myOpenFile(nom, 'r')
+		f = utils.myTools.myOpenFile(nom, 'r')
 		for ligne in f:
 			for x in ligne.split():
 				tmp.append(int(x))

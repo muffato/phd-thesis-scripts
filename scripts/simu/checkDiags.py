@@ -57,7 +57,7 @@ def loadDiagsFile(nom):
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf", "diagsList"], \
+	["phylTree.conf"], \
 	[("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -65,55 +65,69 @@ def loadDiagsFile(nom):
 
 #  Chargement et initialisation
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-lstDiags = loadDiagsFile(noms_fichiers["diagsList"])
 
-allOK = 0.
-allPerfect = 0.
-allPerfectPairs = 0.
-allDiags = 0.
-allPairs = 0.
-allShift = 0.
+genomes = {}
+ancGenes = {}
+for anc in phylTree.listAncestr:
+	genomes[anc] = utils.myGenomes.EnsemblGenome(options["genesFile"] % phylTree.fileName[anc])
+	ancGenes[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
 
-for anc in lstDiags:
-	genome = utils.myGenomes.EnsemblGenome(options["genesFile"] % phylTree.fileName[anc])
-	ancGenes = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
-	nbOK = 0.
-	nbPerfect = 0.
-	nbPerfectPairs = 0.
-	nbTotPairs = 0.
-	averageShift = 0.
-	for (d,_) in lstDiags[anc]:
-		lstPos = [genome.getPosition(ancGenes.lstGenes[utils.myGenomes.Genome.defaultChr][i]) for i in d]
-		tmp = list(set([len(x) for x in lstPos]))
-		if tmp != [1]:
-			print >> sys.stderr, "PB1 !!", d, lstPos, tmp
-			
-		lstPos = [x[0] for x in lstPos]
-		if len(set([c for (c,_) in lstPos])) == 1:
-			nbOK += 1.
-			lstPos.sort()
-			(_,x1) = lstPos[0]
-			(_,x2) = lstPos[-1]
-			if abs(x2-x1) == (len(d)-1):
-				nbPerfect += 1.
+
+
+for l in sys.stdin:
+	lstDiags = loadDiagsFile(l[:-1])
+
+	allOK = 0.
+	allPerfect = 0.
+	allPerfectPairs = 0.
+	allDiags = 0.
+	allPairs = 0.
+	allShift = 0.
+	allCov = 0.
+
+	for anc in lstDiags:
+		nbOK = 0.
+		nbPerfect = 0.
+		nbPerfectPairs = 0.
+		nbTotPairs = 0.
+		averageShift = 0.
+		allPos = set()
+		for (d,_) in lstDiags[anc]:
+			lstPos = [genomes[anc].getPosition(ancGenes[anc].lstGenes[utils.myGenomes.Genome.defaultChr][i]) for i in d]
+			tmp = list(set([len(x) for x in lstPos]))
+			if tmp != [1]:
+				print >> sys.stderr, "PB1 !!", d, lstPos, tmp
+				
+			lstPos = [x[0] for x in lstPos]
+			allPos.update(lstPos)
+			if len(set([c for (c,_) in lstPos])) == 1:
+				nbOK += 1.
+				lstPos.sort()
+				(_,x1) = lstPos[0]
+				(_,x2) = lstPos[-1]
+				if abs(x2-x1) == (len(d)-1):
+					nbPerfect += 1.
 			for i in xrange(len(lstPos)-1):
-				(_,x1) = lstPos[i]
-				(_,x2) = lstPos[i+1]
+				(c1,x1) = lstPos[i]
+				(c2,x2) = lstPos[i+1]
+				if c1 != c2:
+					continue
 				if abs(x1-x2) == 1:
 					nbPerfectPairs += 1.
 				averageShift += abs(x1-x2)
 				nbTotPairs += 1.
 
 
-	print "%s\t%.2f\t%.2f\t%.2f\t%.2f" % (anc,100.*nbOK/len(lstDiags[anc]),100.*nbPerfect/len(lstDiags[anc]),averageShift/nbTotPairs,100.*nbPerfectPairs/nbTotPairs)
-	
-	allOK += nbOK
-	allPerfect += nbPerfect
-	allPerfectPairs += nbPerfectPairs
-	allDiags += len(lstDiags[anc])
-	allPairs += nbTotPairs
-	allShift += averageShift
+		#print "%s\t%.2f\t%.2f\t%.2f\t%.2f" % (anc,100.*nbOK/len(lstDiags[anc]),100.*nbPerfect/len(lstDiags[anc]),averageShift/nbTotPairs,100.*nbPerfectPairs/nbTotPairs)
+		
+		allOK += nbOK
+		allPerfect += nbPerfect
+		allPerfectPairs += nbPerfectPairs
+		allDiags += len(lstDiags[anc])
+		allPairs += nbTotPairs
+		allShift += averageShift
+		allCov += float(len(allPos)) / float(sum([len(x) for x in genomes[anc].lstGenes.itervalues()]))
 
 
-print  "%.2f\t%.2f\t%.2f\t%.2f" % (100.*allOK/allDiags, 100.*allPerfect/allDiags, allShift/allPairs, 100.*allPerfectPairs/allPairs)
+	print  "%s\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f" % (l[:-1],100.*allOK/allDiags, 100.*allPerfect/allDiags, allShift/allPairs, 100.*allPerfectPairs/allPairs, 100.*allCov/len(lstDiags))
 
