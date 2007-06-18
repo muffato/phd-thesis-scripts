@@ -118,7 +118,7 @@ for l in sys.stdin:
 				nbTotPairs += 1.
 
 
-		#print "%s\t%.2f\t%.2f\t%.2f\t%.2f" % (anc,100.*nbOK/len(lstDiags[anc]),100.*nbPerfect/len(lstDiags[anc]),averageShift/nbTotPairs,100.*nbPerfectPairs/nbTotPairs)
+		print "%s\t%s\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f" % (l[:-1],anc,100.*nbOK/len(lstDiags[anc]),100.*nbPerfect/len(lstDiags[anc]),averageShift/nbTotPairs,100.*nbPerfectPairs/nbTotPairs,float(len(allPos)) / float(sum([len(x) for x in genomes[anc].lstGenes.itervalues()])))
 		
 		allOK += nbOK
 		allPerfect += nbPerfect

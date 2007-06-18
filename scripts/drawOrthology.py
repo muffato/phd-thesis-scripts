@@ -135,7 +135,7 @@ if (options["output"] == modeMatrix):
 
 	print >> sys.stderr, "Affichage ",
 	
-	utils.myPsOutput.printPsHeader(0.001)
+	utils.myPsOutput.printPsHeader()
 	if len(options["backgroundColor"]) > 0:
 		utils.myPsOutput.drawBox(0,0, 21,29.7, options["backgroundColor"], options["backgroundColor"])
 	sys.stderr.write('.')
