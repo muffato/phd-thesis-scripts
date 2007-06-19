@@ -27,24 +27,15 @@ import utils.myDiags
 
 def getLongestDiags(oldDiags):
 
+	# On construit la table "gene" -> "liste des diagonales qui le contiennent"
+	# On s'en sert pour avoir les listes de diagonales chevauchantes
 	dic = {}
 	diags = []
 	combin = utils.myTools.myCombinator([])
 	for i in xrange(len(oldDiags)):
-		((_,_,d1),(_,_,d2),_) = oldDiags[i]
 		((e1,c1,d1),(e2,c2,d2),da) = oldDiags[i]
-		da1 = [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d1]
-		if "" in da1:
-			diags.append( [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d2] )
-		else:
-			diags.append(da1)
-		if "" in diags[-1]:
-			print >> sys.stderr, e1,c1
-			print >> sys.stderr, e2,c2
-			print >> sys.stderr, d1
-			print >> sys.stderr, d2
-			print >> sys.stderr, da
-		for s in d1+d2:
+		diags.append(da)
+		for s in [(e1,c1,i1) for i1 in d1] + [(e2,c2,i2) for i2 in d2]:
 			if s not in dic:
 				dic[s] = []
 			dic[s].append(i)
@@ -55,18 +46,25 @@ def getLongestDiags(oldDiags):
 	
 	newDiags = []
 	for g in combin:
+		# Les deux methodes pour couper les diagonales
 		if options["extractLongestPath"]:
+			# Les plus longs chemins successifs: TROP LONG
 			gr = utils.myDiags.DiagGraph([diags[i] for i in g])
 			gr.reduceGraph()
 			#print >> sys.stderr, "%d/%d->%d" % (len(gr.sommets),len(g),len(gr.newSommets)),
 			#gr.printGraph()
 			#gr.printReducedGraph()
 		else:
+			# On casse les carrefours de diagonales les uns apres les autres
 			gr = utils.myDiags.WeightedDiagGraph([diags[i] for i in g])
+		# Les diagonales resultat
 		for res in gr.getBestDiags():
+			# Filtre de taille
 			if len(res) < options["minimalLength"]:
 				continue
+			# On rajoute la liste des especes qui soutiennent la diagonale
 			ok = set()
+			# Test de chaque diagonale
 			for i in g:
 				d = diags[i]
 				for j in xrange(len(d)-1):
@@ -75,11 +73,11 @@ def getLongestDiags(oldDiags):
 						i2 = res.index(d[j+1])
 					except ValueError:
 						continue
-					if abs(i1-i2) != 1:
-						continue
-					ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
-					ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
-					break
+					# Si la diagonale 'i' soutient la diagonale ancestrale, on rajoute les especes dont elle est tiree
+					if abs(i1-i2) == 1:
+						ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
+						ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
+						break
 			newDiags.append( (len(res), res, list(ok)) )
 	return newDiags
 	
@@ -134,9 +132,9 @@ def findNewSpecies(d, esp, anc):
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
 	("useOutgroups",bool,False), ("target",str,""), \
 	("showProjected",bool,False), ("showAncestral",bool,True), ("searchUndetectedSpecies",bool,True), \
-	("extractLongestPath",bool,False), ("cutLongestPath",bool,False), \
+	("extractLongestPath",bool,False), ("cutLongestPath",bool,True), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
-	("genesAncFile",str,"~/work/ancestralGenomes/Genome.%s.bz2"), \
+	("ancGenomesFile",str,"~/work/ancestralGenomes/Genome.%s.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
@@ -160,7 +158,7 @@ else:
 				dicGenomes[e] = utils.myGenomes.EnsemblGenome(options["genesFile"] % phylTree.fileName[e])
 		else:
 			listSpecies.append(x[1:])
-			dicGenomes[x[1:]] = utils.myGenomes.AncestralGenome(options["genesAncFile"] % phylTree.fileName[x[1:]], chromPresents=True)
+			dicGenomes[x[1:]] = utils.myGenomes.AncestralGenome(options["ancGenomesFile"] % phylTree.fileName[x[1:]], chromPresents=True)
 
 # Les outgroup du noeud le plus ancien
 if options.useOutgroups:
@@ -184,9 +182,20 @@ for anc in tmp:
 
 	
 # La fonction qui permet de stocker les diagonales sur les ancetres
-def storeDiag(da):
+def storeDiag( ((e1,c1,d1),(e2,c2,d2),_) ):
 	for anc in toStudy:
-		diagEntry[anc].append( da )
+		toto = dicGenomes[e1].lstGenes[c1]
+		tmp = [genesAnc[anc].dicGenes.get(toto[i1].names[0] , (None,None))[1] for i1 in d1]
+		if None in tmp:
+			toto = dicGenomes[e2].lstGenes[c2]
+			tmp = [genesAnc[anc].dicGenes.get(toto[i2].names[0] , (None,None))[1] for i2 in d2]
+		#if None in tmp:
+		#	print >> sys.stderr, e1,c1
+		#	print >> sys.stderr, e2,c2
+		#	print >> sys.stderr, d1
+		#	print >> sys.stderr, d2
+		#	print >> sys.stderr, da
+		diagEntry[anc].append( ((e1,c1,d1),(e2,c2,d2),tmp) )
 	
 # On compare toutes les especes entre elles
 for (e1,e2) in utils.myTools.myMatrixIterator(listSpecies, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
@@ -203,7 +212,7 @@ for anc in diagEntry:
 		s = []
 		for ((e1,c1,d1),(e2,c2,d2),_) in lst:
 			s.append( len(d1) )
-			print '\t'.join([anc, str(len(d1)), e1,str(c1)," ".join(d1), e2,str(c2)," ".join(d2)])
+			print '\t'.join([anc, str(len(d1)), e1,str(c1)," ".join([dicGenomes[e1].lstGenes[c1][i1].names[0] for i1 in d1]), e2,str(c2)," ".join([dicGenomes[e2].lstGenes[c2][i2].names[0] for i2 in d2])])
 		print >> sys.stderr, utils.myMaths.myStats(s), "OK"
 
 
@@ -214,12 +223,7 @@ for anc in diagEntry:
 			lst = getLongestDiags(diagEntry[anc])
 			print >> sys.stderr, "OK (%d -> %d)" % (len(diagEntry[anc]), len(lst))
 		else:
-			lst = []
-			for ((e1,c1,d1),(e2,c2,d2),_) in diagEntry[anc]:
-				da = [genesAnc[anc].dicGenes.get(s,("",""))[1] for s in d1]
-				if "" in da:
-					da = [genesAnc[anc].dicGenes[s][1] for s in d2]
-				lst.append( (len(da), da, [(e1,c1),(e2,c2)]) )
+			lst = [ (len(da), da, [(e1,c1),(e2,c2)]) for ((e1,c1,_),(e2,c2,_),da) in diagEntry[anc]]
 
 		
 		print >> sys.stderr, "Impression des %d diagonales ancestrales de %s ..." % (len(lst),anc),

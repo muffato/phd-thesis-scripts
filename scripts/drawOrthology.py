@@ -392,8 +392,7 @@ elif (options["output"] == modeReindexedChr):
 # Les diagonales entre les deux genomes
 elif (options["output"] == modeDiags):
 	def printDiag( ((e1,c1,d1), (e2,c2,d2), _) ):
-		print '\t'.join([str(len(d1)), str(c1)," ".join(d1), str(c2)," ".join(d2)])
-
+		print '\t'.join([str(len(d1)), str(c1)," ".join([genome1.lstGenes[c1][i1].names[0] for i1 in d1]), str(c2)," ".join([genome2.lstGenes[c2][i2].names[0] for i2 in d2])])
 	genome1.lstChr = chr1
 	genome1.lstScaff = []
 	genome2.lstChr = chr2

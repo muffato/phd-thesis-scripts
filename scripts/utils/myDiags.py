@@ -133,23 +133,28 @@ def calcDiags(e1, e2, g1, g2, orthos, callBack, minimalLength, fusionThreshold, 
 			return
 		statsDiags.append(len(da))
 
-		callBack( ((e1,c1,[trans1[(c1,i)] for i in d1]), (e2,c2,[trans2[(c2,i)] for i in d2]), da) )
+		# Si on a garde uniquement les genes avec des orthologues, il faut revenir aux positions reelles dans le genome
+		if keepOnlyOrthos:
+			callBack( ((e1,c1,[trans1[c1][i] for i in d1]), (e2,c2,[trans2[c2][i] for i in d2]), da) )
+		else:
+			callBack( ((e1,c1,d1), (e2,c2,d2), da) )
 	
 	# Ecrire un genome en suite de genes ancestraux
 	def translateGenome(genome):
 		newGenome = {}
 		transNewOld = {}
 		for c in genome.lstChr + genome.lstScaff:
-			newGenome[c] = [(orthos.dicGenes.get(g.names[0], (0,-1))[1],g.strand) for g in genome.lstGenes[c]]
+			transNewOld[c] = {}
+			newGenome[c] = [(orthos.dicGenes.get(g.names[0], (None,-1))[1],g.strand) for g in genome.lstGenes[c]]
+			# Si on a garde uniquement les genes avec des orthologues
+			# On doit construire un dictionnaire pour revenir aux positions originales
 			if keepOnlyOrthos:
 				tmp = [x for x in newGenome[c] if x[0] != -1]
-			else:
+				last = -1
+				for i in xrange(len(tmp)):
+					last = newGenome[c].index(tmp[i], last + 1)
+					transNewOld[c][i] = last
 				tmp = newGenome[c]
-			last = -1
-			for i in xrange(len(tmp)):
-				last = newGenome[c].index(tmp[i], last + 1)
-				transNewOld[(c,i)] = "/".join(genome.lstGenes[c][last].names)
-			newGenome[c] = tmp
 					
 		return (newGenome,transNewOld)
 

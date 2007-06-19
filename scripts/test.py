@@ -25,6 +25,24 @@ import utils.myPhylTree
 import utils.myCommunities
 #import utils.myCommunities2
 
+def func(x):
+	return x*x
+
+for i in xrange(100):
+
+	test = [random.random() for j in xrange(100000)]
+	#todo = [x*x for x in test]
+	#todo = map(lambda x: x*x, test)
+	#todo = map(func, test)
+	todo = range(len(test))
+	for j in xrange(len(test)):
+		todo[j] = test[j]*test[j]
+
+
+sys.exit(0)
+
+
+
 phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
 
 for anc in phylTree.listAncestr:
