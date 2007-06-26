@@ -18,7 +18,7 @@ import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 import utils.myPhylTree
-import utils.myCommunities
+import utils.walktrap.myCommunities
 
 #############
 # FONCTIONS #
@@ -290,9 +290,9 @@ def calcScore2(i1, i2):
 	return s
 	
 if options["newScoring"]:
-	lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore2)
+	lstLstComm = utils.walktrap.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore2)
 else:
-	lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore)
+	lstLstComm = utils.walktrap.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore)
 clusters = []
 
 # Chaque composante connexe

@@ -16,6 +16,7 @@ __doc__ = """
 
 # Librairies
 import sys
+import random
 import utils.myGenomes
 import utils.myTools
 import utils.myDiags
@@ -171,30 +172,24 @@ if (options["output"] == modeMatrix):
 	sys.stderr.write('.')
 	lstNum2 = prepareGenome(table21, lambda y: utils.myPsOutput.drawLine(1, 1 + y*scaleY, 19, 0, options["penColor"]))
 	sys.stderr.write('.')
-	
+
 	print "0 setlinewidth"
 
 	for c1 in table12:
 		for i1 in table12[c1]:
-			
 			xx = 1 + float(lstNum1[(c1,i1)]) * scaleX
-			
 			for (c2,i2) in table12[c1][i1]:
 
 				if type(colors) == str:
 					coul = colors
 				else:
-					flag = False
-					for gt in genome1.lstGenes[c1][i1].names + genome2.lstGenes[c2][i2].names:
-						if gt in colors.dicGenes:
-							coul = colors.dicGenes[gt][0]
-							flag = True
-							break
-					if not flag:
+					tmp = colors.getPosition(genome1.lstGenes[c1][i1]) + colors.getPosition(genome2.lstGenes[c2][i2])
+					if len(tmp) == 0:
 						continue
+					coul = tmp[0][0]
 				
 				yy = 1 + float(lstNum2[(c2,i2)]) * scaleY
-				coul = utils.myPsOutput.getColor(coul, options["defaultColor"])
+				#coul = utils.myPsOutput.getColor(coul, options["defaultColor"])
 				utils.myPsOutput.drawBox( xx, yy, dp, dp, coul, coul)
 
 	utils.myPsOutput.printPsFooter()
@@ -229,7 +224,7 @@ elif (options["output"] == modeKaryo):
 			if len(tmp) == 0:
 				col = options["defaultColor"]
 			else:
-				col = utils.myPsOutput.getColor(str(tmp[0][0]), options["defaultColor"])
+				col = tmp[0][0]
 			if col == last:
 				nb += 1
 			else:
@@ -250,16 +245,10 @@ elif (options["output"] == modeKaryo):
 elif (options["output"] == modeOrthos):
 
 	for c1 in chr1:
-		for i1 in xrange(len(genome1.lstGenes[c1])):
-			
-			if i1 not in table12[c1]:
-				continue
-				
+		for i1 in table12[c1]:
 			g1 = genome1.lstGenes[c1][i1]
 			for (c2,i2) in table12[c1][i1]:
-
 				g2 = genome2.lstGenes[c2][i2]
-	
 				r = (c1, g1.beginning, g1.end, g1.strand, "/".join(g1.names), \
 					c2, g2.beginning, g2.end, g2.strand, "/".join(g2.names))
 				print "\t".join([str(x) for x in r])

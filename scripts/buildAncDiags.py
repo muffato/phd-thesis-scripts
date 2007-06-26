@@ -36,9 +36,7 @@ def getLongestDiags(oldDiags):
 		((e1,c1,d1),(e2,c2,d2),da) = oldDiags[i]
 		diags.append(da)
 		for s in [(e1,c1,i1) for i1 in d1] + [(e2,c2,i2) for i2 in d2]:
-			if s not in dic:
-				dic[s] = []
-			dic[s].append(i)
+			dic.setdefault(s, []).append(i)
 		combin.addLink([i])
 	
 	for s in dic:

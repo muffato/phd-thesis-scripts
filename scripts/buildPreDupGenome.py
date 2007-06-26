@@ -126,7 +126,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 			# On parcourt les orthologues
 			for (cT,i) in orthosDup[g]:
 				# La region environnante (chez l'espece dupliquee)
-				gTn = [gT.names[0] for gT in genomeDup.getGenesNearN(cT, i, options["windowSize"])]
+				gTn = [gT.names[0] for gT in genomeDup.getGenesNear(cT, i, options["windowSize"])]
 				
 				# Si on reste sur le meme chromosome, on continue le DCS
 				if cT in lastCT:

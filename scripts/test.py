@@ -25,6 +25,84 @@ import utils.myPhylTree
 import utils.myCommunities
 #import utils.myCommunities2
 
+
+def linear(a, b, ratio):
+	return int(a + ratio*(b-a))
+
+def linear3((ra,ga,ba), (rb,gb,bb), ratio):
+	return (linear(ra,rb,ratio), linear(ga,gb,ratio), linear(ba,bb,ratio))
+
+def printLine(start, end, nbsteps, y):
+	for i in xrange(nbsteps):
+		col = linear3(start, end, i/(nbsteps-1.))
+		utils.myPsOutput.drawBox(i*21./nbsteps, y, 21/nbsteps, 1, col, col)
+
+chrC = {}
+chrC["1"] = (153,102,0)
+chrC["2"] = (102,102,0)
+chrC["3"] = (153,153,30)
+chrC["4"] = (204,0,0)
+chrC["5"] = (255,0,0)
+chrC["6"] = (255,0,204)
+chrC["7"] = (255,204,204)
+chrC["8"] = (255,153,0)
+chrC["9"] = (255,204,0)
+chrC["10"] = (255,255,0)
+chrC["11"] = (204,255,0)
+chrC["12"] = (0,255,0)
+chrC["13"] = (53,128,0)
+chrC["14"] = (0,0,204)
+chrC["15"] = (102,153,255)
+chrC["16"] = (153,204,255)
+chrC["17"] = (0,255,255)
+chrC["18"] = (204,255,255)
+chrC["19"] = (153,0,204)
+chrC["20"] = (204,51,255)
+chrC["21"] = (204,153,255)
+chrC["22"] = (102,102,102)
+chrC["23"] = (153,153,153)
+chrC["24"] = (204,204,204)
+
+
+utils.myPsOutput.printPsHeader()
+
+
+#printLine( (10,10,100), (230,230,255), 3, 1)
+#printLine( (10,10,100), (10,10,255), 3, 2)
+
+#printLine( (10,100,10), (230,255,230), 3, 4)
+#printLine( (100,10,10), (255,230,230), 3, 3)
+
+#printLine( (10,10,255), (230,230,255), 3, 5)
+#printLine( (10,255,10), (230,255,230), 3, 6)
+#printLine( (255,10,10), (255,230,230), 3, 7)
+#printLine( (10,255,255), (230,255,255), 3, 8)
+##printLine( (255,10,255), (255,230,255), 3, 9)
+#printLine( (255,255,10), (255,255,230), 3, 10)
+
+#for i in xrange(1,25+1):
+#	utils.myPsOutput.drawBox(i*.5, 15, .5, 1, i, i)
+
+#for i in chrC:
+#	utils.myPsOutput.drawBox(int(i)*.5, 16, .5, 1, chrC[i], chrC[i])
+
+c5 = []
+c5 += ["red4", "coral4", "firebrick", "red2", "coral2", "darkorange", "gold"]
+c5 += ["yellow", "khaki1","wheat1","peachpuff","lightsalmon", "hotpink2", "magenta2", "darkorchid2", "purple2", "darkorchid4"]
+c5 += ["blue2", "royalblue2", "blue4"]
+c5 += ["turquoise4", "darkseagreen4", "chartreuse4","mediumaquamarine",(121,204,61), "chartreuse2", "olivedrab2", "darkolivegreen1"]
+c5 += ["darkseagreen1", "paleturquoise2", "lightblue", "skyblue1", "turquoise2", "lavender","thistle2"]
+c5 += [(204,204,153),"lightgoldenrod3","ivory2","honeydew3","slategray"]
+for i in xrange(len(c5)):
+	utils.myPsOutput.drawBox(i*.5, 21, .5, 1, c5[i], c5[i])
+
+
+
+
+utils.myPsOutput.printPsFooter()
+
+sys.exit(0)
+
 def func(x):
 	return x*x
 

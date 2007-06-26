@@ -17,7 +17,7 @@ import utils.myPhylTree
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
-import utils.myCommunities
+import utils.walktrap.myCommunities
 
 
 # FONCTIONS #
@@ -91,7 +91,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 			# On parcourt les orthologues
 			for (cT,i) in orthosDup[g]:
 				# La region environnante (chez l'espece dupliquee)
-				gTn = [gT.names[0] for gT in genomeDup.getGenesNearN(cT, i, options["windowSize"])]
+				gTn = [gT.names[0] for gT in genomeDup.getGenesNear(cT, i, options["windowSize"])]
 				
 				# Si on reste sur le meme chromosome, on continue le DCS
 				if cT in lastCT:
@@ -396,7 +396,7 @@ def scorePaireDCS(i1, i2):
 
 print >> sys.stderr, "Lancement des communautes sur les %d DCS :" % len(allDCS),
 phylTree.initCalcDist(rootDup, False)
-lstLstComm = utils.myCommunities.launchCommunitiesBuild(items = range(len(allDCS)), scoreFunc = scorePaireDCS)
+lstLstComm = utils.walktrap.myCommunities.launchCommunitiesBuild(items = range(len(allDCS)), scoreFunc = scorePaireDCS)
 
 # A partir d'ici, on a une association DCS <-> chromosomes, on retombe sur la regle de base, le vote a la majorite
 

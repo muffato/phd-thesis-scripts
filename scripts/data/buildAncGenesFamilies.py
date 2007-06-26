@@ -18,7 +18,6 @@ import operator
 import utils.myGenomes
 import utils.myTools
 import utils.myPhylTree
-import utils.myCommunities
 
 
 

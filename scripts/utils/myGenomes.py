@@ -5,6 +5,8 @@ import operator
 import myMaths
 import myTools
 
+allGenes = {}
+
 
 ##############
 # Un gene :) #
@@ -12,15 +14,28 @@ import myTools
 class Gene:
 
 	def __init__(self, names, chromosome, beg, end, strand):
-	
-		self.names = tuple(names)
-		self.chromosome = chromosome
+
+		#newNames = []
+		#for s in names:
+		#	newNames.append(allGenes.setdefault(s,s))
+		newNames = names
+				
+		self.names = tuple(newNames)
+		self.chromosome = commonChrName(chromosome)
 		self.beginning = beg
 		self.end = end
 		self.strand = strand
 
 	def __repr__(self):
 		return "Gene %s on chr %s from %d to %d on strand %d" % ("/".join(self.names), self.chromosome, self.beginning, self.end, self.strand)
+
+
+# On convertit les noms de chromosomes en int si possible
+def commonChrName(x):
+	try:
+		return int(x)
+	except Exception:
+		return x
 
 
 
@@ -89,8 +104,9 @@ def loadGenome(nom):
 ##########################################
 class Genome:
 
+	# Le chromosome par defaut (liste de genes ancestraux sans chromosomes)
 	defaultChr = "-"
-
+	
 	#
 	# Constructeur
 	#
@@ -119,14 +135,7 @@ class Genome:
 	def addGene(self, gene):
 	
 		c = gene.chromosome
-		if c not in self.lstGenes:
-			self.lstGenes[c] = []
-
-		n = len(self.lstGenes[c])
-		self.lstGenes[c].append( gene )
-		
-		for s in gene.names:
-			self.dicGenes[s] = (c, n)
+		self.lstGenes.setdefault(c, []).append(gene)
 	
 	#
 	# Trie les chromsomoses
@@ -139,45 +148,51 @@ class Genome:
 		
 		self.dicGenes = {}
 		for c in self.lstGenes:
-			#self.lstGenes[c].sort(lambda g1, g2: cmp(g1.beginning, g2.beginning))
 			self.lstGenes[c].sort(key = operator.attrgetter('beginning'))
 			for i in xrange(len(self.lstGenes[c])):
+				self.lstGenes[c][i].chromosome = c
 				for s in self.lstGenes[c][i].names:
 					self.dicGenes[s] = (c, i)
 		
 	#
-	# Renvoie les noms des genes presents sur le chromosome donne a certaines positions
+	# Renvoie les genes presents sur le chromosome donne a certaines positions
 	#	
 	def getGenesAt(self, chr, beg = 0, end = sys.maxint):
-		for g in self.lstGenes[chr]:
-			if g.end >= beg and g.beginning <= end:
-				yield g
-	#
-	# Renvoie les noms des genes presents aux alentours d'un gene donne (fenetre l en nombre de bases)
-	#	
-	def getGenesNearB(self, chr, index, l):
 		if chr not in self.lstGenes:
 			return
-		g = self.lstGenes[chr][index]
-		x1 = g.beginning-l
-		x2 = g.end+l
-		for i in xrange(index+1, len(self.lstGenes[chr])):
-			g = self.lstGenes[chr][i]
-			if g.beginning > x2:
+		lst = self.lstGenes[chr]
+		
+		# Recherche dichotomique d'un gene dans la fenetre
+		def dichotFind(a, b):
+			i = (a+b)/2
+			if a == i:
+				return a
+			if lst[i].end < beg:
+				return dichotFind(i,b)
+			elif lst[i].beginning > end:
+				return dichotFind(a,i)
+			else:
+				return i
+		index = dichotFind(0, len(lst)-1)
+		
+		for i in xrange(index, len(lst)):
+			g = lst[i]
+			if g.beginning > end:
 				break
 			yield g
 		
 		for i in xrange(index-1, -1, -1):
-			g = self.lstGenes[chr][i]
-			if g.end < x1:
+			g = lst[i]
+			if g.end < beg:
 				break
 			yield g
+		
 	#
 	# Renvoie les noms des genes presents aux alentours d'un gene donne (fenetre l en nombre de genes)
 	#	
-	def getGenesNearN(self, chr, index, l):
+	def getGenesNear(self, chr, index, l):
 		if chr not in self.lstGenes:
-			return
+			return []
 		
 		return self.lstGenes[chr][max(0, index-l):index+l+1]
 
@@ -201,7 +216,7 @@ class Genome:
 ##############################################################
 # Cette classe gere un fichier de liste de genes d'Ensembl   #
 #   "Chr Debut Fin Brin ENSFAMxxxx Nom"                      #
-# Convertit automatiquement les nombres romains en arabe     #
+# NE Convertit PAS les nombres romains en arabe              #
 ##############################################################
 class EnsemblGenome(Genome):
 
@@ -219,13 +234,6 @@ class EnsemblGenome(Genome):
 		# On lit chaque ligne
 		for ligne in self.f:
 			champs = ligne.split()
-			
-			# On convertit en entier le nom du chromosome si possible
-			try:
-				champs[0] = int(champs[0])
-			except ValueError:
-				pass
-	
 			self.addGene( Gene([champs[-1]], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
 			
 		self.f.close()
@@ -309,36 +317,26 @@ class AncestralGenome(Genome):
 		
 		# On initialise tout
 		strand = 0
+		c = Genome.defaultChr
+		i = 0
 		for ligne in self.f:
 			champs = ligne.split()
 
 			# Le chromosome du gene lu
-			if not chromPresents:
-				c = Genome.defaultChr
-			else:
-				try:
-					c = int(champs[0])
-				except ValueError:
-					c = champs[0]
-				del champs[0]
+			if chromPresents:
+				c = champs.pop(0)
 			
 			if concordeQualityFactor:
 				# Fichiers de genomes ancestraux avec score de Concorde
-				strand = int(champs[0])
-				del champs[0]
+				strand = int(champs.pop(0))
 				
-			
-			# La position du gene lu
-			if c in self.lstGenes:
-				i = len(self.lstGenes[c])
-			else:
-				i = 0
-			
 			# On ajoute le gene
 			self.addGene( Gene(champs, c, i, i, strand) )
+			i += 1
 		
 		self.f.close()
-		self.lstChr = sorted(self.lstGenes)
+		self.lstChr = self.lstGenes.keys()
+		self.sortGenome()
 		
 		print >> sys.stderr, "OK"
 
@@ -356,11 +354,7 @@ class AncestralGenome(Genome):
 				if s not in geneBank.dicGenes:
 					continue
 				(e,c,i) = geneBank.dicGenes[s]
-				if e not in blocsAnc:
-					blocsAnc[e] = {}
-				if c not in blocsAnc[e]:
-					blocsAnc[e][c] = []
-				blocsAnc[e][c].append( (i,s,j) )
+				blocsAnc.setdefault(e, {}).setdefault(c, []).append( (i,s,j) )
 			j += 1
 
 		# 2eme etape: trier chacun de ces ensembles et creer un

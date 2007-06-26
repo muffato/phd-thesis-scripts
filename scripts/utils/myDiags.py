@@ -154,7 +154,7 @@ def calcDiags(e1, e2, g1, g2, orthos, callBack, minimalLength, fusionThreshold, 
 				for i in xrange(len(tmp)):
 					last = newGenome[c].index(tmp[i], last + 1)
 					transNewOld[c][i] = last
-				tmp = newGenome[c]
+				newGenome[c] = tmp
 					
 		return (newGenome,transNewOld)
 

@@ -186,16 +186,10 @@ class PhylogeneticTree:
 		class commonNamesMapper(dict):
 
 			def __getitem__(d, name):
-				if name in self.officialName:
-					return dict.__getitem__(d, self.officialName[name])
-				else:
-					return dict.__getitem__(d, name)
+				return dict.__getitem__(d, self.officialName.get(name, name))
 			
 			def __setitem__(d, name, value):
-				if name in self.officialName:
-					return dict.__setitem__(d, self.officialName[name], value)
-				else:
-					return dict.__setitem__(d, name, value)
+				return dict.__setitem__(d, self.officialName.get(name, name), value)
 			
 		return commonNamesMapper()
 		

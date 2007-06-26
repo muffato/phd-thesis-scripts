@@ -43,7 +43,11 @@ def printDiag( ((e1,c1,d1), (e2,c2,d2), da) ):
 
 
 chr = genome1.lstChr[:]
-
+totMemeSens = 0.
+totLength = 0.
+totNbPaires = 0.
+totPairesOK = 0.
+totNbSegments = 0.
 for c in chr:
 	memeSens = 0
 	seg1 = 0
@@ -52,5 +56,21 @@ for c in chr:
 	genome2.lstChr = [c]
 	utils.myDiags.calcDiags(genome1.nom, genome2.nom, genome1, genome2, genesAnc, printDiag, 1, -1, False, False)
 	length = len(genome1.lstGenes[c])
-	
-	print "%d\t%d\t%.2f\t%d\t%d/%d" % (c,length,100.*max(memeSens,length-memeSens)/length,seg1+seg2-1,seg1,seg2)
+
+	nbPerfectPairs = 0.
+	for i in xrange(length-1):
+		(c1,i1) = genome2.dicGenes[genome1.lstGenes[c][i].names[0]]
+		(c2,i2) = genome2.dicGenes[genome1.lstGenes[c][i+1].names[0]]
+		if abs(i1-i2) == 1:
+			nbPerfectPairs += 1.
+
+	memeSens = max(memeSens,length-memeSens)
+	print "%d\t%d\t%.2f\t%d\t%d/%d\t%.2f\t%.2f" % (c,length,100.*memeSens/length,seg1+seg2-1,seg1,seg2,float(length)/(seg1+seg2), 100.*nbPerfectPairs/(length-1))
+	totMemeSens += memeSens
+	totLength += length
+	totNbPaires += length-1
+	totPairesOK += nbPerfectPairs
+	totNbSegments += seg1+seg2
+
+print "%.2f\t%.2f\t%.2f" % (100.*totMemeSens/totLength,100.*totPairesOK/totNbPaires,totLength/totNbSegments)
+

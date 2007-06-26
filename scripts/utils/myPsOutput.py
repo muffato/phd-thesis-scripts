@@ -138,6 +138,14 @@ def initColor():
 	f.close()
 
 
+	c5 = []
+	c5 += ["red4", "coral4", "firebrick", "red2", "coral2", "darkorange", "gold"]
+	c5 += ["yellow", "khaki1","wheat1","peachpuff","lightsalmon", "hotpink2", "magenta2", "darkorchid2", "purple2", "darkorchid4"]
+	c5 += ["blue2", "royalblue2", "blue4"]
+	c5 += ["turquoise4", "darkseagreen4", "chartreuse4","mediumaquamarine",(121,204,61), "chartreuse2", "olivedrab2", "darkolivegreen1"]
+	c5 += ["darkseagreen1", "paleturquoise2", "lightblue", "skyblue1", "turquoise2", "lavender","thistle2"]
+	c5 += [(204,204,153),"lightgoldenrod3","ivory2","honeydew3","slategray"]
+		
 	lightColors = ["salmon", "PaleTurquoise2", "DarkSeaGreen1","khaki1", "thistle2", "PeachPuff","LightBlue", "SkyBlue1","LightGoldenrod3", "wheat1",  "DarkOliveGreen1", "lavender"]
 	
 	darkColors = ["red1", "turquoise2", "DarkGreen", "yellow", "coral2", "OliveDrab2", "orange", "MediumAquamarine", "blue2", "firebrick4", "LightSalmon", "DarkViolet", "magenta2", "DarkSeaGreen4", "DarkSlateBlue", "yellow4", "grey62", "gold", "PeachPuff2", "HotPink4", "firebrick", "purple4"]
@@ -151,43 +159,20 @@ def initColor():
 	# Les couleurs claires sont pour les nombres negatifs et les lettres minuscules
 	ordre = lightColors + craniateColors + darkColors
 	for i in xrange(len(ordre)):
-		colorTransl[str(-(i+1))] = ordre[i]
+		colorTransl[str(-(i+1))] = ordre[i].lower()
 		if i < 26:
-			colorTransl[chr(i+97)] = ordre[i]
+			colorTransl[chr(i+97)] = ordre[i].lower()
 		
 	# Les couleurs foncees sont pour les nombres positifs et les lettres majuscules
 	ordre = darkColors + lightColors + craniateColors
 	#ordre = craniateColors + darkColors + lightColors
 	for i in xrange(len(ordre)):
-		colorTransl[str(i+1)] = ordre[i]
+		colorTransl[str(i+1)] = ordre[i].lower()
 		if i < 26:
-			colorTransl[chr(i+65)] = ordre[i]
+			colorTransl[chr(i+65)] = ordre[i].lower()
 
 	for i in xrange(len(greekLetters)):
 		colorTransl[greekLetters[i]] = craniateColors[i]
-
-#
-# Permet de rajouter une couleur creee a partir de valeurs rgb
-#
-def getColor(s, d):
-
-	s = str(s)
-	if s in colorTransl:
-		return colorTransl[s].lower()
-
-	elif s[0] == '#':
-		(r,g,b) = [int(x) for x in s[1:].split(':')]
-		if (r,g,b) in colorTableRGB2UNIX:
-			return colorTableRGB2UNIX[(r,g,b)]
-		else:
-			colName = "tmp%d" % len(colorTableUNIX2RGB)
-			colorTableRGB2UNIX[(r,g,b)] = colName
-			colorTableUNIX2RGB[colName] = (r,g,b)
-			print "/%s [%f %f %f] def" % (colName, float(r)/255., float(g)/255., float(b)/255.)
-			return colName
-	else:
-		return d
-
 
 
 #######################
@@ -201,82 +186,88 @@ def getColor(s, d):
 #   Sinon, utiliser le nom UNIX (cf getColor pour avoir ce nom)
 # Les angles sont en degres
 
-def setLineColor(C):
+def setColor(C, txt):
+
+	# Un nom comme on les aime
 	if C in colorTableUNIX2RGB:
-		print C, "color"
+		s = C
+	# Des raccourcis
+	elif str(C) in colorTransl:
+		s = colorTransl[str(C)]
+	# Un triplet (r,g,b)
+	else:
+		if len(C) == 3:
+			(r,g,b) = C
+		elif C[0] == '#':
+			(r,g,b) = [int(x) for x in C[1:].split(':')]
+		else:
+			return
+
+		if (r,g,b) in colorTableRGB2UNIX:
+			s = colorTableRGB2UNIX[(r,g,b)]
+		else:
+			s = "tmp%d" % len(colorTableUNIX2RGB)
+			colorTableRGB2UNIX[(r,g,b)] = s
+			colorTableUNIX2RGB[s] = (r,g,b)
+			print "/%s [%f %f %f] def" % (s, float(r)/255., float(g)/255., float(b)/255.)
+	print s, txt
+
 
 def drawLine(X, Y, L, H, C):
-	setLineColor(C)
-	print "%.3f %.3f %.3f %.3f myline" % (L,H, X,Y)
+	setColor(C, "color")
+	print "%.5f %.5f %.5f %.5f myline" % (L,H, X,Y)
 
 
 def drawBox(X, Y, L, H, Cb, Cr):
-	print "%.3f %.3f %.3f %.3f mybox" % (L,H, X,Y)
-
-	if Cr in colorTableUNIX2RGB:
-		print Cr, "myfill"
-
-	setLineColor(Cb)
+	print "%.5f %.5f %.5f %.5f mybox" % (L,H, X,Y)
+	setColor(Cr, "myfill")
+	setColor(Cb, "color")
 	print "stroke"
 
 
 def drawCross(X, Y, L, H, C):
 	print "newpath"
-	if C in colorTableUNIX2RGB:
-		print C, "color"
-	print "%.3f cm %.3f cm moveto" % (X, Y)
-	print "%.3f cm %.3f cm rlineto" % (L, H)
-	print "%.3f cm %.3f cm moveto" % (X+L, Y)
-	print "%.3f cm %.3f cm rlineto" % (-L, H)
+	setColor(C, "color")
+	print "%.5f cm %.5f cm moveto" % (X, Y)
+	print "%.5f cm %.5f cm rlineto" % (L, H)
+	print "%.5f cm %.5f cm moveto" % (X+L, Y)
+	print "%.5f cm %.5f cm rlineto" % (-L, H)
 	print "closepath"
 	print "stroke"
 
 def drawCircle(X, Y, R, A, B, Cb, Cr):
 	print "newpath"
-	if Cb in colorTableUNIX2RGB:
-		print Cb, "color"
-	print "%.3f cm %.3f cm %.3f cm %.3f %.3f arc" % (X, Y, R, A, B)
-	if Cr in colorTableUNIX2RGB:
-		print "gsave"
-		print Cr, "color fill"
-		print "grestore"
+	setColor(Cb, "color")
+	print "%.5f cm %.5f cm %.5f cm %.5f %.5f arc" % (X, Y, R, A, B)
+	setColor(Cr, "myfill")
 	print "stroke"
 
 def drawArrowR(X, Y, L, H, P, Cb, Cr):
 	print "newpath"
-	if Cb in colorTableUNIX2RGB:
-		print Cb, "color"
-	print "%.3f cm %.3f cm moveto" % (X, Y)
-	print "%.3f cm 0 cm rlineto" % L
-	print "%.3f cm %.3f cm rlineto" % (P, H/2)
-	print "%.3f cm %.3f cm rlineto" % (-P, H/2)
-	print "%.3f cm 0 cm rlineto" % (-L)
+	setColor(Cb, "color")
+	print "%.5f cm %.5f cm moveto" % (X, Y)
+	print "%.5f cm 0 cm rlineto" % L
+	print "%.5f cm %.5f cm rlineto" % (P, H/2)
+	print "%.5f cm %.5f cm rlineto" % (-P, H/2)
+	print "%.5f cm 0 cm rlineto" % (-L)
 	print "closepath"
-	if Cr in colorTableUNIX2RGB:
-		print "gsave"
-		print Cr, "color fill"
-		print "grestore"
+	setColor(Cr, "myfill")
 	print "stroke"
 
 def drawArrowL(X, Y, L, H, P, Cb, Cr):
 	print "newpath";
-	if Cb in colorTableUNIX2RGB:
-		print Cb, "color"
-	print "%.3f cm %.3f cm moveto" % (X, Y+(H/2))
-	print "%.3f cm %.3f cm rlineto" % (P, H/2)
-	print "%.3f cm 0 cm rlineto" % L
-	print "0 cm %.3f cm rlineto" % (-H)
-	print "%.3f cm 0 cm rlineto" % (-L)
+	setColor(Cb, "color")
+	print "%.5f cm %.5f cm moveto" % (X, Y+(H/2))
+	print "%.5f cm %.5f cm rlineto" % (P, H/2)
+	print "%.5f cm 0 cm rlineto" % L
+	print "0 cm %.5f cm rlineto" % (-H)
+	print "%.5f cm 0 cm rlineto" % (-L)
 	print "closepath"
-	if Cr in colorTableUNIX2RGB:
-		print "gsave"
-		print Cr, "color fill"
-		print "grestore"
+	setColor(Cr, "myfill")
 	print "stroke"
 
 def drawText(X, Y, T, C):
-	if C in colorTableUNIX2RGB:
-		print C, "color"
-	print "(%s) %.3f %.3f mytext" % (T, X,Y)
+	setColor(C, "color")
+	print "(%s) %.5f %.5f mytext" % (T, X,Y)
 
 

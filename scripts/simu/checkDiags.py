@@ -11,14 +11,10 @@ Renvoie le pourcentage de qualite des diagonales.
 ##################
 
 # Librairies
-import os
 import sys
-import operator
 import utils.myGenomes
 import utils.myTools
-import utils.myMaths
 import utils.myPhylTree
-import utils.myCommunities
 
 #############
 # FONCTIONS #

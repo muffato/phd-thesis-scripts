@@ -19,7 +19,7 @@ import operator
 import utils.myGenomes
 import utils.myTools
 import utils.myPhylTree
-import utils.myCommunities
+import utils.walktrap.myCommunities
 
 
 
@@ -151,7 +151,7 @@ def buildAncFile(anc, lastComb):
 		# B. On est oblige de clusteriser
 		else:
 			# B.1/ On lance les communautes
-			lstCommunitiesOrig = utils.myCommunities.launchCommunitiesBuild(items = x, edgesDict = aretes)[0]
+			lstCommunitiesOrig = utils.walktrap.myCommunities.launchCommunitiesBuild(items = x, edgesDict = aretes)[0]
 			
 			# B.2/ On selectionne celles qui sont convenables
 			lstCommunities = []
