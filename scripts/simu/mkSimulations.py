@@ -23,7 +23,6 @@ import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 
-
 #############
 # FONCTIONS #
 #############
@@ -40,26 +39,31 @@ def randomRate():
 
 # Retourne la region genomique si necessaire
 def applyStrand(chr, strand):
-	if strand == 1:
-		return list(chr)
+	if strand > 0:
+		return chr
 	else:
 		return [(gene,-strand) for (gene,strand) in chr.__reversed__()]
 
 
 # Un endroit du genome au hasard (mettre includeEnd=1 si on autorise la fin du chromosome comme position)
 # Un chromosome plus long a plus de chance d'etre choisi
-def randomPlace(genome, includeEnd=0):
-	s = sum([len(x) for x in genome])
-	r = random.uniform(0, s)
+def randomPlace(genome, includeEnd = 0):
+	tmp = [len(x) for x in genome]
+	tmp[-1] += includeEnd
+	r = random.randint(0, sum(tmp)-1)
 	for c in xrange(len(genome)):
-		if r < len(genome[c]):
-			return (c, int(r))
-		r -= len(genome[c])
+		r -= tmp[c]
+		if r < 0:
+			return (c, r+tmp[c])
 
 
 # Une region du genome au hasard
 def randomSlice(genome):
 
+	(c,_) = randomPlace(genome)
+	x1 = random.randint(0, len(genome[c])-1)
+	x2 = random.randint(x1, len(genome[c])-1)
+	return (c,x1,x2)
 	while True:
 		# Le chromosome au hasard
 		(c,_) = randomPlace(genome)
@@ -68,9 +72,15 @@ def randomSlice(genome):
 		# On ne peut pas renvoyer une region d'un chromosome trop petit
 		if len(genome[c]) > l:
 			x1 = random.randint(0, len(genome[c])-l)
-			x2 = x1 + l
-			#(x1,x2) = sorted(random.sample(xrange(len(genome[c])), 2))
-			return (c,x1,x2)
+			return (c,x1,x1+l)
+
+
+# Casse un chromosome 
+def doChrBreak(genome):
+	(c,x) = randomPlace(genome)
+	genome.append(genome[c][x:])
+	genome[c] = genome[c][:x]
+
 
 
 # Imprime un genome, en le transformant en scaffolds si necessaire
@@ -79,27 +89,25 @@ def printGenome(name, genome):
 	if options["realLifeConstraints"]:
 		if name in ["Loxodonta africana", "Echinops telfairi", "Dasypus novemcinctus", "Felis catus", "Erinaceus europaeus", "Myotis lucifugus", "Tupaia belangeri", "Otolemur garnettii", "Oryctolagus cuniculus", "Cavia porcellus", "Spermophilus tridecemlineatus"]:
 			# especes en 2X
-			for i in xrange(15000):
-				(c,x) = randomPlace(genome)
-				genome.append(genome[c][x:])
-				genome[c] = genome[c][:x]
+			for i in xrange(random.randint(12000,18000)):
+				doChrBreak(genome)
+			# On n'a que 2/3 du genome
 			random.shuffle(genome)
 			genome = genome[:(len(genome)*2)/3]
 
 		
 		elif name in ["Xenopus tropicalis", "Ornithorhynchus anatinus", "Takifugu rubripes"]:
 			# Larges scaffolds
-			for i in xrange(3000):
-				(c,x) = randomPlace(genome)
-				genome.append(genome[c][x:])
-				genome[c] = genome[c][:x]
+			for i in xrange(random.randint(2000,4000)):
+				doChrBreak(genome)
 	
 	print >> sys.stderr, "Writing %s genome (nbChr=%d) ..." % (name,len(genome)),
 	s = phylTree.fileName[name]
 	f = utils.myTools.myOpenFile(options["genomeFile"] % s, 'w')
 	for c in xrange(len(genome)):
-		for i in xrange(len(genome[c])):
-			(gene,strand) = genome[c][i]
+		lst = genome[c]
+		for i in xrange(len(lst)):
+			(gene,strand) = lst[i]
 			print >> f, "%d\t%d\t%d\t%d\t%s.%d" % (c+1,i,i,strand,s,gene)
 	f.close()
 	print >> sys.stderr, "OK"
@@ -158,7 +166,7 @@ def launchRecSimu(node, genomeIni):
 		# Gain de genes
 		nbGains = int(options["geneGainRate"] * dist * evolRate * randomRate())
 		for i in xrange(nbGains):
-			(c,x) = randomPlace(newGenome, includeEnd=1)
+			(c,x) = randomPlace(newGenome, 1)
 			newGenome[c].insert(x, (nbTotalGenes,randomStrand()))
 			nbTotalGenes += 1
 		print >> sys.stderr, "newGenes=%d" % nbGains,
@@ -169,7 +177,7 @@ def launchRecSimu(node, genomeIni):
 		# CONSTRAINT-SET2
 		if options["realLifeConstraints"]:
 			if fils == "Monodelphis domestica":
-				(InvertRate,TranslocRate,FusionRate,BreakRate)=(75,10,15,0)
+				(InvertRate,TranslocRate,FusionRate,BreakRate)=(85,5,8,2)
 			elif fils == "Gallus gallus":
 				(InvertRate,TranslocRate,FusionRate,BreakRate)=(90,9,1,5)
 		
@@ -179,7 +187,8 @@ def launchRecSimu(node, genomeIni):
 			r = random.uniform(0, s)
 			
 			# C'est une inversion
-			if r < InvertRate:
+			r -= InvertRate
+			if r < 0:
 				# La region qui s'inverse
 				(c,x1,x2) = randomSlice(newGenome)
 				# Le nouveau chromosome avec la region qui s'inverse au milieu
@@ -187,9 +196,9 @@ def launchRecSimu(node, genomeIni):
 				nb[0] += 1
 				continue
 			
-			r -= InvertRate
 			# C'est une translocation
-			if r < TranslocRate:
+			r -= TranslocRate
+			if r < 0:
 				# La region qui se deplace
 				(c,x1,x2) = randomSlice(newGenome)
 				# On l'enleve
@@ -202,9 +211,9 @@ def launchRecSimu(node, genomeIni):
 				nb[1] += 1
 				continue
 			
-			r -= TranslocRate
 			# C'est une fusion
-			if r < FusionRate:
+			r -= FusionRate
+			if r < 0:
 				# Les deux chromosomes a fusionnerr
 				(c1,c2) = random.sample(xrange(len(newGenome)), 2)
 				# On met l'un au bout de l'autre (eventuellement en le retournant)
@@ -214,14 +223,8 @@ def launchRecSimu(node, genomeIni):
 				nb[2] += 1
 				continue
 			
-			
 			# Finalement, c'est une cassure
-			# Le point de cassure
-			(c,x) = randomPlace(newGenome)
-			# On cree le nouveau chromosome
-			newGenome.append(newGenome[c][x:])
-			# On enleve l'ancienne partie
-			newGenome[c] = newGenome[c][:x]
+			doChrBreak(newGenome)
 			nb[3] += 1
 		
 		print >> sys.stderr, "events=%s OK" % nb
@@ -239,7 +242,7 @@ def launchRecSimu(node, genomeIni):
 	[("root",str,""), ("realLifeConstraints",bool,False), \
 	("nbOrigGenes",int,20000), ("nbMaxChr",int,20), \
 	("geneLossRate",float,10), ("geneGainRate",float,10), ("chrEventRate",float,1), ("rearrRateAccel",float,1.7), ("vonMisesKappa",float,2), \
-	("chrInvertWeight",float,90), ("chrTranslocWeight",float,5), ("chrFusionWeight",float,2.5), ("chrBreakWeight",float,2.5), \
+	("chrInvertWeight",float,85), ("chrTranslocWeight",float,10), ("chrFusionWeight",float,2.5), ("chrBreakWeight",float,2.5), \
 	("genomeFile",str,"~/work/simu/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/simu/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \

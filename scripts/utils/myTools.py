@@ -97,6 +97,7 @@ class myCombinator:
 		self.grp = list(ini)
 		self.dic = {}
 		for i in xrange(len(self.grp)):
+			self.grp[i] = list(set(self.grp[i]))
 			for x in self.grp[i]:
 				self.dic[x] = i
 	
@@ -108,9 +109,13 @@ class myCombinator:
 		if len(obj) == 0:
 			return
 	
+		obj = list(set(obj))
+		
+		# Les elements de obj deja presents dans le combinateur
 		d = set([self.dic[x] for x in obj if x in self.dic])
 		
 		if len(d) == 0:
+			# Aucun, on rajoute tel quel l'objet alors
 			i = len(self.grp)
 			self.grp.append(obj)
 			for x in obj:

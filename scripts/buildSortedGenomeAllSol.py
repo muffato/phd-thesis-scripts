@@ -58,86 +58,58 @@ def distInterGenes(tg1, tg2):
 	return phylTree.calcDist(distEsp)
 
 
+#
+# Reecrit le genome a trier comme suite des positions des genes dans les genomes modernes
+#
+def rewriteGenome():
 
-########
-# MAIN #
-########
-
-# Initialisation & Chargement des fichiers
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genomeAncestral", "phylTree.conf"], \
-	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
-	("useOutgroups",int,[0,1,2]), ("withConcordeOutput",bool,False), \
-	("concordeExec",str,"~/work/scripts/concorde"),\
-	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
-	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
-	__doc__ \
-)
-
-
-# L'arbre phylogentique
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-if options["ancestr"] not in (phylTree.listAncestr + phylTree.listSpecies):
-	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["ancestr"]
-	sys.exit(1)
-
-# On charge les genomes
-phylTree.loadAllSpeciesSince(None, options["genesFile"])
-del phylTree.dicGenomes
-genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genomeAncestral"])
-
-# On etend la liste des genes ancestraux pour utiliser les outgroup en remontant l'arbre jusqu'a la racine
-dicOutgroupGenes = {}
-anc = options["ancestr"]
-while anc in phylTree.parent:
-	anc = phylTree.parent[anc]
-	# Le genome de l'ancetre superieur
-	tmpGenesAnc = utils.myGenomes.loadGenome(options["ancGenesFile"] % phylTree.fileName[anc])
-	del tmpGenesAnc.dicGenes
-	# Chaque gene
-	for g in tmpGenesAnc:
-		ianc = set()
-		newGenes = []
-		for s in g.names:
-			# On se sert des genes qu'on retrouve dans le genome a ordonner comme ancre
-			if s in genesAnc.dicGenes:
-				ianc.add(genesAnc.dicGenes[s])
-			# Les autres sont les orthologues dans les autres especes
-			elif s in phylTree.dicGenes:
-				tt = phylTree.dicGenes[s]
-				if tt[0] not in phylTree.species[options["ancestr"]]:
-					newGenes.append(tt)
-		# On enregistre le lien entre les genes du genome a ordonner et les genes des outgroups
-		for i in ianc:
-			if i in dicOutgroupGenes:
-				dicOutgroupGenes[i].update(newGenes)
-			else:
-				dicOutgroupGenes[i] = set(newGenes)
-	del tmpGenesAnc
+	# On etend la liste des genes ancestraux pour utiliser les outgroup en remontant l'arbre jusqu'a la racine
+	dicOutgroupGenes = {}
+	anc = options["ancestr"]
+	while anc in phylTree.parent:
+		anc = phylTree.parent[anc]
+		# Le genome de l'ancetre superieur
+		tmpGenesAnc = utils.myGenomes.loadGenome(options["ancGenesFile"] % phylTree.fileName[anc])
+		del tmpGenesAnc.dicGenes
+		# Chaque gene
+		for g in tmpGenesAnc:
+			ianc = set()
+			newGenes = []
+			for s in g.names:
+				# On se sert des genes qu'on retrouve dans le genome a ordonner comme ancre
+				if s in genesAnc.dicGenes:
+					ianc.add(genesAnc.dicGenes[s])
+				# Les autres sont les orthologues dans les autres especes
+				elif s in phylTree.dicGenes:
+					tt = phylTree.dicGenes[s]
+					if tt[0] not in phylTree.species[options["ancestr"]]:
+						newGenes.append(tt)
+			# On enregistre le lien entre les genes du genome a ordonner et les genes des outgroups
+			for i in ianc:
+				if i in dicOutgroupGenes:
+					dicOutgroupGenes[i].update(newGenes)
+				else:
+					dicOutgroupGenes[i] = set(newGenes)
+		del tmpGenesAnc
 
 
-# On reecrit le genome a trier
-# Chaque gene devient la liste des distances inter-genes chez chaque espece
-genome = {}
-for c in genesAnc.lstChr:
-	genome[c] = []
-	for i in xrange(len(genesAnc.lstGenes[c])):
-		g = genesAnc.lstGenes[c][i]
-		tmp = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
-		tmp.extend(dicOutgroupGenes.get( (c,i), []))
-		genome[c].append(tmp)
-del phylTree.dicGenes
-del dicOutgroupGenes
+	# On reecrit le genome a trier
+	# Chaque gene devient la liste des distances inter-genes chez chaque espece
+	genome = {}
+	for c in genesAnc.lstChr:
+		genome[c] = []
+		for i in xrange(len(genesAnc.lstGenes[c])):
+			g = genesAnc.lstGenes[c][i]
+			tmp = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
+			tmp.extend(dicOutgroupGenes.get( (c,i), []))
+			genome[c].append(tmp)
+	del phylTree.dicGenes
+	return genome
 
-nom = "mat%08d" % ((os.getpid() ^ os.getppid() ^ random.randint(1,16777215)) & 16777215)
-mult = pow(10, options["nbDecimales"])
-anc = options["ancestr"]
-ancSpecies = phylTree.species[anc]
-ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
-phylTree.initCalcDist(anc, options["useOutgroups"] != 0)
-
-# 2. On cree les blocs ancestraux tries et on extrait les diagonales
-for c in genesAnc.lstChr:
+#
+# Ecrit la matrice du chromosome c et lance concorde
+#
+def sortChromosome(c):
 
 	tab = genome[c]
 	n = len(tab)
@@ -158,16 +130,18 @@ for c in genesAnc.lstChr:
 	print >> f, "EDGE_WEIGHT_SECTION"
 	print >> f, "0 " * n
 	for i in xrange(n):
+		s = ""
 		for j in xrange(i+1,n):
 			y = distInterGenes(tab[i], tab[j])
 			mat[i+1][j+1] = mat[j+1][i+1] = y
 			if y == None:
-				print >> f, int(mult*options["penalite"]),
+				y = mult*options["penalite"]
 			elif y == 1:
-				print >> f, 0,
+				y = 0
 			else:
-				print >> f, int(mult*y),
-		print >> f
+				y = mult*y
+			s += str(int(y)) + " "
+		print >> f, s
 	# Le n+1 eme point pour lier les deux extremites du chromosome
 	for i in xrange(n+1):
 		mat[i][0] = mat[0][i] = 0
@@ -227,6 +201,46 @@ for c in genesAnc.lstChr:
 	
 	print >> sys.stderr, nb, "inversions possibles"
 
+
+
+
+########
+# MAIN #
+########
+
+# Initialisation & Chargement des fichiers
+(noms_fichiers, options) = utils.myTools.checkArgs( \
+	["genomeAncestral", "phylTree.conf"], \
+	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
+	("useOutgroups",int,[0,1,2]), ("withConcordeOutput",bool,False), \
+	("concordeExec",str,"~/work/scripts/concorde"),\
+	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
+	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
+	__doc__ \
+)
+
+
+# L'arbre phylogentique
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+if options["ancestr"] not in (phylTree.listAncestr + phylTree.listSpecies):
+	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["ancestr"]
+	sys.exit(1)
+
+# On charge les genomes
+phylTree.loadAllSpeciesSince(None, options["genesFile"])
+del phylTree.dicGenomes
+genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genomeAncestral"])
+genome = rewriteGenome()
+nom = "mat%08d" % ((os.getpid() ^ os.getppid() ^ random.randint(1,16777215)) & 16777215)
+mult = pow(10, options["nbDecimales"])
+anc = options["ancestr"]
+ancSpecies = phylTree.species[anc]
+ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
+phylTree.initCalcDist(anc, options["useOutgroups"] != 0)
+
+# 2. On cree les blocs ancestraux tries et on extrait les diagonales
+for c in genesAnc.lstChr:
+	sortChromosome(c)
 
 os.system('rm -f *%s*' % nom )
 

@@ -22,9 +22,32 @@ import utils.myMaths
 import utils.myDiags
 import utils.myPsOutput
 import utils.myPhylTree
-import utils.myCommunities
-#import utils.myCommunities2
+#import utils.walktrap.myCommunitiesProxy
+import utils.walktrap
 
+
+
+
+
+#genomes = []
+#for i in sys.argv[1:]:
+#	genomes.append(utils.myGenomes.loadGenome(i))
+#	print len(genomes[-1].lstChr)
+
+s = utils.walktrap.myCommunitiesProxy.WalktrapProxy()
+f = open("/users/ldog/muffato/heimdall/proteines/reduced/graph.4741", "r")
+
+#for i in xrange(100):
+#	for j in xrange(100):
+#		s.addEdge(i, j, random.random())
+#		#pass
+
+s.updateFromFile(f)
+f.close()
+
+s.doWalktrap(internal = False)
+print s.res
+sys.exit(0)
 
 def linear(a, b, ratio):
 	return int(a + ratio*(b-a))

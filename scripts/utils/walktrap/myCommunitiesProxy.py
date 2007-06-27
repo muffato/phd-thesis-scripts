@@ -17,22 +17,14 @@
 
 import os
 import sys
-import pywalktrap
-import myMaths
-import myTools
+import _walktrap
+import utils.myTools
 
 
-class WalktrapWrapper:
+class WalktrapProxy:
 
 	def __init__(self):
-		
 		self.edges = {}
-
-
-	def __internalAddEdge(self, x, y, weight):
-		if x not in self.edges:
-			self.edges[x] = {}
-		self.edges[x][y] = weight
 
 	def addEdge(self, x, y, weight):
 		try:
@@ -44,8 +36,8 @@ class WalktrapWrapper:
 		except ValueError:
 			pass
 		weight = float(weight)
-		self.__internalAddEdge(x, y, weight)
-		self.__internalAddEdge(y, x, weight)
+		self.edges.setdefault(x,{})[y] = weight
+		self.edges.setdefault(y,{})[x] = weight
 
 	def updateFromFile(self, f):
 		for l in f:
@@ -53,13 +45,10 @@ class WalktrapWrapper:
 			self.addEdge(c[0], c[1], c[2])
 
 	def updateFromFunc(self, items, func):
-		for i1 in xrange(len(items)):
-			x1 = items[i1]
-			for i2 in xrange(i1+1,len(items)):
-				x2 = items[i2]
-				score = func(x1, x2)
-				if score > 0:
-					self.addEdge(x1, x2, score)
+		for (x1,x2) in utils.myTools.myMatrixIterator(items, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+			score = func(x1, x2)
+			if score > 0:
+				self.addEdge(x1, x2, score)
 
 	def updateFromDict(self, d):
 		for x1 in d:
@@ -67,14 +56,14 @@ class WalktrapWrapper:
 				self.addEdge(x1, x2, v)
 
 
-
-	def doWalktrap(self):
+	# TODO Amener les options de walktrap
+	def doWalktrap(self, internal = True):
 
 		
 		# Les composantes connexes
-		combin = myTools.myCombinator([])
+		combin = utils.myTools.myCombinator([])
 		for x in self.edges:
-			combin.addLink([x] + list(self.edges[x]))
+			combin.addLink([x] + self.edges[x].keys())
 
 		self.res = []
 		
@@ -85,8 +74,65 @@ class WalktrapWrapper:
 			for i in xrange(len(nodes)):
 				indNodes[nodes[i]] = i
 		
-			(scores,dend) = pywalktrap.doWalktrap(indNodes, self.edges)
+			if internal:
+				(scores,dend) = _walktrap.doWalktrap(indNodes, self.edges)
+			else:
+				(stdin,stdout,stderr) = os.popen3('/users/ldog/muffato/work/scripts/utils/walktrap/walktrap -t10')
+				stderr.close()
+				
+				# Envoi des donnees du graphe
+				for x in nodes:
+					for y in self.edges[x]:
+						print >> stdin, indNodes[x], indNodes[y], self.edges[x][y]
+				stdin.close()
+				
+				(scores,dend) = self.loadWalktrapOutput(stdout)
+			
 			self.res.append( (nodes, scores, WalktrapDendrogram(dend, nodes)) )
+
+
+	#
+	# Chargement d'un fichier de resultat de walktrap
+	#
+	def loadWalktrapOutput(self, file):
+
+		# Renvoie l'ensemble des fils d'un noeud, recursivement
+		def getAllChildren(father):
+			alreadySeen.add(father)
+			if father in lstFils:
+				res = []
+				for child in lstFils[father]:
+					res.extend( getAllChildren(child) )
+				return res
+			else:
+				return [father]
+		
+		# On charge les fusions
+		allMerges = []
+		lstFils = {}
+		for line in file:
+			if line == "\n":
+				break
+			
+			l = line.split(':')
+			scale = float(l[0])
+			l = l[1].split('-->')
+			
+			allMerges.append( (scale,tuple([int(x) for x in l[0].split('+')]),int(l[1])) )
+
+		allMerges.sort( reverse = True )
+
+		lstCoup = []
+		for line in file:
+			try:
+				# On extrait les lignes "alpha relevance"
+				c = line.split()
+				lstCoup.append( (float(c[0]),float(c[1])) )
+			except ValueError:
+				pass
+		
+		return (lstCoup, allMerges)
+
 
 
 class WalktrapDendrogram:
