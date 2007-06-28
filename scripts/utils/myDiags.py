@@ -1,4 +1,3 @@
-#! /users/ldog/muffato/python -OO
 
 #
 # Fonctions communes de traitement des diagonales

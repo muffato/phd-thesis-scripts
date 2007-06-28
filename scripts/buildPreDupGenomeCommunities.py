@@ -17,7 +17,7 @@ import utils.myPhylTree
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
-import utils.walktrap.myCommunities
+import utils.walktrap
 
 
 # FONCTIONS #
@@ -396,15 +396,18 @@ def scorePaireDCS(i1, i2):
 
 print >> sys.stderr, "Lancement des communautes sur les %d DCS :" % len(allDCS),
 phylTree.initCalcDist(rootDup, False)
-lstLstComm = utils.walktrap.myCommunities.launchCommunitiesBuild(items = range(len(allDCS)), scoreFunc = scorePaireDCS)
+walktrapInstance = utils.walktrap.WalktrapLauncher()
+walktrapInstance.updateFromFunc(range(len(allDCS)), scorePaireDCS)
+walktrapInstance.doWalktrap()
 
 # A partir d'ici, on a une association DCS <-> chromosomes, on retombe sur la regle de base, le vote a la majorite
 
 chrInd = 0
-for lstComm in lstLstComm:
-	if len(lstComm) == 0:
+for (nodes,cuts,_,dend) in walktrapInstance.res:
+	if len(cuts) == 0:
 		continue
-	(alpha,relevance,clusters,lonely) = lstComm[0]
+	(alpha,relevance) = cuts[0]
+	(clusters,lonely) = dend.cut(alpha)
 	print >> sys.stderr, "Resultat alpha=%f relevance=%f clusters=%d size=%d lonely=%d" % \
 		(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely))
 	for i in xrange(len(clusters)):

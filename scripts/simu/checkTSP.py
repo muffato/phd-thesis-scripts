@@ -25,12 +25,12 @@ import utils.myDiags
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( ["studiedGenome", "referenceGenome", "orthologuesList"], [], __doc__)
+(noms_fichiers, options) = utils.myTools.checkArgs( ["referenceGenome","studiedGenome", "orthologuesList"], [], __doc__)
 
 
 # Chargement des fichiers
-genome1 = utils.myGenomes.loadGenome(noms_fichiers["studiedGenome"])
-genome2 = utils.myGenomes.loadGenome(noms_fichiers["referenceGenome"])
+genome1 = utils.myGenomes.loadGenome(noms_fichiers["referenceGenome"])
+genome2 = utils.myGenomes.loadGenome(noms_fichiers["studiedGenome"])
 genesAnc = utils.myGenomes.loadGenome(noms_fichiers["orthologuesList"])
 
 def printDiag( ((e1,c1,d1), (e2,c2,d2), da) ):

@@ -19,7 +19,7 @@ import operator
 import utils.myGenomes
 import utils.myTools
 import utils.myPhylTree
-import utils.walktrap.myCommunities
+import utils.walktrap
 
 
 
@@ -151,15 +151,24 @@ def buildAncFile(anc, lastComb):
 		# B. On est oblige de clusteriser
 		else:
 			# B.1/ On lance les communautes
-			lstCommunitiesOrig = utils.walktrap.myCommunities.launchCommunitiesBuild(items = x, edgesDict = aretes)[0]
+			walktrapInstance = utils.walktrap.WalktrapLauncher()
+			walktrapInstance.updateFromDict(aretes, x)
+			walktrapInstance.doWalktrap()
 			
 			# B.2/ On selectionne celles qui sont convenables
-			lstCommunities = []
-			for comm in lstCommunitiesOrig:
+			(_,cuts,_,dend) = walktrapInstance.res[0]
+			for (alpha,relevance) in cuts:
 			
-				print >> sys.stderr, "Test de [alpha=%f relevance=%f parts=%d N/A=%d/%d] :" % (comm[0],comm[1],len(comm[2]),len(comm[3]),len(x)),
-				(alpha,relevance,clusters,lonely) = comm
-				if options["graphDirectory"] != "" and len(lonely) == 0:
+				(clusters,lonely) = dend.cut(alpha)
+				print >> sys.stderr, "Test de [alpha=%f relevance=%f parts=%d N/A=%d/%d] :" % (alpha,relevance, len(clusters),len(lonely),len(x)),
+				
+				# Ne nous interessent que les clusterisations completes
+				if len(lonely) != 0:
+					print >> sys.stderr, "genes oublies"
+					continue
+				
+				# On ecrit le graphe pour graphviz au cas ou
+				if options["graphDirectory"] != "":
 					fa = utils.myTools.myOpenFile(options["graphDirectory"] + '/graph-%f-%f-%d-%d' % (relevance,alpha,len(clusters),len(lonely)), 'w')
 					print >> fa, "graph {"
 					interv = 85
@@ -187,46 +196,24 @@ def buildAncFile(anc, lastComb):
 					print >> fa, "}"
 					fa.close()
 
-
-				# Ne nous interessent que les clusterisations completes
-				if len(comm[-1]) != 0:
-					print >> sys.stderr, "genes oublies"
+				# Ne nous interessent que les clusterisations avec une relevance suffisante
+				if relevance < options["minRelevance"]:
+					print >> sys.stderr, "relevance insuffisante"
 					continue
-				
-				# Une clusterisation est correcte si tous les clusters sont repartis sur les deux sous-branches
-				tmpNbEsp = []
-				for c in comm[2]:
-					(nbAr, nbArAtt, poidsBranches, score) = getStats(c)
-					tmpNbEsp.append(   float(len([e for e in score if len(score[e]) > 0])) )
-					if len([e for e in poidsBranches if e > 0]) == 1:
-						print >> sys.stderr, "Clusterisation incoherente"
-						break
-				else:
-					print >> sys.stderr, min(tmpNbEsp),
-					# Ne nous interessent que les clusterisations avec une relevance suffisante
-					if comm[1] >= options["minRelevance"]:
-						print >> sys.stderr, "Communaute recevable"
-						lstCommunities.append(comm)
-					else:
-						print >> sys.stderr, "relevance insuffisante"
-					
-			# On trie suivant la meilleure relevance
-			lstCommunities.sort(key = operator.itemgetter(1), reverse = True)
 
-			# B.3/ Aucune clusterisation satisfaisante
-			if len(lstCommunities) == 0:
+				# Une clusterisation est correcte si aucun cluster n'est mono-phyletique
+				tmpNbEsp = min([len([e for e in getStats(c)[2] if e > 0]) for c in clusters])
+				if tmpNbEsp <= 1:
+					print >> sys.stderr, "Clusterisation incoherente"
+					continue
+
+				print >> sys.stderr, "Communaute acceptee"
+				break
+
+			else:
 				print >> sys.stderr, "Aucune communaute satisfaisante"
 				clusters = [x]
 				
-			# B.4/ Unique solution
-			elif len(lstCommunities) == 1:
-				clusters = lstCommunities[0][2]
-				print >> sys.stderr, "Resultat unique [alpha=%f relevance=%f parts=%d]" % (lstCommunities[0][0],lstCommunities[0][1],len(clusters))
-			# B.5/ Le choix s'impose
-			else:
-				clusters = lstCommunities[0][2]
-				print >> sys.stderr, "Hesitation ... Choix: [alpha=%f relevance=%f parts=%d]" % (lstCommunities[0][0],lstCommunities[0][1],len(clusters))
-			
 		# Ecriture
 		for c in clusters:
 			res.addLink(c)

@@ -1,7 +1,6 @@
-#! /users/ldog/muffato/python -OO
 
-import cairo
 import sys
+import cairo
 
 # Module de sortie graphique via Cairo
 

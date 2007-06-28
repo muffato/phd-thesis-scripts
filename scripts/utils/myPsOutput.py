@@ -1,4 +1,3 @@
-#! /users/ldog/muffato/python -OO
 
 # Module d'ecriture dans un fichier PostScript
 

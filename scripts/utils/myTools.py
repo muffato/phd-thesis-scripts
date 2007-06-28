@@ -1,5 +1,3 @@
-#! /users/ldog/muffato/python -OO
-
 
 import os
 import sys
@@ -109,8 +107,6 @@ class myCombinator:
 		if len(obj) == 0:
 			return
 	
-		obj = list(set(obj))
-		
 		# Les elements de obj deja presents dans le combinateur
 		d = set([self.dic[x] for x in obj if x in self.dic])
 		
@@ -152,10 +148,11 @@ class myCombinator:
 	# Enleve les ensembles vides
 	#
 	def reduce(self):
-		newGrp = list(self)
-		self.__init__(newGrp)
+		self.__init__(self)
+		#newGrp = list(self)
+		#self.__init__(newGrp)
 
-				
+		
 
 #######################################################################################
 # Classe qui permet d'utiliser les cles d'un dictionnaire directement comme attributs #

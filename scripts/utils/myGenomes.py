@@ -1,4 +1,3 @@
-#! /users/ldog/muffato/python -OO
 
 import sys
 import operator
@@ -15,9 +14,7 @@ class Gene:
 
 	def __init__(self, names, chromosome, beg, end, strand):
 
-		#newNames = []
-		#for s in names:
-		#	newNames.append(allGenes.setdefault(s,s))
+		#newNames = [allGenes.setdefault(s,s) for s in names]
 		newNames = names
 				
 		self.names = tuple(newNames)

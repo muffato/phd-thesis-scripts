@@ -18,7 +18,7 @@ import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 import utils.myPhylTree
-import utils.walktrap.myCommunities
+import utils.walktrap
 
 #############
 # FONCTIONS #
@@ -160,6 +160,7 @@ def calcPoids(node):
 	["phylTree.conf", "diagsList"], \
 	[("ancestr",str,""), ("alreadyBuiltAnc",str,""), \
 	("useOutgroups",bool,True), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("newScoring",bool,False), \
+	("walktrapLength",int,5), ("qualityFunction",int,[2,1,3]), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -288,30 +289,34 @@ def calcScore2(i1, i2):
 		s += f1 * f2
 
 	return s
-	
-if options["newScoring"]:
-	lstLstComm = utils.walktrap.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore2)
-else:
-	lstLstComm = utils.walktrap.myCommunities.launchCommunitiesBuild(items = range(len(lstDiags)), scoreFunc = calcScore)
-clusters = []
 
+
+walktrapInstance = utils.walktrap.WalktrapLauncher()
+print >> sys.stderr, "Calcul de la matrice ...",
+if options["newScoring"]:
+	walktrapInstance.updateFromFunc(range(len(lstDiags)), calcScore2)
+else:
+	walktrapInstance.updateFromFunc(range(len(lstDiags)), calcScore)
+walktrapInstance.doWalktrap(randomWalksLength=options["walktrapLength"], qualityFunction=options["qualityFunction"])
+
+clusters = []
 # Chaque composante connexe
-for lst in lstLstComm:
-	#interessant = [comm for comm in lst if (len(comm[3]) == 0) and (comm[1] >= 0.3)]
-	interessant = [comm for comm in lst if (len(comm[3]) < len(utils.myMaths.flatten(comm[2]))/2) and (comm[1] >= 0.2)]
-	#interessant = lst
-	#interessant = [comm for comm in lst if (len(comm[3]) == 0)]
-	interessant.sort(key = operator.itemgetter(1), reverse = True)
-	#interessant = []
+for (nodes,cuts,_,dend) in walktrapInstance.res:
+	print >> sys.stderr, cuts
+	# Un score de relevance > 0.2
+	interessant = [(alpha,score,dend.cut(alpha)) for (alpha,score) in cuts if score > 0.2]
+	# Les noeuds seuls representent < de l'ensemble des noeuds
+	interessant = [(alpha,score,clust) for (alpha,score,(clust,lonely)) in interessant if len(lonely) < len(nodes)/2]
 	if len(interessant) == 0:
-		sys.stderr.write('-')
-		clusters.append(utils.myMaths.flatten(lst[0][2])+lst[0][-1])
+		print >> sys.stderr, "-",
+		clusters.append(nodes)
 	else:
-		sys.stderr.write('+')
-		clusters.extend(interessant[0][2])
+		# Au choix, on prend la version la moins fusionnee
+		print >> sys.stderr, "+%d/%f/%f" % (len(interessant[-1][-1]), interessant[-1][0], interessant[-1][1]),
+		clusters.extend(interessant[-1][1])
 print >> sys.stderr
 
-print >> sys.stderr, "Impression des chromosomes ancestraux ...",
+print >> sys.stderr, "Impression des %d chromosomes ancestraux ..." % len(clusters),
 lstChr = []
 ind = 0
 for c in clusters:
@@ -334,3 +339,4 @@ for c in lstChr:
 
 
 print >> sys.stderr, "OK"
+

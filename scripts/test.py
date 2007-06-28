@@ -26,6 +26,45 @@ import utils.myPhylTree
 import utils.walktrap
 
 
+comb = utils.myTools.myCombinator([])
+random.seed(sys.argv[1])
+
+ll = []
+for i in xrange(1000):
+	
+	l = [random.randint(1,10000000) for i in xrange(random.randint(2,1000))]
+
+	ll.extend(l)
+	#comb.addLink(l)
+
+#print comb.getNbGrp()
+#print len(utils.myMaths.flatten(ll))
+#print len(ll)
+print utils.myMaths.myStats(ll)
+
+sys.exit(0)
+
+
+
+f = open("/users/ldog/muffato/heimdall/proteines/reduced/graph.4741", "r")
+
+#s = utils.walktrap.WalktrapDirectLauncher()
+s = utils.walktrap.WalktrapLauncher()
+#s.updateFromFile(f)
+
+f.close()
+
+for i in xrange(12):
+	for j in xrange(i):
+		if i < 6:
+			#s.addEdge(i, j, 1)
+			print i, j, 1
+		elif j >= 6:
+			#s.addEdge(i, j, 1)
+			print i, j, 1
+		elif j < 3 and i >= 9:
+			#s.addEdge(i, j, 1)
+			print i, j, 1
 
 
 
@@ -34,19 +73,33 @@ import utils.walktrap
 #	genomes.append(utils.myGenomes.loadGenome(i))
 #	print len(genomes[-1].lstChr)
 
-s = utils.walktrap.myCommunitiesProxy.WalktrapProxy()
-f = open("/users/ldog/muffato/heimdall/proteines/reduced/graph.4741", "r")
-
 #for i in xrange(100):
 #	for j in xrange(100):
 #		s.addEdge(i, j, random.random())
 #		#pass
 
-s.updateFromFile(f)
-f.close()
+"""
+s.addEdge(0, 1, 5)
+s.addEdge(0, 2, 4)
+s.addEdge(2, 4, 15)
+s.addEdge(4, 8, 0.7)
+s.addEdge(1, 3, 8)
+s.addEdge(8, 6, 1)
+s.addEdge(7, 5, 1)
+s.addEdge(8, 5, 2)
+s.addEdge(3, 6, 1)
+"""
 
-s.doWalktrap(internal = False)
-print s.res
+#s.doWalktrap(showProgress = False, verboseLevel=0)
+s.doWalktrap()
+(nodes,scores,dend,ddd) = s.res[0]
+print nodes
+for x in scores:
+	print x
+	print ddd.cut(x[0])
+for x in dend:
+	print x
+
 sys.exit(0)
 
 def linear(a, b, ratio):

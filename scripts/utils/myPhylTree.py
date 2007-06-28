@@ -1,4 +1,3 @@
-#! /users/ldog/muffato/python -OO
 
 import sys
 import myTools
