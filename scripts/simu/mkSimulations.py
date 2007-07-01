@@ -18,10 +18,8 @@ Genere des fichiers similaires a ceux d'Ensembl
 import sys
 import math
 import random
-import utils.myPhylTree
-import utils.myGenomes
 import utils.myTools
-import utils.myMaths
+import utils.myPhylTree
 
 #############
 # FONCTIONS #
@@ -87,7 +85,7 @@ def doChrBreak(genome):
 def printGenome(name, genome):
 
 	if options["realLifeConstraints"]:
-		if name in ["Loxodonta africana", "Echinops telfairi", "Dasypus novemcinctus", "Felis catus", "Erinaceus europaeus", "Myotis lucifugus", "Tupaia belangeri", "Otolemur garnettii", "Oryctolagus cuniculus", "Cavia porcellus", "Spermophilus tridecemlineatus"]:
+		if name in ["Loxodonta africana", "Echinops telfairi", "Dasypus novemcinctus", "Felis catus", "Erinaceus europaeus", "Myotis lucifugus", "Tupaia belangeri", "Otolemur garnettii", "Oryctolagus cuniculus", "Cavia porcellus", "Spermophilus tridecemlineatus", "Sorex araneus"]:
 			# especes en 2X
 			for i in xrange(random.randint(12000,18000)):
 				doChrBreak(genome)
@@ -179,7 +177,7 @@ def launchRecSimu(node, genomeIni):
 			if fils == "Monodelphis domestica":
 				(InvertRate,TranslocRate,FusionRate,BreakRate)=(85,5,8,2)
 			elif fils == "Gallus gallus":
-				(InvertRate,TranslocRate,FusionRate,BreakRate)=(90,9,1,5)
+				(InvertRate,TranslocRate,FusionRate,BreakRate)=(85,9,1,5)
 		
 		s = InvertRate + TranslocRate + FusionRate + BreakRate
 		nb = [0,0,0,0]
@@ -242,7 +240,8 @@ def launchRecSimu(node, genomeIni):
 	[("root",str,""), ("realLifeConstraints",bool,False), \
 	("nbOrigGenes",int,20000), ("nbMaxChr",int,20), \
 	("geneLossRate",float,10), ("geneGainRate",float,10), ("chrEventRate",float,1), ("rearrRateAccel",float,1.7), ("vonMisesKappa",float,2), \
-	("chrInvertWeight",float,85), ("chrTranslocWeight",float,10), ("chrFusionWeight",float,2.5), ("chrBreakWeight",float,2.5), \
+	("chrInvertWeight",float,80), ("chrTranslocWeight",float,14), ("chrFusionWeight",float,3), ("chrBreakWeight",float,3), \
+	("orthologyQuality",float,98), ("duplicationRate",float,2), \
 	("genomeFile",str,"~/work/simu/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/simu/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \

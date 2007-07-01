@@ -26,6 +26,37 @@ import utils.myPhylTree
 import utils.walktrap
 
 
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
+
+
+def getSumOfBranchLength(node):
+	
+	s = 0
+	for (f,x) in phylTree.items.get(node,[]):
+		s += x
+		s += getSumOfBranchLength(f)
+	return s
+		
+
+for anc in phylTree.listAncestr:
+
+	out = []
+	tmp = anc
+	while tmp in phylTree.parent:
+		par = phylTree.parent[tmp]
+		out.extend([e for e in phylTree.branches[par] if e != tmp])
+		tmp = par
+
+	#nbEsp = [len(phylTree.species[x]) for (x,age) in phylTree.items[anc]]
+	nbEspEq = [float(age+getSumOfBranchLength(x))/phylTree.ages[anc] for (x,age) in phylTree.items[anc]]
+	nbOutEq = [float(getSumOfBranchLength(x))/phylTree.ages[x] for x in out if x in phylTree.listAncestr] + [1. for x in out if x in phylTree.listSpecies]
+	nbEspEq.append(sum(nbOutEq))
+	print anc, nbEspEq
+	print anc, sum([x*y for (x,y) in utils.myTools.myMatrixIterator(nbEspEq, None, utils.myTools.myMatrixIterator.StrictUpperMatrix)]),
+	print math.sqrt(sum([(x-sum(nbEspEq)/len(nbEspEq))**2 for x in nbEspEq]))/len(nbEspEq)
+
+sys.exit(0)
+
 comb = utils.myTools.myCombinator([])
 random.seed(sys.argv[1])
 
