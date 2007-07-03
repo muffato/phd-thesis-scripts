@@ -97,8 +97,9 @@ def rewriteGenome():
 	genome = {}
 	for c in genesAnc.lstChr:
 		genome[c] = []
-		for i in xrange(len(genesAnc.lstGenes[c])):
-			g = genesAnc.lstGenes[c][i]
+		for (i,g) in enumerate(genesAnc.lstGenes[c]):
+		#for i in xrange(len(genesAnc.lstGenes[c])):
+		#	g = genesAnc.lstGenes[c][i]
 			tmp = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
 			tmp.extend(dicOutgroupGenes.get( (c,i), []))
 			genome[c].append(tmp)
@@ -201,8 +202,10 @@ class ConcordeFile:
 
 	def buildIndex(self):
 		self.dic = {}
-		for i in xrange(len(self.res)):
-			self.dic[self.res[i]] = i
+		for (i,x) in enumerate(self.res):
+			self.dic[x] = i
+		#for i in xrange(len(self.res)):
+		#	self.dic[self.res[i]] = i
 	
 	def isMemeSens(self, other):
 		s = 0

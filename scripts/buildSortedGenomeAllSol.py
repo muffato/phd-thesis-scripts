@@ -98,8 +98,9 @@ def rewriteGenome():
 	genome = {}
 	for c in genesAnc.lstChr:
 		genome[c] = []
-		for i in xrange(len(genesAnc.lstGenes[c])):
-			g = genesAnc.lstGenes[c][i]
+		for (i,g) in enumerate(genesAnc.lstGenes[c]):
+		#for i in xrange(len(genesAnc.lstGenes[c])):
+		#	g = genesAnc.lstGenes[c][i]
 			tmp = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
 			tmp.extend(dicOutgroupGenes.get( (c,i), []))
 			genome[c].append(tmp)

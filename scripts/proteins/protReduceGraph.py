@@ -44,7 +44,7 @@ def revert(ind):
 		return ind
 
 # Le nouveau graphe
-todo = {}
+todo = utils.myTools.defaultdict(float)
 fg = utils.myTools.myOpenFile(noms_fichiers["grapheInit"], 'r')
 for l in fg:
 	
@@ -58,9 +58,9 @@ for l in fg:
 	
 	if a < 0 or b < 0:
 		if (b,a) in todo:
-			todo[(b,a)] = todo[(b,a)] + float(t[2])
+			todo[(b,a)] += float(t[2])
 		else:
-			todo[(a,b)] = todo.get( (a,b), 0) + float(t[2])
+			todo[(a,b)] += float(t[2])
 	elif (b,a) not in todo:
 		todo[(a,b)] = float(t[2])
 

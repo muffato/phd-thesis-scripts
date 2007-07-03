@@ -276,13 +276,13 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 		phylTree.initCalcDist(rootNonDup, False)
 
 	chrNames = sorted(chrAncGenes)
-	for i in xrange(len(genesAncCol)):
+	for (i,col) in enumerate(genesAncCol):
 	
-		if len(genesAncCol[i]) == 0:
+		if len(col) == 0:
 			# Certains genes n'ont pas de chance !
 			continue
 	
-		nb = [(calcChrAncScore(genesAncCol[i],x), x) for x in chrNames]
+		nb = [(calcChrAncScore(col,x), x) for x in chrNames]
 		
 		# On verifie les egalites
 		s = sorted(nb, reverse=True)
@@ -291,6 +291,23 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 
 		genesAncCol[i] = nb
 		chrAncGenes[s[0][1]].append(i)
+
+
+	#for i in xrange(len(genesAncCol)):
+	#
+	#	if len(genesAncCol[i]) == 0:
+	#		# Certains genes n'ont pas de chance !
+	#		continue
+	#
+	#	nb = [(calcChrAncScore(genesAncCol[i],x), x) for x in chrNames]
+	#	
+	#	# On verifie les egalites
+	#	s = sorted(nb, reverse=True)
+	#	if (s[0][0] == s[1][0]) and not options["keepUncertainGenes"]:
+	#		continue
+	#
+	#	genesAncCol[i] = nb
+	#	chrAncGenes[s[0][1]].append(i)
 
 
 #
@@ -304,9 +321,10 @@ def printColorAncestr(genesAnc, chrAncGenes):
 	
 	if options["showQuality"]:
 		print "\t\t%s" % "\t".join([str(c) for c in chrNames])
-	
-	for j in xrange(len(chrNames)):
-		c = chrNames[j]
+
+	#for j in xrange(len(chrNames)):
+	#	c = chrNames[j]
+	for (j,c) in enumerate(chrNames):
 		nb = 0
 		for i in chrAncGenes[c]:
 			nb += 1

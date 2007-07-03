@@ -18,7 +18,7 @@ import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 import utils.walktrap
-
+from collections import defaultdict
 
 # FONCTIONS #
 
@@ -198,9 +198,9 @@ def addDCS(dcs):
 			return nb
 		
 		# Le compte final
-		count = {}
+		count = defaultdict(int)
 		# La derniere ligne lue
-		last = {}
+		last = defaultdict(int)
 		# On parcourt la liste
 		while len(lst) > 0:
 			curr = lst.pop(0)
@@ -209,21 +209,25 @@ def addDCS(dcs):
 				for y in last:
 					if y == x:
 						continue
-					s = (countChr(x)+1) * last[y] + count.get((x,y), 0)
-					count[(x,y)] = count[(y,x)] = s
+					count[(x,y)] += (countChr(x)+1) * last[y]
+					count[(y,x)] = count[(x,y)]
+					#s = (countChr(x)+1) * last[y] + count.get((x,y), 0)
+					#count[(x,y)] = count[(y,x)] = s
 				# Et aussi entre les paralogues
 				for y in curr:
 					if y >= x:
 						continue
-					s = 1 + count.get((x,y), 0)
-					count[(x,y)] = count[(y,x)] = s
+					count[(x,y)] += 1
+					count[(y,x)] = count[(x,y)]
+					#s = 1 + count.get((x,y), 0)
+					#count[(x,y)] = count[(y,x)] = s
 			
 			# On met a jour last
 			for y in last:
 				if y not in curr:
 					last[y] = 0
 			for x in curr:
-				last[x] = last.get(x,0) + 1
+				last[x] += 1
 
 		return count
 
@@ -281,19 +285,29 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 		return utils.myMaths.mean(rTot)
 		
 	
-	for i in xrange(len(genesAncCol)):
-	
-		if len(genesAncCol[i]) == 0:
+	for (i,col) in genesAncCol:
+		
+		if len(col) == 0:
 			# Certains genes n'ont pas de chance !
 			continue
 	
-		nb = dict([(x,calcChrAncScore(genesAncCol[i], x)) for x in chrAncGenes])
+		nb = dict([(x,calcChrAncScore(col, x)) for x in chrAncGenes])
 
 		tmp = utils.myMaths.sortDict(nb)
 		c = tmp[0]
 		genesAncCol[i] = nb
 		
 		chrAncGenes[c].append(i)
+
+	#for i in xrange(len(genesAncCol)):
+	#	if len(genesAncCol[i]) == 0:
+	#		# Certains genes n'ont pas de chance !
+	#		continue
+	#	nb = dict([(x,calcChrAncScore(genesAncCol[i], x)) for x in chrAncGenes])
+	#	tmp = utils.myMaths.sortDict(nb)
+	#	c = tmp[0]
+	#	genesAncCol[i] = nb
+	#	chrAncGenes[c].append(i)
 
 
 #
@@ -410,9 +424,9 @@ for (nodes,cuts,_,dend) in walktrapInstance.res:
 	(clusters,lonely) = dend.cut(alpha)
 	print >> sys.stderr, "Resultat alpha=%f relevance=%f clusters=%d size=%d lonely=%d" % \
 		(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely))
-	for i in xrange(len(clusters)):
+	for cl in clusters:
 		chrInd += 1
-		for g in clusters[i]:
+		for g in cl:
 			for (_,s,_) in allDCS[g]:
 				(_,anc) = genesAnc.dicGenes[s]
 				(e,_,_) = phylTree.dicGenes[s]

@@ -32,8 +32,10 @@ n = 0
 for l in f:
 	t = [x for x in l.split()]
 	fout = utils.myTools.myOpenFile(noms_fichiers["dossierGraphes"] + "nodes.%d" % n, 'w')
-	for i in xrange(len(t)):
-		dic[t[i]] = (n,i)
+	for (i,x) in enumerate(t):
+		dic[x] = (n,i)
+	#for i in xrange(len(t)):
+	#	dic[t[i]] = (n,i)
 		print >> fout, i, " ".join(dicNodes[t[i]])
 	fout.close()
 	n += 1

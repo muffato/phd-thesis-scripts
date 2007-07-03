@@ -4,7 +4,16 @@ import operator
 import myMaths
 import myTools
 
-allGenes = {}
+
+if "+namesDic" in sys.argv:
+	sys.argv.remove("+namesDic")
+	allGenes = {}
+	def mkGeneNames(names):
+		return tuple(allGenes.setdefault(s,s) for s in names)
+else:
+	def mkGeneNames(names):
+		return tuple(names)
+
 
 
 ##############
@@ -14,10 +23,7 @@ class Gene:
 
 	def __init__(self, names, chromosome, beg, end, strand):
 
-		#newNames = [allGenes.setdefault(s,s) for s in names]
-		newNames = names
-				
-		self.names = tuple(newNames)
+		self.names = mkGeneNames(names)
 		self.chromosome = commonChrName(chromosome)
 		self.beginning = beg
 		self.end = end

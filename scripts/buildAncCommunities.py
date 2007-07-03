@@ -237,22 +237,41 @@ def calcScore(i1, i2):
 	communEsp = set([e for (e,_) in e1.intersection(e2)])
 
 	propF = []
-	for i in xrange(len(filsEsp)):
+		
+	for (i,f) in enumerate(filsAnc):
 		# Chez l'ancetre du dessous - meme chr
-		if filsAnc[i] in communEsp:
-			propF.append( dicPoidsEspeces[filsAnc[i]]*espCertitude[filsAnc[i]] )
+		if f in communEsp:
+			propF.append( dicPoidsEspeces[f]*espCertitude[f] )
 		# Chez l'ancetre du dessous - diff chr
-		elif filsAnc[i] in comparedEsp:
-			propF.append( dicPoidsEspeces[filsAnc[i]]*espIncertitude[filsAnc[i]] )
+		elif f in comparedEsp:
+			propF.append( dicPoidsEspeces[f]*espIncertitude[f] )
 		# Sinon, on revient aux genomes modernes
 		else:
-			s = sum([dicPoidsEspeces[e]*espCertitude[e] for e in filsEsp[i].intersection(communEsp)])
+			f = filsEsp[i]
+			s = sum([dicPoidsEspeces[e]*espCertitude[e] for e in f.intersection(communEsp)])
 			# On peut rajouter l'incertitude des autres especes
 			#   - si au moins une espece a valide la fusion
 			#   - si la branche est constituee d'une unique espece
-			if (s > 0) or (len(filsEsp[i]) == 1):
-				s += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in filsEsp[i].difference(communEsp)])
+			if (s > 0) or (len(f) == 1):
+				s += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in f.difference(communEsp)])
 			propF.append(s)
+	
+	#for i in xrange(len(filsEsp)):
+	#	# Chez l'ancetre du dessous - meme chr
+	#	if filsAnc[i] in communEsp:
+	#		propF.append( dicPoidsEspeces[filsAnc[i]]*espCertitude[filsAnc[i]] )
+	#	# Chez l'ancetre du dessous - diff chr
+	#	elif filsAnc[i] in comparedEsp:
+	#		propF.append( dicPoidsEspeces[filsAnc[i]]*espIncertitude[filsAnc[i]] )
+	#	# Sinon, on revient aux genomes modernes
+	#	else:
+	#		s = sum([dicPoidsEspeces[e]*espCertitude[e] for e in filsEsp[i].intersection(communEsp)])
+	#		# On peut rajouter l'incertitude des autres especes
+	#		#   - si au moins une espece a valide la fusion
+	#		#   - si la branche est constituee d'une unique espece
+	#		if (s > 0) or (len(filsEsp[i]) == 1):
+	#			s += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in filsEsp[i].difference(communEsp)])
+	#		propF.append(s)
 
 		
 	propOut = sum([dicPoidsEspeces[e]*espCertitude[e] for e in communEsp.intersection(outgroup)])

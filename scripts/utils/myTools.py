@@ -238,11 +238,12 @@ def checkArgs(args, options, info):
 				if not s in valOpt:
 					print >> sys.stderr, "Option non reconnue:", s
 					error_usage()
-				if opt[s][0] != bool:
+				elif opt[s][0] != bool:
 					print >> sys.stderr, "Utiliser -%s=valeur" % s
 					error_usage()
-				# Ici, on affecte False
-				valOpt[s] = (t[0] == '+')
+				else:
+					# Ici, on affecte False
+					valOpt[s] = (t[0] == '+')
 		elif os.access(t, os.R_OK):
 			valArg.append(t)
 		else:

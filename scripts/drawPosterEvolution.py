@@ -88,8 +88,9 @@ def reorderGenome(genome1, genome2):
 	
 	# On renvoie les chromosomes du genome 1 dans l'ordre des best hits avec le genome 2
 	besthits.sort()
-	for i in xrange(len(besthits)):
-		(c2,nb,c1) = besthits[i]
+	for (i,(c2,nb,c1)) in enumerate(besthits):
+	#for i in xrange(len(besthits)):
+	#	(c2,nb,c1) = besthits[i]
 		# Faut-il retourner le chromosome ?
 		memeSens = 0
 		# On restreint c1 a ses orthologues avec c2

@@ -27,7 +27,7 @@ import utils.myTools
 class WalktrapLauncher:
 
 	def __init__(self):
-		self.edges = {}
+		self.edges = utils.myTools.defaultdict(dict)
 
 	def addEdge(self, x, y, weight):
 		try:
@@ -39,8 +39,8 @@ class WalktrapLauncher:
 		except ValueError:
 			pass
 		weight = float(weight)
-		self.edges.setdefault(x,{})[y] = weight
-		self.edges.setdefault(y,{})[x] = weight
+		self.edges[x][y] = weight
+		self.edges[y][x] = weight
 
 	def updateFromFile(self, f):
 		for l in f:
@@ -76,8 +76,10 @@ class WalktrapLauncher:
 		for nodes in combin:
 			# Reindexation des noeuds
 			indNodes = {}
-			for i in xrange(len(nodes)):
-				indNodes[nodes[i]] = i
+			for (i,node) in enumerate(nodes):
+				indNodes[node] = i
+			#for i in xrange(len(nodes)):
+			#	indNodes[nodes[i]] = i
 		
 			# On lance le walktrap
 			(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, self.edges, randomWalksLength=randomWalksLength, verboseLevel=verboseLevel, showProgress=showProgress, memoryUseLimit=memoryUseLimit, qualityFunction=qualityFunction)
