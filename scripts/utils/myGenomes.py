@@ -5,17 +5,6 @@ import myMaths
 import myTools
 
 
-if "+namesDic" in sys.argv:
-	sys.argv.remove("+namesDic")
-	allGenes = {}
-	def mkGeneNames(names):
-		return tuple(allGenes.setdefault(s,s) for s in names)
-else:
-	def mkGeneNames(names):
-		return tuple(names)
-
-
-
 ##############
 # Un gene :) #
 ##############
@@ -23,7 +12,7 @@ class Gene:
 
 	def __init__(self, names, chromosome, beg, end, strand):
 
-		self.names = mkGeneNames(names)
+		self.names = tuple(intern(s) for s in names)
 		self.chromosome = commonChrName(chromosome)
 		self.beginning = beg
 		self.end = end
@@ -38,7 +27,7 @@ def commonChrName(x):
 	try:
 		return int(x)
 	except Exception:
-		return x
+		return intern(x)
 
 
 
@@ -124,7 +113,7 @@ class Genome:
 			self.f = nom
 		
 		# la liste des genes par chromosome
-		self.lstGenes = {}
+		self.lstGenes = myTools.defaultdict(list)
 		# Associer un nom de gene a sa position sur le genome
 		self.dicGenes = {}
 		# La liste triee des noms des chromosomes, des scaffolds et des randoms
@@ -137,8 +126,7 @@ class Genome:
 	#
 	def addGene(self, gene):
 	
-		c = gene.chromosome
-		self.lstGenes.setdefault(c, []).append(gene)
+		self.lstGenes[gene.chromosome].append(gene)
 	
 	#
 	# Trie les chromsomoses
@@ -152,10 +140,10 @@ class Genome:
 		self.dicGenes = {}
 		for c in self.lstGenes:
 			self.lstGenes[c].sort(key = operator.attrgetter('beginning'))
-			for i in xrange(len(self.lstGenes[c])):
-				self.lstGenes[c][i].chromosome = c
-				for s in self.lstGenes[c][i].names:
-					self.dicGenes[s] = (c, i)
+			for (i,g) in enumerate(self.lstGenes[c]):
+				g.chromosome = c
+				for s in g.names:
+					self.dicGenes[s] = (c,i)
 		
 	#
 	# Renvoie les genes presents sur le chromosome donne a certaines positions
@@ -237,7 +225,7 @@ class EnsemblGenome(Genome):
 		# On lit chaque ligne
 		for ligne in self.f:
 			champs = ligne.split()
-			self.addGene( Gene([champs[-1]], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
+			self.addGene( Gene(champs[4:], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
 			
 		self.f.close()
 		
@@ -296,7 +284,7 @@ class EnsemblOrthosListGenome(Genome):
 		
 		nb = 0
 		for g in combin:
-			self.addGene( Gene(tuple(g), Genome.defaultChr, nb, nb, 0) )
+			self.addGene( Gene(g, Genome.defaultChr, nb, nb, 0) )
 			nb += 1
 
 		print >> sys.stderr, "OK"
@@ -342,34 +330,5 @@ class AncestralGenome(Genome):
 		self.sortGenome()
 		
 		print >> sys.stderr, "OK"
-
-	#
-	# Cette fonction separe un genome ancestral en blocs dans chaque
-	# chromosome de chaque espece
-	#
-	def splitChr(self, geneBank, chrAnc):
-		
-		# 1ere etape: separer pour chaque espece en chromosomes
-		blocsAnc = {}
-		j = 0
-		for g in self.lstGenes[chrAnc]:
-			for s in g.names:
-				if s not in geneBank.dicGenes:
-					continue
-				(e,c,i) = geneBank.dicGenes[s]
-				blocsAnc.setdefault(e, {}).setdefault(c, []).append( (i,s,j) )
-			j += 1
-
-		# 2eme etape: trier chacun de ces ensembles et creer un
-		# dictionnaire qui pemet de retrouver la position de chaque gene
-		dico = {}
-		for e in blocsAnc:
-			for c in blocsAnc[e]:
-				blocsAnc[e][c].sort()
-				for i in xrange(len(blocsAnc[e][c])):
-					(_,s,j) = blocsAnc[e][c][i]
-					dico[s] = (e,c,i,j)
-		
-		return (blocsAnc, dico)
 
 

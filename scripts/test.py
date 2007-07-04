@@ -11,6 +11,7 @@ A partir de toutes les diagonales extraites entre les especes,
 ##################
 
 # Librairies
+import os
 import sys
 import math
 import time
@@ -24,12 +25,78 @@ import utils.myPsOutput
 import utils.myPhylTree
 #import utils.walktrap.myCommunitiesProxy
 import utils.walktrap
+from collections import defaultdict
 
 utils.myTools.checkArgs([],[],"")
 
+lst = [random.randint(1,5000) for i in xrange(20)]
+print lst
+print utils.myMaths.myStats(lst)
+
+def randomPlace():
+	r = random.randint(0, sum(lst)-1)
+	for (c,l) in enumerate(lst):
+		if r < l:
+			return (c, r)
+		r -= l
+
+
+for i in xrange(1000):
+	(x1,_) = randomPlace()
+	(x2,_) = randomPlace()
+	#(x1,x2) = random.sample(range(20), 2)
+	if lst[x1] >= 5:
+		tmp = lst[x1] / 5
+		lst[x1] -= tmp
+		lst[x2] += tmp
+		
+print lst
+print utils.myMaths.myStats(lst)
+
+#time.sleep(100)
+sys.exit(0)
+
+random.seed(0)
+
+lst = []
+for i in xrange(100000):
+	lst.append( set(random.randint(0,4) for j in xrange(10)) )
+	#for (j,x) in enumerate(lst):
+	#	x
+	#	x
+	#	x
+	#	print j,x
+	#for j in xrange(len(lst)):
+	#	lst[j]
+	#	lst[j]
+	#	lst[j]
+	#	print j, lst[j]
+	#lst1 = [[]] * x
+	#lst2 = [[] for j in xrange(x)]
+	#if lst1 != lst2:
+	#	print i, x
+
+os.system("free -m")
+sys.exit(0)
+lst = []
+for l in sys.stdin:
+	for c in l[:-1].split():
+		lst.append( utils.myGenomes.loadGenome(c) )
+
+
+os.system("free -m")
+sys.exit(0)
+d = {}
+#d = defaultdict(list)
+for i in xrange(1000000):
+	x = random.randint(1,10000)
+	d.setdefault(x,[]).append(i)
+	#d[x].append(i)
+	#d[x] = d.get(x,0) + 1
+
 #print utils.myMaths.myStats( [random.randint(0,1)*2-1 for i in xrange(1000000)] )
 #print utils.myMaths.myStats( [random.choice([-1,1]) for i in xrange(1000000)] )
-#sys.exit(0)
+sys.exit(0)
 
 length = 10000
 

@@ -8,6 +8,7 @@ import operator
 import myMaths
 import myGenomes
 import myTools
+from collections import defaultdict
 
 #
 # Extrait toutes les diagonales entre deux genomes (eventuellement des singletons)
@@ -17,7 +18,7 @@ import myTools
 #   dic2 qui associe a un numero de gene ancestral ses positions sur le genome 2
 #
 
-def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
+def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 
 	def getMinMaxDiag(lst):
 		a = lst[0]
@@ -39,8 +40,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 		lastS1 = 0
 		
 		# Parcours du genome 1
-		for i1 in xrange(len(genome1[c1])):
-			(j1,s1) = genome1[c1][i1]
+		for (i1,(j1,s1)) in enumerate(genome1[c1]):
 			if j1 < 0:
 				presI2 = []
 			else:
@@ -118,200 +118,63 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand, callBackFunc):
 					#print >> sys.stderr, "non"
 					i += 1
 			#print >> sys.stderr, "envoi", (d1,d2,c2,(deb1,fin1),(deb2,fin2))
-			callBackFunc(c1, c2, d1, d2, da)
+			yield (c1, c2, d1, d2, da)
 
 
 
-def calcDiags(e1, e2, g1, g2, orthos, callBack, minimalLength, fusionThreshold, sameStrand, keepOnlyOrthos):
+def calcDiags(g1, g2, orthos, minimalLength, fusionThreshold, sameStrand, keepOnlyOrthos):
 
-	
-	# La fonction qui permet de stocker les diagonales sur les ancetres
-	def combinDiag(c1, c2, d1, d2, da):
 
-		if len(da) < minimalLength:
-			return
-		statsDiags.append(len(da))
-
-		# Si on a garde uniquement les genes avec des orthologues, il faut revenir aux positions reelles dans le genome
-		if keepOnlyOrthos:
-			callBack( ((e1,c1,[trans1[c1][i] for i in d1]), (e2,c2,[trans2[c2][i] for i in d2]), da) )
-		else:
-			callBack( ((e1,c1,d1), (e2,c2,d2), da) )
-	
 	# Ecrire un genome en suite de genes ancestraux
-	def translateGenome(genome):
+	def translateGenome(genome, dicOrthos, onlyOrthos):
 		newGenome = {}
 		transNewOld = {}
 		for c in genome.lstChr + genome.lstScaff:
-			transNewOld[c] = {}
-			newGenome[c] = [(orthos.dicGenes.get(g.names[0], (None,-1))[1],g.strand) for g in genome.lstGenes[c]]
+			newGenome[c] = [(dicOrthos.get(g.names[0], (None,-1))[1],g.strand) for g in genome.lstGenes[c]]
 			# Si on a garde uniquement les genes avec des orthologues
 			# On doit construire un dictionnaire pour revenir aux positions originales
-			if keepOnlyOrthos:
+			if onlyOrthos:
 				tmp = [x for x in newGenome[c] if x[0] != -1]
+				tmpD = {}
 				last = -1
-				for i in xrange(len(tmp)):
-					last = newGenome[c].index(tmp[i], last + 1)
-					transNewOld[c][i] = last
+				for (i,obj) in enumerate(tmp):
+					last = newGenome[c].index(obj, last + 1)
+					tmpD[i] = last
 				newGenome[c] = tmp
+				transNewOld[c] = tmpD
 					
 		return (newGenome,transNewOld)
 
-
-	# Les noeuds de l'arbre entre l'ancetre et les especes actuelles
-	print >> sys.stderr, "Extraction des diagonales entre %s et %s " % (e1,e2),
-
 	# Les dictionnaires pour accelerer la recherche de diagonales
-	(newGen,trans1) = translateGenome(g1)
+	(newGen,trans1) = translateGenome(g1, orthos.dicGenes, keepOnlyOrthos)
 	sys.stderr.write(".")
-	(tmp,trans2) = translateGenome(g2)
+	(tmp,trans2) = translateGenome(g2, orthos.dicGenes, keepOnlyOrthos)
 	sys.stderr.write(".")
 	
 	newLoc = [[] for x in xrange(len(orthos.lstGenes[myGenomes.Genome.defaultChr]))]
 	for c in g2.lstChr + g2.lstScaff:
-		for i in xrange(len(tmp[c])):
-			(ianc,s) = tmp[c][i]
+		for (i,(ianc,s)) in enumerate(tmp[c]):
 			if ianc != -1:
 				newLoc[ianc].append( (c,i,s) )
-	sys.stderr.write(".")
+	sys.stderr.write(". ")
 
 	statsDiags = []
-	iterateDiags(newGen, newLoc, fusionThreshold, sameStrand, combinDiag)
-	print >> sys.stderr, "", myMaths.myStats(statsDiags)
+	for (c1, c2, d1, d2, da) in iterateDiags(newGen, newLoc, fusionThreshold, sameStrand):
 
-
-
-
-
-#
-# Un ensemble de diagonales que l'on represente comme un graphe ou les noeuds sont les genes
-#
-class DiagGraph:
-
-
-	#
-	# Initialisation du graphe a partir de la liste des diagonales
-	# On construit la liste des genes voisins
-	#
-	def __init__(self, lstDiags):
+		if len(da) < minimalLength:
+			continue
 		
-		# La liste des sommets
-		self.sommets = set()
-		for d in lstDiags:
-			self.sommets.update(d)
-		
-		# Les aretes du graphe
-		self.aretes = dict([(x,dict()) for x in self.sommets])
-		for d in lstDiags:
-			for i in xrange(len(d)-1):
-				x = d[i]
-				y = d[i+1]
-				self.aretes[x][y] = self.aretes[x].get(y,[]) + [y]
-				self.aretes[y][x] = self.aretes[y].get(x,[]) + [x]
+		statsDiags.append(len(da))
 
-
-
-	#
-	# Construit un graphe dans lequel les suites d'aretes sans carrefours ont ete reduites
-	#
-	def reduceGraph(self):
-
-		# Renvoie le chemin qui part de s (en venant de pred) tant qu'il ne croise pas de carrefours
-		def followSommet(s, pred):
-			if s in newSommets:
-				return self.aretes[pred][s]
-			next = [x for x in self.aretes[s] if x != pred][0]
-			return self.aretes[pred][s] + followSommet(next, s)
-
-		# Cree les aretes du nouveau graphe, avec les chemins les plus longs entre les nouveaux sommets
-		newSommets = set([x for x in self.sommets if len(self.aretes[x]) != 2])
-		newAretes = dict([(x,dict()) for x in newSommets])
-		for x in newSommets:
-			for v in self.aretes[x]:
-				l = followSommet(v, x)
-				if len(l) > len(newAretes[x].get(l[-1],[])):
-					newAretes[x][l[-1]] = l
-		
-		self.sommets = newSommets
-		self.aretes = newAretes
-
+		# Si on a garde uniquement les genes avec des orthologues, il faut revenir aux positions reelles dans le genome
+		if keepOnlyOrthos:
+			yield ((c1,[trans1[c1][i] for i in d1]), (c2,[trans2[c2][i] for i in d2]), da)
+		else:
+			yield ((c1,d1), (c2,d2), da)
 	
-	#
-	# Recherche le plus long chemin en les testant tous
-	#
-	def doSearchLongestPath(self):
-		todo = [ [i] for i in self.newSommets ]
-		res = []
-		max = -1
-		while len(todo) > 0:
-			path = todo.pop()
-			for j in self.aretes[path[-1]]:
-				if (j not in path) and (j in self.newSommets):
-					todo.append( path + self.aretes[path[-1]][j] )
-			if len(path) > max:
-				max = len(path)
-				res = path
-		return res
-
-	
-	def doFloydWarshall():
-		# Tous les plus longs chemins
-		vide = set()
-		chemins = dict([(x,dict([(y,vide) for y in self.newSommets])) for x in self.newSommets])
-		for x in self.newSommets:
-			for y in self.aretes[x]:
-				chemins[x][y] = set([x] + self.aretes[x][y])
-		for z in self.newSommets:
-			for x in self.newSommets:
-				for y in self.newSommets:
-					c1 = chemins[x][z]
-					c2 = chemins[z][y]
-					
-					# Cycle absorbant
-					if len(c1 & c2) > 1:
-						continue
-					
-					new = c1 | c2
-					if len(new) > len(chemins[x][y]):
-						chemins[x][y] = new
-		
-		# Le plus long plus long chemin
-		best = []
-		bestS = 0
-		for x in chemins:
-			all2 = chemins[x]
-			for y in all2:
-				if len(all2[y]) > bestS:
-					best = all2[y]
-					bestS = len(best)
-		return best
+	print >> sys.stderr, myMaths.myStats(statsDiags),
 
 
-	def getBestDiags(self):
-		backupSommets = self.newSommets.copy()
-		while len(self.newSommets) > 0:
-			best = self.doFloydWarshall()
-			#best = doSearchLongestPath()
-			
-			if len(best) < 2:
-				break
-			yield best
-			newSommets.difference_update(best)
-			print >> sys.stderr, "{%s}" % best
-		
-		self.newSommets = backupSommets
-
-
-	def printGraph(self, subset):
-		print "graph {"
-		for x in self.sommets:
-			if x not in subset:
-				continue
-			for y in self.aretes[x]:
-				if y not in subset or y >= x:
-					continue
-				print "%s -- %s [label=\"%d\"]" % (x,y,len(self.aretes[x][y]))
-		print "}"
 
 
 
@@ -333,38 +196,39 @@ class WeightedDiagGraph:
 			self.sommets.update(d)
 		
 		# Les aretes du graphe
-		self.aretes = dict([(x,{}) for x in self.sommets])
+		self.aretes = dict([(x,defaultdict(int)) for x in self.sommets])
 		for d in lstDiags:
-			for i in xrange(len(d)-1):
-				x = d[i]
-				y = d[i+1]
+			y = d[0]
+			for x in d:
 				if x != y:
-					self.aretes[x][y] = self.aretes[x].get(y, 0) + 1
-					self.aretes[y][x] = self.aretes[y].get(x, 0) + 1
-
-
+					# On compte pour chaque arete le nombre de fois qu'on l'a vue
+					self.aretes[x][y] += 1
+					self.aretes[y][x] += 1
+				y = x
 
 	#
 	# Construit un graphe dans lequel les suites d'aretes sans carrefours ont ete reduites
 	#
 	def getBestDiags(self):
 
-		# Pour les noeuds qui ont plus de deux voisins, on ne considere que les meilleurs hits
 		todo = []
 		for x in self.sommets:
+			# Pour les noeuds qui ont plus de 2 voisins ...
 			if len(self.aretes[x]) <= 2:
 				continue
-			vois = self.aretes[x].keys()
-			vois.sort(lambda a, b: cmp(self.aretes[x][b], self.aretes[x][a]))
-			todo.append( (self.aretes[x][vois[2]]-self.aretes[x][vois[1]], x, vois[2:]) )
+			vois = self.aretes[x].items()
+			# On trie selon la certitude de chaque lien
+			vois.sort(key = operator.itemgetter(1), reverse=True)
+			# On ne garde que les deux premiers et les autres seront supprimes
+			todo.append( (vois[2][1]-vois[1][1], x, tuple(i for (i,_) in vois[2:])) )
 		
-		# Comme certaines suppressions en rendent inutiles d'autres, on fait les plus sures en premier
+		# Les liens a supprimer en premier sont ceux qui ont un plus fort differentiel par rapport aux liens gardes
 		todo.sort()
-		for (a,x,s) in todo:
-			# On verifie l'utilite de la coupe
+
+		for (_,x,s) in todo:
+			# Au cours du processus, on a peut-etre rendu inutile la coupe
 			if len(self.aretes[x]) <= 2:
 				continue
-			#print >> sys.stderr, "Reduction de %s (score %d)" % (x,a)
 			for y in s:
 				if y not in self.aretes[x]:
 					continue
@@ -372,43 +236,29 @@ class WeightedDiagGraph:
 				del self.aretes[y][x]
 		
 		# Renvoie le chemin qui part de s (en venant de pred) tant qu'il ne croise pas de carrefours
-		def followSommet(s):
+		def followSommet(ar, src):
 			res = []
 			pred = None
-			# On part de s et on prend les successeurs jusqu'a la fin du chemin
-			#print >> sys.stderr, "DEBUT"
+			curr = src
+			# On part de src et on prend les successeurs jusqu'a la fin du chemin
 			while True:
 				# On marque notre passage
-				res.append(s)
-				alreadySeen.add(s)
-				# Les prochains noeuds a visiter
-				# On doit verifier qu'on est pas deja passer par les noeuds sinon on boucle indefiniment
-				next = [x for x in self.aretes[s] if (x != pred) and (x not in alreadySeen)]
-				#print >> sys.stderr, pred, s, self.aretes[s], next
-				if len(next) == 0:
-					#print >> sys.stderr, "FIN"
-					#print >> sys.stderr
+				res.append(curr)
+				try:
+					# Le prochain noeud a visiter
+					(next,_) = ar[curr].popitem()
+					del ar[next][curr]
+					pred = curr
+					curr = next
+				except KeyError:
 					return res
-				# N'arrive jamais
-				#elif len(next) >= 2:
-				#	print >> sys.stderr, "boudiou"
-				pred = s
-				s = next[0]
-				# N'arrive jamais
-				#if s in alreadySeen:
-				#	print >> sys.stderr, "drame"
-				
 
-		alreadySeen = set()
 		for x in self.sommets:
-			if (len(self.aretes[x]) == 1) and (x not in alreadySeen):
-				yield followSommet(x)
+			if (len(self.aretes[x]) == 1):
+				yield followSommet(self.aretes, x)
 
-		#print >> sys.stderr, "BOUCLES-DEBUT"
 		for x in self.sommets:
-			if (len(self.aretes[x]) == 2) and (x not in alreadySeen):
-				yield followSommet(x)
-		#print >> sys.stderr, "BOUCLES-FIN"
-
+			if (len(self.aretes[x]) == 2):
+				yield followSommet(self.aretes, x)
 
 

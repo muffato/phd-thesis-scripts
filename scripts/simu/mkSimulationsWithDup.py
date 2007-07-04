@@ -48,20 +48,16 @@ def randomPlace(genome, includeEnd = 0):
 	tmp = [len(x) for x in genome]
 	tmp[-1] += includeEnd
 	r = random.randint(0, sum(tmp)-1)
-	for c in xrange(len(genome)):
-		r -= tmp[c]
-		if r < 0:
-			return (c, r+tmp[c])
+	for (c,l) in enumerate(tmp):
+		if r < l:
+			return (c, r)
+		r -= l
 
 
 # Une region du genome au hasard
 def randomSlice(genome):
 
 	(c,_) = randomPlace(genome)
-	
-	#x1 = random.randint(0, len(genome[c])-1)
-	#x2 = random.randint(0, len(genome[c])-1)
-	#return (c,min(x1,x2),max(x1,x2))
 	
 	l = int(abs(random.vonmisesvariate(0, options["vonMisesKappa"])) * len(genome[c]) / math.pi)
 	x1 = random.randint(0, len(genome[c])-1-l)
@@ -106,12 +102,13 @@ def buildGenomes(node):
 		# CONSTRAINT-SET
 		if phylTree.dicParents[fils]["Tetraodon nigroviridis"] != "Euteleostomi":
 			nbDup *= 2
+			nbGains /= 2
 	
 		# Duplications
-		dup = {}
+		dup = utils.myTools.defaultdict(list)
 		for i in xrange(nbDup):
 			(c,x) = randomPlace(newGenome, 0)
-			dup.setdefault(newGenome[c][x][0], []).append(nbTotalGenes+i)
+			dup[newGenome[c][x][0]].append(nbTotalGenes+i)
 		dupGenes[fils] = dup
 		print >> sys.stderr, "dupGenes=%d" % nbDup,
 		
@@ -200,7 +197,7 @@ def buildGenomes(node):
 		random.shuffle(tmp)
 		genomes[node] = tmp[:(len(tmp)*2)/3]
 		print >> sys.stderr, "OK (%d chromosomes)" % len(genomes[node])
-
+	
 	if node in genomesScaffolds:
 		print >> sys.stderr, "Applying 6x coverage on %s ..." % node,
 		tmp = genomes[node]
@@ -218,18 +215,16 @@ def printData(node):
 	print >> sys.stderr, "Writing %s genome (nbChr=%d) ..." % (node,len(genomes[node])),
 	s = phylTree.fileName[node]
 	f = utils.myTools.myOpenFile(options["genomeFile"] % s, 'w')
-	for c in xrange(len(genomes[node])):
-		lst = genomes[node][c]
-		for i in xrange(len(lst)):
-			(gene,strand) = lst[i]
+	for (c,lst) in enumerate(genomes[node]):
+		for (i,(gene,strand)) in enumerate(lst):
 			print >> f, "%d\t%d\t%d\t%d\t%s.%d" % (c+1,i,i,strand,s,gene)
 	f.close()
 	print >> sys.stderr, "OK"
 
 	# Initialement les familles de genes contiennent les genes eux-memes
 	familles = {}
-	for c in xrange(len(genomes[node])):
-		for (gene,_) in  genomes[node][c]:
+	for lst in genomes[node]:
+		for (gene,_) in lst:
 			familles[gene] = "%s.%d " % (s,gene)
 	
 	for fils in phylTree.branches[node]:
@@ -243,12 +238,10 @@ def printData(node):
 		# On rajoute les noms des genes dans les especes filles
 		for g in familles:
 			familles[g] += subFam.get(g,"")
-			#familles[g] += getWithPossibleError(g)
 		# ... en tenant compte des duplications
 		for (ini,new) in dupGenes[fils].iteritems():
 			for g in new:
 				familles[ini] += subFam.get(g,"")
-				#familles[ini] += getWithPossibleError(g)
 
 	# On ecrit les familles de genes ancestraux correspondantes
 	if node in phylTree.items:
@@ -271,9 +264,9 @@ def printData(node):
 	["phylTree.conf"], \
 	[("root",str,""), ("orthologyQuality",float,99), \
 	("nbOrigGenes",int,20000), ("nbOrigChr",int,20), \
-	("chrEventRate",float,1), ("rearrRateAccel",float,1.4142), ("vonMisesKappa",float,2), \
-	("geneLossRate",float,10), ("geneGainRate",float,7), ("geneDuplicationRate",float,3), \
-	("chrInvertWeight",float,80), ("chrTranslocWeight",float,14), ("chrFusionWeight",float,3), ("chrBreakWeight",float,3), \
+	("chrEventRate",float,1.6), ("rearrRateAccel",float,1.5), ("vonMisesKappa",float,2), \
+	("geneLossRate",float,6), ("geneGainRate",float,6), ("geneDuplicationRate",float,3), \
+	("chrInvertWeight",float,91), ("chrTranslocWeight",float,4), ("chrFusionWeight",float,2.5), ("chrBreakWeight",float,2.5), \
 	("genomeFile",str,"~/work/simu/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/simu/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -298,8 +291,8 @@ tmp = [random.random() for i in xrange(options["nbOrigChr"])]
 facteur = options["nbOrigGenes"]/sum(tmp)
 genome = []
 nbTotalGenes = 0
-for i in xrange(options["nbOrigChr"]):
-	nb = int(tmp[i] * facteur)
+for chrlen in tmp:
+	nb = int(chrlen * facteur)
 	genome.append( [(x+nbTotalGenes,randomStrand()) for x in xrange(nb)] )
 	nbTotalGenes += nb
 genomes[options["root"]] = genome
@@ -310,3 +303,56 @@ buildGenomes(options["root"])
 # On ecrit les familles de genes
 printData(options["root"])
 
+
+
+"""
+# ESSAIS POUR randomSlice
+
+
+# 5000 - 7500 - 2500 / 27"
+def v1():
+	x1 = random.randint(0, length-1)
+	x2 = random.randint(x1, length-1)
+	return (x1,x2)
+
+
+# 1= 3400 - 6600 - 3200 / 36"
+# 2= 3900 - 6100 - 2200 / 36"
+def v2():
+	l = int(abs(random.vonmisesvariate(0, 2)) * length / math.pi)
+	l = 0
+	x1 = random.randint(0, length-1-l)
+	return (x1,x1+l)
+
+
+# 2500 - 7500 - 5000 / 27"
+def v3():
+	l = random.randint(0, length-1)
+	x1 = random.randint(0, length-1-l)
+	return (x1,x1+l)
+
+
+# 3333 - 6666 - 3333 / 30"
+def v4():
+	x = random.sample(xrange(length), 2)
+	return (min(x),max(x))
+
+
+# 3333 - 6666 - 3333 / 30"
+def v5():
+	x1 = random.randint(0, length-1)
+	x2 = random.randint(0, length-1)
+	return (min(x1,x2),max(x1,x2))
+
+res1 = []
+res2 = []
+resL = []
+for i in xrange(1000000):
+	(x1,x2) = v2()
+	res1.append(x1)
+	res2.append(x2)
+	resL.append(x2-x1+1)
+print utils.myMaths.myStats(res1)
+print utils.myMaths.myStats(res2)
+print utils.myMaths.myStats(resL)
+"""

@@ -4,6 +4,7 @@ import sys
 import bz2
 import gzip
 
+from collections import defaultdict
 
 null = open('/dev/null', 'w')
 stdin = sys.stdin
@@ -149,8 +150,6 @@ class myCombinator:
 	#
 	def reduce(self):
 		self.__init__(self)
-		#newGrp = list(self)
-		#self.__init__(newGrp)
 
 		
 
@@ -235,7 +234,17 @@ def checkArgs(args, options, info):
 			# Si on ne trouve pas de '=', c'est une type bool
 			except ValueError:
 				s = t[1:]
-				if not s in valOpt:
+				if s == "psyco":
+					try:
+						import utils.psyco
+						from utils.psyco.classes import __metaclass__
+						#utils.psyco.log()
+						utils.psyco.full()
+						#utils.psyco.full(memory=100)
+						#utils.psyco.profile(0.1, memory=100)
+					except ImportError:
+						print >> sys.stderr, "Unable to load psyco !"
+				elif not s in valOpt:
 					print >> sys.stderr, "Option non reconnue:", s
 					error_usage()
 				elif opt[s][0] != bool:
@@ -254,6 +263,6 @@ def checkArgs(args, options, info):
 	if len(valArg) != len(args):
 		error_usage()
 	
-	return (dict([(args[i],valArg[i]) for i in xrange(len(args))]), valOpt)
+	return (dict([(arg,valArg[i]) for (i,arg) in enumerate(args)]), valOpt)
 
 
