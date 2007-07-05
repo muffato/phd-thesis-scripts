@@ -13,6 +13,11 @@ import utils.myTools
 import utils.myMaths
 import utils.myPhylTree
 
+matIt = utils.myTools.myMatrixIterator
+matItmWhole = utils.myTools.myMatrixIterator.WholeMatrix
+matItmSUpper = utils.myTools.myMatrixIterator.StrictUpperMatrix
+
+
 #############
 # FONCTIONS #
 #############
@@ -21,15 +26,15 @@ import utils.myPhylTree
 # Calcule la distance inter-genes moyenne entre les deux genes
 #   Utilise la fonction d'inference de valeur de phylTree
 #
-def distInterGenes(tg1, tg2):
+def distInterGenes(tg1, tg2, seuil):
 
 	# Les distances chez chaque espece
 	distEsp = {}
-	for ((e1,c1,i1), (e2,c2,i2)) in utils.myTools.myMatrixIterator(tg1, tg2, utils.myTools.myMatrixIterator.WholeMatrix):
+	for ((e1,c1,i1), (e2,c2,i2)) in matIt(tg1, tg2, matItmWhole):
 		if e1 == e2 and c1 == c2:
 			x = abs(i1-i2)
 			# Au dela d'un certain seuil, on considere que l'information n'est plus valable
-			if (options["seuilMaxDistInterGenes"] <= 0) or (x <= options["seuilMaxDistInterGenes"]):
+			if (seuil <= 0) or (x <= seuil):
 				# On garde la plus petite distance trouvee
 				distEsp[e1] = min(distEsp.get(e1,x), x)
 	
@@ -38,7 +43,7 @@ def distInterGenes(tg1, tg2):
 	
 	# On met les 1 dans les noeuds de l'arbre entre les especes
 	lst1Anc = set()
-	for (e1,e2) in utils.myTools.myMatrixIterator(lst1Esp, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	for (e1,e2) in matIt(lst1Esp, None, matItmSUpper):
 		lst1Anc.update(phylTree.dicLinks[e1][e2])
 		if anc in lst1Anc:
 			return 1
@@ -49,9 +54,10 @@ def distInterGenes(tg1, tg2):
 	if options["useOutgroups"] == 2:
 		m = [distEsp[e] for e in ancSpecies if e in distEsp]
 		if len(m) > 0:
-			eNO = [e for e in ancOutgroupSpecies if distEsp.get(e,0) > max(m)]
-			for e in eNO:
-				del distEsp[e]
+			m = max(m)
+			for e in ancOutgroupSpecies:
+				if distEsp.get(e,0) > m:
+					del distEsp[e]
 
 	# On calcule par une moyenne les autres distances
 	return phylTree.calcDist(distEsp)
@@ -98,8 +104,6 @@ def rewriteGenome():
 	for c in genesAnc.lstChr:
 		genome[c] = []
 		for (i,g) in enumerate(genesAnc.lstGenes[c]):
-		#for i in xrange(len(genesAnc.lstGenes[c])):
-		#	g = genesAnc.lstGenes[c][i]
 			tmp = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
 			tmp.extend(dicOutgroupGenes.get( (c,i), []))
 			genome[c].append(tmp)
@@ -114,13 +118,17 @@ def sortChromosome(c):
 
 	tab = genome[c]
 	n = len(tab)
+
+	mult = pow(10, options["nbDecimales"])
+	seuil = options["seuilMaxDistInterGenes"]
+	pen = str(int(mult*options["penalite"]))
 	
 	print >> sys.stderr
 	print >> sys.stderr, "- Chromosome %s (%d genes) -" % (c, n)
 	
 	# La matrice des distances intergenes
 	print >> sys.stderr, "Ecriture de la matrice ... ",
-	f = open(nom, 'w')
+	f = open(nom, 'w', 65536)
 	print >> f, "NAME: CHRANC"
 	print >> f, "TYPE: TSP"
 	print >> f, "DIMENSION: %d" % (n+1)
@@ -128,24 +136,21 @@ def sortChromosome(c):
 	print >> f, "EDGE_WEIGHT_FORMAT: UPPER_ROW"
 	print >> f, "EDGE_WEIGHT_SECTION"
 	print >> f, "0 " * n
-	for i in xrange(n):
-		s = ""
+	for (i,t) in enumerate(tab):
 		for j in xrange(i+1,n):
-			y = distInterGenes(tab[i], tab[j])
+			y = distInterGenes(t, tab[j], seuil)
 			if y == None:
-				y = mult*options["penalite"]
+				print >> f, pen,
 			elif y == 1:
-				y = 0
+				print >> f, "0",
 			else:
-				y = mult*y
-			s += str(int(y)) + " "
-		print >> f, s
+				print >> f, str(int(mult*y)),
 	print >> f, "EOF"
 	f.close()
 	print >> sys.stderr, "OK"
 	print >> sys.stderr, "Lancement de concorde ",
 	lstTot = []
-	for i in range(nbConcorde):
+	for i in xrange(nbConcorde):
 		comm = options["concordeExec"] + ' -x ' + nom
 		if options["withConcordeOutput"]:
 			os.system(comm + ' >&2')
@@ -157,22 +162,22 @@ def sortChromosome(c):
 		sys.stderr.write(".")
 
 	# On remet chaque liste dans le meme sens que la premiere
-	for i in range(1, len(lstTot)):
-		if not lstTot[i].isMemeSens(lstTot[0]):
-			lstTot[i].reverse()
+	for t in lstTot[1:]:
+		if not t.isMemeSens(lstTot[0]):
+			t.reverse()
 
 	if len(lstTot) == 0:
-		for i in xrange(n):
+		for g in genesAnc.lstGenes[c]:
 			print c,
 			if (options["nbConcorde"] > 1) and options["withConcordeStats"]:
 				print 1,
-			print " ".join(genesAnc.lstGenes[c][i].names)
+			print " ".join(g.names)
 	else:
-		for i in xrange(n):
+		for (i,g) in enumerate(lstTot[0].res):
 			print c,
 			if (options["nbConcorde"] > 1) and options["withConcordeStats"]:
 				print len(set([s.res[i] for s in lstTot])),
-			print " ".join(genesAnc.lstGenes[c][lstTot[0].res[i]-1].names)
+			print " ".join(genesAnc.lstGenes[c][g-1].names)
 	
 	solUniq = utils.myMaths.unique([l.res for l in lstTot])
 	print >> sys.stderr, len(solUniq), "solutions"
@@ -204,8 +209,6 @@ class ConcordeFile:
 		self.dic = {}
 		for (i,x) in enumerate(self.res):
 			self.dic[x] = i
-		#for i in xrange(len(self.res)):
-		#	self.dic[self.res[i]] = i
 	
 	def isMemeSens(self, other):
 		s = 0
@@ -247,7 +250,6 @@ genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genomeAncestral"])
 genome = rewriteGenome()
 nom = "mat%08d" % ((os.getpid() ^ os.getppid() ^ random.randint(1,16777215)) & 16777215)
 nbConcorde = max(1, options["nbConcorde"])
-mult = pow(10, options["nbDecimales"])
 anc = options["ancestr"]
 ancSpecies = phylTree.species[anc]
 ancOutgroupSpecies = phylTree.outgroupSpecies[anc]

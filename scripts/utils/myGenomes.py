@@ -189,7 +189,6 @@ class Genome:
 
 	def __iter__(self):
 		for c in self.lstGenes:
-			#for i in xrange(len(self.lstGenes[c])):
 			for g in self.lstGenes[c]:
 				yield g
 

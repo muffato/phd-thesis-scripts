@@ -29,7 +29,12 @@ from collections import defaultdict
 
 utils.myTools.checkArgs([],[],"")
 
-lst = [random.randint(1,5000) for i in xrange(20)]
+lst = [tuple(xrange(100)) for i in xrange(200000)]
+#lst = [list(xrange(100)) for i in xrange(200000)]
+
+time.sleep(100)
+sys.exit(0)
+
 print lst
 print utils.myMaths.myStats(lst)
 

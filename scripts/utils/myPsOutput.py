@@ -161,10 +161,6 @@ def initColor():
 		colorTransl[str(-(i+1))] = c.lower()
 		if i < 26:
 			colorTransl[chr(i+97)] = c.lower()
-	#for i in xrange(len(ordre)):
-	#	colorTransl[str(-(i+1))] = ordre[i].lower()
-	#	if i < 26:
-	#		colorTransl[chr(i+97)] = ordre[i].lower()
 		
 	# Les couleurs foncees sont pour les nombres positifs et les lettres majuscules
 	ordre = darkColors + lightColors + craniateColors
@@ -173,15 +169,9 @@ def initColor():
 		colorTransl[str(i+1)] = c.lower()
 		if i < 26:
 			colorTransl[chr(i+65)] = c.lower()
-	#for i in xrange(len(ordre)):
-	#	colorTransl[str(i+1)] = ordre[i].lower()
-	#	if i < 26:
-	#		colorTransl[chr(i+65)] = ordre[i].lower()
 
 	for (i,c) in enumerate(greekLetters):
 		colorTransl[c] = craniateColors[i]
-	#for i in xrange(len(greekLetters)):
-	#	colorTransl[greekLetters[i]] = craniateColors[i]
 
 
 #######################

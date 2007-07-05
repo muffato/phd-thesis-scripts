@@ -78,8 +78,6 @@ class WalktrapLauncher:
 			indNodes = {}
 			for (i,node) in enumerate(nodes):
 				indNodes[node] = i
-			#for i in xrange(len(nodes)):
-			#	indNodes[nodes[i]] = i
 		
 			# On lance le walktrap
 			(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, self.edges, randomWalksLength=randomWalksLength, verboseLevel=verboseLevel, showProgress=showProgress, memoryUseLimit=memoryUseLimit, qualityFunction=qualityFunction)

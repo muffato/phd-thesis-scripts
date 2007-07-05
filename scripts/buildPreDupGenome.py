@@ -31,13 +31,6 @@ import utils.myMaths
 #
 def loadChrAncIni(nom, especesDup):
 
-	# On convertit en entier le nom du chromosome si possible
-	def getEasierName(x):
-		try:
-			return int(x)
-		except Exception:
-			return x
-
 	print >> sys.stderr, "Chargement des alternances predefinies ...",
 	
 	chrAnc = {}
@@ -49,7 +42,7 @@ def loadChrAncIni(nom, especesDup):
 		for x in c[1:]:
 			(e,x) = x.split('|')
 			(c1,c2) = x.split('/')
-			dic[phylTree.officialName[e]] = (set([getEasierName(x) for x in c1.split()]), set([getEasierName(x) for x in c2.split()]))
+			dic[phylTree.officialName[e]] = (set([utils.myGenomes.commonChrName(x) for x in c1.split()]), set([utils.myGenomes.commonChrName(x) for x in c2.split()]))
 		chrAnc[c[0]] = [dic.get(phylTree.officialName[e], (set(),set())) for e in especesDup]
 	f.close()
 	print >> sys.stderr, "OK"
@@ -196,8 +189,9 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 			DCSlen += len(gr)
 		if options["showDCS"]:
 			for ((c,i),g,a) in gr:
-				print "%s\t%d\t%s\t\t%s\t%s" % \
-				(c, i, g, "\t".join(["/".join([str(x) for x in set(y)]) for y in a]), cc)
+				#fishContent = ["/".join([str(x) for x in set(y)]) for y in a]
+				fishContent = ["/".join(["%s|%s" % (phylTree.dicGenomes[eD].lstGenes[cT][iT].names[0],cT) for (cT,iT) in orthos[eD].get(g,[])]) for eD in especesDup]
+				print "%s\t%d\t%s\t\t%s\t%s" % (c, i, g, "\t".join(fishContent), cc)
 			print "---"
 
 	print >> sys.stderr, "/", nbDCS, "DCS pour", DCSlen, "orthologues"
@@ -293,23 +287,6 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 		chrAncGenes[s[0][1]].append(i)
 
 
-	#for i in xrange(len(genesAncCol)):
-	#
-	#	if len(genesAncCol[i]) == 0:
-	#		# Certains genes n'ont pas de chance !
-	#		continue
-	#
-	#	nb = [(calcChrAncScore(genesAncCol[i],x), x) for x in chrNames]
-	#	
-	#	# On verifie les egalites
-	#	s = sorted(nb, reverse=True)
-	#	if (s[0][0] == s[1][0]) and not options["keepUncertainGenes"]:
-	#		continue
-	#
-	#	genesAncCol[i] = nb
-	#	chrAncGenes[s[0][1]].append(i)
-
-
 #
 # Affichage des chromosomes ancestraux
 #
@@ -322,8 +299,6 @@ def printColorAncestr(genesAnc, chrAncGenes):
 	if options["showQuality"]:
 		print "\t\t%s" % "\t".join([str(c) for c in chrNames])
 
-	#for j in xrange(len(chrNames)):
-	#	c = chrNames[j]
 	for (j,c) in enumerate(chrNames):
 		nb = 0
 		for i in chrAncGenes[c]:

@@ -35,13 +35,16 @@ def getLongestDiags(oldDiags):
 	combin = utils.myTools.myCombinator([])
 	for (i,((e1,c1,d1),(e2,c2,d2),da)) in enumerate(oldDiags):
 		diags[i] = da
-		for s in [(e1,c1,i1) for i1 in d1] + [(e2,c2,i2) for i2 in d2]:
-			dic[s].append(i)
+		for i1 in d1:
+			dic[(e1,c1,i1)].append(i)
+		for i2 in d2:
+			dic[(e2,c2,i2)].append(i)
 		combin.addLink([i])
 	
 	for s in dic:
 		combin.addLink(dic[s])
 	
+	del combin.dic
 	newDiags = []
 	for g in combin:
 		# On casse les carrefours de diagonales les uns apres les autres
@@ -173,18 +176,18 @@ for anc in tmp:
 for (e1,e2) in utils.myTools.myMatrixIterator(listSpecies, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
 	print >> sys.stderr, "Extraction des diagonales entre %s et %s " % (e1,e2),
 	toStudy = set(phylTree.dicLinks[e1][e2][1:-1] + [phylTree.dicParents[e1][e2]])
-	for ((c1,d1),(c2,d2),_) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \
+	for ((c1,d1),(c2,d2)) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \
 		options["fusionThreshold"], options["sameStrand"] and (e1 not in genesAnc) and (e2 not in genesAnc), options["keepOnlyOrthos"]):
 		
-		pack1 = (e1,c1,d1)
-		pack2 = (e2,c2,d2)
+		pack1 = (e1,c1,tuple(d1))
+		pack2 = (e2,c2,tuple(d2))
 		dic1 = dicGenomes[e1].lstGenes[c1]
 		dic2 = dicGenomes[e2].lstGenes[c2]
 		for anc in toStudy:
 			if dic1[d1[0]].names[0] in genesAnc[anc].dicGenes:
-				tmp = [genesAnc[anc].dicGenes[dic1[i1].names[0]][1] for i1 in d1]
+				tmp = tuple(genesAnc[anc].dicGenes[dic1[i1].names[0]][1] for i1 in d1)
 			else:
-				tmp = [genesAnc[anc].dicGenes[dic2[i2].names[0]][1] for i2 in d2]
+				tmp = tuple(genesAnc[anc].dicGenes[dic2[i2].names[0]][1] for i2 in d2)
 			diagEntry[anc].append( (pack1,pack2,tmp) )
 	print >> sys.stderr, "OK"
 

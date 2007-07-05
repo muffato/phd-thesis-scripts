@@ -57,8 +57,8 @@ class myMatrixIterator:
 
 	def __iter__(self):
 	
-		for i in xrange(0, len(self.x)):
-			for j in xrange(0, len(self.y)):
+		for (i,tx) in enumerate(self.x):
+			for (j,ty) in enumerate(self.y):
 			
 				# Les valeurs a eviter pour chaque mode
 				if self.mode == myMatrixIterator.OnlyDiag:
@@ -75,11 +75,10 @@ class myMatrixIterator:
 				elif self.mode == myMatrixIterator.StrictUpperMatrix:
 					if j <= i:
 						continue
-				
 				# Mode inconnu
 				else:
 					continue
-				yield (self.x[i],self.y[j])
+				yield (tx,ty)
 		
 
 ########################################################################
@@ -143,7 +142,6 @@ class myCombinator:
 	#
 	def getNbGrp(self):
 		return leniter(self)
-
 
 	#
 	# Enleve les ensembles vides
