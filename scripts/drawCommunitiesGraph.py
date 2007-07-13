@@ -13,12 +13,14 @@ A partir de toutes les diagonales extraites entre les especes,
 # Librairies
 import os
 import sys
+import math
 import operator
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 import utils.myPhylTree
 import utils.walktrap
+import utils.myPsOutput
 
 #############
 # FONCTIONS #
@@ -70,7 +72,7 @@ def checkLonelyGenes():
 	for (d,_) in lstDiags:
 		genesSeuls.difference_update(d)
 	nb = 0
-	new = utils.myTools.defaultdict(list)
+	new = {}
 	for i in genesSeuls:
 
 		lst = []
@@ -99,14 +101,11 @@ def checkLonelyGenes():
 		
 		if len(lst) >= 2:
 			lst = tuple(sorted(set(lst)))
-			new[lst].append(i)
+			new[lst] = new.get(lst,[]) + [i]
 			nb += 1
 	
-	if len(lstDiags) + len(new) < 50000:
-		lstDiags.extend([(d,set(e)) for (e,d) in new.iteritems()])
-		print >> sys.stderr, "%d (%d) OK" % (nb,len(new))
-	else:
-		print >> sys.stderr, "too many genes !"
+	lstDiags.extend([(d,set(e)) for (e,d) in new.iteritems()])
+	print >> sys.stderr, "%d (%d) OK" % (nb,len(new))
 
 
 # Charge les ancetres deja construits et rajoute les infos dans les diagonales
@@ -163,7 +162,7 @@ def calcPoids(node):
 	["phylTree.conf", "diagsList"], \
 	[("ancestr",str,""), ("alreadyBuiltAnc",str,""), \
 	("useOutgroups",bool,True), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("newScoring",bool,False), \
-	("walktrapLength",int,5), ("qualityFunction",int,[2,1,3]), \
+	("walktrapLength",int,5), ("qualityFunction",int,[2,1,3]), ("cutoff",float,1), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -239,38 +238,49 @@ def calcScore(i1, i2):
 	comparedEsp = set([e for (e,_) in e1]).intersection([e for (e,_) in e2])
 	communEsp = set([e for (e,_) in e1.intersection(e2)])
 
-	propF = range(len(filsAnc))
+	propF = []
 		
 	for (i,f) in enumerate(filsAnc):
 		# Chez l'ancetre du dessous - meme chr
 		if f in communEsp:
-			propF[i] = dicPoidsEspeces[f]*espCertitude[f]
+			propF.append( dicPoidsEspeces[f]*espCertitude[f] )
 		# Chez l'ancetre du dessous - diff chr
 		elif f in comparedEsp:
-			propF[i] = dicPoidsEspeces[f]*espIncertitude[f]
+			propF.append( dicPoidsEspeces[f]*espIncertitude[f] )
 		# Sinon, on revient aux genomes modernes
 		else:
 			f = filsEsp[i]
 			s = sum([dicPoidsEspeces[e]*espCertitude[e] for e in f.intersection(communEsp)])
-			#s = sum([dicPoidsEspeces[e]*espCertitude[e] for e in f if e in communEsp])
 			# On peut rajouter l'incertitude des autres especes
 			#   - si au moins une espece a valide la fusion
 			#   - si la branche est constituee d'une unique espece
 			if (s > 0) or (len(f) == 1):
 				s += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in f.difference(communEsp)])
-				#s += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in f if e not in communEsp])
-			propF[i] = s
+			propF.append(s)
 	
-	s = sum(propF)
-	if s == 0:
-		return 0
+	#for i in xrange(len(filsEsp)):
+	#	# Chez l'ancetre du dessous - meme chr
+	#	if filsAnc[i] in communEsp:
+	#		propF.append( dicPoidsEspeces[filsAnc[i]]*espCertitude[filsAnc[i]] )
+	#	# Chez l'ancetre du dessous - diff chr
+	#	elif filsAnc[i] in comparedEsp:
+	#		propF.append( dicPoidsEspeces[filsAnc[i]]*espIncertitude[filsAnc[i]] )
+	#	# Sinon, on revient aux genomes modernes
+	#	else:
+	#		s = sum([dicPoidsEspeces[e]*espCertitude[e] for e in filsEsp[i].intersection(communEsp)])
+	#		# On peut rajouter l'incertitude des autres especes
+	#		#   - si au moins une espece a valide la fusion
+	#		#   - si la branche est constituee d'une unique espece
+	#		if (s > 0) or (len(filsEsp[i]) == 1):
+	#			s += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in filsEsp[i].difference(communEsp)])
+	#		propF.append(s)
 
+		
 	propOut = sum([dicPoidsEspeces[e]*espCertitude[e] for e in communEsp.intersection(outgroup)])
-	# On rajoute l'incertitude
 	if (propOut > 0):
 		propOut += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in communEsp.difference(outgroup)])
 	
-	s *= propOut
+	s = sum(propF) * propOut
 	for (f1,f2) in utils.myTools.myMatrixIterator(propF, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
 		s += f1 * f2
 
@@ -302,23 +312,22 @@ def calcScore2(i1, i2):
 	return s
 
 
-if options["newScoring"]:
-	f = calcScore2
-else:
-	f = calcScore
-
-walktrapInstance = utils.walktrap.WalktrapLauncher(showProgress=True, randomWalksLength=options["walktrapLength"])
+walktrapInstance = utils.walktrap.WalktrapLauncher()
 print >> sys.stderr, "Calcul de la matrice ...",
-walktrapInstance.updateFromFunc(range(len(lstDiags)), f)
-walktrapInstance.doWalktrap()
+if options["newScoring"]:
+	walktrapInstance.updateFromFunc(range(len(lstDiags)), calcScore2)
+else:
+	walktrapInstance.updateFromFunc(range(len(lstDiags)), calcScore)
+walktrapInstance.doWalktrap(randomWalksLength=options["walktrapLength"], qualityFunction=options["qualityFunction"])
+
 
 clusters = []
 # Chaque composante connexe
 for (nodes,cuts,_,dend) in walktrapInstance.res:
 	print >> sys.stderr, cuts
 	# Un score de relevance > 0.2
-	interessant = [(alpha,score,dend.cut(alpha)) for (alpha,score) in cuts if score > 0.1]
-	# Les noeuds seuls representent < de la moitie de l'ensemble des noeuds
+	interessant = [(alpha,score,dend.cut(alpha)) for (alpha,score) in cuts if score > 0.2]
+	# Les noeuds seuls representent < de l'ensemble des noeuds
 	interessant = [(alpha,score,clust) for (alpha,score,(clust,lonely)) in interessant if len(lonely) < len(nodes)/2]
 	if len(interessant) == 0:
 		print >> sys.stderr, "-",
@@ -329,27 +338,75 @@ for (nodes,cuts,_,dend) in walktrapInstance.res:
 		clusters.extend(interessant[-1][-1])
 print >> sys.stderr
 
+
+
 print >> sys.stderr, "Impression des %d chromosomes ancestraux ..." % len(clusters),
-lstChr = []
-ind = 0
-for c in clusters:
-	ind += 1
-	lst = set()
-	for i in c:
-		lst.update(lstDiags[i][0])
-	lstChr.append(lst)
+dic = {}
+for (i,c) in enumerate(clusters):
+	for d in c:
+		dic[d] = i
 
-inter = set()
-for (l1,l2) in utils.myTools.myMatrixIterator(lstChr, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
-	inter.update(l1.intersection(l2))
+print >> sys.stderr, "Affichage du graphe ...",
 
-chrIndex = 0
-for c in lstChr:
-	chrIndex += 1
-	for i in c:
-		if i not in inter:
-			print chrIndex, " ".join(lstGenesAnc[i].names)
+refSpecies = "Homo sapiens"
 
+utils.myPsOutput.initColor()
+
+print "graph {"
+
+for i in xrange(len(lstDiags)):
+	(d,esp) = lstDiags[i]
+	l = 0.25 * math.log(len(d))/math.log(2)
+	lst = [c for (e,c) in esp if e == refSpecies]
+	print '%d  [height=%.2f,width=%.2f,fixedsize=true,label="",style=filled' % (i,l,l),
+	if len(lst) > 0:
+		(r,g,b) = utils.myPsOutput.colorTableUNIX2RGB[utils.myPsOutput.colorTransl.get(str(lst[0]),"black")]
+		#print ',color="#%02x%02x%02x"' % (r,g,b),
+	print "]"
+
+
+for i1 in xrange(len(lstDiags)):
+	#if i1 not in dic:
+	#	continue
+	for i2 in xrange(i1+1, len(lstDiags)):
+		#if i2 not in dic:
+		#	continue
+		#if dic[i1] != dic[i2]:
+		#	continue
+		if options["newScoring"]:
+			s = calcScore2(i1, i2)
+		else:
+			s = calcScore(i1, i2)
+
+		if s >= options["cutoff"]:
+			(_,e1) = lstDiags[i1]
+			(_,e2) = lstDiags[i2]
+			communEsp = set([e for (e,_) in e1.intersection(e2)])
+			
+			#s = 3 - (3.-s)/100.
+			#if dic[i1] != dic[i2]:
+			#	s = 0
+
+			if dic.get(i1,-1) == dic.get(i2,-2):
+				style = "dotted"
+			else:
+				style = "invis"
+			
+			print '%d -- %d [style=%s,w=%.3f,weight=%.3f' % (i1,i2,style,s,s),
+
+			#if dic[i1] != dic[i2]:
+			#	print ',constraint=false',
+
+			if dic.get(i1,-1) == dic.get(i2,-2):
+				(r,g,b) = utils.myPsOutput.colorTableUNIX2RGB[utils.myPsOutput.colorTransl[str(dic[i1]+1)]]
+			#if refSpecies in communEsp:
+			#	lst = [c for (e,c) in e1 if e == refSpecies]
+			#	(r,g,b) = utils.myPsOutput.colorTableUNIX2RGB[utils.myPsOutput.colorTransl.get(str(lst[0]),"black")]
+				print ',color="#%02x%02x%02x"' % (r,g,b),
+			print "]"
+
+print "}"
 
 print >> sys.stderr, "OK"
+
 

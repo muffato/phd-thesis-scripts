@@ -10,6 +10,7 @@ null = open('/dev/null', 'w')
 stdin = sys.stdin
 stdout = sys.stdout
 stderr = sys.stderr
+stdinInput = os.isatty(sys.stdin.fileno())
 
 ###########################################################################
 # Consomme les elements d'un iterateur et renvoie la longueur de la liste #
@@ -95,7 +96,7 @@ class myCombinator:
 		self.grp = list(ini)
 		self.dic = {}
 		for i in xrange(len(self.grp)):
-			self.grp[i] = list(set(self.grp[i]))
+			#self.grp[i] = list(set(self.grp[i]))
 			for x in self.grp[i]:
 				self.dic[x] = i
 	

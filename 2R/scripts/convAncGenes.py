@@ -5,28 +5,32 @@
 
 # Librairies
 import sys
-import os
+import utils.myGenomes
+import utils.myTools
 
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myGenomes
-import myTools
-import myMaths
+(noms_fichiers, options) = utils.myTools.checkArgs(["GENOME_ANCESTRAL"], [], "")
 
-(noms_fichiers, options) = myTools.checkArgs(["GENOME_ANCESTRAL"], [], "")
+genesAnc = utils.myGenomes.loadGenome(noms_fichiers["GENOME_ANCESTRAL"])
+restrict = set(xrange(100000))
 
-genesAnc = myGenomes.loadGenome(noms_fichiers["GENOME_ANCESTRAL"])
+#restrict = [22,32,8,9]
+#restrict = [7,29,17,1]
+#restrict = [1,21,6,20]
+#restrict = [4,19,13,10]
+#restrict = [3,23,28,11]
+#restrict = [25,5,23,3]
 
-lst = set([])
+lst = set()
 nb = 0
 for s in sys.stdin:
-	t = set([])
+	t = set()
 	for g in s.split():
 		if g in genesAnc.dicGenes:
 			t.add(genesAnc.dicGenes[g])
-
-	if len(t) > 0:
-		nb += 1
-
+	if len(t) < 3:
+		continue
+	
+	nb += 1
 	for (c,i) in t:
 		if type(c) != int:
 			continue
@@ -34,6 +38,8 @@ for s in sys.stdin:
 			if type(k) != int:
 				continue
 			if c<k or (c==k and i<j):
+				if c not in restrict and k not in restrict:
+					continue
 				if (c,i,k,j) not in lst:
 					print c,i,k,j
 					lst.add( (c,i,k,j) )

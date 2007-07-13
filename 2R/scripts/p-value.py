@@ -4,11 +4,9 @@
 
 # Librairies
 import sys
-import os
 import math
 
-sys.path.append(os.environ['HOME'] + "/work/scripts/utils")
-import myTools
+import utils.myTools
 
 # Calcule la proba
 def proba(pi, l, ll):
@@ -28,18 +26,14 @@ def probaLog(pi, l, ll):
 
 
 # Arguments
-(noms_fichiers, options) = myTools.checkArgs( [], [("seuilPValue",int,5)], "Lit une liste de paralogues (comme generee par convAncGenes.py et calcule une table de p-values")
+(noms_fichiers, options) = utils.myTools.checkArgs( [], [("seuilPValue",float,5)], "Lit une liste de paralogues (comme generee par convAncGenes.py et calcule une table de p-values")
 
-para = {}
+para = utils.myTools.defaultdict(lambda : utils.myTools.defaultdict(int))
 nbPara = 0
 for l in sys.stdin:
 	c = l.split()
-	if c[0] not in para:
-		para[c[0]] = {}
-	if c[2] not in para:
-		para[c[2]] = {}
-	para[c[0]][c[2]] = para[c[0]].get(c[2], 0) + 1
-	para[c[2]][c[0]] = para[c[2]].get(c[0], 0) + 1
+	para[c[0]][c[2]] += 1
+	para[c[2]][c[0]] += 1
 	nbPara += 2
 
 
@@ -47,12 +41,12 @@ lstChr = para.keys()
 lstChr.sort()
 
 for c1 in lstChr:
-	print >> sys.stderr, "\t%s" % c1,
-print >> sys.stderr
+	print "\t%s" % c1,
+print
 
 pvalues = {}
 for c1 in lstChr:
-	print >> sys.stderr, c1,
+	print c1,
 	pvalues[c1] = {}
 	for c2 in lstChr:
 		p = float(sum(para[c1].values()))
@@ -64,9 +58,12 @@ for c1 in lstChr:
 		x = probaLog(p, para[c1].get(c2, 0), nbPara/2)
 		if para[c1].get(c2, 0) > p*nbPara:
 			x *= -1
-		print >> sys.stderr, "\t%g" % x,
+		print "\t%g" % x,
 		pvalues[c1][c2] = x
-	print >> sys.stderr
+		if abs(x) >= options["seuilPValue"] and c1 > c2:
+			print "%s %s %f" % (c1,c2,abs(x))
+	print
+
 
 sys.exit(0)
 s0 = [set(x) for x in lstChr]

@@ -13,7 +13,6 @@ Renvoie le pourcentage de qualite des diagonales.
 # Librairies
 import sys
 import random
-import operator
 import utils.myGenomes
 import utils.myTools
 import utils.myPhylTree
@@ -26,7 +25,7 @@ import utils.myPhylTree
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
 	[("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
-	("outFiles",str,""), \
+	("outFiles",str,""), ("geneLossRate",int,10), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
@@ -39,6 +38,7 @@ for anc in phylTree.listAncestr:
 	f = utils.myTools.myOpenFile(options["outFiles"] % phylTree.fileName[anc], "w")
 	for c in genome.lstChr:
 		random.shuffle(genome.lstGenes[c])
+		genome.lstGenes[c] = genome.lstGenes[c][:(1.-options["geneLossRate"]/100)*len(genome.lstGenes[c])]
 	for g in genome:
 		(c,i) = ancGenes.dicGenes[g.names[0]]
 		print >> f, g.chromosome, " ".join(ancGenes.lstGenes[c][i].names)

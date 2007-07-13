@@ -27,6 +27,9 @@ import utils.myPhylTree
 import utils.walktrap
 from collections import defaultdict
 
+print os.isatty(sys.stdin.fileno())
+sys.exit(0)
+
 utils.myTools.checkArgs([],[],"")
 
 lst = [tuple(xrange(100)) for i in xrange(200000)]

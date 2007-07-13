@@ -217,7 +217,8 @@ class PhylogeneticTree:
 
 		for esp in lst:
 			esp = self.officialName[esp]
-			g = myGenomes.EnsemblGenome(template % self.fileName[esp])
+			#g = myGenomes.EnsemblGenome(template % self.fileName[esp])
+			g = myGenomes.loadGenome(template % self.fileName[esp])
 			self.dicGenomes[esp] = g
 			for x in g.dicGenes:
 				self.dicGenes[x] = (esp, g.dicGenes[x][0], g.dicGenes[x][1])

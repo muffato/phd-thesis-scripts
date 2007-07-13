@@ -1,6 +1,5 @@
 #! /users/ldog/muffato/python -OO
 
-import string
 import sys
 
 nb = 0

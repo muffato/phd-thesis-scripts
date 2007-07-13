@@ -262,9 +262,9 @@ def printData(node):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("root",str,""), ("orthologyQuality",float,99), \
+	[("root",str,""), ("orthologyQuality",float,98), \
 	("nbOrigGenes",int,20000), ("nbOrigChr",int,20), \
-	("chrEventRate",float,1.6), ("rearrRateAccel",float,1.5), ("vonMisesKappa",float,2), \
+	("chrEventRate",float,2), ("rearrRateAccel",float,1.732), ("vonMisesKappa",float,2), \
 	("geneLossRate",float,6), ("geneGainRate",float,6), ("geneDuplicationRate",float,3), \
 	("chrInvertWeight",float,91), ("chrTranslocWeight",float,4), ("chrFusionWeight",float,2.5), ("chrBreakWeight",float,2.5), \
 	("genomeFile",str,"~/work/simu/genes/genes.%s.list.bz2"), \

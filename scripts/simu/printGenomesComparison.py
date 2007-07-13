@@ -103,10 +103,6 @@ modes = [modeMatrix, modeKaryo, modeOrthos, modeGenomeEvol, modeReindexedChr, mo
 # Chargement des fichiers
 genome1 = utils.myGenomes.loadGenome(noms_fichiers["studiedGenome"])
 genome2 = utils.myGenomes.loadGenome(noms_fichiers["referenceGenome"])
-if options["reverse"]:
-	x = genome1
-	genome1 = genome2
-	genome2 = x
 if options["orthologuesList"] != "":
 	genesAnc = utils.myGenomes.loadGenome(options["orthologuesList"])
 else:
@@ -116,6 +112,10 @@ try:
 except Exception:
 	colors = options["defaultColor"]
 
+if options["reverse"]:
+	x = genome1
+	genome1 = genome2
+	genome2 = x
 # Les chromosomes a etudier
 chr1 = genome1.lstChr
 chr2 = genome2.lstChr
@@ -141,6 +141,7 @@ for c1 in chr1:
 	for c2 in chr2:
 		nb12 += (score[c2]*(score[c2]-1))/2.
 	nbTot += (len(table12[c1])*(len(table12[c1])-1))/2.
-	synt += max(score.values())/float(len(table12[c1]))
-print 100.*nb12/nbTot
-print 100.*synt/len(chr1)
+	if len(table12[c1]) != 0:
+		synt += max(score.values())/float(len(table12[c1]))
+
+print "%.2f\t%.2f" % (100.*nb12/nbTot, 100.*synt/len(chr1))
