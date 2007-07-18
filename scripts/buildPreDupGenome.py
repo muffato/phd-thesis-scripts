@@ -334,6 +334,8 @@ especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
 for x in phylTree.branches[phylTree.root]:
 	if phylTree.dicParents[x][especesDup[0]] != x:
 		rootNonDup = x
+	else:
+		rootDup = x
 phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
 genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAncestraux.list"])
 lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]

@@ -12,7 +12,6 @@ Chaque gene ancestral recoit son chromosome ancestral par un vote a la majorite 
 # Librairies
 import sys
 import operator
-import itertools
 import utils.myPhylTree
 import utils.myGenomes
 import utils.myTools
@@ -273,7 +272,7 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 			return recCalc(rootNonDup)
 
 		rTot = []
-		for gr in especesNonDupGrp:
+		for gr in espNames:
 			r = []
 			for e in gr:
 				if e in espOK:
@@ -285,29 +284,22 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 		return utils.myMaths.mean(rTot)
 		
 	
-	for (i,col) in genesAncCol:
-		
+	espNames = [[phylTree.officialName[x] for x in g] for g in especesNonDupGrp]
+	chrNames = sorted(chrAncGenes)
+	for (i,col) in enumerate(genesAncCol):
+	
 		if len(col) == 0:
 			# Certains genes n'ont pas de chance !
 			continue
-	
-		nb = dict([(x,calcChrAncScore(col, x)) for x in chrAncGenes])
-
-		tmp = utils.myMaths.sortDict(nb)
-		c = tmp[0]
-		genesAncCol[i] = nb
+		nb = [(calcChrAncScore(col,x), x) for x in chrNames]
 		
-		chrAncGenes[c].append(i)
+		# On verifie les egalites
+		s = sorted(nb, reverse=True)
+		if (s[0][0] == s[1][0]) and not options["keepUncertainGenes"]:
+			continue
 
-	#for i in xrange(len(genesAncCol)):
-	#	if len(genesAncCol[i]) == 0:
-	#		# Certains genes n'ont pas de chance !
-	#		continue
-	#	nb = dict([(x,calcChrAncScore(genesAncCol[i], x)) for x in chrAncGenes])
-	#	tmp = utils.myMaths.sortDict(nb)
-	#	c = tmp[0]
-	#	genesAncCol[i] = nb
-	#	chrAncGenes[c].append(i)
+		genesAncCol[i] = nb
+		chrAncGenes[s[0][1]].append(i)
 
 
 #
@@ -317,31 +309,32 @@ def printColorAncestr(genesAnc, chrAncGenes):
 	
 	print >> sys.stderr, "Impression des associations genes / chromosomes ancestraux ... ",
 
-	lstChr = sorted(chrAncGenes)
+	chrNames = sorted(chrAncGenes)
 	
 	if options["showQuality"]:
-		print "\t\t%s" % "\t".join([str(c) for c in lstChr])
-	
-	for c in lstChr:
+		print "\t\t%s" % "\t".join([str(c) for c in chrNames])
+
+	for c in chrNames:
 		nb = 0
 		for i in chrAncGenes[c]:
 			nb += 1
 			if options["showQuality"]:
-				print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*col[i][x]) for x in lstChr]), 100*col[i][c])
+				print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][c-1][0])
 			if options["showAncestralGenome"]:
 				print c, " ".join(genesAnc[i].names)
 		
-	print >> sys.stderr, sum([len(chrAncGenes[c]) for c in lstChr]), "genes dans le genome ancestral"
+	print >> sys.stderr, sum([len(chrAncGenes[c]) for c in chrNames]), "genes dans le genome ancestral"
 
 
-
+########
 # MAIN #
+########
 
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genesAncestraux.list", "phylTree.conf"],
-	[("minChrLen",int,20), ("windowSize",int,25), ("usePhylTreeScoring",bool,False), \
+	[("minChrLen",int,20), ("windowSize",int,25), ("usePhylTreeScoring",bool,False), ("keepUncertainGenes",bool,False), \
 	("especesNonDup",str,""), ("especesDup",str,""), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("showDCS",bool,False), ("showQuality",bool,False), ("showAncestralGenome",bool,True)], \
@@ -385,7 +378,8 @@ def scorePaireDCS(i1, i2):
 	val = 0
 	nb = 0
 	for e in especesDup:
-		if (len(allDCSe2[e][i1]) != 0) and (len(allDCSe2[e][i2]) == 0):
+		
+		if (len(allDCSe2[e][i1]) != 0) and (len(allDCSe2[e][i2]) != 0):
 			nb += 1
 		for x in (allDCSe2[e][i1] & allDCSe2[e][i2]):
 			val += min(allDCSe1[e][i1][x], allDCSe1[e][i2][x])
@@ -408,22 +402,40 @@ def scorePaireDCS(i1, i2):
 	return phylTree.calcDist(scores)
 
 
-print >> sys.stderr, "Lancement des communautes sur les %d DCS :" % len(allDCS),
+print >> sys.stderr, "Comparaison des %d DCS ..." % len(allDCS),
 phylTree.initCalcDist(rootDup, False)
 walktrapInstance = utils.walktrap.WalktrapLauncher()
 walktrapInstance.updateFromFunc(range(len(allDCS)), scorePaireDCS)
+print >> sys.stderr, "Lancement de walktrap ...",
 walktrapInstance.doWalktrap()
 
 # A partir d'ici, on a une association DCS <-> chromosomes, on retombe sur la regle de base, le vote a la majorite
 
 chrInd = 0
 for (nodes,cuts,_,dend) in walktrapInstance.res:
-	if len(cuts) == 0:
-		continue
-	(alpha,relevance) = cuts[0]
-	(clusters,lonely) = dend.cut(alpha)
-	print >> sys.stderr, "Resultat alpha=%f relevance=%f clusters=%d size=%d lonely=%d" % \
-		(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely))
+	print >> sys.stderr, "Communaute de %d noeuds:" % len(nodes)
+	# Un point de coupure virtuel si il n'y a pas
+	cuts.append( (1,0) )
+	# Les clusterings
+	res = [(alpha,relevance,dend.cut(alpha)) for (alpha,relevance) in cuts]
+	# Le choix par defaut
+	x = 0
+	if utils.myTools.stdinInput and (len(res) > 1):
+		# Si on peut, on propose a l'utilisateur de choisir
+		for (alpha,relevance,(clusters,lonely)) in res:
+			print >> sys.stderr, "> alpha=%f relevance=%f clusters=%d size=%d lonely=%d sizes={%s}" % \
+				(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely),utils.myMaths.myStats([len(c) for c in clusters]))
+		while True:
+			try:
+				print >> sys.stderr, "Choix ? ",
+				x = int(raw_input())
+				break
+			except Exception:
+				pass
+	(alpha,relevance,(clusters,lonely)) = res[x]
+	print >> sys.stderr, "Choix de alpha=%f relevance=%f clusters=%d size=%d lonely=%d sizes={%s}" % \
+		(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely),utils.myMaths.myStats([len(c) for c in clusters]))
+	# On enregistre les resultats
 	for cl in clusters:
 		chrInd += 1
 		for g in cl:

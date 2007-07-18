@@ -114,7 +114,7 @@ for l in sys.stdin:
 				nbTotPairs += 1.
 
 
-		print "%s\t%s\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f" % (l[:-1],anc,100.*nbOK/len(lstDiags[anc]),100.*nbPerfect/len(lstDiags[anc]),averageShift/nbTotPairs,100.*nbPerfectPairs/nbTotPairs,float(len(allPos)) / float(sum([len(x) for x in genomes[anc].lstGenes.itervalues()])))
+		print "%s\t%s\t%d\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (l[:-1],anc, phylTree.ages[anc],100.*nbOK/len(lstDiags[anc]),100.*nbPerfect/len(lstDiags[anc]),averageShift/nbTotPairs,100.*nbPerfectPairs/nbTotPairs,100. * float(len(allPos)) / float(sum([len(x) for x in genomes[anc].lstGenes.itervalues()])))
 		
 		allOK += nbOK
 		allPerfect += nbPerfect
@@ -125,5 +125,5 @@ for l in sys.stdin:
 		allCov += float(len(allPos)) / float(sum([len(x) for x in genomes[anc].lstGenes.itervalues()]))
 
 
-	print  "%s\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f" % (l[:-1],100.*allOK/allDiags, 100.*allPerfect/allDiags, allShift/allPairs, 100.*allPerfectPairs/allPairs, 100.*allCov/len(lstDiags))
+	print  "%s\t%s\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (l[:-1],"----",100.*allOK/allDiags, 100.*allPerfect/allDiags, allShift/allPairs, 100.*allPerfectPairs/allPairs, 100.*allCov/len(lstDiags))
 

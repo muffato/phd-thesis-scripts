@@ -22,25 +22,18 @@ import utils.myPhylTree
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf"], \
-	[("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
-	("outFiles",str,""), ("geneLossRate",int,10), \
-	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
-	__doc__ \
-)
+(noms_fichiers, options) = utils.myTools.checkArgs( ["genesFile", "outFile", "ancGenesFile"], [("geneLossRate",float,10)], "Melange un genome et enleve des genes aleatoirement" )
 
-#  Chargement et initialisation
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-for anc in phylTree.listAncestr:
-	genome = utils.myGenomes.EnsemblGenome(options["genesFile"] % phylTree.fileName[anc])
-	ancGenes = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
-	f = utils.myTools.myOpenFile(options["outFiles"] % phylTree.fileName[anc], "w")
-	for c in genome.lstChr:
+genome = utils.myGenomes.EnsemblGenome(noms_fichiers["genesFile"])
+for c in genome.lstChr:
+	for i in xrange(10):
 		random.shuffle(genome.lstGenes[c])
-		genome.lstGenes[c] = genome.lstGenes[c][:(1.-options["geneLossRate"]/100)*len(genome.lstGenes[c])]
-	for g in genome:
-		(c,i) = ancGenes.dicGenes[g.names[0]]
-		print >> f, g.chromosome, " ".join(ancGenes.lstGenes[c][i].names)
-	f.close()
+	genome.lstGenes[c] = genome.lstGenes[c][:int((1.-options["geneLossRate"]/100)*len(genome.lstGenes[c]))]
+
+ancGenes = utils.myGenomes.AncestralGenome(noms_fichiers["ancGenesFile"])
+f = utils.myTools.myOpenFile(noms_fichiers["outFile"], "w")
+for g in genome:
+	(c,i) = ancGenes.dicGenes[g.names[0]]
+	print >> f, g.chromosome, " ".join(ancGenes.lstGenes[c][i].names)
+f.close()
 
