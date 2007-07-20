@@ -271,7 +271,7 @@ def calcScore(i1, i2):
 		propOut += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in communEsp.difference(outgroup)])
 	
 	s *= propOut
-	for (f1,f2) in utils.myTools.myMatrixIterator(propF, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	for (f1,f2) in utils.myTools.myIterator.tupleOnStrictUpperList(propF):
 		s += f1 * f2
 
 	return s
@@ -296,7 +296,7 @@ def calcScore2(i1, i2):
 		propOut = phylTree.calcDist(values, phylTree.parent[options["ancestr"]])
 	
 	s = sum(propF) * propOut
-	for (f1,f2) in utils.myTools.myMatrixIterator(propF, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	for (f1,f2) in utils.myTools.myIterator.tupleOnStrictUpperList(propF):
 		s += f1 * f2
 
 	return s
@@ -340,7 +340,7 @@ for c in clusters:
 	lstChr.append(lst)
 
 inter = set()
-for (l1,l2) in utils.myTools.myMatrixIterator(lstChr, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+for (l1,l2) in utils.myTools.myIterator.tupleOnStrictUpperList(lstChr):
 	inter.update(l1.intersection(l2))
 
 chrIndex = 0

@@ -3,7 +3,7 @@ import os
 import sys
 import bz2
 import gzip
-
+import operator
 from collections import defaultdict
 
 null = open('/dev/null', 'w')
@@ -36,51 +36,53 @@ def myOpenFile(nom, mode):
 		f = open(nom, mode)
 	return f
 
-###################################################################
-# Une classe pour avoir un iterateur a deux dimensions rapidement #
-# Cela equivaut donc a un parcours de matrice                     #
-###################################################################
-class myMatrixIterator:
-
-	WholeMatrix = 1
-	UpperMatrix = 2
-	StrictUpperMatrix = 3
-	OnlyDiag = 4
-	WholeWithoutDiag = 5
-
-	def __init__(self, lstX, lstY, mode):
-		self.x = lstX
-		if lstY == None:
-			self.y = lstX
-		else:
-			self.y = lstY
-		self.mode = mode
-
-	def __iter__(self):
+#####################################################################
+# Une classe pour avoir un iterateur a deux positions sur une liste #
+#####################################################################
+class myIterator:
 	
-		for (i,tx) in enumerate(self.x):
-			for (j,ty) in enumerate(self.y):
-			
-				# Les valeurs a eviter pour chaque mode
-				if self.mode == myMatrixIterator.OnlyDiag:
-					if i != j:
-						continue
-				elif self.mode == myMatrixIterator.WholeWithoutDiag:
-					if i == j:
-						continue
-				elif self.mode == myMatrixIterator.WholeMatrix:
-					pass
-				elif self.mode == myMatrixIterator.UpperMatrix:
-					if j < i:
-						continue
-				elif self.mode == myMatrixIterator.StrictUpperMatrix:
-					if j <= i:
-						continue
-				# Mode inconnu
-				else:
-					continue
-				yield (tx,ty)
-		
+	def _tupleOnWholeList(lst):
+		for x in lst:
+			for y in lst:
+				yield (x,y)
+
+	def _tupleOnUpperList(lst):
+		for (i,x) in enumerate(lst):
+			for y in lst[i:]:
+				yield (x,y)
+
+	def _tupleOnStrictUpperList(lst):
+		for (i,x) in enumerate(lst):
+			for y in lst[i+1:]:
+				yield (x,y)
+	
+	def _tupleOnTwoLists(lstX, lstY):
+		for x in lstX:
+			for y in lstY:
+				yield (x,y)
+	#
+	# Fonction de Charles pour renvoyer toutes les combinaisons des elements des differentes listes passees en argument
+	#
+	def _tupleOnManyLists(*args):
+		""" This generator combine all versus all sequences elements as follow:
+		>>> args = [['A','C'],['A','C'],['A','C']]
+		>>> [k for k in combination(args)]
+		['AAA', 'AAC', 'ACA', 'ACC', 'CAA', 'CAC', 'CCA', 'CCC']
+		"""
+		lengths = [len(seq) for seq in args]
+		_tmp = lengths + [1] # append multiplicative identity
+		range_len_args = range(len(args))
+		dividers = [reduce(operator.mul, _tmp[-x-1:]) for x in range_len_args][::-1]
+		for n in xrange(reduce(operator.mul, lengths)):
+			yield tuple( args[r][(n/dividers[r])%lengths[r]] for r in range_len_args )
+
+	tupleOnWholeList = staticmethod(_tupleOnWholeList)
+	tupleOnUpperList = staticmethod(_tupleOnUpperList)
+	tupleOnStrictUpperList = staticmethod(_tupleOnStrictUpperList)
+	tupleOnTwoLists = staticmethod(_tupleOnTwoLists)
+	tupleOnManyLists = staticmethod(_tupleOnManyLists)
+
+
 
 ########################################################################
 # Cette classe permet de regrouper une liste d'elements                #
@@ -96,7 +98,7 @@ class myCombinator:
 		self.grp = list(ini)
 		self.dic = {}
 		for i in xrange(len(self.grp)):
-			#self.grp[i] = list(set(self.grp[i]))
+			self.grp[i] = list(set(self.grp[i]))
 			for x in self.grp[i]:
 				self.dic[x] = i
 	
@@ -108,8 +110,9 @@ class myCombinator:
 		if len(obj) == 0:
 			return
 	
+		obj = list(set(obj))
 		# Les elements de obj deja presents dans le combinateur
-		d = set([self.dic[x] for x in obj if x in self.dic])
+		d = set( (self.dic[x] for x in obj if x in self.dic) )
 		
 		if len(d) == 0:
 			# Aucun, on rajoute tel quel l'objet alors

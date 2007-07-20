@@ -141,7 +141,7 @@ utils.myPsOutput.printPsHeader(0.001)
 print "1 cm 1 cm translate"
 print "0.1 0.1 scale"
 
-for (ia1,ia2) in utils.myTools.myMatrixIterator(range(len(order)), None, utils.myTools.myMatrixIterator.WholeMatrix):
+for (ia1,ia2) in utils.myTools.myIterator.tupleOnWholeList(range(len(order))):
 
 	print >> sys.stderr, "%s _/\_ %s " % (order[ia1], order[ia2]),
 	print "%f cm %f cm translate" % (20*ia1, 20*ia2)

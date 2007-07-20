@@ -58,7 +58,7 @@ class WalktrapLauncher:
 			self.addEdge(c[0], c[1], c[2])
 
 	def updateFromFunc(self, items, func):
-		for (x1,x2) in utils.myTools.myMatrixIterator(items, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		for (x1,x2) in utils.myTools.myIterator.tupleOnStrictUpperList(items):
 			self.addEdge(x1, x2, func(x1, x2))
 
 	def updateFromDict(self, d, items = None):
@@ -77,10 +77,7 @@ class WalktrapLauncher:
 		# Les composantes connexes
 		combin = utils.myTools.myCombinator([])
 		for (x,l) in self.edges.iteritems():
-			if x in l:
-				combin.addLink(l.keys())
-			else:
-				combin.addLink(l.keys() + [x])
+			combin.addLink(l.keys() + [x])
 
 		self.res = []
 		
@@ -137,7 +134,7 @@ class WalktrapDirectLauncher:
 			print >> self.stdin, l,
 
 	def updateFromFunc(self, items, func):
-		for (x1,x2) in utils.myTools.myMatrixIterator(items, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		for (x1,x2) in utils.myTools.myIterator.tupleOnStrictUpperList(items):
 			score = func(x1, x2)
 			#self.addEdge(x1, x2, score)
 			if score > 0:

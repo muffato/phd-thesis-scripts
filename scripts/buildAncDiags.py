@@ -162,7 +162,7 @@ if options.useOutgroups:
 
 # La liste des ancetres edites
 tmp = set()
-for (e1,e2) in utils.myTools.myMatrixIterator(listSpecies, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(listSpecies):
 	tmp.update(phylTree.dicLinks[e1][e2][1:-1])
 	tmp.add(phylTree.dicParents[e1][e2])
 diagEntry = {}
@@ -173,7 +173,7 @@ for anc in tmp:
 
 
 # On compare toutes les especes entre elles
-for (e1,e2) in utils.myTools.myMatrixIterator(listSpecies, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(listSpecies):
 	print >> sys.stderr, "Extraction des diagonales entre %s et %s " % (e1,e2),
 	toStudy = set(phylTree.dicLinks[e1][e2][1:-1] + [phylTree.dicParents[e1][e2]])
 	for ((c1,d1),(c2,d2)) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \

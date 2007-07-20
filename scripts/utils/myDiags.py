@@ -47,7 +47,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 				presI2 = dic2[j1]
 			
 			# On regarde chaque orthologue du gene
-			for ((c2,i2,s2), (lastC2,lastI2,lastS2)) in myTools.myMatrixIterator(presI2, lastPos2, myTools.myMatrixIterator.WholeMatrix):
+			for ((c2,i2,s2), (lastC2,lastI2,lastS2)) in myTools.myIterator.tupleOnTwoLists(presI2, lastPos2):
 				# Chromosomes differents -> indiscutable
 				if c2 != lastC2:
 					continue

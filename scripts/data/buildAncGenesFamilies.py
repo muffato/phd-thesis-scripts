@@ -51,7 +51,7 @@ def buildAncFile(anc, lastComb):
 		poidsBranches = [max([len(score[e]) for e in espGrp]) for espGrp in phylTree.branchesSpecies[anc]]
 
 		nbAretes = 0
-		for (i1,i2) in utils.myTools.myMatrixIterator(ensGenes, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+		for (i1,i2) in utils.myTools.myIterator.tupleOnStrictUpperList(ensGenes):
 			if (i2 in aretes.get(i1,[])) or (i1 in aretes.get(i2,[])):
 				nbAretes += 1
 		nbAretesAttendu = (len(ensGenes)*(len(ensGenes)-1))/2
@@ -96,7 +96,7 @@ def buildAncFile(anc, lastComb):
 	comb = utils.myTools.myCombinator([])
 	n = len(phylTree.species[anc])
 	print >> sys.stderr, "Construction des familles d'orthologues de %s " % anc,
-	for (e1,e2) in utils.myTools.myMatrixIterator(phylTree.species[anc], None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(phylTree.species[anc]):
 		f = options["orthosFile"] % (phylTree.fileName[e1],phylTree.fileName[e2])
 		if phylTree.dicParents[e1][e2] == anc:
 			doLoad(f, phylTree.ages[anc], comb)

@@ -65,12 +65,12 @@ for c in chr:
 			nbPerfectPairs += 1.
 
 	memeSens = max(memeSens,length-memeSens)
-	print "%d\t%d\t%.2f\t%d\t%d/%d\t%.2f\t%.2f" % (c,length,100.*memeSens/length,seg1+seg2-1,seg1,seg2,float(length)/(seg1+seg2), 100.*nbPerfectPairs/(length-1))
+	print "%d\t%d\t%.4f\t%d\t%d/%d\t%.4f\t%.4f" % (c,length,100.*memeSens/length,seg1+seg2-1,seg1,seg2,float(length)/(seg1+seg2), 100.*nbPerfectPairs/(length-1))
 	totMemeSens += memeSens
 	totLength += length
 	totNbPaires += length-1
 	totPairesOK += nbPerfectPairs
 	totNbSegments += seg1+seg2
 
-print "%.2f\t%.2f\t%.2f" % (100.*totMemeSens/totLength,100.*totPairesOK/totNbPaires,totLength/totNbSegments)
+print "%.4f\t%.4f\t%.4f" % (100.*totMemeSens/totLength,100.*totPairesOK/totNbPaires,totLength/totNbSegments)
 

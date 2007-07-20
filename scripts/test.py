@@ -27,7 +27,39 @@ import utils.myPhylTree
 import utils.walktrap
 from collections import defaultdict
 
-print os.isatty(sys.stdin.fileno())
+comb = utils.myTools.myCombinator([])
+random.seed(sys.argv[1])
+
+ll = []
+for i in xrange(10000):
+	
+	l = [random.randint(1,10000000) for i in xrange(random.randint(2,100))]
+
+	#ll.extend(l)
+	comb.addLink(l)
+
+print comb.getNbGrp()
+#print len(utils.myMaths.flatten(ll))
+#print len(ll)
+#print utils.myMaths.myStats(ll)
+
+time.sleep(10)
+
+sys.exit(0)
+
+
+
+
+s = set()
+r = range(1000)
+#for t in utils.myTools.myMatrixIterator(r, None, utils.myTools.myMatrixIterator.WholeMatrix):
+#for t in utils.myTools.combination(r,r,r+r):
+for t in utils.myTools.myIterator.tupleOnWholeList(r):
+	s.add(t)
+
+print s.pop()
+
+#print os.isatty(sys.stdin.fileno())
 sys.exit(0)
 
 utils.myTools.checkArgs([],[],"")
@@ -189,26 +221,6 @@ for anc in phylTree.listAncestr:
 	print math.sqrt(sum([(x-sum(nbEspEq)/len(nbEspEq))**2 for x in nbEspEq]))/len(nbEspEq)
 
 sys.exit(0)
-
-comb = utils.myTools.myCombinator([])
-random.seed(sys.argv[1])
-
-ll = []
-for i in xrange(1000):
-	
-	l = [random.randint(1,10000000) for i in xrange(random.randint(2,1000))]
-
-	ll.extend(l)
-	#comb.addLink(l)
-
-#print comb.getNbGrp()
-#print len(utils.myMaths.flatten(ll))
-#print len(ll)
-print utils.myMaths.myStats(ll)
-
-sys.exit(0)
-
-
 
 f = open("/users/ldog/muffato/heimdall/proteines/reduced/graph.4741", "r")
 
@@ -522,25 +534,6 @@ for (comp,best,d) in w.res:
 		print >> sys.stderr, "scale", scale
 		print >> sys.stderr, "relevance", rel
 		print >> sys.stderr, d.cut(scale)
-
-sys.exit(0)
-
-comb = utils.myTools.myCombinator([])
-random.seed(sys.argv[1])
-
-ll = []
-for i in xrange(1000):
-	
-	l = [random.randint(1,10000000) for i in xrange(random.randint(2,1000))]
-
-	ll.extend(l)
-	#comb.addLink(l)
-
-#print comb.getNbGrp()
-#print len(utils.myMaths.flatten(ll))
-#print len(ll)
-print utils.myMaths.myStats(ll)
-
 sys.exit(0)
 
 

@@ -155,7 +155,7 @@ for esp in sorted(phylTree.listSpecies):
 
 
 # On genere les fichiers d'homologues
-for (esp1,esp2) in utils.myTools.myMatrixIterator(nomReel, None, utils.myTools.myMatrixIterator.UpperMatrix):
+for (esp1,esp2) in utils.myTools.myIterator.tupleOnUpperList(nomReel):
 
 	esp1B = dicNomsReels[esp1]
 	esp2B = dicNomsReels[esp2]

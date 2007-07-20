@@ -144,4 +144,4 @@ for c1 in chr1:
 	if len(table12[c1]) != 0:
 		synt += max(score.values())/float(len(table12[c1]))
 
-print "%.2f\t%.2f" % (100.*nb12/nbTot, 100.*synt/len(chr1))
+print "%.4f\t%.4f" % (100.*nb12/nbTot, 100.*synt/len(chr1))

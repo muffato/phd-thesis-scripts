@@ -26,20 +26,21 @@ def distInterGenes(tg1, tg2):
 
 	# Les distances chez chaque espece
 	distEsp = {}
-	for ((e1,c1,i1), (e2,c2,i2)) in utils.myTools.myMatrixIterator(tg1, tg2, utils.myTools.myMatrixIterator.WholeMatrix):
-		if e1 == e2 and c1 == c2:
-			x = abs(i1-i2)
-			# Au dela d'un certain seuil, on considere que l'information n'est plus valable
-			if (options["seuilMaxDistInterGenes"] <= 0) or (x <= options["seuilMaxDistInterGenes"]):
-				# On garde la plus petite distance trouvee
-				distEsp[e1] = min(distEsp.get(e1,x), x)
+	for (e1,c1,i1) in tg1:
+		for (e2,c2,i2) in tg2:
+			if e1 == e2 and c1 == c2:
+				x = abs(i1-i2)
+				# Au dela d'un certain seuil, on considere que l'information n'est plus valable
+				if (options["seuilMaxDistInterGenes"] <= 0) or (x <= options["seuilMaxDistInterGenes"]):
+					# On garde la plus petite distance trouvee
+					distEsp[e1] = min(distEsp.get(e1,x), x)
 	
 	# On fait la liste des especes qui presentent une distance de 1
 	lst1Esp = [e for e in distEsp if distEsp[e] == 1]
 	
 	# On met les 1 dans les noeuds de l'arbre entre les especes
 	lst1Anc = set()
-	for (e1,e2) in utils.myTools.myMatrixIterator(lst1Esp, None, utils.myTools.myMatrixIterator.StrictUpperMatrix):
+	for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(lst1Esp):
 		lst1Anc.update(phylTree.dicLinks[e1][e2])
 		if anc in lst1Anc:
 			return 1
