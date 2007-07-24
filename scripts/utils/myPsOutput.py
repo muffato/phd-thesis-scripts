@@ -13,99 +13,23 @@ colorTableUNIX2RGB = {}
 # L'en-tete PostScript
 #
 def printPsHeader(landscape = False):
-	# En-tete Postscript
-	print """%!PS-Adobe-3.0
-%%DocumentData: Clean7bit
-%%Creator: myPsOutput
-%%PageOrder: Ascend
-%%Pages: 1
-%%DocumentFonts: Helvetica
-%%LanguageLevel: 1
-%%EndComments
-
-/color { aload pop setrgbcolor } def
-/cm {28.3464567 mul} def
-/2cm { cm exch cm exch } def
-/myline { newpath 2cm moveto 2cm rlineto closepath stroke } def
-/mybox { newpath 2cm moveto 2cm exch dup 0 rlineto exch 0 exch rlineto neg 0 rlineto closepath } def
-/myfill { gsave color fill grestore } def
-/mytext { 2cm moveto show } def
-
-1 setlinejoin
-
-%%BeginProlog
-
-% Font encoding-vector for iso-8859-1 (latin-1)
-/font_encoding_vector [
-/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
-/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
-/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
-/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
-/space /exclam /quotedbl /numbersign /dollar /percent /ampersand /quoteright 
-/parenleft /parenright /asterisk /plus /comma /hyphen /period /slash 
-/zero /one /two /three /four /five /six /seven /eight /nine /colon 
-/semicolon /less /equal /greater /question /at /A /B /C /D /E /F /G 
-/H /I /J /K /L /M /N /O /P /Q /R /S /T /U /V /W /X /Y /Z /bracketleft 
-/backslash /bracketright /asciicircum /underscore /quoteleft /a /b /c 
-/d /e /f /g /h /i /j /k /l /m /n /o /p /q /r /s /t /u /v /w /x /y /z 
-/braceleft /bar /braceright /asciitilde /.notdef 
-/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
-/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
-/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
-/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
-/space /exclamdown /cent /sterling /currency /yen /brokenbar /section 
-/dieresis /copyright /ordfeminine /guillemotleft /logicalnot /hyphen 
-/registered /macron /degree /plusminus /twosuperior /threesuperior /acute 
-/mu /paragraph /bullet /cedilla /dotlessi /ordmasculine /guillemotright 
-/onequarter /onehalf /threequarters /questiondown /Agrave /Aacute 
-/Acircumflex /Atilde /Adieresis /Aring /AE /Ccedilla /Egrave /Eacute 
-/Ecircumflex /Edieresis /Igrave /Iacute /Icircumflex /Idieresis /Eth 
-/Ntilde /Ograve /Oacute /Ocircumflex /Otilde /Odieresis /multiply /Oslash 
-/Ugrave /Uacute /Ucircumflex /Udieresis /Yacute /Thorn /germandbls 
-/agrave /aacute /acircumflex /atilde /adieresis /aring /ae /ccedilla 
-/egrave /eacute /ecircumflex /edieresis /igrave /iacute /icircumflex 
-/idieresis /eth /ntilde /ograve /oacute /ocircumflex /otilde /odieresis 
-/divide /oslash /ugrave /uacute /ucircumflex /udieresis /yacute /thorn 
-/ydieresis 
-] def
-
-/MF {   % fontname newfontname -> -     make a new encoded font
-  /newfontname exch def
-  /fontname exch def
-  /fontdict fontname findfont def
-  /newfont fontdict maxlength dict def
-  fontdict { exch
-    dup /FID eq { pop pop } 
-      {  % copy to the new font dictionary
-         exch newfont 3 1 roll put } ifelse
-  } forall
-  newfont /FontName newfontname put
-  % insert only valid encoding vectors
-  font_encoding_vector length 256 eq { newfont /Encoding font_encoding_vector put } if
-  newfontname newfont definefont pop
-} bind def
-
-/Arial /font_Arial MF
-%%EndProlog
-%%Page: 1 1
-
-/font_Arial findfont
-10 scalefont
-setfont
-"""
-	print
+	print strPsHeader
+	print strMyDef
+	print strFontDef
+	print "1 setlinejoin"
 	print "0.001 cm setlinewidth"
 	print
 
+	initColor()
+	
 	if landscape:
 		print "90 rotate"
 		print "0 -21 cm translate"
 		print
+		return (29.7,21.)
 
-	initColor()
 	print
-
-
+	return (21.,29.7)
 
 
 #
@@ -120,7 +44,7 @@ def printPsFooter():
 # Charge le fichier de definitions des couleurs en RGB
 # Initialise toutes les couleurs couramment utilisees
 #
-def initColor():
+def initColor(silent = False):
 
 	# La liste des couleurs et leurs valeurs RGB
 	f = open("/users/ldog/muffato/work/scripts/utils/rgb.txt", 'r')
@@ -130,7 +54,8 @@ def initColor():
 		if s in colorTableUNIX2RGB:
 			continue
 		rgb = tuple([int(x) for x in c[3:6]])
-		print "/%s [%s] def" % (s, " ".join(c[:3]))
+		if not silent:
+			print "/%s [%s] def" % (s, " ".join(c[:3]))
 		colorTableRGB2UNIX[rgb] = s
 		colorTableUNIX2RGB[s] = rgb
 
@@ -198,7 +123,10 @@ def setColor(C, txt):
 		if len(C) == 3:
 			(r,g,b) = C
 		elif C[0] == '#':
-			(r,g,b) = [int(x) for x in C[1:].split(':')]
+			try:
+				(r,g,b) = [int(x) for x in C[1:].split(':')]
+			except Exception:
+				(r,g,b) = [int(x,16) for x in C[1:].split(':')]
 		else:
 			return
 
@@ -270,3 +198,85 @@ def drawText(X, Y, T, C):
 	print "(%s) %.5f %.5f mytext" % (T, X,Y)
 
 
+
+strPsHeader = """%!PS-Adobe-3.0
+%%DocumentData: Clean7bit
+%%Creator: myPsOutput
+%%PageOrder: Ascend
+%%Pages: 1
+%%DocumentFonts: Helvetica
+%%LanguageLevel: 1
+%%EndComments"""
+
+strMyDef = """
+/color { aload pop setrgbcolor } def
+/cm {28.3464567 mul} def
+/2cm { cm exch cm exch } def
+/myline { newpath 2cm moveto 2cm rlineto closepath stroke } def
+/mybox { newpath 2cm moveto 2cm exch dup 0 rlineto exch 0 exch rlineto neg 0 rlineto closepath } def
+/myfill { gsave color fill grestore } def
+/mytext { 2cm moveto show } def
+"""
+
+strFontDef = """
+%%BeginProlog
+
+% Font encoding-vector for iso-8859-1 (latin-1)
+/font_encoding_vector [
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclam /quotedbl /numbersign /dollar /percent /ampersand /quoteright 
+/parenleft /parenright /asterisk /plus /comma /hyphen /period /slash 
+/zero /one /two /three /four /five /six /seven /eight /nine /colon 
+/semicolon /less /equal /greater /question /at /A /B /C /D /E /F /G 
+/H /I /J /K /L /M /N /O /P /Q /R /S /T /U /V /W /X /Y /Z /bracketleft 
+/backslash /bracketright /asciicircum /underscore /quoteleft /a /b /c 
+/d /e /f /g /h /i /j /k /l /m /n /o /p /q /r /s /t /u /v /w /x /y /z 
+/braceleft /bar /braceright /asciitilde /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef /.notdef 
+/space /exclamdown /cent /sterling /currency /yen /brokenbar /section 
+/dieresis /copyright /ordfeminine /guillemotleft /logicalnot /hyphen 
+/registered /macron /degree /plusminus /twosuperior /threesuperior /acute 
+/mu /paragraph /bullet /cedilla /dotlessi /ordmasculine /guillemotright 
+/onequarter /onehalf /threequarters /questiondown /Agrave /Aacute 
+/Acircumflex /Atilde /Adieresis /Aring /AE /Ccedilla /Egrave /Eacute 
+/Ecircumflex /Edieresis /Igrave /Iacute /Icircumflex /Idieresis /Eth 
+/Ntilde /Ograve /Oacute /Ocircumflex /Otilde /Odieresis /multiply /Oslash 
+/Ugrave /Uacute /Ucircumflex /Udieresis /Yacute /Thorn /germandbls 
+/agrave /aacute /acircumflex /atilde /adieresis /aring /ae /ccedilla 
+/egrave /eacute /ecircumflex /edieresis /igrave /iacute /icircumflex 
+/idieresis /eth /ntilde /ograve /oacute /ocircumflex /otilde /odieresis 
+/divide /oslash /ugrave /uacute /ucircumflex /udieresis /yacute /thorn 
+/ydieresis 
+] def
+
+/MF {   % fontname newfontname -> -     make a new encoded font
+  /newfontname exch def
+  /fontname exch def
+  /fontdict fontname findfont def
+  /newfont fontdict maxlength dict def
+  fontdict { exch
+    dup /FID eq { pop pop } 
+      {  % copy to the new font dictionary
+         exch newfont 3 1 roll put } ifelse
+  } forall
+  newfont /FontName newfontname put
+  % insert only valid encoding vectors
+  font_encoding_vector length 256 eq { newfont /Encoding font_encoding_vector put } if
+  newfontname newfont definefont pop
+} bind def
+
+/Arial /font_Arial MF
+%%EndProlog
+%%Page: 1 1
+
+/font_Arial findfont
+10 scalefont
+setfont
+"""
+	

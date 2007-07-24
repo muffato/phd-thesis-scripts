@@ -86,7 +86,7 @@ def checkLonelyGenes():
 				if len(g) == 0:
 					continue
 				# Le gene dans l'autre espece
-				tmp = [c for (c,_) in phylTree.dicGenomes[e].getPosition(genesAnc[a].lstGenes[utils.myGenomes.Genome.defaultChr][g[0][1]])]
+				tmp = [c for (c,_) in phylTree.dicGenomes[e].getPosition(genesAnc[a].lstGenes[utils.myGenomes.Genome.defaultChr][g.pop()[1]])]
 			else:
 				# Le gene dans l'autre espece
 				tmp = [c for (x,c,_) in esp if x == e]

@@ -85,13 +85,11 @@ def getOrthosChr(table, chr):
 ########
 
 # Arguments
-modeMatrix = "Matrix"
-modeKaryo = "Karyotype"
 modeGenomeEvol = "GenomeEvolution"
 modeOrthos = "OrthosGenes"
 modeReindexedChr = "ReindexedChr"
 modeDiags = "Diags"
-modes = [modeMatrix, modeKaryo, modeOrthos, modeGenomeEvol, modeReindexedChr, modeDiags]
+modes = [modeOrthos, modeGenomeEvol, modeReindexedChr, modeDiags]
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["studiedGenome", "referenceGenome"], \
 	[("orthologuesList",str,""), ("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
@@ -131,118 +129,8 @@ if options["includeRandoms"]:
 if (options["output"] != modeDiags):
 	table12 = buildOrthosTable(genome1, chr1, genome2, chr2)
 
-# Matrice
-if (options["output"] == modeMatrix):
-
-	print >> sys.stderr, "Affichage ",
-	
-	utils.myPsOutput.printPsHeader()
-	if len(options["backgroundColor"]) > 0:
-		utils.myPsOutput.drawBox(0,0, 21,29.7, options["backgroundColor"], options["backgroundColor"])
-	sys.stderr.write('.')
-
-	# Initialisations
-	table21 = buildOrthosTable(genome2, chr2, genome1, chr1)
-	nb = sum([len(table12[c]) for c in table12])
-	scaleX = 19. / float(nb)
-	if options["scaleY"]:
-		scaleY = 19. / float(sum([len(table21[c]) for c in table21]))
-	else:
-		scaleY = scaleX
-	if options["pointSize"] < 0:
-		dp = scaleX
-	else:
-		dp = options["pointSize"]
-	sys.stderr.write('.')
-
-	def prepareGenome(dicOrthos, func):
-		i = 0
-		y = 0
-		lstNum = {}
-		func(y)
-		for c in sorted(dicOrthos):
-			y += len(dicOrthos[c])
-			func(y)
-			for gene in dicOrthos[c]:
-				lstNum[(c,gene)] = i
-				i += 1
-		return lstNum
-
-	lstNum1 = prepareGenome(table12, lambda x: utils.myPsOutput.drawLine(1 + x*scaleX, 1, 0, float(sum([len(table21[c]) for c in table21]))*scaleY, options["penColor"]))
-	sys.stderr.write('.')
-	lstNum2 = prepareGenome(table21, lambda y: utils.myPsOutput.drawLine(1, 1 + y*scaleY, 19, 0, options["penColor"]))
-	sys.stderr.write('.')
-
-	print "0 setlinewidth"
-
-	for c1 in table12:
-		for i1 in table12[c1]:
-			xx = 1 + float(lstNum1[(c1,i1)]) * scaleX
-			for (c2,i2) in table12[c1][i1]:
-
-				if type(colors) == str:
-					coul = colors
-				else:
-					tmp = colors.getPosition(genome1.lstGenes[c1][i1]) + colors.getPosition(genome2.lstGenes[c2][i2])
-					if len(tmp) == 0:
-						continue
-					coul = tmp[0][0]
-				
-				yy = 1 + float(lstNum2[(c2,i2)]) * scaleY
-				#coul = utils.myPsOutput.getColor(coul, options["defaultColor"])
-				utils.myPsOutput.drawBox( xx, yy, dp, dp, coul, coul)
-
-	utils.myPsOutput.printPsFooter()
-	print >> sys.stderr, " OK"
-
-
-# Caryotype
-elif (options["output"] == modeKaryo):
-
-	print >> sys.stderr, "Affichage ...",
-
-	utils.myPsOutput.printPsHeader()
-
-	# On dessine
-	dx = (19.*3.)/(5.*len(chr1)-2.)
-	dy = float(max([len(x) for x in table12.values()])) / 26.
-	xx = 1
-	y0 = 1.
-
-	for c in chr1:
-		
-		if options["scaleY"]:
-			dy = float(len(table12[c])) / 26.
-
-		utils.myPsOutput.drawText(xx, y0, str(c), options["penColor"])
-		y = y0 + 1
-		
-		last = ""
-		nb = 0
-		for i in table12[c]:
-			tmp = table12[c][i]
-			if len(tmp) == 0:
-				col = options["defaultColor"]
-			else:
-				col = tmp[0][0]
-			if col == last:
-				nb += 1
-			else:
-				if nb != 0:
-					utils.myPsOutput.drawBox(xx, y, dx, nb/dy, last, last)
-					y += nb/dy
-				last = col
-				nb = 1
-		if nb != 0:
-			utils.myPsOutput.drawBox(xx, y, dx, nb/dy, last, last)
-		xx += (5.*dx)/3.
-
-	utils.myPsOutput.printPsFooter()
-	print >> sys.stderr, "OK"
-
-
 # Fichier avec les noms des paires de genes orthologues et leurs coordonnees
-elif (options["output"] == modeOrthos):
+if (options["output"] == modeOrthos):
 
 	for c1 in chr1:
 		for i1 in table12[c1]:

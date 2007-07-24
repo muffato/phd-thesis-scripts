@@ -1,7 +1,7 @@
 #! /users/ldog/muffato/python -OO
 
 __doc__ = """
-Dessine la matrice des genes orthologues entre deux genomes.
+	Dessine la matrice des genes orthologues entre deux genomes.
 """
 
 ##################
@@ -9,11 +9,11 @@ Dessine la matrice des genes orthologues entre deux genomes.
 ##################
 
 # Librairies
-import string
 import sys
-import os
+import random
 import utils.myGenomes
 import utils.myTools
+import utils.myDiags
 import utils.myPsOutput
 
 
@@ -22,26 +22,32 @@ import utils.myPsOutput
 ########
 
 # Arguments
-# TODO Couleurs
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["GenomeADessiner", "GenomeReference"], \
-	[("taillePoint",float,-1), ("useColor",str,"black"), ("orthologuesList",str,""), ("includeScaffolds",bool,False), ("includeRandoms",bool,False)], \
+	["studiedGenome", "referenceGenome"], \
+	[("orthologuesList",str,""), ("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
+	("reverse",bool,False), ("scaleY",bool,False),\
+	("pointSize",float,-1), ("colorFile",str,""), ("defaultColor",str,"black"), ("penColor",str,"black"), ("backgroundColor",str,"")], \
 	__doc__
 )
 
+
 # Chargement des fichiers
-genome1 = utils.myGenomes.loadGenome(noms_fichiers["GenomeADessiner"])
-genome2 = utils.myGenomes.loadGenome(noms_fichiers["GenomeReference"])
+genome1 = utils.myGenomes.loadGenome(noms_fichiers["studiedGenome"])
+genome2 = utils.myGenomes.loadGenome(noms_fichiers["referenceGenome"])
+if options["reverse"]:
+	x = genome1
+	genome1 = genome2
+	genome2 = x
 if options["orthologuesList"] != "":
-	genesAnc = utils.myGenomes.AncestralGenome(options["orthologuesList"], False, False)
+	genesAnc = utils.myGenomes.loadGenome(options["orthologuesList"])
 else:
-	genesAnc = genome2
+	genesAnc = None
 try:
-	colors = utils.myGenomes.loadGenome(options["useColor"])
+	colors = utils.myGenomes.loadGenome(options["colorFile"])
 except Exception:
-	colors = options["useColor"]
+	colors = None
 
-
+# Les chromosomes a etudier
 chr1 = genome1.lstChr
 chr2 = genome2.lstChr
 if options["includeScaffolds"]:
@@ -51,81 +57,70 @@ if options["includeRandoms"]:
 	chr1.extend(genome1.lstRand)
 	chr2.extend(genome2.lstRand)
 
+
+table12 = genome1.buildOrthosTable(chr1, genome2, chr2, options["includeGaps"], genesAnc)
+
+# Matrice
+
+print >> sys.stderr, "Affichage ",
+
+utils.myPsOutput.printPsHeader()
+if len(options["backgroundColor"]) > 0:
+	utils.myPsOutput.drawBox(0,0, 21,29.7, options["backgroundColor"], options["backgroundColor"])
+sys.stderr.write('.')
+
 # Initialisations
-nb1 = sum([len(genome1.lstGenes[x]) for x in chr1])
-nb2 = sum([len(genome2.lstGenes[x]) for x in chr2])
-if options["taillePoint"] < 0:
-	dp = 19. / float(nb1)
+table21 = genome2.buildOrthosTable(chr2, genome1, chr1, options["includeGaps"], genesAnc)
+nb = sum([len(table12[c]) for c in table12])
+scaleX = 19. / float(nb)
+if options["scaleY"]:
+	scaleY = 19. / float(sum([len(table21[c]) for c in table21]))
 else:
-	dp = options["taillePoint"]
+	scaleY = scaleX
+if options["pointSize"] < 0:
+	dp = scaleX
+else:
+	dp = options["pointSize"]
+sys.stderr.write('.')
 
-
-# On ecrit l'entete du PostScipt
-utils.myPsOutput.initColor()
-utils.myPsOutput.printPsHeader(0.0001)
-
-
-def prepareGenome(genome, chr, nb, func):
+def prepareGenome(dicOrthos, func):
 	i = 0
-	y = 1.
+	y = 0
 	lstNum = {}
 	func(y)
-	for c in chr:
-		y += (19. * len(genome.lstGenes[c])) / float(nb)
+	for c in sorted(dicOrthos):
+		y += len(dicOrthos[c])
 		func(y)
-		for gene in genome.lstGenes[c]:
-
-			for g in gene.names:
-				lstNum[g] = i
+		for (gene,_) in dicOrthos[c]:
+			lstNum[(c,gene)] = i
 			i += 1
 	return lstNum
 
+lstNum1 = prepareGenome(table12, lambda x: utils.myPsOutput.drawLine(1 + x*scaleX, 1, 0, float(sum([len(table21[c]) for c in table21]))*scaleY, options["penColor"]))
+sys.stderr.write('.')
+lstNum2 = prepareGenome(table21, lambda y: utils.myPsOutput.drawLine(1, 1 + y*scaleY, 19, 0, options["penColor"]))
+sys.stderr.write('.')
 
-# On affiche la grille et on associe "nom de gene" <-> "position sur la grille"
-print >> sys.stderr, "Tri des genomes ",
-lstNum1 = prepareGenome(genome1, chr1, nb1, lambda y: utils.myPsOutput.drawLine(1, y, 19, 0, "black"))
-sys.stderr.write(".")
-lstNum2 = prepareGenome(genome2, chr2, nb2, lambda x: utils.myPsOutput.drawLine(x, 1, 0, 19, "black"))
-print >> sys.stderr, ". OK"
+print "0 setlinewidth"
 
-print >> sys.stderr, "Affichage des points ",
-for gene in genome1:
-	gg = []
-	for g in gene.names:
-		if g not in lstNum1:
-			continue
-		x = lstNum1[g]
-		
-		if g in genome2.dicGenes:
-			(cc,ii) = genome2.dicGenes[g]
-			gg.extend( genome2.lstGenes[cc][ii].names )
-		
-		if options["orthologuesList"] != "":
-			if g in genesAnc.dicGenes:
-				(cc,ii) = genesAnc.dicGenes[g]
-				gg.extend( genesAnc.lstGenes[cc][ii].names )
-		
-	if len(gg) == 0:
-		continue
+for c1 in table12:
+	for (i1,t) in table12[c1]:
+		xx = 1 + float(lstNum1[(c1,i1)]) * scaleX
+		for (c2,i2) in t:
 
-	if type(colors) == str:
-		cc = colors
-	else:
-		for gt in gene.names+list(gg):
-			if gt in colors.dicGenes:
-				cc = colors.dicGenes[gt][0]
-				break
-		else:
-			continue
-	
-	gy = set([lstNum2[gt] for gt in gg if gt in lstNum2])
-	yy = 1 + (x*19.)/float(nb1)# - dp/2.
-	cc = utils.myPsOutput.getColor(str(cc), "black")
-	for y in gy:
-		xx = 1 + (y*19.)/float(nb2)# - dp/2.
-		utils.myPsOutput.drawBox( xx, yy, dp, dp, cc, cc)
+			if colors == None
+				coul = options["defaultColor"]
+			else:
+				tmp = colors.getPosition(genome1.lstGenes[c1][i1])
+				tmp.update( colors.getPosition(genome2.lstGenes[c2][i2]) )
+				if len(tmp) == 0:
+					coul = options["defaultColor"]
+				else:
+					coul = tmp.pop()[0]
+			
+			yy = 1 + lstNum2[(c2,i2)]*scaleY
+			utils.myPsOutput.drawBox( xx, yy, dp, dp, coul, coul)
 
 utils.myPsOutput.printPsFooter()
 print >> sys.stderr, " OK"
-
 

@@ -94,7 +94,7 @@ for l in sys.stdin:
 			if tmp != [1]:
 				print >> sys.stderr, "PB1 !!", d, lstPos, tmp
 				
-			lstPos = [x[0] for x in lstPos]
+			lstPos = [x.pop() for x in lstPos]
 			allPos.update(lstPos)
 			if len(set([c for (c,_) in lstPos])) == 1:
 				nbOK += 1.

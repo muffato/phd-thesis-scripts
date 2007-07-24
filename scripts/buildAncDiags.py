@@ -95,7 +95,7 @@ def findNewSpecies(d, esp, anc):
 			if len(g) == 0:
 				continue
 			# Le gene dans l'autre espece
-			tmp = [c for (c,_) in dicGenomes[e].getPosition(genesAnc[a].lstGenes[g[0][0]][g[0][1]])]
+			tmp = [c for (c,_) in dicGenomes[e].getPosition(genesAnc[a].lstGenes[utils.myGenomes.Genome.defaultChr][g.pop()[1]])]
 			# Gene non trouve, on passe au suivant
 			if len(tmp) == 0:
 				continue

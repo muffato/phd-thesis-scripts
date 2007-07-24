@@ -35,7 +35,6 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 		diag = []
 		listI1 = []
 		listI2 = []
-		#lastA = []
 		lastPos2 = []
 		lastS1 = 0
 		
@@ -82,10 +81,8 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 				listI1 = []
 				# Pour que les diagonales de longueur 1 soient correctes
 				listI2 = [i2 for (lastC2,i2,_) in presI2[:1]]
-				#lastA = []
 			
 			listI1.append(i1)
-			#lastA.append(j1)
 			lastS1 = s1
 			fin1 = i1
 		

@@ -193,13 +193,34 @@ class Genome:
 				yield g
 
 	def getPosition(self, gene):
-		return myMaths.unique([self.dicGenes[s] for s in gene.names if s in self.dicGenes])
+		return set( (self.dicGenes[s] for s in gene.names if s in self.dicGenes) )
 
 	def getOtherNames(self, name):
 		if name not in self.dicGenes:
 			return []
 		(c,i) = self.dicGenes[name]
 		return [x for x in self.lstGenes[c][i].names if x != name]
+
+	# Fabrique la liste des orthologues entre les deux genomes
+	def buildOrthosTable(self, chr1, genome2, chr2, includeGaps, genesAnc = None):
+
+		# Tous les orthologues entre pour les chromosomes OK du genome 1
+		res = {}
+		for c1 in chr1:
+			res[c1] = []
+			for (i1,g1) in enumerate(self.lstGenes[c1]):
+				tmp = genome2.getPosition(g1)
+				if genesAnc != None:
+					for (c,i) in genesAnc.getPosition(g1):
+						tmp.update(genome2.getPosition(genesAnc.lstGenes[c][i]))
+				
+				# On ne garde que les chromsomes OK du genome 2
+				tmp = [(c,i) for (c,i) in tmp if c in chr2]
+				# +/- includeGaps
+				if includeGaps or (len(tmp) > 0):
+					res[c1].append( (i1,tmp) )
+
+		return res
 
 
 
