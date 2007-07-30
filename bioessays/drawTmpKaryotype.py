@@ -23,62 +23,31 @@ import utils.myPsOutput
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["studiedGenome", "referenceGenome"], \
-	[("orthologuesList",str,""), ("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
-	("reverse",bool,False), ("dx",float,0), ("dy",float,0), ("roundedChr",bool,False), ("landscape",bool,False), ("showText",bool,True), ("drawBorder",bool,False), \
-	("defaultColor",str,"black"), ("penColor",str,"black"), ("backgroundColor",str,"")], \
+	["lstSegments"], \
+	[("dx",float,0), ("dy",float,0), ("roundedChr",bool,False), ("showText",bool,False), ("drawBorder",bool,False), \
+	("defaultColor",str,"black"), ("penColor",str,"black"), ("centromereColor",str,"black"), ("backgroundColor",str,"")], \
 	__doc__
 )
 
+# Chargement des fichiers
 
-# Le premier genome
-genome2 = utils.myGenomes.loadGenome(noms_fichiers["referenceGenome"])
+f = open(noms_fichiers["lstSegments"], "r")
+table12 = {}
+for (i,l) in enumerate(f):
+	nbChr = i+1
+	chrom = []
+	t = l[:-1].split(";")
+	for s in t:
+		if len(s) == 0:
+			continue
+		elif len(s) == 1:
+			nbChr = s[0]
+		c = s.split()
+		chrom.extend( [[(c[0],None)]] *  int(10*float(c[1])) )
+	table12[nbChr] = list(enumerate(chrom))
+	table12[nbChr].reverse()
 
-# Si on a utilise /dev/null, c'est que le caryotype est donne sous un autre format
-if len(genome2.dicGenes) == 0:
-
-	f = open(noms_fichiers["studiedGenome"], "r")
-	table12 = {}
-	for (i,l) in enumerate(f):
-		nbChr = i+1
-		chrom = []
-		t = l[:-1].split(";")
-		for s in t:
-			if len(s) == 0:
-				continue
-			elif len(s) == 1:
-				nbChr = s[0]
-			c = s.split()
-			chrom.extend( [[(c[0],None)]] *  int(10*float(c[1])) )
-		table12[nbChr] = list(enumerate(chrom))
-		table12[nbChr].reverse()
-
-	chr1 = sorted(table12.keys())
-
-else:
-	genome1 = utils.myGenomes.loadGenome(noms_fichiers["studiedGenome"])
-
-
-if options["reverse"]:
-	x = genome1
-	genome1 = genome2
-	genome2 = x
-if options["orthologuesList"] != "":
-	genesAnc = utils.myGenomes.loadGenome(options["orthologuesList"])
-else:
-	genesAnc = None
-
-# Les chromosomes a etudier
-chr1 = genome1.lstChr
-chr2 = genome2.lstChr
-if options["includeScaffolds"]:
-	chr1.extend(genome1.lstScaff)
-	chr2.extend(genome2.lstScaff)
-if options["includeRandoms"]:
-	chr1.extend(genome1.lstRand)
-	chr2.extend(genome2.lstRand)
-
-table12 = genome1.buildOrthosTable(chr1, genome2, chr2, options["includeGaps"], genesAnc)
+chr1 = sorted(table12.keys())
 
 print >> sys.stderr, "Affichage ...",
 
@@ -99,7 +68,6 @@ else:
 y0 = 1.
 
 leniter = utils.myTools.leniter
-drawBox = utils.myPsOutput.drawBox
 
 xx = 1
 for c in chr1:
@@ -111,8 +79,8 @@ for c in chr1:
 		print "%.5f %.5f 2cm rlineto" % (0,-len(table12[c])*dy+dx)
 		print "closepath"
 
-	#if options["dy"] < 0:
-	#	dy = (hauteur-4.) / float(len(table12[c]))
+	if options["dy"] < 0:
+		dy = (hauteur-4.) / float(len(table12[c]))
 
 	if options["roundedChr"]:
 		print "initclip"
@@ -128,7 +96,7 @@ for c in chr1:
 	y = y0 + 1
 	for (col,items) in itertools.groupby(table12[c], key=trans):
 		hauteur = leniter(items) * dy
-		drawBox(xx, y, dx, hauteur, col, col)
+		utils.myPsOutput.drawBox(xx, y, dx, hauteur, col, col)
 		y += hauteur
 	
 	print "initclip"
@@ -139,6 +107,23 @@ for c in chr1:
 
 	if options["showText"]:
 		utils.myPsOutput.drawText(xx, y0, str(c), options["penColor"])
+
+	y = y0 + 1
+	for (col,items) in itertools.groupby(table12[c], key=trans):
+		hauteur = leniter(items) * dy
+		if col == "*CENTROMERE*":
+			if len(options["backgroundColor"]) == 0:
+				options["backgroundColor"] = "white"
+			utils.myPsOutput.drawBox(xx-dx/3., y, dx*5./3., hauteur, options["backgroundColor"], options["backgroundColor"])
+			print options["centromereColor"], "color"
+			print "newpath"
+			print "%.5f %.5f 2cm moveto" % (xx,y)
+			print "%.5f %.5f 2cm rlineto" % (dx,hauteur)
+			print "%.5f %.5f 2cm rlineto" % (-dx,0)
+			print "%.5f %.5f 2cm rlineto" % (dx,-hauteur)
+			print "closepath"
+			print "fill"
+		y += hauteur
 	
 	xx += (5.*dx)/3.
 

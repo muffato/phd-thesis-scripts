@@ -42,7 +42,10 @@ def loadGenome(nom):
 		def __init__(self, nom):
 			self.nom = nom
 			self.f = myTools.myOpenFile(nom, 'r')
-			self.firstLine = self.f.next()
+			try:
+				self.firstLine = self.f.next()
+			except StopIteration:
+				self.firstLine = ""
 
 		def __iter__(self):
 			return self
@@ -74,18 +77,20 @@ def loadGenome(nom):
 		pass
 	
 	# 1. Noms de chromosomes ?
+	firstElt = ""
 	try:
-		int(c[0][0])
+		firstElt = c[0]
+		int(firstElt[0])
 		withChr = True
-	except ValueError:
-		withChr = (len(c[0]) < 4)    # Les noms de genes font au minimum 4 caracteres
-		withChr |= c[0] in ["ALPHA", "BETA", "DELTA", "EPSILON", "GAMMA", "PHI"]
+	except (ValueError, IndexError):
+		withChr = (len(firstElt) < 4)    # Les noms de genes font au minimum 4 caracteres
+		withChr |= firstElt.upper().strip() in ["ALPHA", "BETA", "DELTA", "EPSILON", "GAMMA", "PHI"]
 
 	# 2. Facteur de qualite de concorde
 	try:
 		x = int(c[1])
 		conc = True
-	except Exception:
+	except (ValueError, IndexError):
 		conc = False
 		
 	return AncestralGenome(f, chromPresents=withChr, concordeQualityFactor=conc)
@@ -219,6 +224,7 @@ class Genome:
 				# +/- includeGaps
 				if includeGaps or (len(tmp) > 0):
 					res[c1].append( (i1,tmp) )
+			res[c1].reverse()
 
 		return res
 
@@ -332,6 +338,9 @@ class AncestralGenome(Genome):
 		i = 0
 		for ligne in self.f:
 			champs = ligne.split()
+
+			if len(champs) == 0:
+				continue
 
 			# Le chromosome du gene lu
 			if chromPresents:
