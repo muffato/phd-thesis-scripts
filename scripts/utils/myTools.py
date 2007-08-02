@@ -27,13 +27,23 @@ def leniter(it):
 #   Retourne l'objet FILE et le nom complet du fichier           #
 ##################################################################
 def myOpenFile(nom, mode):
-	nom = nom.replace("~", os.environ['HOME'])
-	if nom.endswith(".bz2"):
-		f = bz2.BZ2File(nom, mode)
-	elif nom.endswith(".gz"):
-		f = gzip.GzipFile(nom, mode)
+	if nom.startswith("http://") or nom.startswith("ftp://"):
+		comm = "wget %s -O -"
+		if nom.endswith(".bz2"):
+			comm += " | bunzip2"
+		elif nom.endswith(".gz"):
+			comm += " | gunzip"
+		(stdin,f,stderr) = os.popen3( comm % nom )
+		stdin.close()
+		stderr.close()
 	else:
-		f = open(nom, mode)
+		nom = nom.replace("~", os.environ['HOME'])
+		if nom.endswith(".bz2"):
+			f = bz2.BZ2File(nom, mode)
+		elif nom.endswith(".gz"):
+			f = gzip.GzipFile(nom, mode)
+		else:
+			f = open(nom, mode)
 	return f
 
 #####################################################################

@@ -5,6 +5,7 @@
 
 import sys
 import math
+import bisect
 import operator
 
 #
@@ -50,8 +51,6 @@ def getMinMax(lst):
 		elif x < mn:
 			mn = x
 	return (mn, mx)
-
-
 
 
 #

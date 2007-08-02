@@ -27,9 +27,10 @@ import utils.myTools
 # Permet de telecharger, decompresser et lire a la volee un fichier
 #
 def fileIterator(nom):
-	(stdin,stdout,stderr) = os.popen3( ("wget %s/%s -O - | gunzip" % (options["IN.EnsemblURL"],nom)).replace("XXX", str(options["releaseID"])) )
-	stdin.close()
-	stderr.close()
+	stdout = utils.myTools.myOpenFile( ("%s/%s" % (options["IN.EnsemblURL"],nom)).replace("XXX", str(options["releaseID"])) , "r")
+	#(stdin,stdout,stderr) = os.popen3( ("wget %s/%s -O - | gunzip" % (options["IN.EnsemblURL"],nom)).replace("XXX", str(options["releaseID"])) )
+	#stdin.close()
+	#stderr.close()
 	tmp = ""
 	for ligne in stdout:
 		if ligne[-2] == '\\':

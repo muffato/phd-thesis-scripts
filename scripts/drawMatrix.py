@@ -108,7 +108,7 @@ for c1 in table12:
 		xx = 1 + float(lstNum1[(c1,i1)]) * scaleX
 		for (c2,i2) in t:
 
-			if colors == None
+			if colors == None:
 				coul = options["defaultColor"]
 			else:
 				tmp = colors.getPosition(genome1.lstGenes[c1][i1])
