@@ -161,10 +161,10 @@ if options.useOutgroups:
 		dicGenomes[e] = utils.myGenomes.EnsemblGenome(options["genesFile"] % phylTree.fileName[e])
 
 # La liste des ancetres edites
+dicLinks = [(e1,e2,set(phylTree.dicLinks[e1][e2][1:-1] + [phylTree.dicParents[e1][e2]])) for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(listSpecies)]
 tmp = set()
-for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(listSpecies):
-	tmp.update(phylTree.dicLinks[e1][e2][1:-1])
-	tmp.add(phylTree.dicParents[e1][e2])
+for (_,_,s) in dicLinks:
+	tmp.update(s)
 diagEntry = {}
 genesAnc = {}
 for anc in tmp:
@@ -173,9 +173,8 @@ for anc in tmp:
 
 
 # On compare toutes les especes entre elles
-for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(listSpecies):
+for (e1,e2,toStudy) in dicLinks:
 	print >> sys.stderr, "Extraction des diagonales entre %s et %s " % (e1,e2),
-	toStudy = set(phylTree.dicLinks[e1][e2][1:-1] + [phylTree.dicParents[e1][e2]])
 	for ((c1,d1),(c2,d2)) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \
 		options["fusionThreshold"], options["sameStrand"] and (e1 not in genesAnc) and (e2 not in genesAnc), options["keepOnlyOrthos"]):
 		

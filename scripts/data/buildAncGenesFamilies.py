@@ -13,10 +13,8 @@ Affine la liste en exhibant les genes specifiques d'une lignee et ceux qui
 
 # Librairies
 import sys
-import math
-import operator
-import utils.myGenomes
 import utils.myTools
+import utils.myGenomes
 import utils.myPhylTree
 
 
@@ -28,19 +26,28 @@ import utils.myPhylTree
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("ancestr",str,""), ("recursiveConstruction",bool,True), ("homologyFilter",str,"ortholog_one2one,ortholog_one2many,ortholog_many2many"), ("withSubLinks",bool,True), \
-	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
-	("one2oneFile",str,"~/work/data/ancGenes/one2one.%s.list.bz2"), \
-	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
-	("orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
-	("paras2File",str,"~/work/data/orthologs/paras.%s.%s.list.bz2"), \
-	("paras1File",str,"~/work/data/paralogs/paras.%s.list.bz2")], \
-	__doc__ \
-)
+	[("ancestr",str,""), ("recursiveConstruction",bool,True), ("OUT.directory",str,""), \
+	("OUT.ancGenesFile",str,"ancGenes/ancGenes.%s.list.bz2"), \
+	("OUT.one2oneFile",str,"ancGenes/one2one.%s.list.bz2"), \
+	("IN.genesFile",str,"genes/genes.%s.list.bz2"), \
+	("IN.orthosFile",str,"orthologs/orthos.%s.%s.list.bz2"), \
+	
+
+# L'arbre phylogenetique
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+
+OUTancGenesFile = os.path.join(options["OUT.directory"], options["OUT.ancGenesFile"])
+OUTone2oneFile = os.path.join(options["OUT.directory"], options["OUT.one2oneFile"])
+INgenesFile = os.path.join(options["OUT.directory"], options["IN.genesFile"])
+INorthosFile = os.path.join(options["OUT.directory"], options["IN.orthosFile"])
+for dir in [OUTancGenesFile, OUTone2oneFile, INgenesFile, INorthosFile]:
+	try:
+		os.makedirs(os.path.dirname(dir))
+	except OSError:
+		pass
 
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-phylTree.loadAllSpeciesSince(options["ancestr"], options["genesFile"])
-homologies = set(options["homologyFilter"].split(","))
+phylTree.loadAllSpeciesSince(options["ancestr"], INgenesFile)
 
 def buildAncFile(anc, lastComb):
 
@@ -83,7 +90,7 @@ def buildAncFile(anc, lastComb):
 				continue
 
 			# Si on ne veut pas les apparent par exemple
-			if champs[-1] in homologies:
+			if champs[-1] in ["ortholog_one2one","ortholog_one2many","ortholog_many2many"]:
 				combin.addLink([gA, gB])
 
 		f.close()
@@ -97,22 +104,12 @@ def buildAncFile(anc, lastComb):
 	n = len(phylTree.species[anc])
 	print >> sys.stderr, "Construction des familles d'orthologues de %s " % anc,
 	for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(phylTree.species[anc]):
-		f = options["orthosFile"] % (phylTree.fileName[e1],phylTree.fileName[e2])
-		if phylTree.dicParents[e1][e2] == anc:
-			doLoad(f, phylTree.ages[anc], comb)
-		elif options["withSubLinks"]:
-			doLoad(f, phylTree.ages[anc], comb)
+		f = INorthosFile % (phylTree.fileName[e1],phylTree.fileName[e2])
+		doLoad(f, phylTree.ages[anc], comb)
+		doLoad(f, phylTree.ages[anc], comb)
 		utils.myTools.stderr.write('.')
 	print >> sys.stderr, " OK"
 
-	# On cherche a clusteriser les familles transitives
-	if "within_species_paralog" in homologies:
-		print >> sys.stderr, "Insertion des genes paralogues intra-especes ",
-		for e in phylTree.species[anc]:
-			doLoad(options["paras1File"] % phylTree.fileName[e], phylTree.ages[anc]-1, comb)
-			utils.myTools.stderr.write('.')
-		print >> sys.stderr, " OK"
-		
 	# 2. On affiche les groupes d'orthologues
 	print >> sys.stderr, "Construction des fichiers de", anc, "..."
 	
@@ -150,8 +147,8 @@ def buildAncFile(anc, lastComb):
 			add += 1
 
 	# On ecrit les fichiers
-	f = utils.myTools.myOpenFile(options["ancGenesFile"] % phylTree.fileName[anc], 'w')
-	ff = utils.myTools.myOpenFile(options["one2oneFile"] % phylTree.fileName[anc], 'w')
+	f = utils.myTools.myOpenFile(OUTancGenesFile % phylTree.fileName[anc], 'w')
+	ff = utils.myTools.myOpenFile(OUTone2oneFile % phylTree.fileName[anc], 'w')
 	nbA = 0
 	nbO = 0
 	for c in res:

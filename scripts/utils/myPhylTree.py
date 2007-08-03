@@ -20,6 +20,10 @@ class PhylogeneticTree:
 			lignes = []
 			for ligne in f:
 
+				# Un commentaire
+				if '#' in ligne:
+					continue
+
 				# On enleve le \n final et on coupe suivant les \t
 				l = ligne[:-1].split('\t')
 				

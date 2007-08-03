@@ -1,10 +1,7 @@
 #! /users/ldog/muffato/python -OO
 
 __doc__ = """
-	Telecharge depuis le site d'Ensembl les fichiers utiles pour creer:
-		- les listes de genes
-		- les listes d'orthologues
-		- les listes de paralogues
+	Telecharge depuis le site d'Ensembl les fichiers d'homologie
 """
 
 
@@ -15,8 +12,8 @@ __doc__ = """
 # Librairies
 import os
 import sys
-import utils.myPhylTree
 import utils.myTools
+import utils.myPhylTree
 
 
 #############
@@ -28,9 +25,6 @@ import utils.myTools
 #
 def fileIterator(nom):
 	stdout = utils.myTools.myOpenFile( ("%s/%s" % (options["IN.EnsemblURL"],nom)).replace("XXX", str(options["releaseID"])) , "r")
-	#(stdin,stdout,stderr) = os.popen3( ("wget %s/%s -O - | gunzip" % (options["IN.EnsemblURL"],nom)).replace("XXX", str(options["releaseID"])) )
-	#stdin.close()
-	#stderr.close()
 	tmp = ""
 	for ligne in stdout:
 		if ligne[-2] == '\\':
@@ -48,9 +42,6 @@ def mkEnsemblPhylAdjustment(oldAnc, theoryAnc):
 
 	if (theoryAnc == "Boreoeutheria") and (oldAnc == "Eutheria"):
 		return "Boreoeutheria"
-
-	if (theoryAnc == "FishInterm") and (oldAnc == "Percomorpha"):
-		return "FishInterm"
 
 	if oldAnc == "Smegmamorpha":
 		return "Percomorpha"
@@ -104,14 +95,14 @@ def proceedFile(fin, fout, foutR):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("ancestr",str,""), ("",str,""), \
-	("OUT.genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
-	("OUT.fullGenesFile",str,"~/work/data/genes/full/genes.%s.list.bz2"), \
-	("OUT.orthosFile",str,"~/work/data/orthologs/orthos.%s.%s.list.bz2"), \
-	("IN.UCSC-URL",str,"http://hgdownload.cse.ucsc.edu/goldenPath/XX/database/"), \
-	("IN.genesFile",str,"genscan.txt.gz"), \
-	("IN.parasFile",str,"xenoRefFlat.txt.gz"), \
-	("IN.orthosFile",str,"compara_mart_homology_XXX/compara_%s_%s_orthologs__orthologs__main.txt.table.gz")], \
+	[("releaseID",int,[42,43,44,45]), ("OUT.directory",str,""), \
+	("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mart_XXX/data/mysql/"), \
+	("IN.parasFile",str,"compara_mart_homology_XXX/compara_%s_%s_paralogs__paralogs__main.txt.table.gz"), \
+	("IN.orthosFile",str,"compara_mart_homology_XXX/compara_%s_%s_orthologs__orthologs__main.txt.table.gz"), \
+	("OUT.orthosFile",str,"orthologs/orthos.%s.%s.list.bz2"), \
+	("OUT.paras2File",str,"orthologs/paras.%s.%s.list.bz2"), \
+	("OUT.paras1File",str,"paralogs/paras.%s.list.bz2"), \
+	], \
 	__doc__ \
 )
 
@@ -120,59 +111,40 @@ def proceedFile(fin, fout, foutR):
 # L'arbre phylogenetique
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
-
-# Les fichiers de genes
-for esp in phylTree.listSpecies:
-	print >> sys.stderr, "Telechargement de la liste des genes de %s ..." % esp,
-	fo1 = utils.myTools.myOpenFile(options["OUT.genesFile"] % phylTree.fileName[esp], 'w')
-	fo2 = utils.myTools.myOpenFile(options["OUT.fullGenesFile"] % phylTree.fileName[esp], 'w')
-	tmp = esp.lower().split()
-	nb1 = 0
-	nb2 = 0
-	for ligne in fileIterator(options["IN.genesFile"] % (tmp[0][0] + tmp[1])):
-		c = ligne.split('\t')
-		if ("RNA" not in c[3]) and ("pseudogene" not in c[3]):
-			print >> fo1, "\t".join( [c[11],c[7],c[8],c[9],c[1]] )
-			nb1 += 1
-		print >> fo2, "\t".join( [c[11],c[7],c[8],c[9],c[1]] )
-		nb2 += 1
-	
-	fo1.close()
-	fo2.close()
-	print >> sys.stderr, "%d/%d genes OK" % (nb1,nb2)
-
+OUTorthosFile = os.path.join(options["OUT.directory"], options["OUT.orthosFile"])
+OUTparas2File = os.path.join(options["OUT.directory"], options["OUT.paras2File"])
+OUTparas1File = os.path.join(options["OUT.directory"], options["OUT.paras1File"])
+for dir in [OUTorthosFile, OUTparas1File, OUTparas2File]:
+	try:
+		os.makedirs(os.path.dirname(dir))
+	except OSError:
+		pass
 
 
 # Les noms utilises dans les fichiers "Homo Sapiens" -> "hsap"
 nomReel = []
-dicNomsReels = {}
 for esp in sorted(phylTree.listSpecies):
 	tmp = esp.lower().split()
 	tmp = tmp[0][0] + tmp[1][:3]
-	nomReel.append(tmp)
-	dicNomsReels[tmp] = esp
-
+	nomReel.append( (tmp,esp) )
 
 # On genere les fichiers d'homologues
-for (esp1,esp2) in utils.myTools.myIterator.tupleOnUpperList(nomReel):
-
-	esp1B = dicNomsReels[esp1]
-	esp2B = dicNomsReels[esp2]
+for ((esp1,esp1B),(esp2,esp2B)) in utils.myTools.myIterator.tupleOnUpperList(nomReel):
 
 	theoryAnc = phylTree.dicParents[esp1B][esp2B]
 		
 	if esp1 == esp2:
 		print >> sys.stderr, "Telechargement de la liste des genes paralogues de %s ..." % esp1B,
-		nb,_ = proceedFile(options["IN.parasFile"] % (esp1,esp1), options["OUT.paras1File"] % phylTree.fileName[esp1B], None)
+		nb,_ = proceedFile(options["IN.parasFile"] % (esp1,esp1), OUTparas1File % phylTree.fileName[esp1B], None)
 		print >> sys.stderr, "%d genes OK" % nb
 
 	else:
 		print >> sys.stderr, "Telechargement de la liste des genes orthologues entre %s et %s ..." % (esp1B,esp2B),
-		nb1,nb2 = proceedFile(options["IN.orthosFile"] % (esp1,esp2), options["OUT.orthosFile"] % (phylTree.fileName[esp1B],phylTree.fileName[esp2B]), options["OUT.orthosFile"] % (phylTree.fileName[esp2B],phylTree.fileName[esp1B]))
+		nb1,nb2 = proceedFile(options["IN.orthosFile"] % (esp1,esp2), OUTorthosFile % (phylTree.fileName[esp1B],phylTree.fileName[esp2B]), OUTorthosFile % (phylTree.fileName[esp2B],phylTree.fileName[esp1B]))
 		print >> sys.stderr, "%d/%d genes OK" % (nb2, nb1)
 
 		print >> sys.stderr, "Telechargement de la liste des genes paralogues entre %s et %s ..." % (esp1B,esp2B),
-		nb,_ = proceedFile(options["IN.parasFile"] % (esp1,esp2), options["OUT.paras2File"] % (phylTree.fileName[esp1B],phylTree.fileName[esp2B]), options["OUT.paras2File"] % (phylTree.fileName[esp2B],phylTree.fileName[esp1B]))
+		nb,_ = proceedFile(options["IN.parasFile"] % (esp1,esp2), OUTparas2File % (phylTree.fileName[esp1B],phylTree.fileName[esp2B]), OUTparas2File % (phylTree.fileName[esp2B],phylTree.fileName[esp1B]))
 		print >> sys.stderr, "%d genes OK" % nb
 	
 
