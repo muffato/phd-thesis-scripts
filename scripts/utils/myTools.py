@@ -85,6 +85,52 @@ class myIterator:
 		dividers = [reduce(operator.mul, _tmp[-x-1:]) for x in range_len_args][::-1]
 		for n in xrange(reduce(operator.mul, lengths)):
 			yield tuple( args[r][(n/dividers[r])%lengths[r]] for r in range_len_args )
+	
+	
+	
+	def _buildSubsets(lst, n):
+		
+		# Cas special
+		if n < 2:
+			return [set([x]) for x in lst]
+		
+		ens = buildSubsets(lst, n-1)
+		res = []
+		for s in ens:
+			m = max(s)
+			for x in lst:
+				if x <= m:
+					continue
+				ss = s.union([x])
+				if len(ss) == n:
+					res.append(ss)
+		return res
+	
+	def _buildSubsets2(lst, n):
+		if type(lst) != set:
+			lst = frozenset(lst)
+		
+		# Cas special
+		if n < 2:
+			return [set([x]) for x in lst]
+			#for x in lst:
+			#	yield set([x])
+		
+		ens = _buildSubsets2(lst, n-1)
+		res = []
+		for s in ens:
+			m = max(s)
+			for x in lst:
+				if x <= m:
+					continue
+				ss = s.union([x])
+				if len(ss) == n:
+					res.append(ss)
+		return res
+
+	buildSubsets = staticmethod(_buildSubsets)
+	buildSubsets2 = staticmethod(_buildSubsets2)
+
 
 	tupleOnWholeList = staticmethod(_tupleOnWholeList)
 	tupleOnUpperList = staticmethod(_tupleOnUpperList)

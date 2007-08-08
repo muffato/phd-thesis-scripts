@@ -46,12 +46,6 @@ def mkEnsemblPhylAdjustment(oldAnc, theoryAnc):
 	if oldAnc == "Smegmamorpha":
 		return "Percomorpha"
 
-	if oldAnc == "Coelomata":
-		return "Bilateria"
-	
-	if (theoryAnc == "Ecdysozoa") and (oldAnc == "Bilateria"):
-		return "Ecdysozoa"
-	
 	return oldAnc
 
 
@@ -64,29 +58,6 @@ def proceedFile(fin, fout, foutR):
 		foutR = utils.myTools.myOpenFile(foutR, 'w')
 	nb1 = 0
 	nb2 = 0
-	try:
-		fin = fileIterator(fin)
-		c = fin.next().split('\t')
-		i1 = c.index(esp1B, 2) # Pour eviter le pb des genes paralogues pour lesquels anc=esp
-		i2 = c.index(esp2B, i1+1)
-		while True:
-			nb1 += 1
-			newAnc = mkEnsemblPhylAdjustment(c[1], theoryAnc)
-			if newAnc == theoryAnc:
-				nb2 += 1
-			
-			if options["releaseID"] in [44,45]:
-				r = (c[7],c[4],c[24], c[i1+15],c[i1+12],c[i1+32], newAnc, c[i1+4],c[i1+5], c[i2+4],c[i2+5], c[0])
-			else:
-				r = (c[3],c[25],c[44], c[i2-8],c[i2+14],c[i2+33], newAnc, c[29],c[30], c[i2+18],c[i2+19], c[0])
-			
-			print >> fout, "\t".join(r)
-			if foutR != None:
-				print >> foutR, "\t".join([r[i] for i in (3,4,5, 0,1,2, 6, 9,10, 7,8, 11)])
-			
-			c = fin.next().split('\t')
-	except StopIteration:
-		pass
 	fout.close()
 	if foutR != None:
 		foutR.close()

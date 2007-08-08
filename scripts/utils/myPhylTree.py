@@ -1,9 +1,11 @@
 
 import sys
 import myTools
-import myMaths
 import myGenomes
 
+
+dgi = dict.__getitem__
+dsi = dict.__setitem__
 
 #############################################
 # Cette classe gere un arbre phylogenetique #
@@ -64,84 +66,122 @@ class PhylogeneticTree:
 				if tmp == None:
 					break
 				# On stocke (nom_du_fils, temps_d_evolution)
-				fils.append( (tmp, currLine[2]-self.ages[tmp]) )
-				self.parent[tmp] = currLine[1][0]
+				fils.append( (tmp, currLine[2]-dgi(self.ages,tmp)) )
+				dsi(self.parent, tmp, currLine[1][0])
+			
+			n = currLine[1][0]
 			
 			# Un seul fils, on remonte le noeud
 			if len(fils) == 1:
 				return fils[0][0]
 			# Plusieurs fils, on les enregistre
 			elif len(fils) > 1:
-				self.items[currLine[1][0]] = fils
+				dsi(self.items, n, fils)
 
 			# Info standard
-			self.commonNames[currLine[1][0]] = currLine[1][1:]
-			self.ages[currLine[1][0]] = currLine[2]
+			dsi(self.commonNames, n, currLine[1][1:])
+			dsi(self.ages, n, currLine[2])
 			for s in currLine[1]:
-				self.officialName[s] = currLine[1][0]
+				self.officialName[s] = n
 				
-			return currLine[1][0]
-		
+			return n
 		
 		# La procedure d'analyse de l'arbre
 		def recInitialize(node):
-			self.branchesSpecies[node] = []
-			self.species[node] = []
-			self.branches[node] = []
-			self.outgroupNode[node] = None
 			if node in self.items:
+				dsi(self.outgroupNode, node, None)
+				b = []
+				bs = []
+				s = []
 				self.listAncestr.append(node)
-				for (f,_) in self.items[node]:
+				for (f,_) in dgi(self.items, node):
 					recInitialize(f)
-					self.branches[node].append(f)
-					self.branchesSpecies[node].append(self.species[f])
-					self.species[node].extend(self.species[f])
-				for f in self.branches[node]:
-					self.outgroupNode[f] = self.branches[node][:]
-					self.outgroupNode[f].remove(f)
-					
+					b.append(f)
+					x = dgi(self.species, f)
+					bs.append(x)
+					s.extend(x)
+				dsi(self.branches, node, b)
+				dsi(self.branchesSpecies, node, bs)
+				dsi(self.species, node, s)
+				for f in b:
+					x = b[:]
+					x.remove(f)
+					dsi(self.outgroupNode, f, x)
 			else:
+				dsi(self.branchesSpecies, node, [node])
+				dsi(self.species, node, [node])
+				dsi(self.branches, node, [])
+				dsi(self.outgroupNode, node, None)
 				self.listSpecies.append(node)
-				self.branchesSpecies[node].append(node)
-				self.species[node].append(node)
 		
 		def buildPhylLinks():
 			
+			esp = self.commonNames.keys()
+			nb = len(esp)
+			tab = range(nb)
+			dic = {}
+			tmpPar = range(nb)
+			for i in tab:
+				dic[esp[i]] = i
+			root = dic[self.root]
+			for i in tab:
+				if i != root:
+					tmpPar[i] = dic[dgi(self.parent,esp[i])]
+
 			# Initialisation de la table de tous les liens entre les objets
-			self.dicLinks = self.newCommonNamesMapperInstance()
-			self.dicParents = self.newCommonNamesMapperInstance()
-			for f1 in self.commonNames:
-				self.dicLinks[f1] = self.newCommonNamesMapperInstance()
-				self.dicParents[f1] = self.newCommonNamesMapperInstance()
-				for f2 in self.commonNames:
-					self.dicLinks[f1][f2] = []
-				self.dicLinks[f1][f1] = [f1]
-				self.dicParents[f1][f1] = f1
+			dicLinks = [[[] for _ in tab] for _ in tab]
+			dicParents = [[None for _ in tab] for _ in tab]
+			for i in tab:
+				dicLinks[i][i] = [i]
+				dicParents[i][i] = i
 			
 			# Remplissage de chaque objet avec tous ses parents et vice-versa
-			for f1 in self.commonNames:
+			for f1 in tab:
 				parent = f1
-				while parent != self.root:
+				while parent != root:
 					f2 = parent
-					parent = self.parent[f2]
-					self.dicLinks[f1][parent] = self.dicLinks[f1][f2] + [parent]
-					self.dicLinks[parent][f1] = [parent] + self.dicLinks[f2][f1]
-					self.dicParents[f1][parent] = self.dicParents[parent][f1] = parent
-					
+					parent = tmpPar[f2]
+					dicLinks[f1][parent] = dicLinks[f1][f2] + [parent]
+					dicLinks[parent][f1] = [parent] + dicLinks[f2][f1]
+					dicParents[f1][parent] = dicParents[parent][f1] = parent
+
 			# Liens entre objets de branches differentes
-			tmp = set()
-			for f1 in self.commonNames:
-				for f2 in self.commonNames:
-					if len(self.dicLinks[f1][f2]) != 0:
+			todo = []
+			for f1 in tab:
+				for f2 in tab:
+					if len(dicLinks[f1][f2]) != 0:
 						continue
-					for f3 in self.commonNames:
-						if len(set(self.dicLinks[f1][f3]).intersection(self.dicLinks[f3][f2])) == 1:
-							tmp.add( (f1, f2, f3) )
+					for f3 in tab:
+						f = False
+						try:
+							# Pour continuer il faut que les extremites concordent
+							if (dicLinks[f1][f3][-1] == dicLinks[f3][f2][0]):
+								f = True
+								# Mais pas trop
+								if (dicLinks[f1][f3][-2] == dicLinks[f3][f2][1]):
+									f = False
+						except Exception:
+							pass
+						if f:
+							# Pour ne pas que les modifications se perturbent entre elles
+							todo.append( (f1,f2,f3) )
 							break
-			# On enregistre le tout
-			for (f1, f2, f3) in tmp:
-				self.dicLinks[f1][f2] = self.dicLinks[f1][f3][:-1] + self.dicLinks[f3][f2]
-				self.dicParents[f1][f2] = f3
+			
+			for (f1,f2,f3) in todo:
+				dicLinks[f1][f2] = dicLinks[f1][f3][:-1]  + dicLinks[f3][f2]
+				dicParents[f1][f2] = f3
+			
+			# Le dictionnaire final
+			self.dicLinks = self.newCommonNamesMapperInstance()
+			self.dicParents = self.newCommonNamesMapperInstance()
+			for i in tab:
+				t1 = self.newCommonNamesMapperInstance()
+				t2 = self.newCommonNamesMapperInstance()
+				dsi(self.dicLinks, esp[i], t1)
+				dsi(self.dicParents, esp[i], t2)
+				for j in tab:
+					dsi(t1, esp[j], [esp[x] for x in dicLinks[i][j]])
+					dsi(t2, esp[j], esp[dicParents[i][j]])
 				
 		self.officialName = {}
 		self.commonNames = self.newCommonNamesMapperInstance()
@@ -168,13 +208,13 @@ class PhylogeneticTree:
 		# Les especes qui peuvent servir d'outgroup
 		self.outgroupSpecies = self.newCommonNamesMapperInstance()
 		for node in self.listAncestr:
-			self.outgroupSpecies[node] = list(set(self.listSpecies).difference(self.species[node]))
+			dsi(self.outgroupSpecies, node, list(set(self.listSpecies).difference(dgi(self.species,node))))
 		# Les noms a donner aux fichiers
 		self.fileName = self.newCommonNamesMapperInstance()
 		for n in self.listAncestr:
-			self.fileName[n] = n.replace(' ', '_').replace('/', '-')
+			dsi(self.fileName, n, n.replace(' ', '_').replace('/', '-'))
 		for n in self.listSpecies:
-			self.fileName[n] = n.replace(' ', '.')
+			dsi(self.fileName, n, n.replace(' ', '.'))
 
 		buildPhylLinks()
 
@@ -189,10 +229,10 @@ class PhylogeneticTree:
 		class commonNamesMapper(dict):
 
 			def __getitem__(d, name):
-				return dict.__getitem__(d, self.officialName.get(name, name))
+				return dgi(d, self.officialName.get(name, name))
 			
 			def __setitem__(d, name, value):
-				return dict.__setitem__(d, self.officialName.get(name, name), value)
+				return dsi(d, self.officialName.get(name, name), value)
 			
 		return commonNamesMapper()
 		

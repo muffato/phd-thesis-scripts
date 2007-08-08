@@ -16,8 +16,8 @@ import utils.myPhylTree
 	["phylTree.conf"], \
 	[("species",str,""), ("database",str,""), ("OUT.directory",str,""), \
 	("IN.UCSC-URL",str,"http://hgdownload.cse.ucsc.edu/goldenPath/XXX/database/xenoRefFlat.txt.gz"), \
-	("OUT.genesFile",str,"genes.%s.list.bz2"), \
-	("OUT.fullGenesFile",str,"full/genes.%s.list.bz2"), \
+	("OUT.genesFile",str,"genes/genes.%s.list.bz2"), \
+	("OUT.fullGenesFile",str,"genes/full/genes.%s.list.bz2"), \
 	("OUT.xrefFile",str,"xref/xref.%s.list.bz2"), \
 	], \
 	__doc__ \
@@ -44,6 +44,17 @@ for ligne in utils.myTools.myOpenFile(options["IN.UCSC-URL"].replace("XXX", opti
 	t = [intern(x) for x in ligne[:-1].split('\t')]
 	combGenes[t[2]].append( (int(t[4]),int(t[5]),t[3], set([t[0],t[1]]) ) )
 
+# Le dictionnaire xref
+lstXref = set()
+# D'abord charger celles deja connnues
+print >> sys.stderr, "Chargement des annotations xref de reference ",
+for esp in phylTree.listSpecies:
+	for ligne in utils.myTools.myOpenFile(OUTxrefFile % phylTree.fileName[esp], 'r'):
+		lstXref.update( ligne[:-1].split('\t')[3:] )
+	sys.stderr.write('.')
+print >> sys.stderr, " OK"
+
+
 # On prend les xref chevauchants
 print >> sys.stderr, "Combinaison des alignements ...",
 genes = []
@@ -59,7 +70,8 @@ for (c,comb) in combGenes.iteritems():
 				del comb[0]
 			else:
 				break
-		genes.append( (c,x1,x2,strand,list(reflink)) )
+		# On ecrit les notres seulement si elle sont deja connus
+		genes.append( (c,x1,x2,strand,list(reflink.intersection(lstXref))) )
 del combGenes
 noms = ["MYGENE.%s.%06d" % (options["database"],i+1) for i in xrange(len(genes))]
 print >> sys.stderr, "%d genes OK" % len(genes)
@@ -70,7 +82,7 @@ esp = options["species"]
 print >> sys.stderr, "Ecriture des fichiers ...",
 
 foG = utils.myTools.myOpenFile(OUTgenesFile % phylTree.fileName[esp], 'w')
-foG2 = utils.myTools.myOpenFile(OUTgenesFile % phylTree.fileName[esp], 'w')
+foG2 = utils.myTools.myOpenFile(OUTfullGenesFile % phylTree.fileName[esp], 'w')
 foX = utils.myTools.myOpenFile(OUTxrefFile % phylTree.fileName[esp], 'w')
 for (i,(c,x1,x2,strand,reflink)) in enumerate(genes):
 	print >> foG, "\t".join([str(x) for x in [c,x1,x2,strand,noms[i]]])

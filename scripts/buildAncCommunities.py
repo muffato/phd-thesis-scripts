@@ -42,7 +42,7 @@ def loadDiagsFile(nom, ancName):
 		if len(ct) == 5 and len(ct[4]) > 0:
 			esp.update( set([tuple(x.split('/')) for x in ct[4].split('|')]) )
 		esp = set([(phylTree.officialName[e],c) for (e,c) in esp if (e in phylTree.officialName) and ('Un' not in c)])
-		lst.append( (d, esp) )
+		lst.append( (d,esp,set([e for (e,_) in esp])) )
 
 	f.close()
 	print >> sys.stderr, "OK (%d diagonales)" % len(lst)
@@ -67,7 +67,7 @@ def checkLonelyGenes():
 	print >> sys.stderr, "Ajout des genes solitaires ...",
 	# Les genes seuls vont devenir des diagonales de 1
 	genesSeuls = set(xrange(len(lstGenesAnc)))
-	for (d,_) in lstDiags:
+	for (d,_,_) in lstDiags:
 		genesSeuls.difference_update(d)
 	nb = 0
 	new = utils.myTools.defaultdict(list)
@@ -103,7 +103,7 @@ def checkLonelyGenes():
 			nb += 1
 	
 	if len(lstDiags) + len(new) < 50000:
-		lstDiags.extend([(d,set(e)) for (e,d) in new.iteritems()])
+		lstDiags.extend([(d,set(esp),set([e for (e,_) in esp])) for (esp,d) in new.iteritems()])
 		print >> sys.stderr, "%d (%d) OK" % (nb,len(new))
 	else:
 		print >> sys.stderr, "too many genes !"
@@ -126,10 +126,11 @@ def checkAlreadyBuildAnc():
 			print >> sys.stderr, "Not found"
 
 	print >> sys.stderr, "Mise a jour des chromosomes des diagonales ...",
-	for (d,e) in lstDiags:
+	for (d,esp,esp2) in lstDiags:
 		g = utils.myMaths.flatten([lstGenesAnc[i].names for i in d])
 		for f in genAlready:
-			e.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
+			esp.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
+			esp2.update([f for s in g if s in genAlready[f].dicGenes])
 	del genAlready
 	print >> sys.stderr, "OK"
 
@@ -233,11 +234,16 @@ for e in dicPoidsEspeces:
 
 
 def calcScore(i1, i2):
+	
+	(_,ec1,e1) = lstDiags[i1]
+	(_,ec2,e2) = lstDiags[i2]
+	comparedEsp = e1.intersection(e2)
+	communEsp = set([e for (e,_) in ec1.intersection(ec2)])
 
-	(_,e1) = lstDiags[i1]
-	(_,e2) = lstDiags[i2]
-	comparedEsp = set([e for (e,_) in e1]).intersection([e for (e,_) in e2])
-	communEsp = set([e for (e,_) in e1.intersection(e2)])
+	#(_,e1) = lstDiags[i1]
+	#(_,e2) = lstDiags[i2]
+	#comparedEsp = set([e for (e,_) in e1]).intersection([e for (e,_) in e2])
+	#communEsp = set([e for (e,_) in e1.intersection(e2)])
 
 	propF = range(len(filsAnc))
 		
@@ -278,26 +284,25 @@ def calcScore(i1, i2):
 	
 def calcScore2(i1, i2):
 
-	(_,e1) = lstDiags[i1]
-	(_,e2) = lstDiags[i2]
-	comparedEsp = set([e for (e,_) in e1]).intersection([e for (e,_) in e2])
-	communEsp = set([e for (e,_) in e1.intersection(e2)])
+	(_,ec1,e1) = lstDiags[i1]
+	(_,ec2,e2) = lstDiags[i2]
+	#comparedEsp = set([e for (e,_) in e1]).intersection([e for (e,_) in e2])
+	#communEsp = set([e for (e,_) in e1.intersection(e2)])
 
 	values = {}
-	for e in comparedEsp:
+	#for e in comparedEsp:
+	for e in e1.intersection(e2):
 		values[e] = espIncertitude[e]
-	for e in communEsp:
+	#for e in communEsp:
+	#communEsp = set([e for (e,_) in e1.intersection(e2)])
+	for (e,_) in ec1.intersection(ec2):
 		values[e] = espCertitude[e]
 
-	propF = [phylTree.calcDist(values, f) for f in filsEsp]
-	if len(outgroup) == 0:
-		propOut = 0
-	else:
-		propOut = phylTree.calcDist(values, phylTree.parent[options["ancestr"]])
+	prop = [phylTree.calcDist(values, f) for f in filsAnc]
+	if len(outgroup) != 0:
+		prop.append( phylTree.calcDist(values, phylTree.parent[options["ancestr"]]) )
 	
-	s = sum(propF) * propOut
-	for (f1,f2) in utils.myTools.myIterator.tupleOnStrictUpperList(propF):
-		s += f1 * f2
+	s = sum( [f1 * f2 for (f1,f2) in utils.myTools.myIterator.tupleOnStrictUpperList([x for x in prop if x != None])] )
 
 	return s
 

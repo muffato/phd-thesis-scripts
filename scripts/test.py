@@ -13,22 +13,79 @@ A partir de toutes les diagonales extraites entre les especes,
 # Librairies
 import os
 import sys
-import math
-import time
+#import math
+#import time
 import random
 import operator
-import utils.myGenomes
+#import utils.myGenomes
 import utils.myTools
-import utils.myMaths
-import utils.myDiags
-import utils.myPsOutput
+#import utils.myMaths
+#import utils.myDiags
+#import utils.myPsOutput
 import utils.myPhylTree
-#import utils.walktrap.myCommunitiesProxy
-import utils.walktrap
-from collections import defaultdict
+#import utils.walktrap
+#from collections import defaultdict
+
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
+
+print phylTree.dicParents['Boreoeutheria']['Oryzias latipes']
+
+sys.exit(0)
+
+def _buildSubsets(lst, n):
+	
+	# Cas special
+	if n < 2:
+		return [set([x]) for x in lst]
+	
+	ens = _buildSubsets(lst, n-1)
+	res = []
+	for s in ens:
+		m = max(s)
+		for x in lst:
+			if x <= m:
+				continue
+			ss = s.union([x])
+			if len(ss) == n:
+				res.append(ss)
+	return res
+
+def _buildSubsets2(lst, n):
+	
+	if type(lst) != set:
+		lst = set(lst)
+
+	# Cas special
+	if n < 2:
+		for x in lst:
+			yield frozenset([x])
+	
+	for s in _buildSubsets2(lst, n-1):
+		for x in lst.difference(s):
+			yield s.union([x])
+
+
+def _buildSubsets3(lst, n):
+	for x in utils.myTools.myIterator.tupleOnManyLists(* ([lst] * n) ):
+		if len(frozenset(x)) == n:
+			yield x
+
+def _buildSubsets4(lst, n):
+	lengths = [len(lst)] * n
+	_tmp = lengths + [1] # append multiplicative identity
+	range_len_args = range(n)
+	dividers = [reduce(operator.mul, _tmp[-x-1:]) for x in range_len_args][::-1]
+	for i in xrange(reduce(operator.mul, lengths)):
+		s = set( lst[(i/dividers[r])%lengths[r]] for r in range_len_args )
+		if len(s) == n:
+			yield s
+	
+print len(list(_buildSubsets4(range(50),5)))
+
+
+sys.exit(0)
 
 comb = utils.myTools.myCombinator([])
-random.seed(sys.argv[1])
 
 ll = []
 for i in xrange(10000):

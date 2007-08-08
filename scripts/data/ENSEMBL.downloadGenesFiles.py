@@ -47,9 +47,9 @@ def fileIterator(nom):
 	[("releaseID",int,[42,43,44,45]), ("OUT.directory",str,""), \
 	("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mart_XXX/data/mysql/"), \
 	("IN.genesFile",str,"ensembl_mart_XXX/%s_gene_ensembl__gene__main.txt.table.gz"), \
-	("IN.xrefFile",str,"ensembl_mart_XXX/%s_gene_ensembl__concat_xref__dm.txt.table.gz"), \
-	("OUT.genesFile",str,"genes.%s.list.bz2"), \
-	("OUT.fullGenesFile",str,"full/genes.%s.list.bz2"), \
+	("IN.xrefFile",str,"ensembl_mart_XXX/%s_gene_ensembl__xref_{refseq_dna,pdb,unigene,refseq_peptide,mirbase,rfam,uniprot_swissprot,embl,protein_id,uniprot_accession,uniprot_id,uniprot_sptrembl,hugo,xref_ipi}__dm.txt.table.gz"), \
+	("OUT.genesFile",str,"genes/genes.%s.list.bz2"), \
+	("OUT.fullGenesFile",str,"genes/full/genes.%s.list.bz2"), \
 	("OUT.xrefFile",str,"xref/xref.%s.list.bz2"), \
 	], \
 	__doc__ \
@@ -100,15 +100,14 @@ for (tmp,esp) in nomReel:
 	
 	# Les references dans xref
 	print >> sys.stderr, "Telechargement des annotations xref de %s ..." % esp,
-	fo = utils.myTools.myOpenFile(OUTxrefFile % phylTree.fileName[esp], 'w')
-	nb = 0
+	dic = utils.myTools.defaultdict(set)
 	for ligne in fileIterator(options["IN.xrefFile"] % tmp):
 		c = ligne.split("\t")
-		res = set([x for x in c[6:] if (x != "\\N") and (len(x) > 0) and (":" not in x) and (";" not in x)])
-		if len(res) > 0:
-			print >> fo, "\t".join([c[1],c[3],c[5]] + list(res))
-			nb += 1
+		dic[(c[1],c[3],c[5])].update( [x for x in c[6:] if (x != "\\N") and (len(x) > 0)] )
 	
+	fo = utils.myTools.myOpenFile(OUTxrefFile % phylTree.fileName[esp], 'w')
+	for ((gg,gt,gp),xref) in dic.iteritems():
+		print >> fo, "\t".join([gg,gt,gp] + list(xref))
 	fo.close()
-	print >> sys.stderr, "%d annotations xref" % nb
+	print >> sys.stderr, "%d annotations xref" % len(dic)
 

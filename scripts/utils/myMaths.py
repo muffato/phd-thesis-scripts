@@ -5,8 +5,6 @@
 
 import sys
 import math
-import bisect
-import operator
 
 #
 # Renvoie la moyenne d'une liste
@@ -132,43 +130,6 @@ def moyennePonderee(lst):
 	if sP == 0:
 		return 0.
 	return sV/sP
-
-
-
-
-#
-# Renvoie l'intersection de deux fenetres
-#
-def intersectionCouples(c1, c2):
-	if c1[1] < c2[0] or c2[1] < c1[0]:
-		return []
-	else:
-		return [ max(c1[0], c2[0]), min(c1[1], c2[1]) ]
-
-#
-# Cette classe permet de garder la valeur minimale qu'on lui a presente
-# Elle utilise une fonction pour comparer les objets
-#
-class MinKeeper:
-
-	def __init__(self, f):
-		self.func = f
-		self.empty = True
-	
-	def setBegin(self, r):
-		self.res = r
-		self.s = self.func(r)
-		self.empty = False
-	
-	def check(self, r):
-		if self.empty:
-			self.setBegin(r)
-			return
-		s = self.func(r)
-		if s < self.s:
-			self.res = r
-			self.s = s
-			self.empty = False
 
 
 

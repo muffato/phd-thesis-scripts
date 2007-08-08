@@ -37,11 +37,14 @@ OUTone2oneGenesFile = options["OUT.directory"] + "/ancGenes/one2one.%s.list.bz2"
 genesAnc = {}
 lstAncestr = []
 for anc in phylTree.dicLinks[options["species"]][options["root"]][1:]:
-	try:
+	#try:
 		genesAnc[anc] = utils.myGenomes.loadGenome(OUTancGenesFile % phylTree.fileName[anc])
-		lstAncestr.insert(0, anc)
-	except IOError:
-		pass
+		if len(genesAnc[anc].dicGenes) > 0:
+			lstAncestr.insert(0, anc)
+		else:
+			del genesAnc[anc]
+	#except IOError:
+	#	pass
 
 # Le dictionnaire genes ancestraux -> xref
 dicAncXRef = utils.myTools.defaultdict(set)
@@ -49,13 +52,16 @@ dicAncXRef = utils.myTools.defaultdict(set)
 dicXRefAnc = utils.myTools.defaultdict(set)
 # Le dictionnaire genes UCSC -> xref
 dicUCSCRef = utils.myTools.defaultdict(set)
+# Le dictionnaire gene moderne -> espece
+dicGeneEsp = {}
 for esp in phylTree.listSpecies:
-	print >> sys.stderr, "Chargement des annotations xref de %s ..." % esp,
-	try:
+		print >> sys.stderr, "Chargement des annotations xref de %s ..." % esp,
+	#try:
 		for ligne in utils.myTools.myOpenFile(OUTxrefFile % phylTree.fileName[esp], 'r'):
 			t = [intern(x) for x in ligne[:-1].split('\t')]
 			if esp == options["species"]:
 				dicUCSCRef[t[0]].update(t[3:])
+			dicGenes[t[0]] = esp
 			for (anc,genome) in genesAnc.iteritems():
 				if t[0] not in genome.dicGenes:
 					continue
@@ -63,25 +69,24 @@ for esp in phylTree.listSpecies:
 				dicAncXRef[r].update(t[3:])
 				for x in t[3:]:
 					dicXRefAnc[x].add(r)
-	except IOError:
-		print >> sys.stderr, "-",
-	print >> sys.stderr, "OK"
+	#except IOError:
+	#	print >> sys.stderr, "-",
+		print >> sys.stderr, "OK"
 
-print >> sys.stderr, len(dicAncXRef), len(dicXRefAnc), len(dicUCSCRef)
+print >> sys.stderr, "%d genes ancestraux -> xref, %d xref -> genes ancestraux" % (len(dicAncXRef),len(dicXRefAnc))
 
 nbPotentiels = 0
 nbOK = 0
+lstOrthos = utils.myTools.defaultdict(set)
 for (gene,xref) in dicUCSCRef.iteritems():
 	
 	# On fait la liste des genes ancestraux lies aux xref
 	#   dans la limite de 1 / ancetre
 	tab = {}
-	#tab = utils.myTools.defaultdict(st)
 	for x in xref:
 		if x not in dicXRefAnc:
 			continue
 		for (anc,i) in dicXRefAnc[x]:
-			#tab[anc].append(i)
 			if (anc in tab) and (tab[anc] != i):
 				tab[anc] = None
 				continue
@@ -92,9 +97,6 @@ for (gene,xref) in dicUCSCRef.iteritems():
 		if tab[anc] == None:
 			del tab[anc]
 
-	#print gene, len(tab), tab
-	#print gene, tab
-	
 	# Il faut qu'il en reste un pour placer la famille
 	if len(tab) == 0:
 		continue
@@ -117,10 +119,40 @@ for (gene,xref) in dicUCSCRef.iteritems():
 			# Si pas de definition, il ne faut pas avoir de duplication
 			if len(newGenes) > 1:
 				break
+			# La definition devient celle par defaut
+			tab[anc] = newGenes[0]
 	else:
 		nbOK += 1
-		print gene, len(tab), tab
+		# On remonte dans le temps voir si on n'a pas oublie un ancetre
+		for anc in lstAncestr:
+			if anc not in tab:
+				oldGene = [i for (_,i) in genesAnc[anc].getPosition(lastGene)]
+				if len(oldGene) > 1:
+					print >> sys.stderr, gene, xref, tab, anc, lastGene, oldGene
+				elif len(oldGene) == 1:
+					tab[anc] = oldGene[0]
+		# On peut ecrire les nouveaux fichiers d'orthologues
+		tmp = utils.myTools.defaultdict(set)
+		for anc in lstAncestr:
+			for g in genesAnc[anc].lstGenes[utils.myGenomes.Genome.defaultChr][tab[anc]].names:
+				tmp[dicGeneEsp[g]].append( (gene,g) )
+		for esp in tmp:
+			lstOrthos[esp].add(gene)
 
-print >> sys.stderr, nbPotentiels, nbOK
+print >> sys.stderr, "%d genes a l'origine, %d potentiels, %d OK" % (len(dicUCSCRef),nbPotentiels,nbOK)
 
+for (esp,l) in lstOrthos.iteritems():
+	print >> sys.stderr, "Ecriture des orthologues avec %d ..." % esp,
+	fo1 = utils.myTools.myOpenFile(OUTorthosFile % (phylTree.fileName[esp],phylTree.fileName[options["species"]]), 'w'):
+	fo2 = utils.myTools.myOpenFile(OUTorthosFile % (phylTree.fileName[options["species"]],phylTree.fileName[esp]), 'w'):
+	anc = phylTree.dicParents[esp][options["species"]]
+	for (gEsp,gOther) in l:
+		obj1 = "\t".join( (gEsp,"-","-") )
+		obj2 = "\t".join( (gOther,"-","-") )
+		data = "\t".join( (anc,"0","0","0","0","ortholog_one2one") )
+		print >> fo1, "\t".join( (obj2,obj1,data) )
+		print >> fo2, "\t".join( (obj1,obj2,data) )
+	fo1.close()
+	fo2.close()
+	print >> sys.stderr, "%d OK" % len(l)
 
