@@ -26,13 +26,12 @@ import utils.myTools
 #
 class WalktrapLauncher:
 
-	def __init__(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0, qualityFunction=2):
+	def __init__(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0):
 		self.edges = utils.myTools.defaultdict(dict)
 		self.randomWalksLength = randomWalksLength
 		self.verboseLevel = verboseLevel
 		self.showProgress = showProgress
 		self.memoryUseLimit = memoryUseLimit
-		self.qualityFunction = qualityFunction
 
 	def addEdge(self, x, y, weight):
 		
@@ -92,7 +91,7 @@ class WalktrapLauncher:
 				indNodes[node] = i
 		
 			# On lance le walktrap
-			(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, self.edges, randomWalksLength=self.randomWalksLength, verboseLevel=self.verboseLevel, showProgress=self.showProgress, memoryUseLimit=self.memoryUseLimit, qualityFunction=self.qualityFunction)
+			(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, self.edges, randomWalksLength=self.randomWalksLength, verboseLevel=self.verboseLevel, showProgress=self.showProgress, memoryUseLimit=self.memoryUseLimit)
 
 			# On doit revenir aux noms de noeuds originels
 			def translate(x):
@@ -111,7 +110,7 @@ class WalktrapLauncher:
 #
 class WalktrapDirectLauncher:
 
-	def __init__(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0, qualityFunction=2):
+	def __init__(self, randomWalksLength=5, verboseLevel=0, showProgress=False, memoryUseLimit=0):
 		self.edges = {}
 		s = '/users/ldog/muffato/work/scripts/utils/walktrap/walktrap -t%d -d2 -m%d' % (randomWalksLength, memoryUseLimit)
 		if showProgress:

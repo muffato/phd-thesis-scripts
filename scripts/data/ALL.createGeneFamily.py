@@ -1,10 +1,7 @@
 #! /users/ldog/muffato/python -OO
 
 __doc__ = """
-	Telecharge depuis le site de l'UCSC les fichiers utiles pour creer:
-		- les listes de genes
-		- les listes d'orthologues
-		- les listes de paralogues
+	Insere les genes d'une espece dans les familles ancestrales grace aux annotations xref
 """
 
 # Librairies
@@ -17,13 +14,14 @@ import utils.myTools
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("species",str,""), ("root",str,""), ("OUT.directory",str,"")], \
+	[("ancestr",str,""), ("root",str,""), ("OUT.directory",str,"")], \
 	__doc__ \
 )
 
 
 # L'arbre phylogenetique
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+anc = options["ancestr"]
 
 OUTgenesFile = options["OUT.directory"] + "/genes/genes.%s.list.bz2"
 OUTorthosFile = options["OUT.directory"] + "/orthologs/orthos.%s.%s.list.bz2"
@@ -33,18 +31,27 @@ OUTxrefFile = options["OUT.directory"] + "/genes/xref/xref.%s.list.bz2"
 OUTancGenesFile = options["OUT.directory"] + "/fullAncGenes/ancGenes.%s.list.bz2"
 OUTone2oneGenesFile = options["OUT.directory"] + "/ancGenes/one2one.%s.list.bz2"
 
+
 # Les genes ancestraux
 genesAnc = {}
-lstAncestr = []
-for anc in phylTree.dicLinks[options["species"]][options["root"]][1:]:
-	#try:
-		genesAnc[anc] = utils.myGenomes.loadGenome(OUTancGenesFile % phylTree.fileName[anc])
-		if len(genesAnc[anc].dicGenes) > 0:
-			lstAncestr.insert(0, anc)
-		else:
-			del genesAnc[anc]
-	#except IOError:
-	#	pass
+for anc in phylTree.dicLinks[anc][options["root"]][1:]:
+	genesAnc[anc] = utils.myGenomes.loadGenome(OUTancGenesFile % phylTree.fileName[anc])
+lstAncestr = genesAnc.keys()
+
+
+especes = phylTree.species[anc]
+ancSup = phylTree.parent[anc]
+
+# 1. On se base sur les familles de l'ancetre juste au dessus
+phylTree.loadAllSpeciesSince(ancSup, OUTgenesFile)
+del phylTree.dicGenomes
+comb = utils.myTools.myCombinator()
+for g in genesAnc[ancSup]:
+	t = [s for s in g.names if phylTree.dicGenes[s][0] in especes]
+	comb.addLink(t)
+del phylTree.dicGenes
+
+# 2.a on charge les xref pour ancrer les genes sur les familles ancestrales de tous les ancetres disponibles
 
 # Le dictionnaire genes ancestraux -> xref
 dicAncXRef = utils.myTools.defaultdict(set)
@@ -55,26 +62,24 @@ dicUCSCRef = utils.myTools.defaultdict(set)
 # Le dictionnaire gene moderne -> espece
 dicGeneEsp = {}
 for esp in phylTree.listSpecies:
-		print >> sys.stderr, "Chargement des annotations xref de %s ..." % esp,
-	#try:
-		for ligne in utils.myTools.myOpenFile(OUTxrefFile % phylTree.fileName[esp], 'r'):
-			t = [intern(x) for x in ligne[:-1].split('\t')]
-			if esp == options["species"]:
-				dicUCSCRef[t[0]].update(t[3:])
-			dicGenes[t[0]] = esp
-			for (anc,genome) in genesAnc.iteritems():
-				if t[0] not in genome.dicGenes:
-					continue
-				r = (anc,genome.dicGenes[t[0]][1])
-				dicAncXRef[r].update(t[3:])
-				for x in t[3:]:
-					dicXRefAnc[x].add(r)
-	#except IOError:
-	#	print >> sys.stderr, "-",
-		print >> sys.stderr, "OK"
-
+	print >> sys.stderr, "Chargement des annotations xref de %s ..." % esp,
+	for ligne in utils.myTools.myOpenFile(OUTxrefFile % phylTree.fileName[esp], 'r'):
+		t = [intern(x) for x in ligne[:-1].split('\t')]
+		if esp == options["species"]:
+			dicUCSCRef[t[0]].update(t[3:])
+		dicGenes[t[0]] = esp
+		for (anc,genome) in genesAnc.iteritems():
+			if t[0] not in genome.dicGenes:
+				continue
+			r = (anc,genome.dicGenes[t[0]][1])
+			dicAncXRef[r].update(t[3:])
+			for x in t[3:]:
+				dicXRefAnc[x].add(r)
+	print >> sys.stderr, "OK"
 print >> sys.stderr, "%d genes ancestraux -> xref, %d xref -> genes ancestraux" % (len(dicAncXRef),len(dicXRefAnc))
 
+
+# 2.b On selectionne celles coherentes avec les familles ancestrales
 nbPotentiels = 0
 nbOK = 0
 lstOrthos = utils.myTools.defaultdict(set)
@@ -128,6 +133,7 @@ for (gene,xref) in dicUCSCRef.iteritems():
 			if anc not in tab:
 				oldGene = [i for (_,i) in genesAnc[anc].getPosition(lastGene)]
 				if len(oldGene) > 1:
+					# N'arrive jamais
 					print >> sys.stderr, gene, xref, tab, anc, lastGene, oldGene
 				elif len(oldGene) == 1:
 					tab[anc] = oldGene[0]
@@ -135,16 +141,18 @@ for (gene,xref) in dicUCSCRef.iteritems():
 		tmp = utils.myTools.defaultdict(set)
 		for anc in lstAncestr:
 			for g in genesAnc[anc].lstGenes[utils.myGenomes.Genome.defaultChr][tab[anc]].names:
-				tmp[dicGeneEsp[g]].append( (gene,g) )
+				tmp[dicGeneEsp[g]].append( (gene,g,phylTree.dicParents[dicGeneEsp[g]][options["species"]]) )
 		for esp in tmp:
 			lstOrthos[esp].add(gene)
 
-print >> sys.stderr, "%d genes a l'origine, %d potentiels, %d OK" % (len(dicUCSCRef),nbPotentiels,nbOK)
+#print >> sys.stderr, "%d genes a l'origine, %d potentiels, %d OK" % (len(dicUCSCRef),nbPotentiels,nbOK)
 
+sys.exit(0)
+# 3. On ecrit le d'orthologues adequat
 for (esp,l) in lstOrthos.iteritems():
 	print >> sys.stderr, "Ecriture des orthologues avec %d ..." % esp,
-	fo1 = utils.myTools.myOpenFile(OUTorthosFile % (phylTree.fileName[esp],phylTree.fileName[options["species"]]), 'w'):
-	fo2 = utils.myTools.myOpenFile(OUTorthosFile % (phylTree.fileName[options["species"]],phylTree.fileName[esp]), 'w'):
+	fo1 = utils.myTools.myOpenFile(OUTorthosFile % (phylTree.fileName[esp],phylTree.fileName[options["species"]]), 'w')
+	fo2 = utils.myTools.myOpenFile(OUTorthosFile % (phylTree.fileName[options["species"]],phylTree.fileName[esp]), 'w')
 	anc = phylTree.dicParents[esp][options["species"]]
 	for (gEsp,gOther) in l:
 		obj1 = "\t".join( (gEsp,"-","-") )
