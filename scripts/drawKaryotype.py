@@ -32,7 +32,7 @@ import utils.myPsOutput
 
 
 # Le premier genome
-genome2 = utils.myGenomes.loadGenome(noms_fichiers["referenceGenome"])
+genome2 = utils.myGenomes.Genome(noms_fichiers["referenceGenome"])
 
 # Si on a utilise /dev/null, c'est que le caryotype est donne sous un autre format
 if len(genome2.dicGenes) == 0:
@@ -56,7 +56,7 @@ if len(genome2.dicGenes) == 0:
 	chr1 = sorted(table12.keys())
 
 else:
-	genome1 = utils.myGenomes.loadGenome(noms_fichiers["studiedGenome"])
+	genome1 = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
 
 
 if options["reverse"]:
@@ -64,7 +64,7 @@ if options["reverse"]:
 	genome1 = genome2
 	genome2 = x
 if options["orthologuesList"] != "":
-	genesAnc = utils.myGenomes.loadGenome(options["orthologuesList"])
+	genesAnc = utils.myGenomes.Genome(options["orthologuesList"])
 else:
 	genesAnc = None
 

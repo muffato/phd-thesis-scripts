@@ -131,7 +131,7 @@ order = ["Euteleostomi", "Tetrapoda", "Amniota", "Mammalia", "Theria", "Boreoeut
 
 genomesAnc = []
 for anc in order:
-	gen = utils.myGenomes.AncestralGenome( options["ancGenesFile"] % phylTree.fileName[anc], chromPresents=True)
+	gen = utils.myGenomes.Genome( options["ancGenesFile"] % phylTree.fileName[anc], withChr=True)
 	if len(genomesAnc) > 0:
 		#gen = reorderGenome(genomesAnc[-1], gen)
 		gen = reorderGenome(gen, genomesAnc[-1])

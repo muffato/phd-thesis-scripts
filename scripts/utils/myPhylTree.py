@@ -218,6 +218,12 @@ class PhylogeneticTree:
 
 		buildPhylLinks()
 
+		# Les numeros des noms d'ancetres/d'especes
+		self.indNames = self.newCommonNamesMapperInstance()
+		self.allNames = self.listAncestr + self.listSpecies
+		for (i,e) in enumerate(self.allNames):
+			self.indNames[e] = i
+
 		print >> sys.stderr, "OK"
 		
 
@@ -261,8 +267,7 @@ class PhylogeneticTree:
 
 		for esp in lst:
 			esp = self.officialName[esp]
-			#g = myGenomes.EnsemblGenome(template % self.fileName[esp])
-			g = myGenomes.loadGenome(template % self.fileName[esp])
+			g = myGenomes.Genome(template % self.fileName[esp])
 			self.dicGenomes[esp] = g
 			for x in g.dicGenes:
 				self.dicGenes[x] = (esp, g.dicGenes[x][0], g.dicGenes[x][1])
@@ -335,8 +340,64 @@ class PhylogeneticTree:
 				if nb == 1:
 					return (d,1./s)
 				return (d,0)
-			return (None,0)
+			else:
+				return (None,0)
+
+		if init in self.tmpItems:
+			return recCalc(init)[0]
+		else:
+			return None
+
+
+	#
+	# Cree une structure d'arbre secondaire pour le calcul d'une moyenne sur les especes
+	# Si on utilise les outgroups, il faut faire basculer l'arbre pour que les outgroups
+	#    soient des fils (de fils de fils ...) de plus en plus eloignes
+	#
+	def initCalcDist2(self, node, useOutgroups):
+		tmp = self.items.copy()
+		if useOutgroups:
+			anc = node
+			while anc in self.parent:
+				par = self.parent[anc]
+				tmp[anc].append( (par,self.ages[par]-self.ages[anc]) )
+				tmp[par] = [x for x in tmp[par] if x[0] != anc]
+				anc = par
+		self.tmpItems = [[(self.indNames[fils],age) for (fils,age) in tmp.get(e,[])] for e in self.allNames]
+		self.tmpItems.append(self.tmpItems[self.indNames[node]])
+
+	#
+	# Lance le calcul de la moyenne etant donne les valeurs stockees dans values
+	#
+	def calcDist2(self, values, init=-1):
+
+		# La partie recursive
+		def recCalc(anc):
+			d = 0.
+			s = 0.
+			nb = 0
+		
+			# Moyenne sur tous les fils du noeud
+			for (e,p) in self.tmpItems[anc]:
+				val = values[e]
+				if val == None:
+					(val,x) = recCalc(e)
+					p += x
+				
+				# Si on a une vraie valeur de distance, on continue la moyenne
+				if val != None:
+					d += val/float(p)
+					s += 1./p
+					nb += 1
+
+			# Test final
+			if nb != 0:
+				d /= s
+				if nb == 1:
+					return (d,1./s)
+				return (d,0)
+			else:
+				return (None,0)
 
 		return recCalc(init)[0]
-
 

@@ -90,12 +90,12 @@ def findNewSpecies(d, esp, anc):
 		for i in d:
 			
 			# Le gene chez l'ancetre commun
-			g = genesAnc[a].getPosition(genesAnc[anc].lstGenes[utils.myGenomes.Genome.defaultChr][i])
+			g = genesAnc[a].getPosition(genesAnc[anc].lstGenes[None][i].names)
 			# Cas d'un gene specifique de la lignee
 			if len(g) == 0:
 				continue
 			# Le gene dans l'autre espece
-			tmp = [c for (c,_) in dicGenomes[e].getPosition(genesAnc[a].lstGenes[utils.myGenomes.Genome.defaultChr][g.pop()[1]])]
+			tmp = [c for (c,_) in dicGenomes[e].getPosition(genesAnc[a].lstGenes[None][g.pop()[1]].names)]
 			# Gene non trouve, on passe au suivant
 			if len(tmp) == 0:
 				continue
@@ -146,10 +146,10 @@ else:
 		if x[0] != '.':
 			listSpecies.extend(phylTree.species[x])
 			for e in phylTree.species[x]:
-				dicGenomes[e] = utils.myGenomes.EnsemblGenome(options["genesFile"] % phylTree.fileName[e])
+				dicGenomes[e] = utils.myGenomes.Genome(options["genesFile"] % phylTree.fileName[e])
 		else:
 			listSpecies.append(x[1:])
-			dicGenomes[x[1:]] = utils.myGenomes.AncestralGenome(options["ancGenomesFile"] % phylTree.fileName[x[1:]], chromPresents=True)
+			dicGenomes[x[1:]] = utils.myGenomes.Genome(options["ancGenomesFile"] % phylTree.fileName[x[1:]], withChr=True)
 
 # Les outgroup du noeud le plus ancien
 if options.useOutgroups:
@@ -158,7 +158,7 @@ if options.useOutgroups:
 		target = phylTree.dicParents[target][e]
 	listSpecies += phylTree.outgroupSpecies[target]
 	for e in phylTree.outgroupSpecies[target]:
-		dicGenomes[e] = utils.myGenomes.EnsemblGenome(options["genesFile"] % phylTree.fileName[e])
+		dicGenomes[e] = utils.myGenomes.Genome(options["genesFile"] % phylTree.fileName[e])
 
 # La liste des ancetres edites
 dicLinks = [(e1,e2,set(phylTree.dicLinks[e1][e2][1:-1] + [phylTree.dicParents[e1][e2]])) for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(listSpecies)]
@@ -169,13 +169,13 @@ diagEntry = {}
 genesAnc = {}
 for anc in tmp:
 	diagEntry[anc] = []
-	genesAnc[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
+	genesAnc[anc] = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc])
 
 
 # On compare toutes les especes entre elles
 for (e1,e2,toStudy) in dicLinks:
 	print >> sys.stderr, "Extraction des diagonales entre %s et %s " % (e1,e2),
-	for ((c1,d1),(c2,d2)) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \
+	for ((c1,d1),(c2,d2),s) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \
 		options["fusionThreshold"], options["sameStrand"] and (e1 not in genesAnc) and (e2 not in genesAnc), options["keepOnlyOrthos"]):
 		
 		pack1 = (e1,c1,tuple(d1))
@@ -197,9 +197,9 @@ for anc in diagEntry:
 		lst = diagEntry[anc]
 		print >> sys.stderr, "Impression des %d diagonales projetees de %s ..." % (len(lst),anc),
 		s = []
-		for ((e1,c1,d1),(e2,c2,d2),_) in lst:
+		for ((e1,c1,d1),(e2,c2,d2),da) in lst:
 			s.append( len(d1) )
-			print '\t'.join([anc, str(len(d1)), e1,str(c1)," ".join([dicGenomes[e1].lstGenes[c1][i1].names[0] for i1 in d1]), e2,str(c2)," ".join([dicGenomes[e2].lstGenes[c2][i2].names[0] for i2 in d2])])
+			print '\t'.join([anc, str(len(d1)), e1,str(c1)," ".join([dicGenomes[e1].lstGenes[c1][i1].names[0] for i1 in d1]), e2,str(c2)," ".join([dicGenomes[e2].lstGenes[c2][i2].names[0] for i2 in d2]), " ".join([str(x) for x in da]) ])
 		print >> sys.stderr, utils.myMaths.myStats(s), "OK"
 
 

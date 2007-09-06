@@ -68,11 +68,11 @@ def buildOrthosTable(genome1, chr1, genome2, chr2):
 (noms_fichiers, options) = utils.myTools.checkArgs( ["referenceGenome"], [], __doc__)
 
 
-genome2 = utils.myGenomes.loadGenome(noms_fichiers["referenceGenome"])
+genome2 = utils.myGenomes.Genome(noms_fichiers["referenceGenome"])
 
 for l in sys.stdin:
 	# Chargement des fichiers
-	genome1 = utils.myGenomes.loadGenome(l[:-1])
+	genome1 = utils.myGenomes.Genome(l[:-1])
 	print l[:-1],
 	buildOrthosTable(genome1, genome1.lstChr, genome2, genome2.lstChr)
 	buildOrthosTable(genome2, genome2.lstChr, genome1, genome1.lstChr)

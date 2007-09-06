@@ -17,7 +17,8 @@ import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 import utils.walktrap
-from collections import defaultdict
+defaultdict = utils.myTools.defaultdict
+
 
 # FONCTIONS #
 
@@ -25,13 +26,14 @@ from collections import defaultdict
 # Construit les tables d'associations pour chaque especes dupliquee
 #  des paralogues et des orthologues
 #
-def buildParaOrtho(lstGenesAnc):
+def buildParaOrtho():
 
 	print >> sys.stderr, "Formattage des listes d'orthologues et de paralogues ...",
+
 	para = dict([(e,{}) for e in especesDup])
 	ortho = dict([(e,{}) for e in especesDup])
 	
-	# On parcourt les genes ancestraux
+	# On parcourt les genes ancestraux pour les especes en dessous de l'ancetre
 	for g in lstGenesAnc:
 		for e in especesDup:
 			genomeDup = phylTree.dicGenomes[e]
@@ -49,7 +51,49 @@ def buildParaOrtho(lstGenesAnc):
 					ortho[e][x] = gT
 	
 	print >> sys.stderr, "OK"
+
+	# On rajoute les outgroup
 	
+	# Les ancetres correspondant a chaque outgroup
+	toLoad = utils.myTools.defaultdict(list)
+	for e in especesNonDup:
+		par = phylTree.dicParents[e][options["target"]]
+		toLoad[par].append(e)
+	toLoad.pop(options["target"], None)
+
+	for (anc,outgroups) in toLoad.iteritems():
+		print >> sys.stderr, "Rajout de %s ..." % "/".join(outgroups),
+		outgroups =  set([phylTree.officialName[e] for e in outgroups])
+		for g in utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc]):
+			# On trie les genes ancestraux
+			dicGenes = {}
+			newPos = None
+			for x in g.names:
+				# La position dans le genome que l'on reconstruit
+				newPos = genesAnc.dicGenes.get(x, newPos)
+				if x not in phylTree.dicGenes:
+					continue
+				(esp,_,_) = phylTree.dicGenes[x]
+				if esp in dicEspNames:
+					esp = dicEspNames[esp]
+					dicGenes[esp] = dicGenes.get(esp,[]) + [x]
+			if newPos == None:
+				continue
+			gNT = []
+			for e in especesNonDup:
+				if e in dicGenes:
+					gNT.extend(dicGenes[e])
+
+			# Mise a jour du dictionnaire pour qu'on puisse les utiliser
+			for x in gNT:
+				genesAnc.dicGenes[x] = newPos
+			
+			# Enregistrement des orthologues
+			for e in especesDup:
+				if e in dicGenes:
+					gT = [phylTree.dicGenomes[e].dicGenes[x] for x in dicGenes[e]]
+					for x in gNT:
+						ortho[e][x] = gT
 	return (para, ortho)
 
 
@@ -210,16 +254,12 @@ def addDCS(dcs):
 						continue
 					count[(x,y)] += (countChr(x)+1) * last[y]
 					count[(y,x)] = count[(x,y)]
-					#s = (countChr(x)+1) * last[y] + count.get((x,y), 0)
-					#count[(x,y)] = count[(y,x)] = s
 				# Et aussi entre les paralogues
 				for y in curr:
 					if y >= x:
 						continue
 					count[(x,y)] += 1
 					count[(y,x)] = count[(x,y)]
-					#s = 1 + count.get((x,y), 0)
-					#count[(x,y)] = count[(y,x)] = s
 			
 			# On met a jour last
 			for y in last:
@@ -333,10 +373,11 @@ def printColorAncestr(genesAnc, chrAncGenes):
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genesAncestraux.list", "phylTree.conf"],
+	["phylTree.conf"],
 	[("minChrLen",int,20), ("windowSize",int,25), ("usePhylTreeScoring",bool,False), ("keepUncertainGenes",bool,False), \
-	("especesNonDup",str,""), ("especesDup",str,""), \
+	("especesNonDup",str,""), ("especesDup",str,""), ("target",str,""), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
+	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("showDCS",bool,False), ("showQuality",bool,False), ("showAncestralGenome",bool,True)], \
 	__doc__ \
 )
@@ -351,10 +392,11 @@ for x in phylTree.branches[phylTree.root]:
 		rootNonDup = x
 	else:
 		rootDup = x
+dicEspNames = dict([(phylTree.officialName[esp],esp) for esp in especesDup+especesNonDup])
 phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
-genesAnc = utils.myGenomes.AncestralGenome(noms_fichiers["genesAncestraux.list"])
-lstGenesAnc = genesAnc.lstGenes[utils.myGenomes.AncestralGenome.defaultChr]
-(para,orthos) = buildParaOrtho(lstGenesAnc)
+genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[options["target"]])
+lstGenesAnc = genesAnc.lstGenes[None]
+(para,orthos) = buildParaOrtho()
 
 # De quoi stocker les DCS
 col = [[] for i in xrange(len(lstGenesAnc))]

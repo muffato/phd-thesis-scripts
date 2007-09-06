@@ -131,7 +131,6 @@ class myIterator:
 	buildSubsets = staticmethod(_buildSubsets)
 	buildSubsets2 = staticmethod(_buildSubsets2)
 
-
 	tupleOnWholeList = staticmethod(_tupleOnWholeList)
 	tupleOnUpperList = staticmethod(_tupleOnUpperList)
 	tupleOnStrictUpperList = staticmethod(_tupleOnStrictUpperList)

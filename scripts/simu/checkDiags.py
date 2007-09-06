@@ -65,8 +65,8 @@ phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 genomes = {}
 ancGenes = {}
 for anc in phylTree.listAncestr:
-	genomes[anc] = utils.myGenomes.EnsemblGenome(options["genesFile"] % phylTree.fileName[anc])
-	ancGenes[anc] = utils.myGenomes.AncestralGenome(options["ancGenesFile"] % phylTree.fileName[anc])
+	genomes[anc] = utils.myGenomes.Genome(options["genesFile"] % phylTree.fileName[anc])
+	ancGenes[anc] = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc])
 
 
 
@@ -82,6 +82,8 @@ for l in sys.stdin:
 	allCov = 0.
 
 	for anc in lstDiags:
+		if anc not in genomes:
+			continue
 		nbOK = 0.
 		nbPerfect = 0.
 		nbPerfectPairs = 0.
@@ -89,7 +91,7 @@ for l in sys.stdin:
 		averageShift = 0.
 		allPos = set()
 		for (d,_) in lstDiags[anc]:
-			lstPos = [genomes[anc].getPosition(ancGenes[anc].lstGenes[utils.myGenomes.Genome.defaultChr][i]) for i in d]
+			lstPos = [genomes[anc].getPosition(ancGenes[anc].lstGenes[None][i].names) for i in d]
 			tmp = list(set([len(x) for x in lstPos]))
 			if tmp != [1]:
 				print >> sys.stderr, "PB1 !!", d, lstPos, tmp

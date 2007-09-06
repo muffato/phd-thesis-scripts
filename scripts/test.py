@@ -11,20 +11,28 @@ A partir de toutes les diagonales extraites entre les especes,
 ##################
 
 # Librairies
-import os
+#import os
 import sys
 #import math
 #import time
-import random
-import operator
-#import utils.myGenomes
-import utils.myTools
+#import random
+#import operator
+import utils.myGenomes
+#import utils.myTools
 #import utils.myMaths
 #import utils.myDiags
 #import utils.myPsOutput
-import utils.myPhylTree
+#import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
+
+g = utils.myGenomes2.Genome(sys.argv[1])
+print g.lstChr
+print g.lstScaff
+print g.lstRand
+print len(list(g))
+
+sys.exit(0)
 
 phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
 

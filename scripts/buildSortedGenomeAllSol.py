@@ -13,6 +13,10 @@ import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 import utils.myPhylTree
+import utils.concorde
+
+itStrictUpperMatrix = utils.myTools.myIterator.tupleOnStrictUpperList
+
 
 #############
 # FONCTIONS #
@@ -22,7 +26,7 @@ import utils.myPhylTree
 # Calcule la distance inter-genes moyenne entre les deux genes
 #   Utilise la fonction d'inference de valeur de phylTree
 #
-def distInterGenes(tg1, tg2):
+def distInterGenes(tg1, tg2, seuil):
 
 	# Les distances chez chaque espece
 	distEsp = {}
@@ -31,7 +35,7 @@ def distInterGenes(tg1, tg2):
 			if e1 == e2 and c1 == c2:
 				x = abs(i1-i2)
 				# Au dela d'un certain seuil, on considere que l'information n'est plus valable
-				if (options["seuilMaxDistInterGenes"] <= 0) or (x <= options["seuilMaxDistInterGenes"]):
+				if (seuil <= 0) or (x <= seuil):
 					# On garde la plus petite distance trouvee
 					distEsp[e1] = min(distEsp.get(e1,x), x)
 	
@@ -40,7 +44,7 @@ def distInterGenes(tg1, tg2):
 	
 	# On met les 1 dans les noeuds de l'arbre entre les especes
 	lst1Anc = set()
-	for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(lst1Esp):
+	for (e1,e2) in itStrictUpperMatrix(lst1Esp):
 		lst1Anc.update(phylTree.dicLinks[e1][e2])
 		if anc in lst1Anc:
 			return 1
@@ -51,9 +55,10 @@ def distInterGenes(tg1, tg2):
 	if options["useOutgroups"] == 2:
 		m = [distEsp[e] for e in ancSpecies if e in distEsp]
 		if len(m) > 0:
-			eNO = [e for e in ancOutgroupSpecies if distEsp.get(e,0) > max(m)]
-			for e in eNO:
-				del distEsp[e]
+			m = max(m)
+			for e in ancOutgroupSpecies:
+				if distEsp.get(e,0) > m:
+					del distEsp[e]
 
 	# On calcule par une moyenne les autres distances
 	return phylTree.calcDist(distEsp)
@@ -70,7 +75,7 @@ def rewriteGenome():
 	while anc in phylTree.parent:
 		anc = phylTree.parent[anc]
 		# Le genome de l'ancetre superieur
-		tmpGenesAnc = utils.myGenomes.loadGenome(options["ancGenesFile"] % phylTree.fileName[anc])
+		tmpGenesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc])
 		del tmpGenesAnc.dicGenes
 		# Chaque gene
 		for g in tmpGenesAnc:
@@ -100,13 +105,12 @@ def rewriteGenome():
 	for c in genesAnc.lstChr:
 		genome[c] = []
 		for (i,g) in enumerate(genesAnc.lstGenes[c]):
-		#for i in xrange(len(genesAnc.lstGenes[c])):
-		#	g = genesAnc.lstGenes[c][i]
 			tmp = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
 			tmp.extend(dicOutgroupGenes.get( (c,i), []))
 			genome[c].append(tmp)
 	del phylTree.dicGenes
 	return genome
+
 
 #
 # Ecrit la matrice du chromosome c et lance concorde
@@ -115,6 +119,10 @@ def sortChromosome(c):
 
 	tab = genome[c]
 	n = len(tab)
+
+	mult = pow(10, options["nbDecimales"])
+	seuil = options["seuilMaxDistInterGenes"]
+	pen = str(int(mult*options["penalite"]))
 	
 	print >> sys.stderr
 	print >> sys.stderr, "- Chromosome %s (%d genes) -" % (c, n)
@@ -122,68 +130,27 @@ def sortChromosome(c):
 	# La matrice des distances intergenes
 	mat = [[None] * (n+1) for i in xrange(n+1)]
 	
-	print >> sys.stderr, "Ecriture de la matrice ... ",
-	f = open(nom, 'w')
-	print >> f, "NAME: CHRANC"
-	print >> f, "TYPE: TSP"
-	print >> f, "DIMENSION: %d" % (n+1)
-	print >> f, "EDGE_WEIGHT_TYPE: EXPLICIT"
-	print >> f, "EDGE_WEIGHT_FORMAT: UPPER_ROW"
-	print >> f, "EDGE_WEIGHT_SECTION"
-	print >> f, "0 " * n
-	for i in xrange(n):
-		s = ""
-		for j in xrange(i+1,n):
-			y = distInterGenes(tab[i], tab[j])
-			mat[i+1][j+1] = mat[j+1][i+1] = y
-			if y == None:
-				y = mult*options["penalite"]
-			elif y == 1:
-				y = 0
-			else:
-				y = mult*y
-			s += str(int(y)) + " "
-		print >> f, s
-	# Le n+1 eme point pour lier les deux extremites du chromosome
-	for i in xrange(n+1):
-		mat[i][0] = mat[0][i] = 0
-
-	print >> f, "EOF"
-	f.close()
-
-	print >> sys.stderr, "OK"
+	def f(i, j):
+		y = distInterGenes(tab[i], tab[j], seuil)
+		mat[i+1][j+1] = mat[j+1][i+1] = y
+		if y == None:
+			return pen
+		elif y == 1:
+			return 0
+		else:
+			return int(mult*y)
 	
-	# Lancement de concorde
-	comm = options["concordeExec"] + ' -x ' + nom
-	if options["withConcordeOutput"]:
-		os.system(comm + ' >&2')
-	else:
-		print >> sys.stderr, "Lancement de concorde"
-		os.system(comm + ' > /dev/null')
+	lstTot = concordeInstance.doConcorde(n, f, 1, options["withConcordeOutput"])
+	
 	
 	# Chargement des resultats
-	if os.access(nom + ".sol", os.R_OK):
-		tmp = []
-		f = utils.myTools.myOpenFile(nom + ".sol", 'r')
-		for ligne in f:
-			for x in ligne.split():
-				tmp.append(int(x))
-		
-		f.close()
-		i = tmp.index(0)
-		res = tmp[i:] + tmp[1:i]
-	else:
-		res = None
-		print >> sys.stderr, "No solution found"
-	os.system('rm -f 0%s* %s*' % (nom,nom) )
-	sys.stderr.write(".")
-
-	if res == None:
+	if len(lstTot) == 0:
 		continue
+	res = lstTot[0]
 
 	# Impression du chromosome trie
 	for i in xrange(n):
-		print c," ".join(genesAnc.lstGenes[c][res[i+1]-1].names)
+		print c, " ".join(genesAnc.lstGenes[c][res[i+1]-1].names)
 
 	print >> sys.stderr, "Etude des solutions alternatives ...",
 	nb = 0
@@ -231,10 +198,9 @@ if options["ancestr"] not in (phylTree.listAncestr + phylTree.listSpecies):
 # On charge les genomes
 phylTree.loadAllSpeciesSince(None, options["genesFile"])
 del phylTree.dicGenomes
-genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genomeAncestral"])
+genesAnc = utils.myGenomes.Genome(noms_fichiers["genomeAncestral"])
 genome = rewriteGenome()
-nom = "mat%08d" % ((os.getpid() ^ os.getppid() ^ random.randint(1,16777215)) & 16777215)
-mult = pow(10, options["nbDecimales"])
+concordeInstance = utils.concorde.ConcordeLauncher()
 anc = options["ancestr"]
 ancSpecies = phylTree.species[anc]
 ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
@@ -244,5 +210,4 @@ phylTree.initCalcDist(anc, options["useOutgroups"] != 0)
 for c in genesAnc.lstChr:
 	sortChromosome(c)
 
-os.system('rm -f *%s*' % nom )
 

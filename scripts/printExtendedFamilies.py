@@ -15,7 +15,7 @@ import utils.myTools
 
 (noms_fichiers, options) = utils.myTools.checkArgs(["genesAncestraux"], [], __doc__)
 
-genesAnc = utils.myGenomes.loadGenome(noms_fichiers["genesAncestraux"])
+genesAnc = utils.myGenomes.Genome(noms_fichiers["genesAncestraux"])
 
 lst = set()
 nb = 0

@@ -29,9 +29,9 @@ import utils.myDiags
 
 
 # Chargement des fichiers
-genome1 = utils.myGenomes.loadGenome(noms_fichiers["referenceGenome"])
-genome2 = utils.myGenomes.loadGenome(noms_fichiers["studiedGenome"])
-genesAnc = utils.myGenomes.loadGenome(noms_fichiers["orthologuesList"])
+genome1 = utils.myGenomes.Genome(noms_fichiers["referenceGenome"])
+genome2 = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
+genesAnc = utils.myGenomes.Genome(noms_fichiers["orthologuesList"])
 
 def printDiag( ((e1,c1,d1), (e2,c2,d2), da) ):
 	global memeSens, seg1, seg2

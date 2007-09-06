@@ -28,7 +28,8 @@ itStrictUpperMatrix = utils.myTools.myIterator.tupleOnStrictUpperList
 def distInterGenes(tg1, tg2, seuil):
 
 	# Les distances chez chaque espece
-	distEsp = {}
+	distEsp = tabDist[:]
+
 	for (e1,c1,i1) in tg1:
 		for (e2,c2,i2) in tg2:
 			if e1 == e2 and c1 == c2:
@@ -36,10 +37,13 @@ def distInterGenes(tg1, tg2, seuil):
 				# Au dela d'un certain seuil, on considere que l'information n'est plus valable
 				if (seuil <= 0) or (x <= seuil):
 					# On garde la plus petite distance trouvee
-					distEsp[e1] = min(distEsp.get(e1,x), x)
+					if distEsp[e1] == None:
+						distEsp[e1] = x
+					else:
+						distEsp[e1] = min(distEsp[e1], x)
 	
 	# On fait la liste des especes qui presentent une distance de 1
-	lst1Esp = [e for e in distEsp if distEsp[e] == 1]
+	lst1Esp = [phylTree.allNames[i] for (i,d) in enumerate(distEsp) if d == 1]
 	
 	# On met les 1 dans les noeuds de l'arbre entre les especes
 	lst1Anc = set()
@@ -48,19 +52,19 @@ def distInterGenes(tg1, tg2, seuil):
 		if anc in lst1Anc:
 			return 1
 	for a in lst1Anc:
-		distEsp[a] = 1
+		distEsp[phylTree.indNames[a]] = 1
 
 	# En mode outgroups/2 les outgroups qui montrent une distance plus grande que les fils sont supprimes
 	if options["useOutgroups"] == 2:
-		m = [distEsp[e] for e in ancSpecies if e in distEsp]
-		if len(m) > 0:
-			m = max(m)
+		# HACK: max(None,x) renvoie x
+		m = max([distEsp[e] for e in ancSpecies])
+		if m != None:
 			for e in ancOutgroupSpecies:
-				if distEsp.get(e,0) > m:
-					del distEsp[e]
+				if distEsp[e] > m:
+					distEsp[e] = None
 
 	# On calcule par une moyenne les autres distances
-	return phylTree.calcDist(distEsp)
+	return phylTree.calcDist2(distEsp)
 
 
 #
@@ -107,7 +111,7 @@ def rewriteGenome():
 		for (i,g) in enumerate(genesAnc.lstGenes[c]):
 			tmp = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
 			tmp.extend(dicOutgroupGenes.get( (c,i), []))
-			genome[c].append(tmp)
+			genome[c].append( [(phylTree.indNames[e],ch,i) for (e,ch,i) in tmp] )
 	del phylTree.dicGenes
 	return genome
 
@@ -140,10 +144,12 @@ mult = pow(10, options["nbDecimales"])
 seuil = options["seuilMaxDistInterGenes"]
 pen = str(int(mult*options["penalite"]))
 anc = options["ancestr"]
-ancSpecies = phylTree.species[anc]
-ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
+ancSpecies = [phylTree.indNames[e] for e in phylTree.species[anc]]
+ancOutgroupSpecies = [phylTree.indNames[e] for e in phylTree.outgroupSpecies[anc]]
+tabDist = [None] * len(phylTree.allNames)
+nbNames = len(tabDist)
 
-phylTree.initCalcDist(anc, options["useOutgroups"] != 0)
+phylTree.initCalcDist2(anc, options["useOutgroups"] != 0)
 genome = rewriteGenome()
 concordeInstance = utils.concorde.ConcordeLauncher()
 
@@ -165,7 +171,8 @@ for c in genesAnc.lstChr:
 		else:
 			return int(mult*y)
 	
-	lstTot = concordeInstance.doConcorde(n, f, nbConcorde, options["withConcordeOutput"])
+	#lstTot = concordeInstance.doConcorde(n, f, nbConcorde, options["withConcordeOutput"])
+	lstTot = concordeInstance.doConcorde(n, f, 0, options["withConcordeOutput"])
 
 	if len(lstTot) == 0:
 		for g in genesAnc.lstGenes[c]:

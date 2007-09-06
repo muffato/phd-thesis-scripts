@@ -13,7 +13,6 @@ import sys
 import random
 import utils.myGenomes
 import utils.myTools
-import utils.myDiags
 import utils.myPsOutput
 
 
@@ -32,18 +31,18 @@ import utils.myPsOutput
 
 
 # Chargement des fichiers
-genome1 = utils.myGenomes.loadGenome(noms_fichiers["studiedGenome"])
-genome2 = utils.myGenomes.loadGenome(noms_fichiers["referenceGenome"])
+genome1 = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
+genome2 = utils.myGenomes.Genome(noms_fichiers["referenceGenome"])
 if options["reverse"]:
 	x = genome1
 	genome1 = genome2
 	genome2 = x
 if options["orthologuesList"] != "":
-	genesAnc = utils.myGenomes.loadGenome(options["orthologuesList"])
+	genesAnc = utils.myGenomes.Genome(options["orthologuesList"])
 else:
 	genesAnc = None
 try:
-	colors = utils.myGenomes.loadGenome(options["colorFile"])
+	colors = utils.myGenomes.Genome(options["colorFile"])
 except Exception:
 	colors = None
 
@@ -111,8 +110,8 @@ for c1 in table12:
 			if colors == None:
 				coul = options["defaultColor"]
 			else:
-				tmp = colors.getPosition(genome1.lstGenes[c1][i1])
-				tmp.update( colors.getPosition(genome2.lstGenes[c2][i2]) )
+				tmp = colors.getPosition(genome1.lstGenes[c1][i1].names)
+				tmp.update( colors.getPosition(genome2.lstGenes[c2][i2].names) )
 				if len(tmp) == 0:
 					coul = options["defaultColor"]
 				else:
