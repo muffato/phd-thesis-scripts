@@ -341,15 +341,15 @@ for indChr in xrange(len(lstChr)):
 	if options["printDiags"]:
 		for i in clusters[indChr]:
 			if i < nbDiagsIni:
-				print chrIndex+1, " ".join([str(x) for x in lstDiags[i][0] if x not in inter])
+				print indChr+1, " ".join([str(x) for x in lstDiags[i][0] if x not in inter])
 			else:
 				for g in lstDiags[i][0]:
 					if g not in inter:
-						print chrIndex+1, g
+						print indChr+1, g
 	else:
 		for i in lstChr[indChr]:
 			if i not in inter:
-				print chrIndex+1, " ".join(lstGenesAnc[i].names)
+				print indChr+1, " ".join(lstGenesAnc[i].names)
 
 print >> sys.stderr, "OK"
 

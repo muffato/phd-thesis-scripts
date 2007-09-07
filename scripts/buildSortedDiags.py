@@ -63,6 +63,14 @@ def distInterGenes(tg1, tg2, seuil):
 	return phylTree.calcDist(distEsp)
 
 
+def loadDiagsFile(name):
+	f = utils.myTools.myOpenFile(name, 'r')
+	diags = utils.myTools.defaultdict(list)
+	for l in f:
+		t = l.split()
+		diags[utils.myGenomes.commonChrName(t[0])].append( [int(x) for x in t[1:]] )
+	return diags
+
 #
 # Reecrit le genome a trier comme suite des positions des genes dans les genomes modernes
 #
@@ -82,7 +90,7 @@ def rewriteGenome():
 				# Les autres sont les orthologues dans les autres especes
 				newGenes = [phylTree.dicGenes[s] for s in g.names if (s in phylTree.dicGenes) and not (s in genesAnc.dicGenes)]
 				# On enregistre le lien entre les genes du genome a ordonner et les genes des outgroups
-				for i in genesAnc.getPosition(g.names):
+				for (_,i) in genesAnc.getPosition(g.names):
 					dicOutgroupGenes[i].update(newGenes)
 			del tmpGenesAnc
 
@@ -90,12 +98,15 @@ def rewriteGenome():
 	# On reecrit le genome a trier
 	# Chaque gene devient la liste de ses positions dans chaque espece
 	genome = {}
-	for c in genesAnc.lstChr:
+	for (c,dd) in diags.iteritems():
 		genome[c] = []
-		for (i,g) in enumerate(genesAnc.lstGenes[c]):
-			tmp = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
-			tmp.extend(dicOutgroupGenes.get( (c,i), []))
-			genome[c].append(tmp)
+		for d in dd:
+			d2 = []
+			for i in d:
+				tmp = [phylTree.dicGenes[s] for s in genesAnc.lstGenes[None][i].names if s in phylTree.dicGenes]
+				tmp.extend(dicOutgroupGenes.get( i, []))
+				d2.append(tmp)
+			genome[c].append(d2)
 	del phylTree.dicGenes
 	return genome
 
@@ -103,9 +114,9 @@ def rewriteGenome():
 
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genomeAncestral", "phylTree.conf"], \
+	["genomeAncestralDiags", "phylTree.conf"], \
 	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
-	("useOutgroups",int,[0,1,2]), ("nbConcorde",int,1), ("withConcordeOutput",bool,False), ("searchAllSol",bool,False), \
+	("useOutgroups",int,[0,1,2]), ("nbConcorde",int,1), ("withConcordeOutput",bool,False), ("withConcordeStats",bool,False),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -122,7 +133,8 @@ if options["useOutgroups"] > 0:
 else:
 	phylTree.loadAllSpeciesSince(options["ancestr"], options["genesFile"])
 del phylTree.dicGenomes
-genesAnc = utils.myGenomes.Genome(noms_fichiers["genomeAncestral"])
+diags = loadDiagsFile(noms_fichiers["genomeAncestralDiags"])
+genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[options["ancestr"]])
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 seuil = options["seuilMaxDistInterGenes"]
@@ -132,66 +144,52 @@ ancSpecies = phylTree.species[anc]
 ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
 
 phylTree.initCalcDist(anc, options["useOutgroups"] != 0)
-genome = rewriteGenome()
+newGenome = rewriteGenome()
 concordeInstance = utils.concorde.ConcordeLauncher()
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
-for c in genesAnc.lstChr:
+for (c,tab) in newGenome.iteritems():
 
 	# Ecrit la matrice du chromosome c et lance concorde
-	tab = genome[c]
 	n = len(tab)
-	print >> sys.stderr, "\n- Chromosome %s (%d genes) -" % (c, n)
 	
-	# La matrice des distances intergenes
-	mat = [[None] * (n+1) for i in xrange(n+1)]
+	print >> sys.stderr, "\n- Chromosome %s (%d diagonales) -" % (c, n)
 	
 	def f(i, j):
-		y = distInterGenes(tab[i], tab[j], seuil)
-		mat[i+1][j+1] = mat[j+1][i+1] = y
-		if y == None:
+		val = set()
+		val.add( distInterGenes(tab[i][0], tab[j][0], seuil) )
+		val.add( distInterGenes(tab[i][0], tab[j][-1], seuil) )
+		val.add( distInterGenes(tab[i][-1], tab[j][0], seuil) )
+		val.add( distInterGenes(tab[i][-1], tab[j][-1], seuil) )
+		#val.add( distInterGenes(tab[i][len(tab[i])/2], tab[j][len(tab[j])/2], seuil) )
+		#for ii in xrange(len(tab[i])):
+		#	for jj in xrange(len(tab[j])):
+		#		val.add( distInterGenes(tab[i][ii], tab[j][jj], seuil) )
+		val.discard(None)
+		if len(val) == 0:
 			return pen
-		elif y == 1:
-			return 0
 		else:
-			return int(mult*y)
+			y = min(val)
+			#y = sum(val)/float(len(val))
+			if y == 1:
+				return 0
+			else:
+				return int(mult*y)
 	
 	lstTot = concordeInstance.doConcorde(n, f, 1, options["withConcordeOutput"])
-	
-
-	lstTot = concordeInstance.doConcorde(n, f, nbConcorde, options["withConcordeOutput"])
 
 	if len(lstTot) == 0:
 		lstTot = [range(n)]
-	for (i,g) in enumerate(lstTot[0]):
-		print c,
-		if nbConcorde > 1:
-			print len(set([s[i] for s in lstTot])),
-		print " ".join(genesAnc.lstGenes[c][g].names)
+	tab = diags[c]
+	for (i,d) in enumerate(lstTot[0]):
+		for g in tab[d]:
+			print c, " ".join(genesAnc.lstGenes[None][g].names)
 	
-	solUniq = utils.myMaths.unique(lstTot)
-	if nbConcorde > 1:
+	solUniq = utils.myMaths.unique([l for l in lstTot])
+
+	if options["withConcordeStats"]:
 		for sol in solUniq:
 			print ".%s" % c, " ".join([str(i) for i in sol])
+	
 	print >> sys.stderr, len(solUniq), "solutions"
 
-	if options["searchAllSol"]:
-		print >> sys.stderr, "Etude des solutions alternatives ...",
-		nb = 0
-		res = lstTot[0]
-		tmp = [(i,res[i],res[i+1],mat[res[i]][res[i+1]]) for i in xrange(n)]
-		for (i,xi,xip,diip) in tmp:
-			for (j,xj,xjp,djjp) in tmp[:max(i-1,0)]:
-				dij = mat[xi][xj]
-				if dij == None:
-					continue
-				dijpp = mat[xip][xjp]
-				if dijpp == None:
-					continue
-				if int(mult * (diip+djjp-dij-dijpp)) == 0:
-					# On a detecte une inversion potentielle
-					print "# ... %d / %d ... %d / %d ..." % (j,j+1,i,i+1)
-					nb += 1
-		
-		print >> sys.stderr, nb, "inversions possibles"
-	
