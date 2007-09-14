@@ -32,24 +32,13 @@ class ConcordeLauncher:
 		print >> f, "EDGE_WEIGHT_FORMAT: UPPER_ROW"
 		print >> f, "EDGE_WEIGHT_SECTION"
 		print >> f, "0 " * n
-		fixed = set()
 		for i in xrange(n):
 			for j in xrange(i+1,n):
-				x = func(i, j)
-				if x > 0:
-					print >> f, x,
-				else:
-					fixed.add( (i,j) )
+				print >> f, func(i, j),
 			print >> f
-		if len(fixed) > 0:
-			print >> f, "FIXED_EDGES_SECTION"
-			for (i,j) in fixed:
-				print >> f, i, j
-			print >> f, -1
 		print >> f, "EOF"		
 		f.close()
 		print >> sys.stderr, "OK"
-		sys.exit(0)
 		
 		print >> sys.stderr, "Lancement de concorde ",
 		dest = {True:'&2', False:'/dev/null'}[verbose]
@@ -61,7 +50,7 @@ class ConcordeLauncher:
 				lstTot.append(ConcordeFile(self.filename + ".sol"))
 			os.system('rm -f 0%s* %s*' % (self.filename,self.filename) )
 			sys.stderr.write(".")
-		#os.system('rm -f *%s*' % self.filename )
+		os.system('rm -f *%s*' % self.filename )
 
 		# On remet chaque liste dans le meme sens que la premiere
 		res = []

@@ -68,7 +68,8 @@ def loadDiagsFile(name):
 	diags = utils.myTools.defaultdict(list)
 	for l in f:
 		t = l.split()
-		diags[utils.myGenomes.commonChrName(t[0])].append( [int(x) for x in t[1:]] )
+		if len(t) > 1:
+			diags[utils.myGenomes.commonChrName(t[0])].append( [int(x) for x in t[1:]] )
 	return diags
 
 #
@@ -115,7 +116,7 @@ def rewriteGenome():
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genomeAncestralDiags", "phylTree.conf"], \
-	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
+	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,10000), \
 	("useOutgroups",int,[0,1,2]), ("nbConcorde",int,1), ("withConcordeOutput",bool,False), ("withConcordeStats",bool,False),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
@@ -138,7 +139,8 @@ genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[op
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 seuil = options["seuilMaxDistInterGenes"]
-pen = str(int(mult*options["penalite"]))
+pen = str(int(mult*options["infiniteDist"]))
+add = options["notConstraintPenalty"]
 anc = options["ancestr"]
 ancSpecies = phylTree.species[anc]
 ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
@@ -155,34 +157,35 @@ for (c,tab) in newGenome.iteritems():
 	
 	print >> sys.stderr, "\n- Chromosome %s (%d diagonales) -" % (c, n)
 	
-	def f(i, j):
-		val = set()
-		val.add( distInterGenes(tab[i][0], tab[j][0], seuil) )
-		val.add( distInterGenes(tab[i][0], tab[j][-1], seuil) )
-		val.add( distInterGenes(tab[i][-1], tab[j][0], seuil) )
-		val.add( distInterGenes(tab[i][-1], tab[j][-1], seuil) )
-		#val.add( distInterGenes(tab[i][len(tab[i])/2], tab[j][len(tab[j])/2], seuil) )
-		#for ii in xrange(len(tab[i])):
-		#	for jj in xrange(len(tab[j])):
-		#		val.add( distInterGenes(tab[i][ii], tab[j][jj], seuil) )
-		val.discard(None)
-		if len(val) == 0:
+	def f(i1, i2):
+		d1 = i1/2
+		d2 = i2/2
+		if d1 == d2:
+			return 0
+
+		g1 = tab[d1][2*d1-i1]
+		g2 = tab[d2][2*d2-i2]
+		y = distInterGenes(g1, g2, seuil)
+		if y == None:
 			return pen
 		else:
-			y = min(val)
-			#y = sum(val)/float(len(val))
-			if y == 1:
-				return 0
-			else:
-				return int(mult*y)
+			return int(mult*y+add)
 	
-	lstTot = concordeInstance.doConcorde(n, f, 1, options["withConcordeOutput"])
+	lstTot = concordeInstance.doConcorde(2*n, f, 1, options["withConcordeOutput"])
 
 	if len(lstTot) == 0:
-		lstTot = [range(n)]
+		lstTot = [range(2*n)]
+	res = lstTot[0][:]
 	tab = diags[c]
-	for (i,d) in enumerate(lstTot[0]):
-		for g in tab[d]:
+		
+	while len(res) > 0:
+		i1 = res.pop(0)
+		i2 = res.pop(0)
+		if i1/2 != i2/2:
+			print >> sys.stderr, "!"
+		elif i1 > i2:
+			tab[i1/2].reverse()
+		for g in tab[i1/2]:
 			print c, " ".join(genesAnc.lstGenes[None][g].names)
 	
 	solUniq = utils.myMaths.unique([l for l in lstTot])

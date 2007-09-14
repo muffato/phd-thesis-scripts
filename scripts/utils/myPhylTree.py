@@ -269,8 +269,8 @@ class PhylogeneticTree:
 			esp = self.officialName[esp]
 			g = myGenomes.Genome(template % self.fileName[esp])
 			self.dicGenomes[esp] = g
-			for x in g.dicGenes:
-				self.dicGenes[x] = (esp, g.dicGenes[x][0], g.dicGenes[x][1])
+			for (x,(c,i)) in g.dicGenes.iteritems():
+				self.dicGenes[x] = (esp, c, i)
 
 	# Renvoie le nombre de genes dans chaque espece pour une famille donnee
 	def findFamilyComposition(self, fam):

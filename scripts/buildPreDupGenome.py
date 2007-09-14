@@ -371,14 +371,15 @@ def printColorAncestr(genesAnc, chrAncGenes):
 
 # Chargement des fichiers
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-especesDup = options["especesDup"].split(',')
-especesNonDupGrp = [x.split('+') for x in options["especesNonDup"].split(',')]
+
+def proceedList(l):
+	return utils.myMaths.flatten([phylTree.species[s] for s in l])
+especesDup = proceedList(options["especesDup"].split(','))
+especesNonDupGrp = [proceedList(x.split('+')) for x in options["especesNonDup"].split(',')]
 especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
-for x in phylTree.branches[phylTree.root]:
-	if phylTree.dicParents[x][especesDup[0]] != x:
-		rootNonDup = x
-	else:
-		rootDup = x
+rootNonDup = especesNonDup[0]
+for e in especesNonDup[1:]:
+	rootNonDup = phylTree.dicParents[rootNonDup][e]
 dicEspNames = dict([(phylTree.officialName[esp],esp) for esp in especesDup+especesNonDup])
 phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
 genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[options["target"]])

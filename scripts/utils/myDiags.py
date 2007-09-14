@@ -97,7 +97,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 			(d1,d2,c2,s,(deb1,fin1),(deb2,fin2)) = diag.pop(0)
 			i = 0
 			while i < len(diag):
-				(dd1,dd2,cc2,ss(debb1,finn1),(debb2,finn2)) = diag[i]
+				(dd1,dd2,cc2,ss,(debb1,finn1),(debb2,finn2)) = diag[i]
 				#print >> sys.stderr, "test de", diag[i]
 
 				# Aucune chance de poursuivre la diagonale

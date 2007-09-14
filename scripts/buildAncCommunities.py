@@ -57,14 +57,10 @@ def loadDiagsFile(nom, ancName):
 #
 def checkLonelyGenes():
 
-	# Charge les genomes des especes modernes si ca n'a pas encore ete fait
-	if len(phylTree.dicGenomes) == 0:
-		phylTree.loadAllSpeciesSince(None, options["genesFile"])
-	
 	# Charge les genomes des ancetres outgroup
 	genesAnc = {}
 	for a in phylTree.listAncestr:
-		if phylTree.dicParents[options["ancestr"]][a] == a:
+		if (phylTree.dicParents[options["ancestr"]][a] == a) and (a != options["ancestr"]):
 			genesAnc[a] = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[a])
 	
 	print >> sys.stderr, "Ajout des genes solitaires ...",
@@ -72,31 +68,24 @@ def checkLonelyGenes():
 	genesSeuls = set(xrange(len(lstGenesAnc)))
 	for (d,_,_) in lstDiags:
 		genesSeuls.difference_update(d)
+	
 	nb = 0
 	new = utils.myTools.defaultdict(list)
 	for i in genesSeuls:
 
 		lst = []
-		# Les especes filles
-		esp = [phylTree.dicGenes[s] for s in lstGenesAnc[i].names if s in phylTree.dicGenes]
-
 		for e in phylTree.listSpecies:
 			if e in outgroup:
-				# Le gene chez l'ancetre commun
 				a = phylTree.dicParents[options["ancestr"]][e]
-				g = genesAnc[a].getPosition(lstGenesAnc[i].names)
-				# Cas d'un gene specifique de la lignee
-				if len(g) == 0:
-					continue
-				# Le gene dans l'autre espece
-				tmp = [c for (c,_) in phylTree.dicGenomes[e].getPosition(genesAnc[a].lstGenes[None][g.pop()[1]].names)]
+				names = genesAnc[a].getOtherNames(lstGenesAnc[i].names)
 			else:
-				# Le gene dans l'autre espece
-				tmp = [c for (x,c,_) in esp if x == e]
-			
+				names = lstGenesAnc[i].names
+			tmp = [dicGenes[x] for x in names if x in dicGenes]
+			tmp = set([c for (x,c) in tmp if x == e])
+
 			# Au final
 			if len(tmp) == 1:
-				c = str(tmp[0]).replace("_random","")
+				c = str(tmp.pop()).replace("_random","")
 				if 'Un' not in c:
 					lst.append( (e,c) )
 		
@@ -121,7 +110,7 @@ def checkAlreadyBuildAnc():
 		if os.access(s, os.R_OK):
 			genAlready[f] = utils.myGenomes.Genome(s, withChr=True)
 			s = len(genAlready[f].lstChr)
-			if options["weightNbChr+"]:
+			if options["weightNbChr+"] and (s > 0):
 				espCertitude[f] = 1. - 1. / float(s)
 			if options["weightNbChr-"]:
 				espIncertitude[f] = s * alphaIncertitude
@@ -200,25 +189,30 @@ dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
 phylTree.initCalcDist(options["ancestr"], options["useOutgroups"])
 calcPoidsFils(options["ancestr"], float(len(phylTree.tmpItems[0])))
 
-
+# Chargement des genomes si necessaire
+lengths = []
+dicGenes = {}
+if options["weightNbChr+"] or options["weightNbChr-"] or options["useLonelyGenes"]:
+	for e in phylTree.listSpecies:
+		genome = utils.myGenomes.Genome(options["genesFile"] % phylTree.fileName[e])
+		lengths.append(len(genome.lstChr))
+		if options["useLonelyGenes"]:
+			for (g,(c,_)) in genome.dicGenes.iteritems():
+				dicGenes[g] = (e,c)
 
 # Le taux de precision de chaque espece
 espCertitude = dict.fromkeys(phylTree.commonNames, 1.)
 espIncertitude = dict.fromkeys(phylTree.commonNames, 0.)
-if options["weightNbChr+"] or options["weightNbChr-"]:
-	phylTree.loadAllSpeciesSince(None, options["genesFile"])
-	tmp = []
-	for e in phylTree.listSpecies:
-		s = len(phylTree.dicGenomes[e].lstChr)
-		if s > 0:
-			tmp.append(s)
-			if options["weightNbChr+"]:
-				espCertitude[e] = 1. - 1. / float(s)
-	if options["weightNbChr-"]:
-		alphaIncertitude = 1. / float(min(tmp) * max(tmp))
-		for e in phylTree.listSpecies:
-			espIncertitude[e] = len(phylTree.dicGenomes[e].lstChr) * alphaIncertitude
-
+# Poids de certitude
+if options["weightNbChr+"]:
+	for (i,e) in enumerate(phylTree.listSpecies):
+		if lengths[i] > 0:
+			espCertitude[e] = 1. - 1. / float(lengths[i])
+# Poids d'incertitude
+if options["weightNbChr-"]:
+	alphaIncertitude = 1. / float(min([x for x in lengths if x > 0]) * max(lengths))
+	for (i,e) in enumerate(phylTree.listSpecies):
+		espIncertitude[e] = lengths[i] * alphaIncertitude
 
 # On doit rajouter les genes non presents dans des diagonales
 if options["useLonelyGenes"]:
@@ -228,8 +222,6 @@ nbDiags = len(lstDiags)
 # On doit noter les chromosomes des diagonales sur ces ancetres deja construits
 if options["alreadyBuiltAnc"] != "":
 	checkAlreadyBuildAnc()
-
-phylTree.dicGenomes.clear()
 
 print >> sys.stderr, "%-25s\t%s\t%s\t%s" % ("Ancetre", "Poids", "Cert", "Incert")
 for e in dicPoidsEspeces:
@@ -290,22 +282,23 @@ def calcScore2(i1, i2):
 		values[e] = espCertitude[e]
 
 	prop = [phylTree.calcDist(values, f) for f in filsAnc]
-	if len(outgroup) != 0:
-		prop.append( phylTree.calcDist(values, phylTree.parent[options["ancestr"]]) )
 	
-	s = sum( [f1 * f2 for (f1,f2) in utils.myTools.myIterator.tupleOnStrictUpperList([x for x in prop if x != None])] )
+	s = sum( [f1 * f2 for (f1,f2) in it([x for x in prop if x != None])] )
 
 	return s
 
+it = utils.myTools.myIterator.tupleOnStrictUpperList
 
 if options["newScoring"]:
+	if len(outgroup) != 0:
+		filsAnc.append(phylTree.parent[options["ancestr"]])
 	f = calcScore2
 else:
 	f = calcScore
 
 walktrapInstance = utils.walktrap.WalktrapLauncher(showProgress=True, randomWalksLength=options["walktrapLength"])
 print >> sys.stderr, "Calcul de la matrice ...",
-walktrapInstance.updateFromFunc(range(nbDiagsIni), f)
+walktrapInstance.updateFromFunc(range(nbDiags), f)
 walktrapInstance.doWalktrap()
 
 clusters = []
@@ -323,6 +316,7 @@ for (nodes,cuts,_,dend) in walktrapInstance.res:
 		# Au choix, on prend la version la moins fusionnee
 		print >> sys.stderr, "+%d/%f/%f" % (len(interessant[-1][-1]), interessant[-1][0], interessant[-1][1]),
 		clusters.extend(interessant[-1][-1])
+# -> clusters contient la repartition des diagonales
 print >> sys.stderr
 
 print >> sys.stderr, "Impression des %d chromosomes ancestraux ..." % len(clusters),
@@ -332,24 +326,26 @@ for clust in clusters:
 	for i in clust:
 		lst.update(lstDiags[i][0])
 	lstChr.append(lst)
+# -> lstChr contient la repartition des genes
 
 inter = set()
 for (l1,l2) in utils.myTools.myIterator.tupleOnStrictUpperList(lstChr):
 	inter.update(l1.intersection(l2))
+# -> inter contient les genes presents dans deux chromosomes a la fois
 
 for indChr in xrange(len(lstChr)):
 	if options["printDiags"]:
-		for i in clusters[indChr]:
-			if i < nbDiagsIni:
-				print indChr+1, " ".join([str(x) for x in lstDiags[i][0] if x not in inter])
+		for d in clusters[indChr]:
+			if d < nbDiagsIni:
+				print indChr+1, " ".join([str(g) for g in lstDiags[d][0] if g not in inter])
 			else:
-				for g in lstDiags[i][0]:
+				for g in lstDiags[d][0]:
 					if g not in inter:
 						print indChr+1, g
 	else:
-		for i in lstChr[indChr]:
-			if i not in inter:
-				print indChr+1, " ".join(lstGenesAnc[i].names)
+		for g in lstChr[indChr]:
+			if g not in inter:
+				print indChr+1, " ".join(lstGenesAnc[g].names)
 
 print >> sys.stderr, "OK"
 

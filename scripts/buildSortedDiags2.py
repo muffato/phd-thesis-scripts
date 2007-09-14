@@ -28,8 +28,7 @@ itStrictUpperMatrix = utils.myTools.myIterator.tupleOnStrictUpperList
 def distInterGenes(tg1, tg2, seuil):
 
 	# Les distances chez chaque espece
-	distEsp = tabDist[:]
-
+	distEsp = {}
 	for (e1,c1,i1) in tg1:
 		for (e2,c2,i2) in tg2:
 			if e1 == e2 and c1 == c2:
@@ -37,13 +36,10 @@ def distInterGenes(tg1, tg2, seuil):
 				# Au dela d'un certain seuil, on considere que l'information n'est plus valable
 				if (seuil <= 0) or (x <= seuil):
 					# On garde la plus petite distance trouvee
-					if distEsp[e1] == None:
-						distEsp[e1] = x
-					else:
-						distEsp[e1] = min(distEsp[e1], x)
+					distEsp[e1] = min(distEsp.get(e1,x), x)
 	
 	# On fait la liste des especes qui presentent une distance de 1
-	lst1Esp = [phylTree.allNames[i] for (i,d) in enumerate(distEsp) if d == 1]
+	lst1Esp = [e for e in distEsp if distEsp[e] == 1]
 	
 	# On met les 1 dans les noeuds de l'arbre entre les especes
 	lst1Anc = set()
@@ -52,20 +48,29 @@ def distInterGenes(tg1, tg2, seuil):
 		if anc in lst1Anc:
 			return 1
 	for a in lst1Anc:
-		distEsp[phylTree.indNames[a]] = 1
+		distEsp[a] = 1
 
 	# En mode outgroups/2 les outgroups qui montrent une distance plus grande que les fils sont supprimes
 	if options["useOutgroups"] == 2:
-		# HACK: max(None,x) renvoie x
-		m = max([distEsp[e] for e in ancSpecies])
-		if m != None:
+		m = [distEsp[e] for e in ancSpecies if e in distEsp]
+		if len(m) > 0:
+			m = max(m)
 			for e in ancOutgroupSpecies:
-				if distEsp[e] > m:
-					distEsp[e] = None
+				if distEsp.get(e,0) > m:
+					del distEsp[e]
 
 	# On calcule par une moyenne les autres distances
-	return phylTree.calcDist2(distEsp)
+	return phylTree.calcDist(distEsp)
 
+
+def loadDiagsFile(name):
+	f = utils.myTools.myOpenFile(name, 'r')
+	diags = utils.myTools.defaultdict(list)
+	for l in f:
+		t = l.split()
+		if len(t) > 1:
+			diags[utils.myGenomes.commonChrName(t[0])].append( [int(x) for x in t[1:]] )
+	return diags
 
 #
 # Reecrit le genome a trier comme suite des positions des genes dans les genomes modernes
@@ -73,7 +78,7 @@ def distInterGenes(tg1, tg2, seuil):
 def rewriteGenome():
 
 	# On etend la liste des genes ancestraux pour utiliser les outgroup en remontant l'arbre jusqu'a la racine
-	dicOutgroupGenes = {}
+	dicOutgroupGenes = utils.myTools.defaultdict(set)
 	if options["useOutgroups"] > 0:
 		anc = options["ancestr"]
 		while anc in phylTree.parent:
@@ -83,35 +88,26 @@ def rewriteGenome():
 			del tmpGenesAnc.dicGenes
 			# Chaque gene
 			for g in tmpGenesAnc:
-				ianc = set()
-				newGenes = []
-				for s in g.names:
-					# On se sert des genes qu'on retrouve dans le genome a ordonner comme ancre
-					if s in genesAnc.dicGenes:
-						ianc.add(genesAnc.dicGenes[s])
-					# Les autres sont les orthologues dans les autres especes
-					elif s in phylTree.dicGenes:
-						tt = phylTree.dicGenes[s]
-						if tt[0] not in phylTree.species[options["ancestr"]]:
-							newGenes.append(tt)
+				# Les autres sont les orthologues dans les autres especes
+				newGenes = [phylTree.dicGenes[s] for s in g.names if (s in phylTree.dicGenes) and not (s in genesAnc.dicGenes)]
 				# On enregistre le lien entre les genes du genome a ordonner et les genes des outgroups
-				for i in ianc:
-					if i in dicOutgroupGenes:
-						dicOutgroupGenes[i].update(newGenes)
-					else:
-						dicOutgroupGenes[i] = set(newGenes)
+				for (_,i) in genesAnc.getPosition(g.names):
+					dicOutgroupGenes[i].update(newGenes)
 			del tmpGenesAnc
 
 
 	# On reecrit le genome a trier
 	# Chaque gene devient la liste de ses positions dans chaque espece
 	genome = {}
-	for c in genesAnc.lstChr:
+	for (c,dd) in diags.iteritems():
 		genome[c] = []
-		for (i,g) in enumerate(genesAnc.lstGenes[c]):
-			tmp = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
-			tmp.extend(dicOutgroupGenes.get( (c,i), []))
-			genome[c].append( [(phylTree.indNames[e],ch,i) for (e,ch,i) in tmp] )
+		for d in dd:
+			d2 = []
+			for i in d:
+				tmp = [phylTree.dicGenes[s] for s in genesAnc.lstGenes[None][i].names if s in phylTree.dicGenes]
+				tmp.extend(dicOutgroupGenes.get( i, []))
+				d2.append(tmp)
+			genome[c].append(d2)
 	del phylTree.dicGenes
 	return genome
 
@@ -119,8 +115,8 @@ def rewriteGenome():
 
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genomeAncestral", "phylTree.conf"], \
-	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
+	["genomeAncestralDiags", "phylTree.conf"], \
+	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("penalite",int,1000000), ("notConstraintPenalty",float,100), \
 	("useOutgroups",int,[0,1,2]), ("nbConcorde",int,1), ("withConcordeOutput",bool,False), ("withConcordeStats",bool,False),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
@@ -138,56 +134,61 @@ if options["useOutgroups"] > 0:
 else:
 	phylTree.loadAllSpeciesSince(options["ancestr"], options["genesFile"])
 del phylTree.dicGenomes
-genesAnc = utils.myGenomes.Genome(noms_fichiers["genomeAncestral"])
+diags = loadDiagsFile(noms_fichiers["genomeAncestralDiags"])
+genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[options["ancestr"]])
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 seuil = options["seuilMaxDistInterGenes"]
 pen = str(int(mult*options["penalite"]))
+add = options["notConstraintPenalty"]
 anc = options["ancestr"]
-ancSpecies = [phylTree.indNames[e] for e in phylTree.species[anc]]
-ancOutgroupSpecies = [phylTree.indNames[e] for e in phylTree.outgroupSpecies[anc]]
-tabDist = [None] * len(phylTree.allNames)
-nbNames = len(tabDist)
+ancSpecies = phylTree.species[anc]
+ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
 
-phylTree.initCalcDist2(anc, options["useOutgroups"] != 0)
-genome = rewriteGenome()
+phylTree.initCalcDist(anc, options["useOutgroups"] != 0)
+newGenome = rewriteGenome()
 concordeInstance = utils.concorde.ConcordeLauncher()
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
-for c in genesAnc.lstChr:
+for (c,tab) in newGenome.iteritems():
 
 	# Ecrit la matrice du chromosome c et lance concorde
-	tab = genome[c]
 	n = len(tab)
 	
-	print >> sys.stderr, "\n- Chromosome %s (%d genes) -" % (c, n)
+	print >> sys.stderr, "\n- Chromosome %s (%d diagonales) -" % (c, n)
 	
-	def f(i, j):
-		y = distInterGenes(tab[i], tab[j], seuil)
+	def f(i1, i2):
+		d1 = i1/2
+		d2 = i2/2
+		if d1 == d2:
+			return 0
+
+		g1 = tab[d1][2*d1-i1]
+		g2 = tab[d2][2*d2-i2]
+		y = distInterGenes(g1, g2, seuil)
 		if y == None:
 			return pen
-		elif y == 1:
-			return 0
 		else:
-			return int(mult*y)
+			return int(mult*(y+add))
 	
-	#lstTot = concordeInstance.doConcorde(n, f, nbConcorde, options["withConcordeOutput"])
-	lstTot = concordeInstance.doConcorde(n, f, 0, options["withConcordeOutput"])
+	lstTot = concordeInstance.doConcorde(2*n, f, 1, options["withConcordeOutput"])
 
 	if len(lstTot) == 0:
-		for g in genesAnc.lstGenes[c]:
-			print c,
-			if nbConcorde > 1:
-				print 1,
-			print " ".join(g.names)
-	else:
-		for (i,g) in enumerate(lstTot[0].res):
-			print c,
-			if nbConcorde > 1:
-				print len(set([s.res[i] for s in lstTot])),
-			print " ".join(genesAnc.lstGenes[c][g-1].names)
+		lstTot = [range(2*n)]
+	res = lstTot[0][:]
+	tab = diags[c]
+		
+	while len(res) > 0:
+		i1 = res.pop(0)
+		i2 = res.pop(0)
+		if i1/2 != i2/2:
+			print >> sys.stderr, "!"
+		elif i1 > i2:
+			tab[i1/2].reverse()
+		for g in tab[i1/2]:
+			print c, " ".join(genesAnc.lstGenes[None][g].names)
 	
-	solUniq = utils.myMaths.unique([l.res for l in lstTot])
+	solUniq = utils.myMaths.unique([l for l in lstTot])
 
 	if options["withConcordeStats"]:
 		for sol in solUniq:

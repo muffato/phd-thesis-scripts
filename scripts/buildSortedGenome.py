@@ -82,8 +82,8 @@ def rewriteGenome():
 				# Les autres sont les orthologues dans les autres especes
 				newGenes = [phylTree.dicGenes[s] for s in g.names if (s in phylTree.dicGenes) and not (s in genesAnc.dicGenes)]
 				# On enregistre le lien entre les genes du genome a ordonner et les genes des outgroups
-				for i in genesAnc.getPosition(g.names):
-					dicOutgroupGenes[i].update(newGenes)
+				for x in genesAnc.getPosition(g.names):
+					dicOutgroupGenes[x].update(newGenes)
 			del tmpGenesAnc
 
 
@@ -104,7 +104,7 @@ def rewriteGenome():
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genomeAncestral", "phylTree.conf"], \
-	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("penalite",int,1000000), \
+	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,0), \
 	("useOutgroups",int,[0,1,2]), ("nbConcorde",int,1), ("withConcordeOutput",bool,False), ("searchAllSol",bool,False), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
@@ -126,7 +126,8 @@ genesAnc = utils.myGenomes.Genome(noms_fichiers["genomeAncestral"])
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 seuil = options["seuilMaxDistInterGenes"]
-pen = str(int(mult*options["penalite"]))
+pen = str(int(mult*options["infiniteDist"]))
+add = options["notConstraintPenalty"]
 anc = options["ancestr"]
 ancSpecies = phylTree.species[anc]
 ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
@@ -154,11 +155,8 @@ for c in genesAnc.lstChr:
 		elif y == 1:
 			return 0
 		else:
-			return int(mult*y)
+			return int(mult*y+add)
 	
-	lstTot = concordeInstance.doConcorde(n, f, 1, options["withConcordeOutput"])
-	
-
 	lstTot = concordeInstance.doConcorde(n, f, nbConcorde, options["withConcordeOutput"])
 
 	if len(lstTot) == 0:

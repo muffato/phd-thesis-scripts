@@ -34,10 +34,8 @@ def getLongestDiags(oldDiags):
 	combin = utils.myTools.myCombinator([])
 	for (i,((e1,c1,d1),(e2,c2,d2),da)) in enumerate(oldDiags):
 		diags[i] = da
-		for i1 in d1:
-			dic[(e1,c1,i1)].append(i)
-		for i2 in d2:
-			dic[(e2,c2,i2)].append(i)
+		for j in da:
+			dic[j].append(i)
 		combin.addLink([i])
 	
 	for s in dic:
