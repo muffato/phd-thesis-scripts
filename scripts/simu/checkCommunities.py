@@ -1,13 +1,7 @@
 #! /users/ldog/muffato/python -OO
 
 __doc__ = """
-	Compare deux genomes:
-		- Dessine la matrice des genes orthologues entre deux genomes.
-		- Dessine le karyotype d'un genome face a l'autre
-		- Renvoie les couples de chromosomes orthologues avec des stats sur l'evolution des genomes (nb genes, rearrangements)
-		- Renvoie la liste des couples de genes orthologues avec les details sur leurs positions
-		- Reordonne le genome 1 pour qu'il soit plus ressemblant au genome 2
-		- Renvoie les diagonales entre les deux genomes
+	Renvoie specificite/sensibilite en chromosomes/genes
 """
 
 ##################
@@ -53,10 +47,13 @@ def buildOrthosTable(genome1, chr1, genome2, chr2):
 		for c2 in chr2:
 			nb12 += (score[c2]*(score[c2]-1))/2.
 		nbTot += (len(res[c1])*(len(res[c1])-1))/2.
-		if len(res[c1]) != 0:
+		if len(res[c1]) != 0 and len(score) != 0:
 			synt += max(score.values())/float(len(res[c1]))
 
-	print "%.4f\t%.4f" % (100.*nb12/nbTot, 100.*synt/len(chr1)),
+	if len(chr1) != 0 and nbTot != 0:
+		print "%.4f\t%.4f" % (100.*nb12/nbTot, 100.*synt/len(chr1)),
+	else:
+		print "%.4f\t%.4f" % (0., 0.),
 
 
 

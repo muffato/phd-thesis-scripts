@@ -63,11 +63,10 @@ class Genome:
 					self.firstLine = ""
 
 			def __iter__(self):
-				return self
-
-			def next(self):
-				self.next = self.f.next
-				return self.firstLine
+				yield self.firstLine
+				for l in self.f:
+					if not l.startswith("#"):
+						yield l
 
 			def close(self):
 				return self.f.close()

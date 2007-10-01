@@ -176,7 +176,7 @@ for anc in tmp:
 # On compare toutes les especes entre elles
 for (e1,e2,toStudy) in dicLinks:
 	print >> sys.stderr, "Extraction des diagonales entre %s et %s " % (e1,e2),
-	for ((c1,d1),(c2,d2),s) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \
+	for ((c1,d1),(c2,d2)) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \
 		options["fusionThreshold"], options["sameStrand"] and (e1 not in genesAnc) and (e2 not in genesAnc), options["keepOnlyOrthos"]):
 		
 		pack1 = (e1,c1,tuple(d1))

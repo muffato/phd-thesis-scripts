@@ -120,14 +120,17 @@ def setColor(C, txt):
 		s = colorTransl[str(C)]
 	# Un triplet (r,g,b)
 	else:
-		if len(C) == 3:
-			(r,g,b) = C
-		elif C[0] == '#':
-			try:
-				(r,g,b) = [int(x) for x in C[1:].split(':')]
-			except Exception:
-				(r,g,b) = [int(x,16) for x in C[1:].split(':')]
-		else:
+		try:
+			if len(C) == 3:
+				(r,g,b) = C
+			elif C[0] == '#':
+				try:
+					(r,g,b) = [int(x) for x in C[1:].split(':')]
+				except Exception:
+					(r,g,b) = [int(x,16) for x in C[1:].split(':')]
+			else:
+				return
+		except TypeError:
 			return
 
 		if (r,g,b) in colorTableRGB2UNIX:

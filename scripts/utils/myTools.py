@@ -165,27 +165,32 @@ class myCombinator:
 		if len(obj) == 0:
 			return
 	
-		obj = list(set(obj))
+		obj = set(obj)
+		grp = self.grp
+		dic = self.dic
+
 		# Les elements de obj deja presents dans le combinateur
-		d = set( (self.dic[x] for x in obj if x in self.dic) )
+		d = set( dic[x] for x in obj if x in dic )
 		
 		if len(d) == 0:
 			# Aucun, on rajoute tel quel l'objet alors
-			i = len(self.grp)
-			self.grp.append(obj)
+			i = len(grp)
+			grp.append(list(obj))
 			for x in obj:
-				self.dic[x] = i
+				dic[x] = i
 		else:
 			i = d.pop()
+			grpi = grp[i]
 			for x in d:
-				self.grp[i].extend(self.grp[x])
-				for y in self.grp[x]:
-					self.dic[y] = i
-				self.grp[x] = []
-			dd = [x for x in obj if x not in self.dic]
+				grpx = grp[x]
+				grpi.extend(grpx)
+				for y in grpx:
+					dic[y] = i
+				grp[x] = []
+			dd = [x for x in obj if x not in dic]
 			for x in dd:
-				self.dic[x] = i
-			self.grp[i].extend(dd)
+				dic[x] = i
+			grpi.extend(dd)
 	
 
 	#

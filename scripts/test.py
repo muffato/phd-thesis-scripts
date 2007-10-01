@@ -14,17 +14,55 @@ A partir de toutes les diagonales extraites entre les especes,
 #import os
 import sys
 #import math
-#import time
-#import random
+import time
+#import numpy
+import random
 #import operator
 import utils.myGenomes
-#import utils.myTools
+import utils.myTools
 #import utils.myMaths
 #import utils.myDiags
 #import utils.myPsOutput
 #import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
+
+comb = utils.myTools.myCombinator([])
+
+random.seed(int(sys.argv[1]))
+
+ll = []
+for i in xrange(100000):
+	
+	l = [random.randint(1,10000000) for i in xrange(random.randint(2,100))]
+
+	#ll.extend(l)
+	comb.addLink(l)
+
+print comb.getNbGrp()
+#print len(utils.myMaths.flatten(ll))
+#print len(ll)
+#print utils.myMaths.myStats(ll)
+
+time.sleep(10)
+
+sys.exit(0)
+
+
+n = 2000
+#x = [ range(5000) for x in xrange(5000)]
+x = numpy.zeros( (n,n) )
+
+#for (i,j) in utils.myTools.myIterator.tupleOnStrictUpperList(range(n)):
+#	print x[i][j]
+for i in xrange(n):
+	tmp = x[i]
+	for j in xrange(i):
+		print tmp[j]
+		#print x[(i,j)]
+
+
+sys.exit(0)
 
 g = utils.myGenomes2.Genome(sys.argv[1])
 print g.lstChr
@@ -92,26 +130,6 @@ print len(list(_buildSubsets4(range(50),5)))
 
 
 sys.exit(0)
-
-comb = utils.myTools.myCombinator([])
-
-ll = []
-for i in xrange(10000):
-	
-	l = [random.randint(1,10000000) for i in xrange(random.randint(2,100))]
-
-	#ll.extend(l)
-	comb.addLink(l)
-
-print comb.getNbGrp()
-#print len(utils.myMaths.flatten(ll))
-#print len(ll)
-#print utils.myMaths.myStats(ll)
-
-time.sleep(10)
-
-sys.exit(0)
-
 
 
 

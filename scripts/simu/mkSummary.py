@@ -26,7 +26,7 @@ for (i,l) in enumerate(ref):
 			if "." not in x:
 				0/0
 			lst = utils.myMaths.myStats( [float(data[i][j]) for data in alldata] )
-			res = "%.2f %.2f" % (lst.mean, lst.stddev)
+			res = "%.2f [%.2f]" % (lst.mean, lst.stddev)
 
 		except Exception:
 			res = x

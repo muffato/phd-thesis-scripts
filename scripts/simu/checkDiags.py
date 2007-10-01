@@ -23,7 +23,7 @@ import utils.myPhylTree
 # Charge le fichier de toutes les diagonales (supposees non chevauchantes)
 def loadDiagsFile(nom):
 	
-	print >> sys.stderr, "Chargement du fichier de diagonales ...",
+	print >> sys.stderr, "Chargement de %s ..." % nom,
 	f = utils.myTools.myOpenFile(nom, 'r')
 	lst = {}
 	for l in f:
