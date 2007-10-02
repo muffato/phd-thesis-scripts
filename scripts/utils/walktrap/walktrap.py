@@ -36,7 +36,7 @@ class WalktrapLauncher:
 	def addEdge(self, x, y, weight):
 		
 		weight = float(weight)
-		if weight > 0:
+		if weight <= 0:
 			return
 		
 		try:

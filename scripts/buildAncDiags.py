@@ -95,7 +95,7 @@ def findNewSpecies(d, esp, anc):
 			# Les noms associes au gene ancestral
 			names = lstGenesAncAnc[i].names
 			if a != anc:
-				names = genesAnc[a].getOtherNames(names)
+				names = genesAnc[a].getOtherNames(names[0])
 			tmp = [c for (c,_) in genome.getPosition(names)]
 			
 			# On intersecte les ensembles de chromosomes entre eux
