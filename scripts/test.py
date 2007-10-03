@@ -14,11 +14,11 @@ A partir de toutes les diagonales extraites entre les especes,
 #import os
 import sys
 #import math
-import time
+#import time
 #import numpy
 import random
 #import operator
-import utils.myGenomes
+#import utils.myGenomes
 import utils.myTools
 #import utils.myMaths
 #import utils.myDiags
@@ -27,7 +27,11 @@ import utils.myTools
 #import utils.walktrap
 #from collections import defaultdict
 
-comb = utils.myTools.myCombinator([])
+#print len(utils.myTools.myIterator.buildSubsets(range(int(sys.argv[1])), int(sys.argv[2])))
+
+#sys.exit(0)
+
+comb = utils.myTools.myCombinator()
 
 random.seed(int(sys.argv[1]))
 
@@ -39,12 +43,12 @@ for i in xrange(100000):
 	#ll.extend(l)
 	comb.addLink(l)
 
-print comb.getNbGrp()
+#print comb.getNbGrp()
 #print len(utils.myMaths.flatten(ll))
 #print len(ll)
 #print utils.myMaths.myStats(ll)
 
-time.sleep(10)
+#time.sleep(10)
 
 sys.exit(0)
 

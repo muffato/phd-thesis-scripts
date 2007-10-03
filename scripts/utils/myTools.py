@@ -57,12 +57,14 @@ class myIterator:
 				yield (x,y)
 
 	def _tupleOnUpperList(lst):
-		for (i,x) in enumerate(lst):
+		for i in xrange(len(lst)):
+			x = lst[i]
 			for y in lst[i:]:
 				yield (x,y)
 
 	def _tupleOnStrictUpperList(lst):
-		for (i,x) in enumerate(lst):
+		for i in xrange(len(lst)):
+			x = lst[i]
 			for y in lst[i+1:]:
 				yield (x,y)
 	
@@ -70,9 +72,8 @@ class myIterator:
 		for x in lstX:
 			for y in lstY:
 				yield (x,y)
-	#
+
 	# Fonction de Charles pour renvoyer toutes les combinaisons des elements des differentes listes passees en argument
-	#
 	def _tupleOnManyLists(*args):
 		""" This generator combine all versus all sequences elements as follow:
 		>>> args = [['A','C'],['A','C'],['A','C']]
@@ -86,50 +87,37 @@ class myIterator:
 		for n in xrange(reduce(operator.mul, lengths)):
 			yield tuple( args[r][(n/dividers[r])%lengths[r]] for r in range_len_args )
 	
-	
+	def _slidingTuple(lst):
+		x = lst[0]
+		for i in xrange(1, len(lst)):
+			y = lst[i]
+			yield (x,y)
+			x = y
 	
 	def _buildSubsets(lst, n):
-		
-		# Cas special
-		if n < 2:
-			return [set([x]) for x in lst]
-		
-		ens = buildSubsets(lst, n-1)
-		res = []
-		for s in ens:
-			m = max(s)
-			for x in lst:
-				if x <= m:
-					continue
-				ss = s.union([x])
-				if len(ss) == n:
-					res.append(ss)
-		return res
-	
-	def _buildSubsets2(lst, n):
-		if type(lst) != set:
-			lst = frozenset(lst)
-		
-		# Cas special
-		if n < 2:
-			return [set([x]) for x in lst]
-			#for x in lst:
-			#	yield set([x])
-		
-		ens = _buildSubsets2(lst, n-1)
-		res = []
-		for s in ens:
-			m = max(s)
-			for x in lst:
-				if x <= m:
-					continue
-				ss = s.union([x])
-				if len(ss) == n:
-					res.append(ss)
-		return res
+		l = len(lst)
+		mem = {}
 
+		def rec(i, n):
+			if (i,n) in mem:
+				return mem[(i,n)]
+			
+			if i >= l-n:
+				res = [lst[i:]]
+			elif n <= 1:
+				res = [[x] for x in lst[i:]]
+			else:
+				ref = [lst[i]]
+				res = rec(i+1, n)
+				for x in rec(i+1, n-1):
+					res.append(ref + x)
+
+			mem[(i,n)] = res
+			return res
+
+		return rec(0, n)
+	
 	buildSubsets = staticmethod(_buildSubsets)
-	buildSubsets2 = staticmethod(_buildSubsets2)
 
 	tupleOnWholeList = staticmethod(_tupleOnWholeList)
 	tupleOnUpperList = staticmethod(_tupleOnUpperList)
@@ -137,6 +125,7 @@ class myIterator:
 	tupleOnTwoLists = staticmethod(_tupleOnTwoLists)
 	tupleOnManyLists = staticmethod(_tupleOnManyLists)
 
+	slidingTuple = staticmethod(_slidingTuple)
 
 
 ########################################################################
@@ -180,17 +169,17 @@ class myCombinator:
 				dic[x] = i
 		else:
 			i = d.pop()
-			grpi = grp[i]
+			grpiextend = grp[i].extend
 			for x in d:
 				grpx = grp[x]
-				grpi.extend(grpx)
+				grpiextend(grpx)
 				for y in grpx:
 					dic[y] = i
 				grp[x] = []
 			dd = [x for x in obj if x not in dic]
 			for x in dd:
 				dic[x] = i
-			grpi.extend(dd)
+			grpiextend(dd)
 	
 
 	#

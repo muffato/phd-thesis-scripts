@@ -31,7 +31,7 @@ def getLongestDiags(oldDiags):
 	# On s'en sert pour avoir les listes de diagonales chevauchantes
 	dic = utils.myTools.defaultdict(list)
 	diags = range(len(oldDiags))
-	combin = utils.myTools.myCombinator([])
+	combin = utils.myTools.myCombinator()
 	for (i,((e1,c1,d1),(e2,c2,d2),da)) in enumerate(oldDiags):
 		diags[i] = da
 		for j in da:
@@ -93,7 +93,7 @@ def findNewSpecies(d, esp, anc):
 			# Les noms associes au gene ancestral
 			names = lstGenesAncAnc[i].names
 			if a != anc:
-				names = genesAnc[a].getOtherNames(names)
+				names = genesAnc[a].getOtherNames(names[0])
 			tmp = [c for (c,_) in genome.getPosition(names)]
 			
 			# On intersecte les ensembles de chromosomes entre eux
@@ -151,7 +151,7 @@ else:
 			dicGenomes[x[1:]] = utils.myGenomes.Genome(options["ancGenomesFile"] % phylTree.fileName[x[1:]], withChr=True)
 
 # Les outgroup du noeud le plus ancien
-if options.useOutgroups:
+if options["useOutgroups"]:
 	target = listSpecies[0]
 	for e in listSpecies:
 		target = phylTree.dicParents[target][e]
@@ -174,7 +174,7 @@ for anc in tmp:
 # On compare toutes les especes entre elles
 for (e1,e2,toStudy) in dicLinks:
 	print >> sys.stderr, "Extraction des diagonales entre %s et %s " % (e1,e2),
-	for ((c1,d1),(c2,d2),s) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \
+	for ((c1,d1),(c2,d2)) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \
 		options["fusionThreshold"], options["sameStrand"] and (e1 not in genesAnc) and (e2 not in genesAnc), options["keepOnlyOrthos"]):
 		
 		pack1 = (e1,c1,tuple(d1))

@@ -75,11 +75,12 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 			else:
 				# On l'enregistre si elle n'est pas vide
 				if len(listI2) > 0:
-					diag.append( (listI1,listI2, lastPos2[0][0], (deb1,fin1),getMinMaxDiag(listI2)) )
+					diag.append( (listI1,listI2, lastPos2[0][0], listStrand, (deb1,fin1),getMinMaxDiag(listI2)) )
 				# On recommence a zero
 				deb1 = i1
 				lastPos2 = presI2
 				listI1 = []
+				listStrand = []
 				# Pour que les diagonales de longueur 1 soient correctes
 				listI2 = [i2 for (lastC2,i2,_) in presI2[:1]]
 			
@@ -89,15 +90,15 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 			fin1 = i1
 		
 		if len(listI2) > 0:
-			diag.append( (listI1,listI2, lastC2, (deb1,fin1),getMinMaxDiag(listI2)) )
+			diag.append( (listI1,listI2, lastC2, listStrand, (deb1,fin1),getMinMaxDiag(listI2)) )
 
 		# On rassemble des diagonales separees par une espace pas trop large
 		while len(diag) > 0:
 			#print >> sys.stderr, "on est sur", diag[0]
-			(d1,d2,c2,(deb1,fin1),(deb2,fin2)) = diag.pop(0)
+			(d1,d2,c2,s,(deb1,fin1),(deb2,fin2)) = diag.pop(0)
 			i = 0
 			while i < len(diag):
-				(dd1,dd2,cc2,(debb1,finn1),(debb2,finn2)) = diag[i]
+				(dd1,dd2,cc2,ss,(debb1,finn1),(debb2,finn2)) = diag[i]
 				#print >> sys.stderr, "test de", diag[i]
 
 				# Aucune chance de poursuivre la diagonale
@@ -108,6 +109,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 					#print >> sys.stderr, "OK"
 					d1.extend(dd1)
 					d2.extend(dd2)
+					s.extend(ss)
 					fin1 = finn1
 					deb2 = min(deb2,debb2)
 					fin2 = max(fin2,finn2)
@@ -116,7 +118,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 					#print >> sys.stderr, "non"
 					i += 1
 			#print >> sys.stderr, "envoi", (d1,d2,c2,(deb1,fin1),(deb2,fin2))
-			yield (c1, c2, d1, d2)
+			yield (c1, c2, d1, d2, s)
 
 
 
@@ -157,7 +159,7 @@ def calcDiags(g1, g2, orthos, minimalLength, fusionThreshold, sameStrand, keepOn
 	sys.stderr.write(". ")
 
 	statsDiags = []
-	for (c1,c2, d1,d2) in iterateDiags(newGen, newLoc, fusionThreshold, sameStrand):
+	for (c1,c2, d1,d2, s) in iterateDiags(newGen, newLoc, fusionThreshold, sameStrand):
 
 		if len(d1) < minimalLength:
 			continue
@@ -257,6 +259,6 @@ class WeightedDiagGraph:
 
 		for x in self.sommets:
 			if (len(self.aretes[x]) == 2):
-				yield followSommet(self.aretes, x)
+				yield followSommet(self.aretes, x)[:-1]
 
 
