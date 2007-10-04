@@ -134,25 +134,6 @@ def moyennePonderee(lst):
 
 
 #
-# Renvoie tous les ensembles de n elements de la liste
-#
-def buildSubsets(lst, n):
-	if n < 2:
-		return [set([x]) for x in lst]
-	ens = buildSubsets(lst, n-1)
-	res = []
-	for s in ens:
-		m = max(s)
-		for x in lst:
-			if x <= m:
-				continue
-			ss = s.union([x])
-			if len(ss) == n:
-				res.append(ss)
-	return res
-
-
-#
 # Applatit une liste
 #
 def flatten(lst):

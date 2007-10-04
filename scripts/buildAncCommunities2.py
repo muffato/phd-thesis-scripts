@@ -40,11 +40,11 @@ def loadDiagsFile(nom, ancName):
 		# La diagonale
 		d = [int(x) for x in ct[2].split(' ')]
 		# On joint les especes qui ont vu la diagonale et celles qui n'apportent que le chromosome
-		tmp = [y.split("/") for y in "|".join([x for x in ct[3:] if len(x) > 0]).split("|")]
-		# Les especes qui l'ont vue (on enleve les "Un")
+		tmp = [y.split("/") for y in "|".join([x for x in ct[4:] if len(x) > 0]).split("|")]
+		# Les chromosomes de ces especes
 		espChr = frozenset( (phylTree.officialName[e],c) for (e,c) in tmp if ('Un' not in c) )
 		# On la garde en memoire
-		lst.append( (d,espChr) )
+		lst.append( (d,espChr,ct[2],ct[3]) )
 
 	f.close()
 	print >> sys.stderr, "OK (%d diagonales)" % len(lst)
@@ -65,7 +65,7 @@ def checkLonelyGenes():
 	print >> sys.stderr, "Ajout des genes solitaires ...",
 	# Les genes seuls vont devenir des diagonales de 1
 	genesSeuls = set(xrange(len(lstGenesAnc)))
-	for (d,_) in lstDiagsIni:
+	for (d,_,_,_) in lstDiagsIni:
 		genesSeuls.difference_update(d)
 	
 	nb = 0
@@ -80,16 +80,18 @@ def checkLonelyGenes():
 			else:
 				names = lstGenesAnc[i].names
 			tmp = [dicGenes[x] for x in names if x in dicGenes]
-			tmp = [c for (x,c) in tmp if x == e]
+			tmp = set( c for (x,c) in tmp if x == e )
 
-			# Au final
+			# Si les orthologues sont sur un unique chromosome
 			if len(tmp) == 1:
-				c = str(tmp[0]).replace("_random","")
+				c = str(tmp.pop()).replace("_random","")
 				if 'Un' not in c:
 					lst.append( (e,c) )
 		
+		# Petit test: ne peuvent etre utilises que les genes avec au moins 2 especes
+		# Pour etre exact, il faudrait avec 2 groupes parmi (fils1 + ... + filsN + outgroup)
 		if len(lst) >= 2:
-			new.append( ([i],frozenset(lst)) )
+			new.append( ([i],frozenset(lst),str(i),"1") )
 			nb += 1
 	
 	print >> sys.stderr, "%d genes OK" % len(new)
@@ -113,7 +115,7 @@ def checkAlreadyBuildAnc():
 			print >> sys.stderr, "Not found"
 
 	print >> sys.stderr, "Mise a jour des chromosomes des diagonales ...",
-	for (d,esp) in lstDiagsIni:
+	for (d,esp,_,_) in lstDiagsIni:
 		g = utils.myMaths.flatten([lstGenesAnc[i].names for i in d])
 		for f in genAlready:
 			esp.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
@@ -129,7 +131,7 @@ def checkAlreadyBuildAnc():
 ############
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "diagsList"], \
-	[("ancestr",str,""), ("alreadyBuiltAnc",str,""), ("printDiags",bool,False), ("useOutgroups",bool,True), \
+	[("ancestr",str,""), ("alreadyBuiltAnc",str,""), ("removeDuplicates",bool,True), ("printDiags",bool,False), ("useOutgroups",bool,True), \
 	("mergeDiags",bool,False), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("newScoring",bool,False), ("walktrapLength",int,5), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
@@ -201,11 +203,14 @@ if options["alreadyBuiltAnc"] != "":
 	checkAlreadyBuildAnc()
 
 # On reduit les diagonales
+print >> sys.stderr, "Reduction de %d elements a ..." % len(lstDiagsIni),
 red = utils.myTools.defaultdict(list)
-for (i,(_,e)) in enumerate(lstDiagsIni):
+for (i,(_,e,_,_)) in enumerate(lstDiagsIni):
 	red[e].append(i)
 lstDiags = [ (d,e,frozenset(x for (x,_) in e)) for (e,d) in red.iteritems() ]
 nbDiags = len(lstDiags)
+dicGenes.clear()
+print >> sys.stderr, nbDiags
 
 print >> sys.stderr, "%-25s\t%s\t%s\t%s" % ("Ancetre", "Poids", "Cert", "Incert")
 for e in dicPoidsEspeces:
@@ -215,7 +220,7 @@ for e in dicPoidsEspeces:
 		espIncertitude[e] *= dicPoidsEspeces[e]
 
 # On calcule les scores
-print >> sys.stderr, "Reduction de %d a %d elements et calcul des scores ..." % (len(lstDiagsIni), nbDiags),
+print >> sys.stderr, "Calcul de la matrice ...",
 
 #scores = numpy.zeros( (len(lstDiags),len(lstDiags)) )
 if options["newScoring"] and (len(lstEspOutgroup) != 0):
@@ -248,32 +253,26 @@ for i1 in xrange(nbDiags):
 			for (i,f) in enumerate(lstNoeudsFils):
 				# Chez l'ancetre du dessous - meme chr
 				if f in communEsp:
-					#propF[i] = dicPoidsEspeces[f]*espCertitude[f]
 					propF[i] = espCertitude[f]
 				# Chez l'ancetre du dessous - diff chr
 				elif f in comparedEsp:
-					#propF[i] = dicPoidsEspeces[f]*espIncertitude[f]
 					propF[i] = espIncertitude[f]
 				# Sinon, on revient aux genomes modernes
 				else:
 					f = lstEspParNoeudsFils[i]
-					#s = sum([dicPoidsEspeces[e]*espCertitude[e] for e in f.intersection(communEsp)])
 					s = sum([espCertitude[e] for e in f.intersection(communEsp)])
 					# On peut rajouter l'incertitude des autres especes
 					#   - si au moins une espece a valide la fusion
 					#   - si la branche est constituee d'une unique espece
 					if (s > 0) or (len(f) == 1):
-						#s += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in f.difference(communEsp)])
 						s += sum([espIncertitude[e] for e in f.difference(communEsp)])
 					propF[i] = s
 			
 			s = sum(propF)
 			if s != 0:
-				#propOut = sum([dicPoidsEspeces[e]*espCertitude[e] for e in communEsp.intersection(lstEspOutgroup)])
 				propOut = sum([espCertitude[e] for e in communEsp.intersection(lstEspOutgroup)])
 				# On rajoute l'incertitude
 				if (propOut > 0):
-					#propOut += sum([dicPoidsEspeces[e]*espIncertitude[e] for e in communEsp.difference(lstEspOutgroup)])
 					propOut += sum([espIncertitude[e] for e in communEsp.difference(lstEspOutgroup)])
 				
 				s *= propOut
@@ -292,7 +291,6 @@ for i1 in xrange(nbDiags):
 
 print >> sys.stderr, "OK"
 
-print >> sys.stderr, "Calcul de la matrice ...",
 walktrapInstance.doWalktrap()
 
 clusters = []
@@ -334,20 +332,30 @@ for clust in clusters:
 # -> lstChr contient la repartition des genes
 
 inter = set()
-for ((_,l1),(_,l2)) in utils.myTools.myIterator.tupleOnStrictUpperList(lstChr):
-	inter.update(l1.intersection(l2))
-# -> inter contient les genes presents dans deux chromosomes a la fois
+if options["removeDuplicates"]:
+	for ((_,l1),(_,l2)) in utils.myTools.myIterator.tupleOnStrictUpperList(lstChr):
+		inter.update(l1.intersection(l2))
+	# -> inter contient les genes presents dans deux chromosomes a la fois
+	# Il reste des genes en double sur le meme chromosome
 
-for indChr in xrange(len(lstChr)):
-	for d in lstChr[indChr][0]:
-		(d,_) = lstDiagsIni[d]
-		print "# Diag chr=%d len=%d" % (indChr+1,len(d))
-		if options["printDiags"]:
-			print indChr+1, " ".join([str(g) for g in d if g not in inter])
-		else:
+
+if options["printDiags"]:
+	for indChr in xrange(len(lstChr)):
+		#print " ".join([str(lstDiagsIni[d][0]) for d in lstChr[indChr][0]])
+		for d in lstChr[indChr][0]:
+			(_,_,d,s) = lstDiagsIni[d]
+			print "%d\t%s\t%s" % (indChr+1,d,s)
+else:
+	for indChr in xrange(len(lstChr)):
+		for d in lstChr[indChr][0]:
+			(d,_,_,_) = lstDiagsIni[d]
+			print "# Diag chr=%d len=%d" % (indChr+1,len(d))
 			for g in d:
 				if g not in inter:
 					print indChr+1, " ".join(lstGenesAnc[g].names)
+					# On retient les genes deja imprimes pour ne pas les reimprimer (genes en double d'un meme chromosome)
+					if options["removeDuplicates"]:
+						inter.add(g)
 
 print >> sys.stderr, "OK"
 

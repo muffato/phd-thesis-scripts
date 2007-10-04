@@ -67,9 +67,8 @@ def loadDiagsFile(name):
 	f = utils.myTools.myOpenFile(name, 'r')
 	diags = utils.myTools.defaultdict(list)
 	for l in f:
-		t = l.split()
-		if len(t) > 1:
-			diags[utils.myGenomes.commonChrName(t[0])].append( [int(x) for x in t[1:]] )
+		t = l.split('\t')
+		diags[utils.myGenomes.commonChrName(t[0])].append( ([int(x) for x in t[1].split()],[int(x) for x in t[2].split()]) )
 	return diags
 
 #
@@ -101,7 +100,7 @@ def rewriteGenome():
 	genome = {}
 	for (c,dd) in diags.iteritems():
 		genome[c] = []
-		for d in dd:
+		for (d,_) in dd:
 			d2 = []
 			for i in d:
 				tmp = [phylTree.dicGenes[s] for s in genesAnc.lstGenes[None][i].names if s in phylTree.dicGenes]
@@ -116,8 +115,8 @@ def rewriteGenome():
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genomeAncestralDiags", "phylTree.conf"], \
-	[("ancestr",str,""), ("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,10000), \
-	("useOutgroups",int,[0,1,2]), ("nbConcorde",int,1), ("withConcordeOutput",bool,False), ("withConcordeStats",bool,False),\
+	[("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,10000), \
+	("ancestr",str,""), ("useOutgroups",int,[0,1,2]), ("withConcordeOutput",bool,False),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -136,7 +135,6 @@ else:
 del phylTree.dicGenomes
 diags = loadDiagsFile(noms_fichiers["genomeAncestralDiags"])
 genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[options["ancestr"]])
-nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 seuil = options["seuilMaxDistInterGenes"]
 pen = str(int(mult*options["infiniteDist"]))
@@ -181,18 +179,21 @@ for (c,tab) in newGenome.iteritems():
 	while len(res) > 0:
 		i1 = res.pop(0)
 		i2 = res.pop(0)
+		
+		diag = tab[i1/2][0]
+		strand = tab[i1/2][1]
+
 		if i1/2 != i2/2:
 			print >> sys.stderr, "!"
 		elif i1 > i2:
-			tab[i1/2].reverse()
-		for g in tab[i1/2]:
-			print c, " ".join(genesAnc.lstGenes[None][g].names)
+			# La diagonale est a inverser
+			diag.reverse()
+			strand.reverse()
+			for i in xrange(len(strand)):
+				strand[i] *= -1
+		# On affiche les genes
+		for (i,g) in enumerate(diag):
+			print c, strand[i], " ".join(genesAnc.lstGenes[None][g].names)
 	
-	solUniq = utils.myMaths.unique([l for l in lstTot])
-
-	if options["withConcordeStats"]:
-		for sol in solUniq:
-			print ".%s" % c, " ".join([str(i) for i in sol])
-	
-	print >> sys.stderr, len(solUniq), "solutions"
+	print >> sys.stderr, "OK"
 
