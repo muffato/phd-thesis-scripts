@@ -5,9 +5,7 @@ Trie les gens selon l'ordre consensus issu des especes de l'arbre phylogenetique
 """
 
 # Librairies
-import os
 import sys
-import random
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
@@ -116,7 +114,7 @@ def rewriteGenome():
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genomeAncestralDiags", "phylTree.conf"], \
 	[("seuilMaxDistInterGenes",float,0), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,10000), \
-	("ancestr",str,""), ("useOutgroups",int,[0,1,2]), ("withConcordeOutput",bool,False),\
+	("ancestr",str,""), ("nbConcorde",int,1), ("useOutgroups",int,[0,1,2]), ("withConcordeOutput",bool,False),\
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -135,6 +133,7 @@ else:
 del phylTree.dicGenomes
 diags = loadDiagsFile(noms_fichiers["genomeAncestralDiags"])
 genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[options["ancestr"]])
+nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 seuil = options["seuilMaxDistInterGenes"]
 pen = str(int(mult*options["infiniteDist"]))
@@ -169,8 +168,8 @@ for (c,tab) in newGenome.iteritems():
 		else:
 			return int(mult*y+add)
 	
-	lstTot = concordeInstance.doConcorde(2*n, f, 1, options["withConcordeOutput"])
-
+	lstTot = concordeInstance.doConcorde(2*n, f, nbConcorde, options["withConcordeOutput"])
+	lstTot = utils.myMaths.unique(lstTot)
 	if len(lstTot) == 0:
 		lstTot = [range(2*n)]
 	res = lstTot[0][:]
@@ -194,6 +193,9 @@ for (c,tab) in newGenome.iteritems():
 		# On affiche les genes
 		for (i,g) in enumerate(diag):
 			print c, strand[i], " ".join(genesAnc.lstGenes[None][g].names)
+		
+	for sol in lstTot:
+		print "# .%s" % c, " ".join([str(i) for i in sol])
 	
-	print >> sys.stderr, "OK"
+	print >> sys.stderr, len(lstTot), "solutions OK"
 

@@ -307,33 +307,30 @@ class PhylogeneticTree:
 	# Lance le calcul de la moyenne etant donne les valeurs stockees dans values
 	#
 	def calcDist(self, values, init=0):
-
+		
 		# La partie recursive
 		def recCalc(anc):
+			
+			# Des valeurs d'ancetres / d'especes fixees
+			if anc in values:
+				return (values[anc],0)
+			
+			# Initialisation du parcours des fils
 			d = 0.
 			s = 0.
 			nb = 0
-		
+
 			# Moyenne sur tous les fils du noeud
-			for (e,p) in self.tmpItems[anc]:
-				# Des valeurs d'ancetres / d'especes fixees
-				if e in values:
-					val = values[e]
-				# Le fils est un nouveau noeud - Appel recursif
-				elif e in self.tmpItems:
-					(val,x) = recCalc(e)
-					p += x
-				# Aucune info
-				else:
-					continue
+			for (e,p) in self.tmpItems.get(anc, []):
 				
+				(val,x) = recCalc(e)
 				# Si on a une vraie valeur de distance, on continue la moyenne
 				if val != None:
-					poids = 1./float(p)
+					poids = 1./float(p+x)
 					d += val*poids
 					s += poids
 					nb += 1
-
+		
 			# Test final
 			if nb != 0:
 				d /= s
@@ -343,10 +340,7 @@ class PhylogeneticTree:
 			else:
 				return (None,0)
 
-		if init in self.tmpItems:
-			return recCalc(init)[0]
-		else:
-			return None
+		return recCalc(init)[0]
 
 
 	#

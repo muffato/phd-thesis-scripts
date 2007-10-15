@@ -11,12 +11,12 @@ Chaque gene ancestral recoit son chromosome ancestral par un vote a la majorite 
 
 # Librairies
 import sys
-import operator
 import utils.myPhylTree
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 import utils.walktrap
+
 defaultdict = utils.myTools.defaultdict
 
 
@@ -63,7 +63,7 @@ def buildParaOrtho():
 
 	for (anc,outgroups) in toLoad.iteritems():
 		print >> sys.stderr, "Rajout de %s ..." % "/".join(outgroups),
-		outgroups =  set([phylTree.officialName[e] for e in outgroups])
+		outgroups =  frozenset([phylTree.officialName[e] for e in outgroups])
 		for g in utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc]):
 			# On trie les genes ancestraux
 			dicGenes = {}
@@ -204,13 +204,14 @@ def doSynthese(combin, eND, orthos):
 	# On extrait le profil d'alternance de chaque DCS et on ne garde que les DCS qui alternent
 	for gr in lstBlocs:
 		# Alternance detectee
-		if addDCS(gr):
-			res.append(gr)
+		(ok,alt) = addDCS(gr)
+		if ok:
+			res.append( (gr,alt) )
 			DCSlen += len(gr)
 		if options["showDCS"]:
 			for ((c,i),g,a) in gr:
 				print "%s\t%d\t%s\t\t%s" % \
-				(c, i, g, "\t".join(["/".join([str(x) for x in set(a[eD])]) for eD in especesDup]))
+				(c, i, g, "\t".join(["/".join([str(x) for x in frozenset(a[eD])]) for eD in especesDup]))
 			print "---"
 
 	print >> sys.stderr, "/", len(res), "DCS pour", DCSlen, "orthologues"
@@ -229,7 +230,7 @@ def addDCS(dcs):
 	def countAltern(lstDCS, eD):
 		
 		# La liste des chromosomes de l'alternance
-		lst = [x[eD] for (_,_,x) in lstDCS]
+		lst = [x[eD] for (_,_,x) in lstDCS.__reversed__()]
 
 		# Compte le nombre d'occurrences de c dans la liste courante
 		def countChr(c):
@@ -246,7 +247,7 @@ def addDCS(dcs):
 		last = defaultdict(int)
 		# On parcourt la liste
 		while len(lst) > 0:
-			curr = lst.pop(0)
+			curr = lst.pop()
 			for x in curr:
 				# Les alternances sont mesurees entre deux positions consecutives
 				for y in last:
@@ -270,7 +271,6 @@ def addDCS(dcs):
 
 		return count
 
-	global allDCSe1, allDCSe2
 	# On parcourt les DCS en ne gardant que ceux qui alternent
 	res = {}
 	altern = False
@@ -278,12 +278,8 @@ def addDCS(dcs):
 		res[eD] = countAltern(dcs, eD)
 		if len(res[eD]) > 0 and max(res[eD].values()) > 0:
 			altern = True
-	if altern:
-		for eD in res:
-			allDCSe1[eD].append(res[eD])
-			allDCSe2[eD].append(set(res[eD]))
-
-	return altern
+	
+	return (altern,res)
 
 
 #
@@ -311,17 +307,24 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 			espALL = set(espOK + espNO)
 			return recCalc(rootNonDup)
 
-		rTot = []
+		moyTot = 0.
+		nbTot = 0.
 		for gr in espNames:
-			r = []
+			nbOK = 0.
+			nbNO = 0.
 			for e in gr:
 				if e in espOK:
-					r.append(1)
+					nbOK += 1.
 				elif e in espNO:
-					r.append(0)
-			if len(r) > 0:
-				rTot.append( utils.myMaths.mean(r) )
-		return utils.myMaths.mean(rTot)
+					nbNO += 0.
+			nb = nbOK+nbNO
+			if nb > 0.:
+				nbTot += 1.
+				moyTot += nbOK/nb
+		if nbTot > 0:
+			return moyTot/nbTot
+		else:
+			return 0.
 		
 	
 	espNames = [[phylTree.officialName[x] for x in g] for g in especesNonDupGrp]
@@ -334,12 +337,12 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 		nb = [(calcChrAncScore(col,x), x) for x in chrNames]
 		
 		# On verifie les egalites
-		s = sorted(nb, reverse=True)
-		if (s[0][0] == s[1][0]) and not options["keepUncertainGenes"]:
+		s = sorted(nb)
+		if (s[-1][0] == s[-2][0]) and not options["keepUncertainGenes"]:
 			continue
 
 		genesAncCol[i] = nb
-		chrAncGenes[s[0][1]].append(i)
+		chrAncGenes[s[-1][1]].append(i)
 
 
 #
@@ -404,8 +407,6 @@ lstGenesAnc = genesAnc.lstGenes[None]
 
 # De quoi stocker les DCS
 col = [[] for i in xrange(len(lstGenesAnc))]
-allDCSe1 = dict( [(eD,[]) for eD in especesDup] )
-allDCSe2 = dict( [(eD,[]) for eD in especesDup] )
 allDCS = []
 
 # Decoupage de chaque tetrapode
@@ -419,39 +420,44 @@ for eND in especesNonDup:
 	
 	allDCS.extend( doSynthese(combin, eND, orthos))
 		
-def scorePaireDCS(i1, i2):
-
-	val = 0
-	nb = 0
-	for e in especesDup:
-		
-		if (len(allDCSe2[e][i1]) != 0) and (len(allDCSe2[e][i2]) != 0):
-			nb += 1
-		for x in (allDCSe2[e][i1] & allDCSe2[e][i2]):
-			val += min(allDCSe1[e][i1][x], allDCSe1[e][i2][x])
-	
-	if nb == 0:
-		return 0
-	return val / nb
-
-	# On calcule par une moyenne les autres distances
-	scores = phylTree.newCommonNamesMapperInstance()
-	for e in especesDup:
-		if len(allDCSe2[e][i1]) == 0 or len(allDCSe2[e][i2]) == 0:
-			continue
-		val = 0
-		for x in (allDCSe2[e][i1] & allDCSe2[e][i2]):
-			val += min(allDCSe1[e][i1][x], allDCSe1[e][i2][x])
-		scores[e] = val
-
-	# On calcule par une moyenne les autres distances
-	return phylTree.calcDist(scores)
-
+allDCSe2 = [dict([(e,frozenset(alt[e])) for e in alt]) for (_,alt) in allDCS]
 
 print >> sys.stderr, "Comparaison des %d DCS ..." % len(allDCS),
 phylTree.initCalcDist(rootDup, False)
 walktrapInstance = utils.walktrap.WalktrapLauncher()
-walktrapInstance.updateFromFunc(range(len(allDCS)), scorePaireDCS)
+edges = walktrapInstance.edges
+for i1 in xrange(len(allDCS)):
+	(_,alt1) = allDCS[i1]
+	esp1 = allDCSe2[i1]
+	
+	for i2 in xrange(i1):
+		(_,alt2) = allDCS[i2]
+
+		val = 0.
+		nb = 0.
+		for e in especesDup:
+			
+			if (len(alt2[e]) != 0) and (len(alt2[e]) != 0):
+				nb += 1
+			for x in (esp1[e] & allDCSe2[i2][e]):
+				val += min(alt1[e][x], alt2[e][x])
+		
+		if val > 0:
+			edges[i1][i2] = edges[i2][i1] = val/nb
+
+		# On calcule par une moyenne les autres distances
+		#scores = phylTree.newCommonNamesMapperInstance()
+		#for e in especesDup:
+		#	if len(esp1[e]) == 0 or len(allDCSe2[i2][e]) == 0:
+		#		continue
+		#	val = 0
+		#	for x in (allDCSe2[e][i1] & allDCSe2[e][i2]):
+		#		val += min(allDCSe1[e][i1][x], allDCSe1[e][i2][x])
+		#	scores[e] = val
+		#
+		# On calcule par une moyenne les autres distances
+		#return phylTree.calcDist(scores)
+
 print >> sys.stderr, "Lancement de walktrap ...",
 walktrapInstance.doWalktrap()
 
@@ -485,7 +491,7 @@ for (nodes,cuts,_,dend) in walktrapInstance.res:
 	for cl in clusters:
 		chrInd += 1
 		for g in cl:
-			for (_,s,_) in allDCS[g]:
+			for (_,s,_) in allDCS[g][0]:
 				(_,anc) = genesAnc.dicGenes[s]
 				(e,_,_) = phylTree.dicGenes[s]
 				col[anc].append( (None, chrInd, e) )

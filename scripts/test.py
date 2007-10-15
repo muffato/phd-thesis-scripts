@@ -29,7 +29,25 @@ import utils.myTools
 
 #print len(utils.myTools.myIterator.buildSubsets(range(int(sys.argv[1])), int(sys.argv[2])))
 
-#sys.exit(0)
+f = open(sys.argv[1], "r")
+for ligne in f.xreadlines():
+	print "*%s*" % ligne
+	break
+f.close()
+
+f = open(sys.argv[1], "r")
+for ligne in f.readlines():
+	print "*%s*" % ligne
+	break
+f.close()
+
+f = open(sys.argv[1], "r")
+for ligne in f:
+	print "*%s*" % ligne
+	break
+f.close()
+
+sys.exit(0)
 
 comb = utils.myTools.myCombinator()
 
@@ -82,60 +100,6 @@ print phylTree.dicParents['Boreoeutheria']['Oryzias latipes']
 
 sys.exit(0)
 
-def _buildSubsets(lst, n):
-	
-	# Cas special
-	if n < 2:
-		return [set([x]) for x in lst]
-	
-	ens = _buildSubsets(lst, n-1)
-	res = []
-	for s in ens:
-		m = max(s)
-		for x in lst:
-			if x <= m:
-				continue
-			ss = s.union([x])
-			if len(ss) == n:
-				res.append(ss)
-	return res
-
-def _buildSubsets2(lst, n):
-	
-	if type(lst) != set:
-		lst = set(lst)
-
-	# Cas special
-	if n < 2:
-		for x in lst:
-			yield frozenset([x])
-	
-	for s in _buildSubsets2(lst, n-1):
-		for x in lst.difference(s):
-			yield s.union([x])
-
-
-def _buildSubsets3(lst, n):
-	for x in utils.myTools.myIterator.tupleOnManyLists(* ([lst] * n) ):
-		if len(frozenset(x)) == n:
-			yield x
-
-def _buildSubsets4(lst, n):
-	lengths = [len(lst)] * n
-	_tmp = lengths + [1] # append multiplicative identity
-	range_len_args = range(n)
-	dividers = [reduce(operator.mul, _tmp[-x-1:]) for x in range_len_args][::-1]
-	for i in xrange(reduce(operator.mul, lengths)):
-		s = set( lst[(i/dividers[r])%lengths[r]] for r in range_len_args )
-		if len(s) == n:
-			yield s
-	
-print len(list(_buildSubsets4(range(50),5)))
-
-
-sys.exit(0)
-
-
 
 s = set()
 r = range(1000)
@@ -146,7 +110,6 @@ for t in utils.myTools.myIterator.tupleOnWholeList(r):
 
 print s.pop()
 
-#print os.isatty(sys.stdin.fileno())
 sys.exit(0)
 
 utils.myTools.checkArgs([],[],"")
@@ -183,101 +146,6 @@ print utils.myMaths.myStats(lst)
 #time.sleep(100)
 sys.exit(0)
 
-random.seed(0)
-
-lst = []
-for i in xrange(100000):
-	lst.append( set(random.randint(0,4) for j in xrange(10)) )
-	#for (j,x) in enumerate(lst):
-	#	x
-	#	x
-	#	x
-	#	print j,x
-	#for j in xrange(len(lst)):
-	#	lst[j]
-	#	lst[j]
-	#	lst[j]
-	#	print j, lst[j]
-	#lst1 = [[]] * x
-	#lst2 = [[] for j in xrange(x)]
-	#if lst1 != lst2:
-	#	print i, x
-
-os.system("free -m")
-sys.exit(0)
-lst = []
-for l in sys.stdin:
-	for c in l[:-1].split():
-		lst.append( utils.myGenomes.loadGenome(c) )
-
-
-os.system("free -m")
-sys.exit(0)
-d = {}
-#d = defaultdict(list)
-for i in xrange(1000000):
-	x = random.randint(1,10000)
-	d.setdefault(x,[]).append(i)
-	#d[x].append(i)
-	#d[x] = d.get(x,0) + 1
-
-#print utils.myMaths.myStats( [random.randint(0,1)*2-1 for i in xrange(1000000)] )
-#print utils.myMaths.myStats( [random.choice([-1,1]) for i in xrange(1000000)] )
-sys.exit(0)
-
-length = 10000
-
-# 5000 - 7500 - 2500 / 27"
-def v1():
-	x1 = random.randint(0, length-1)
-	x2 = random.randint(x1, length-1)
-	return (x1,x2)
-
-
-# 1= 3400 - 6600 - 3200 / 36"
-# 2= 3900 - 6100 - 2200 / 36"
-def v2():
-	l = int(abs(random.vonmisesvariate(0, 2)) * length / math.pi)
-	l = 0
-	x1 = random.randint(0, length-1-l)
-	return (x1,x1+l)
-
-
-# 2500 - 7500 - 5000 / 27"
-def v3():
-	l = random.randint(0, length-1)
-	x1 = random.randint(0, length-1-l)
-	return (x1,x1+l)
-
-
-# 3333 - 6666 - 3333 / 30"
-def v4():
-	x = random.sample(xrange(length), 2)
-	return (min(x),max(x))
-
-
-# 3333 - 6666 - 3333 / 30"
-def v5():
-	x1 = random.randint(0, length-1)
-	x2 = random.randint(0, length-1)
-	return (min(x1,x2),max(x1,x2))
-
-res1 = []
-res2 = []
-resL = []
-for i in xrange(1000000):
-	(x1,x2) = v2()
-	res1.append(x1)
-	res2.append(x2)
-	resL.append(x2-x1+1)
-print utils.myMaths.myStats(res1)
-print utils.myMaths.myStats(res2)
-print utils.myMaths.myStats(resL)
-
-
-
-sys.exit(0)
-
 phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
 
 
@@ -306,62 +174,6 @@ for anc in phylTree.listAncestr:
 	print anc, nbEspEq
 	print anc, sum([x*y for (x,y) in utils.myTools.myMatrixIterator(nbEspEq, None, utils.myTools.myMatrixIterator.StrictUpperMatrix)]),
 	print math.sqrt(sum([(x-sum(nbEspEq)/len(nbEspEq))**2 for x in nbEspEq]))/len(nbEspEq)
-
-sys.exit(0)
-
-f = open("/users/ldog/muffato/heimdall/proteines/reduced/graph.4741", "r")
-
-#s = utils.walktrap.WalktrapDirectLauncher()
-s = utils.walktrap.WalktrapLauncher()
-#s.updateFromFile(f)
-
-f.close()
-
-for i in xrange(12):
-	for j in xrange(i):
-		if i < 6:
-			#s.addEdge(i, j, 1)
-			print i, j, 1
-		elif j >= 6:
-			#s.addEdge(i, j, 1)
-			print i, j, 1
-		elif j < 3 and i >= 9:
-			#s.addEdge(i, j, 1)
-			print i, j, 1
-
-
-
-#genomes = []
-#for i in sys.argv[1:]:
-#	genomes.append(utils.myGenomes.loadGenome(i))
-#	print len(genomes[-1].lstChr)
-
-#for i in xrange(100):
-#	for j in xrange(100):
-#		s.addEdge(i, j, random.random())
-#		#pass
-
-"""
-s.addEdge(0, 1, 5)
-s.addEdge(0, 2, 4)
-s.addEdge(2, 4, 15)
-s.addEdge(4, 8, 0.7)
-s.addEdge(1, 3, 8)
-s.addEdge(8, 6, 1)
-s.addEdge(7, 5, 1)
-s.addEdge(8, 5, 2)
-s.addEdge(3, 6, 1)
-"""
-
-#s.doWalktrap(showProgress = False, verboseLevel=0)
-s.doWalktrap()
-(nodes,scores,dend,ddd) = s.res[0]
-print nodes
-for x in scores:
-	print x
-	print ddd.cut(x[0])
-for x in dend:
-	print x
 
 sys.exit(0)
 

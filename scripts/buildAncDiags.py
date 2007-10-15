@@ -31,13 +31,17 @@ def getLongestDiags(oldDiags):
 	# On s'en sert pour avoir les listes de diagonales chevauchantes
 	dic = utils.myTools.defaultdict(list)
 	diags = range(len(oldDiags))
-	combin = utils.myTools.myCombinator([])
-	for (i,((e1,c1,d1),(e2,c2,d2),da)) in enumerate(oldDiags):
-		diags[i] = da
-		for i1 in d1:
-			dic[(e1,c1,i1)].append(i)
-		for i2 in d2:
-			dic[(e2,c2,i2)].append(i)
+	combin = utils.myTools.myCombinator()
+	for (i,(_,_,da,ds)) in enumerate(oldDiags):
+		diags[i] = [(x,ds[j]) for (j,x) in enumerate(da)]
+		# Combinaison selon les genes ancestraux
+		for j in da:
+			dic[j].append(i)
+		# Combinaison selon les genes modernes
+		#for i1 in d1:
+		#	dic[(e1,c1,i1)].append(i)
+		#for i2 in d2:
+		#	dic[(e2,c2,i2)].append(i)
 		combin.addLink([i])
 	
 	for s in dic:
@@ -49,7 +53,7 @@ def getLongestDiags(oldDiags):
 		# On casse les carrefours de diagonales les uns apres les autres
 		gr = utils.myDiags.WeightedDiagGraph([diags[i] for i in g])
 		# Les diagonales resultat
-		for res in gr.getBestDiags():
+		for (res,strand) in gr.getBestDiags():
 			# Filtre de taille
 			if len(res) < options["minimalLength"]:
 				continue
@@ -57,7 +61,7 @@ def getLongestDiags(oldDiags):
 			ok = set()
 			# Test de chaque diagonale
 			for i in g:
-				d = diags[i]
+				d = [x for (x,_) in diags[i]]
 				for j in xrange(len(d)-1):
 					try:
 						i1 = res.index(d[j])
@@ -69,7 +73,7 @@ def getLongestDiags(oldDiags):
 						ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
 						ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
 						break
-			newDiags.append( (res, tuple(ok)) )
+			newDiags.append( (res,strand,tuple(ok)) )
 	return newDiags
 	
 
@@ -176,7 +180,7 @@ for anc in tmp:
 # On compare toutes les especes entre elles
 for (e1,e2,toStudy) in dicLinks:
 	print >> sys.stderr, "Extraction des diagonales entre %s et %s " % (e1,e2),
-	for ((c1,d1),(c2,d2),_) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \
+	for ((c1,d1),(c2,d2),s) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \
 		options["fusionThreshold"], options["sameStrand"] and (e1 not in genesAnc) and (e2 not in genesAnc), options["keepOnlyOrthos"]):
 		
 		pack1 = (e1,c1,tuple(d1))
@@ -184,11 +188,12 @@ for (e1,e2,toStudy) in dicLinks:
 		dic1 = dicGenomes[e1].lstGenes[c1]
 		dic2 = dicGenomes[e2].lstGenes[c2]
 		for anc in toStudy:
-			if dic1[d1[0]].names[0] in genesAnc[anc].dicGenes:
-				tmp = tuple(genesAnc[anc].dicGenes[dic1[i1].names[0]][1] for i1 in d1)
+			tmp = genesAnc[anc].dicGenes
+			if dic1[d1[0]].names[0] in tmp:
+				tmp = tuple(tmp[dic1[i1].names[0]][1] for i1 in d1)
 			else:
-				tmp = tuple(genesAnc[anc].dicGenes[dic2[i2].names[0]][1] for i2 in d2)
-			diagEntry[anc].append( (pack1,pack2,tmp) )
+				tmp = tuple(tmp[dic2[i2].names[0]][1] for i2 in d2)
+			diagEntry[anc].append( (pack1,pack2,tmp,s) )
 	print >> sys.stderr, "OK"
 
 # Traitement final
@@ -198,9 +203,25 @@ for anc in diagEntry:
 		lst = diagEntry[anc]
 		print >> sys.stderr, "Impression des %d diagonales projetees de %s ..." % (len(lst),anc),
 		s = []
-		for ((e1,c1,d1),(e2,c2,d2),da) in lst:
+		for ((e1,c1,d1),(e2,c2,d2),da,ds) in lst:
 			s.append( len(d1) )
-			print '\t'.join([anc, str(len(d1)), e1,str(c1)," ".join([dicGenomes[e1].lstGenes[c1][i1].names[0] for i1 in d1]), e2,str(c2)," ".join([dicGenomes[e2].lstGenes[c2][i2].names[0] for i2 in d2]), " ".join([str(x) for x in da]) ])
+			
+			res = []
+			res.append(anc)
+			res.append(str(len(da)))
+
+			res.append(e1)
+			res.append(str(c1))
+			res.append(" ".join([dicGenomes[e1].lstGenes[c1][i1].names[0] for i1 in d1]))
+			
+			res.append(e2)
+			res.append(str(c2))
+			res.append(" ".join([dicGenomes[e2].lstGenes[c2][i2].names[0] for i2 in d2]))
+			
+			res.append(" ".join([str(x) for x in da]))
+			res.append(" ".join([str(x) for x in ds]))
+			
+			print '\t'.join(res)
 		print >> sys.stderr, utils.myMaths.myStats(s), "OK"
 
 
@@ -211,18 +232,24 @@ for anc in diagEntry:
 			lst = getLongestDiags(diagEntry[anc])
 			print >> sys.stderr, "OK (%d -> %d)" % (len(diagEntry[anc]), len(lst))
 		else:
-			lst = [ (da, ((e1,c1),(e2,c2))) for ((e1,c1,_),(e2,c2,_),da) in diagEntry[anc] ]
+			lst = [ (da, ds, ((e1,c1),(e2,c2))) for ((e1,c1,_),(e2,c2,_),da,ds) in diagEntry[anc] ]
 
 		
 		print >> sys.stderr, "Impression des %d diagonales ancestrales de %s ..." % (len(lst),anc),
 		s = []
-		for (d,esp) in lst:
-			s.append( len(d) )
-			ss = '\t'.join([anc, str(len(d)), " ".join([str(x) for x in d]), "|".join(["%s/%s" % (e,c) for (e,c) in esp])])
+		for (da,ds,esp) in lst:
+			s.append( len(da) )
+			res = []
+			res.append(anc)
+			res.append(str(len(da)))
+			res.append(" ".join([str(x) for x in da]))
+			res.append(" ".join([str(x) for x in ds]))
+			res.append("|".join(["%s/%s" % (e,c) for (e,c) in esp]))
+
 			if options["searchUndetectedSpecies"]:
-				supp = findNewSpecies(d, esp, anc)
-				ss += '\t' + '|'.join(["%s/%s" % (e,c) for (e,c) in supp])
-			print ss
+				res.append('|'.join(["%s/%s" % (e,c) for (e,c) in findNewSpecies(da, esp, anc)]))
+
+			print '\t'.join(res)
 	
 		print >> sys.stderr, utils.myMaths.myStats(s), "OK"
 

@@ -12,6 +12,13 @@ stdout = sys.stdout
 stderr = sys.stderr
 stdinInput = os.isatty(sys.stdin.fileno())
 
+####################
+# Fichier existant #
+####################
+def fileAccess(s):
+	return os.access(s, os.R_OK)
+
+
 ###########################################################################
 # Consomme les elements d'un iterateur et renvoie la longueur de la liste #
 ###########################################################################

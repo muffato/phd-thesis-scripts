@@ -12,7 +12,6 @@ Calcule le nombre de genes de chaque espece et agit en consequence
 # Librairies
 import sys
 import utils.myGenomes
-import utils.myMaths
 import utils.myTools
 import utils.myPhylTree
 

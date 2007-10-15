@@ -10,7 +10,6 @@ __doc__ = """
 
 # Librairies
 import sys
-import random
 import utils.myGenomes
 import utils.myTools
 import utils.myPsOutput

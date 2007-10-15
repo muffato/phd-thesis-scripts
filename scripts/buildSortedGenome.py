@@ -5,9 +5,7 @@ Trie les gens selon l'ordre consensus issu des especes de l'arbre phylogenetique
 """
 
 # Librairies
-import os
 import sys
-import random
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths

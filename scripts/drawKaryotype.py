@@ -10,7 +10,6 @@ __doc__ = """
 
 # Librairies
 import sys
-import operator
 import itertools
 import utils.myGenomes
 import utils.myTools

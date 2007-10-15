@@ -175,9 +175,6 @@ def calcDiags(g1, g2, orthos, minimalLength, fusionThreshold, sameStrand, keepOn
 	print >> sys.stderr, myMaths.myStats(statsDiags),
 
 
-
-
-
 #
 # Un ensemble de diagonales que l'on represente comme un graphe ou les noeuds sont les genes
 #
@@ -193,204 +190,18 @@ class WeightedDiagGraph:
 		# La liste des sommets
 		self.sommets = set()
 		for d in lstDiags:
-			self.sommets.update(d)
-		
-		# Les aretes du graphe
-		self.aretes = dict([(x,defaultdict(int)) for x in self.sommets])
-		for d in lstDiags:
-			y = d[0]
-			for x in d:
-				if x != y:
-					# On compte pour chaque arete le nombre de fois qu'on l'a vue
-					self.aretes[x][y] += 1
-					self.aretes[y][x] += 1
-				y = x
-
-	#
-	# Construit un graphe dans lequel les suites d'aretes sans carrefours ont ete reduites
-	#
-	def getBestDiags(self):
-
-		todo = []
-		for x in self.sommets:
-			# Pour les noeuds qui ont plus de 2 voisins ...
-			if len(self.aretes[x]) <= 2:
-				continue
-			vois = self.aretes[x].items()
-			# On trie selon la certitude de chaque lien
-			vois.sort(key = operator.itemgetter(1), reverse=True)
-			# On ne garde que les deux premiers et les autres seront supprimes
-			todo.append( (vois[2][1]-vois[1][1], x, tuple(i for (i,_) in vois[2:])) )
-		
-		# Les liens a supprimer en premier sont ceux qui ont un plus fort differentiel par rapport aux liens gardes
-		todo.sort()
-
-		for (_,x,s) in todo:
-			# Au cours du processus, on a peut-etre rendu inutile la coupe
-			if len(self.aretes[x]) <= 2:
-				continue
-			for y in s:
-				if y not in self.aretes[x]:
-					continue
-				del self.aretes[x][y]
-				del self.aretes[y][x]
-		
-		# Renvoie le chemin qui part de s (en venant de pred) tant qu'il ne croise pas de carrefours
-		def followSommet(ar, src):
-			res = []
-			pred = None
-			curr = src
-			# On part de src et on prend les successeurs jusqu'a la fin du chemin
-			while True:
-				# On marque notre passage
-				res.append(curr)
-				try:
-					# Le prochain noeud a visiter
-					(next,_) = ar[curr].popitem()
-					del ar[next][curr]
-					pred = curr
-					curr = next
-				except KeyError:
-					return res
-
-		for x in self.sommets:
-			if (len(self.aretes[x]) == 1):
-				yield followSommet(self.aretes, x)
-
-		for x in self.sommets:
-			if (len(self.aretes[x]) == 2):
-				yield followSommet(self.aretes, x)[:-1]
-
-
-#
-# Un ensemble de diagonales que l'on represente comme un graphe ou les noeuds sont les genes
-#
-class WeightedDiagGraphStrand:
-
-
-	#
-	# Initialisation du graphe a partir de la liste des diagonales
-	# On construit la liste des genes voisins
-	#
-	def __init__(self, lstDiags):
-		
-		# La liste des sommets
-		self.strand = defaultdict(int)
-		for d in lstDiags:
-			for (x,s) in d:
-				self.strand[x] += s
-
-		# Les aretes du graphe et les orientations relatives des genes
-		self.aretes = dict([(x,defaultdict(int)) for x in self.strand])
-		for d in lstDiags:
-			for ((x,sx),(y,sy)) in myTools.myIterator.slidingTuple(d):
-				if x != y:
-					# On compte pour chaque arete le nombre de fois qu'on l'a vue
-					self.aretes[x][y] += 1
-					self.aretes[y][x] += 1
-					# On enregistre l'orientation
-		
-		# Pour "normaliser"
-		for (x,sx) in self.strand.iteritems():
-			if sx > 0:
-				self.strand[x] = 1
-			elif sx < 0:
-				self.strand[x] = -1
-			#else:
-			#	self.strand[x] = 0
-
-	#
-	# Construit un graphe dans lequel les suites d'aretes sans carrefours ont ete reduites
-	#
-	def getBestDiags(self):
-	
-		# Renvoie le chemin qui part de s (en venant de pred) tant qu'il ne croise pas de carrefours
-		def followSommet(ar, src):
-			res = []
-			strand = []
-			pred = None
-			curr = src
-			# On part de src et on prend les successeurs jusqu'a la fin du chemin
-			while True:
-				# On marque notre passage
-				res.append( curr )
-				strand.append( self.strand[curr] )
-				try:
-					# Le prochain noeud a visiter
-					(next,_) = ar[curr].popitem()
-					del ar[next][curr]
-					pred = curr
-					curr = next
-				except KeyError:
-					return (res,strand)
-
-		# 1. On supprime les bifurcations
-		todo = []
-		for (x,sx) in self.aretes.iteritems():
-			# Pour les noeuds qui ont plus de 2 voisins ...
-			if len(sx) <= 2:
-				continue
-			vois = sx.items()
-			# On trie selon la certitude de chaque lien
-			vois.sort(key = operator.itemgetter(1), reverse=True)
-			# On ne garde que les deux premiers et les autres seront supprimes
-			todo.append( (vois[2][1]-vois[1][1], x, tuple(i for (i,_) in vois[2:])) )
-		
-		# Les liens a supprimer en premier sont ceux qui ont un plus fort differentiel par rapport aux liens gardes
-		todo.sort()
-
-		for (_,x,s) in todo:
-			# Au cours du processus, on a peut-etre rendu inutile la coupe
-			if len(self.aretes[x]) <= 2:
-				continue
-			for y in s:
-				if y not in self.aretes[x]:
-					continue
-				del self.aretes[x][y]
-				del self.aretes[y][x]
-			# Les extremites des chemins
-		
-		for (x,sx) in self.aretes.iteritems():
-			if (len(sx) == 1):
-				yield followSommet(self.aretes, x)
-
-		# 2. On supprime les liens les plus faibles
-		todo = []
-		for (x,sx) in self.aretes.iteritems():
-			if (len(sx) == 2):
-				for (y,val) in sx.iteritems():
-					todo.append( (val,x,y) )
-		
-		todo.sort()
-		for (_,x,y) in todo:
-			try:
-				del self.aretes[x][y]
-				del self.aretes[y][x]
-				yield followSommet(self.aretes, x)
-			except KeyError:
-				pass
-
-
-#
-# Un ensemble de diagonales que l'on represente comme un graphe ou les noeuds sont les genes
-#
-class WeightedDiagGraphStrand2:
-
-
-	#
-	# Initialisation du graphe a partir de la liste des diagonales
-	# On construit la liste des genes voisins
-	#
-	def __init__(self, lstDiags):
-		
-		# La liste des sommets
-		self.sommets = set()
-		for d in lstDiags:
 			self.sommets.update([x for (x,_) in d])
 		
+		def newDicInt():
+			return defaultdict(int)
+		def newDicList():
+			def newStrandCount():
+				return { (-1,-1):0, (-1,1):0, (1,-1):0, (1,1):0}
+			return defaultdict(newStrandCount)
+
 		# Les aretes du graphe et les orientations relatives des genes
-		self.aretes = dict([(x,defaultdict(int)) for x in self.sommets])
-		self.strand = dict([(x,defaultdict(int)) for x in self.sommets])
+		self.aretes = defaultdict(newDicInt)
+		self.strand = defaultdict(newDicList)
 		for d in lstDiags:
 			for ((x,sx),(y,sy)) in myTools.myIterator.slidingTuple(d):
 				if x != y:
@@ -398,44 +209,51 @@ class WeightedDiagGraphStrand2:
 					self.aretes[x][y] += 1
 					self.aretes[y][x] += 1
 					# On enregistre l'orientation
-					self.strand[x][y] += sx*sy
-					self.strand[y][x] += sx*sy
+					self.strand[x][y][(sx,sy)] += 1
+					self.strand[y][x][(-sy,-sx)] += 1
 		
 		# Pour "normaliser"
 		for (x,sx) in self.strand.iteritems():
-			for y in sx:
-				if sx[y] > 0:
-					sx[y] = 1
-				elif sx[y] < 0:
-					sx[y] = -1
-				#else:
-				#	sx[y] = 0
+			for (y,l) in sx.iteritems():
+				sx[y] = max( [(v,strand) for (strand,v) in l.iteritems()] )
 
 	#
 	# Construit un graphe dans lequel les suites d'aretes sans carrefours ont ete reduites
 	#
 	def getBestDiags(self):
 	
-		# Renvoie le chemin qui part de s (en venant de pred) tant qu'il ne croise pas de carrefours
-		def followSommet(ar, src):
+		# Renvoie le chemin qui part de src en parcourant les aretes ar
+		def followSommet(src):
 			res = []
-			strand = []
 			pred = None
 			curr = src
-			lastS = 1
 			# On part de src et on prend les successeurs jusqu'a la fin du chemin
 			while True:
 				# On marque notre passage
 				res.append( curr )
-				strand.append( lastS )
 				try:
 					# Le prochain noeud a visiter
-					(next,_) = ar[curr].popitem()
-					del ar[next][curr]
-					lastS *= self.strand[curr][next]
+					(next,_) = self.aretes[curr].popitem()
+					# On supprime l'arete inverse pour ne pas revenir en arriere
+					del self.aretes[next][curr]
+					# L'orientation relative des deux genes
 					pred = curr
 					curr = next
+				# Jusqu'a ce qu'il n'y ait plus de successeur
 				except KeyError:
+					# On reconstruit l'orientation
+					# La liste des co-orientations
+					iniStrand = [self.strand[x][y] for (x,y) in myTools.myIterator.slidingTuple(res)]
+					# La premiere orientation
+					strand = [iniStrand[0][1][0]]
+					# On scanne les paires de co-orientations pour voir si elles sont consistantes
+					for ((v1,(_,sy1)),(v2,(sx2,_))) in myTools.myIterator.slidingTuple(iniStrand):
+						if (sy1 == sx2) or (v1 > v2):
+							strand.append( sy1 )
+						else:
+							strand.append( sx2 )
+					# La derniere orientation
+					strand.append( iniStrand[-1][1][1] )
 					return (res,strand)
 
 		# 1. On supprime les bifurcations
@@ -452,7 +270,6 @@ class WeightedDiagGraphStrand2:
 		
 		# Les liens a supprimer en premier sont ceux qui ont un plus fort differentiel par rapport aux liens gardes
 		todo.sort()
-
 		for (_,x,s) in todo:
 			# Au cours du processus, on a peut-etre rendu inutile la coupe
 			if len(self.aretes[x]) <= 2:
@@ -462,25 +279,25 @@ class WeightedDiagGraphStrand2:
 					continue
 				del self.aretes[x][y]
 				del self.aretes[y][x]
-			# Les extremites des chemins
 		
 		for (x,sx) in self.aretes.iteritems():
 			if (len(sx) == 1):
-				yield followSommet(self.aretes, x)
+				yield followSommet(x)
 
-		# 2. On supprime les liens les plus faibles
+		# 2. On coupe les boucles en chemins
 		todo = []
 		for (x,sx) in self.aretes.iteritems():
 			if (len(sx) == 2):
 				for (y,val) in sx.iteritems():
 					todo.append( (val,x,y) )
 		
+		# Les liens a supprimer en premier sont les plus faibles
 		todo.sort()
 		for (_,x,y) in todo:
 			try:
 				del self.aretes[x][y]
 				del self.aretes[y][x]
-				yield followSommet(self.aretes, x)
+				yield followSommet(x)
 			except KeyError:
 				pass
 

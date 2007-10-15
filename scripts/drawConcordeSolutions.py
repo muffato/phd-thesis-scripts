@@ -12,7 +12,6 @@ Dessine un genome en coloriant ses genes a partir d'un autre genome reference.
 import sys
 import utils.myGenomes
 import utils.myTools
-import utils.myMaths
 import utils.myPsOutput
 
 ########
