@@ -24,7 +24,7 @@ import utils.myPsOutput
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["studiedGenome", "referenceGenome", "GCPercent"], \
-	[("orthologuesList",str,""), ("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
+	[("orthologuesList",str,""), ("trueOrthos",str,""),("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
 	("reverse",bool,False), ("dx",float,0), ("dy",float,0), ("roundedChr",bool,False), ("landscape",bool,False), ("showText",bool,True), ("drawBorder",bool,False), \
 	("defaultColor",str,"black"), ("penColor",str,"black"), ("backgroundColor",str,"")], \
 	__doc__
@@ -64,8 +64,8 @@ if options["reverse"]:
 	x = genome1
 	genome1 = genome2
 	genome2 = x
-if options["orthologuesList"] != "":
-	genesAnc = utils.myGenomes.Genome(options["orthologuesList"])
+if options["trueOrthos"] != "":
+	genesAnc = utils.myGenomes.Genome(options["trueOrthos"])
 else:
 	genesAnc = None
 
@@ -92,7 +92,7 @@ if len(options["backgroundColor"]) > 0:
 if options["dx"] > 0:
 	dx = options["dx"]
 else:
-	dx = (largeur-2.) / (5./2.*len(chr1) + 1.*(len(chr1)-1.))
+	dx = (largeur-4.) / (5./2.*len(chr1) + 1.*(len(chr1)-1.))
 if options["dy"] > 0:
 	dy = options["dy"]
 else:
@@ -106,15 +106,17 @@ drawBox = utils.myPsOutput.drawBox
 # Chargement du fichier avec les taux de GC
 f = utils.myTools.myOpenFile(noms_fichiers["GCPercent"], "r")
 dicGC = {}
-genes = list(genome1)
-gcs = [None for _ in genes]
-for ligne in f:
-	(t,_,_,gc) = ligne.split()
-	(_,_,j) = t.split('-')
-	j = int(j) - 1
-	if j >= len(genes):
-		continue
-	dicGC[genome1.dicGenes[genes[j].names[0]]] = float(gc)
+tmp = utils.myGenomes.Genome(options["orthologuesList"])
+genes = tmp.lstGenes[None]
+for (j,ligne) in enumerate(f):
+	gc = ligne.split()[8+5]
+	#(t,_,_,gc) = ligne.split()
+	#(_,_,j) = t.split('-')
+	#j = int(j) - 1
+	#if j >= len(genes):
+	#	continue
+	if genes[j].names[0] in genome1.dicGenes:
+		dicGC[genome1.dicGenes[genes[j].names[0]]] = float(gc)
 f.close()
 
 nb = 10
@@ -124,6 +126,8 @@ for (c,i) in dicGC:
 	dicGC2[(c,i)] = utils.myMaths.mean(tmp)
 
 
+count = 0.
+countNB = 0.
 xx = 1
 for c in chr1:
 	def printBorder():
@@ -159,14 +163,20 @@ for c in chr1:
 		hauteur = len(items) * dy
 		drawBox(xx, y, dx, hauteur, col, col)
 		for (i,_) in items:
-			GC = dicGC2[(c,i)]
+			#GC = dicGC2[(c,i)]
+			GC = dicGC2.get( (c,i), None )
 			if GC != None:
 				GC = (GC-30.) * 100./55.
 			if GC != None:
 				drawBox(xx+3./2.*dx, y, dx*GC/100., dy, options["penColor"], options["penColor"])
 			#if lastGC != None:
 			#	utils.myPsOutput.drawLine(xx+3./2.*dx + dx*lastGC/100., y-dy, dx*(GC-lastGC)/100., dy, options["penColor"])
-			lastGC = GC
+			
+			if (GC != None) and (lastGC != None):
+				count += abs(lastGC-GC)
+				countNB += 1.
+			if GC != None:
+				lastGC = GC
 			y += dy
 	
 	utils.myPsOutput.drawLine(xx+3./2.*dx, y+0.25, dx, 0, options["penColor"])
@@ -185,6 +195,6 @@ for c in chr1:
 	xx += (7./2.*dx)
 
 utils.myPsOutput.printPsFooter()
-print >> sys.stderr, "OK"
+print >> sys.stderr, "OK", count/countNB
 
 

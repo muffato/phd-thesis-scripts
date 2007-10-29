@@ -18,6 +18,7 @@ Genere des fichiers similaires a ceux d'Ensembl
 import sys
 import math
 import random
+import utils.myMaths
 import utils.myTools
 import utils.myPhylTree
 
@@ -47,12 +48,14 @@ def applyStrand(chr, strand):
 # Un chromosome plus long a plus de chance d'etre choisi
 def randomPlace(genome, includeEnd = 0):
 	tmp = [len(x) for x in genome]
-	tmp[-1] += includeEnd
-	r = random.randint(0, sum(tmp)-1)
-	for c in xrange(len(genome)):
-		r -= tmp[c]
-		if r < 0:
-			return (c, r+tmp[c])
+	c = utils.myMaths.randomValue(tmp).getRandomPos()
+	return (c,random.randint(0,tmp[c]+includeEnd))
+	#tmp[-1] += includeEnd
+	#r = random.randint(0, sum(tmp)-1)
+	#for c in xrange(len(genome)):
+	#	r -= tmp[c]
+	#	if r < 0:
+	#		return (c, r+tmp[c])
 
 
 # Une region du genome au hasard

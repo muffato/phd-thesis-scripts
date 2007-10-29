@@ -44,7 +44,7 @@ def fileIterator(nom):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("releaseID",int,[42,43,44,45,46]), ("OUT.directory",str,""), \
+	[("releaseID",int,[42,43,44,45,46,47]), ("OUT.directory",str,""), \
 	("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mart_XXX/data/mysql/"), \
 	("IN.genesFile",str,"ensembl_mart_XXX/%s_gene_ensembl__gene__main.txt.table.gz"), \
 	("IN.xrefFile",str,"ensembl_mart_XXX/%s_gene_ensembl__xref_{refseq_dna,pdb,unigene,refseq_peptide,mirbase,rfam,uniprot_swissprot,embl,protein_id,uniprot_accession,uniprot_id,uniprot_sptrembl,hugo,xref_ipi}__dm.txt.table.gz"), \

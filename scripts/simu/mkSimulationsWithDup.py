@@ -46,12 +46,14 @@ def applyStrand(chr, strand):
 # Un chromosome plus long a plus de chance d'etre choisi
 def randomPlace(genome, includeEnd = 0):
 	tmp = [len(x) for x in genome]
-	tmp[-1] += includeEnd
-	r = random.randint(0, sum(tmp)-1)
-	for (c,l) in enumerate(tmp):
-		if r < l:
-			return (c, r)
-		r -= l
+	c = utils.myMaths.randomValue(tmp).getRandomPos()
+	return (c,random.randint(0,tmp[c]+includeEnd))
+	#tmp[-1] += includeEnd
+	#r = random.randint(0, sum(tmp)-1)
+	#for (c,l) in enumerate(tmp):
+	#	if r < l:
+	#		return (c, r)
+	#	r -= l
 
 
 # Une region du genome au hasard

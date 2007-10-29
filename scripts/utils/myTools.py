@@ -262,10 +262,6 @@ def checkArgs(args, options, info):
 
 		t = tt.replace('^', ' ')
 
-		# Un petit peu d'aide
-		if t == '-h' or t == '--help' or t == '-help':
-			error_usage()
-			
 		# Un argument optionnel
 		if t[0] in '-+':
 		
@@ -292,19 +288,40 @@ def checkArgs(args, options, info):
 			# Si on ne trouve pas de '=', c'est une type bool
 			except ValueError:
 				s = t[1:]
-				if s == "psyco":
-					try:
-						import utils.psyco
-						from utils.psyco.classes import __metaclass__
-						#utils.psyco.log()
-						utils.psyco.full()
-						#utils.psyco.full(memory=100)
-						#utils.psyco.profile(0.1, memory=100)
-					except ImportError:
-						print >> sys.stderr, "Unable to load psyco !"
-				elif not s in valOpt:
-					print >> sys.stderr, "Option non reconnue:", s
-					error_usage()
+				# Nom de parametre non attendu
+				if s not in valOpt:
+
+					# Valeurs predefinies
+					if s == "psyco":
+						if t[0] == '+':
+							try:
+								import utils.psyco
+								from utils.psyco.classes import __metaclass__
+								#utils.psyco.log()
+								utils.psyco.full()
+								#utils.psyco.full(memory=100)
+								#utils.psyco.profile(0.1, memory=100)
+							except ImportError:
+								print >> sys.stderr, "Unable to load psyco !"
+					elif s == "bz2":
+						if t[0] == '+':
+							#class bz2Proxy():
+							#	def __init__(self):
+							#		self.comp = bz2.BZ2Compressor()
+							#		self.stdout = sys.stdout
+							#	def __del__(self):
+							#		self.stdout.write(self.comp.flush())
+							#		self.stdout.flush()
+							#	def write(self, data):
+							#		self.stdout.write(self.comp.compress(data))
+							#sys.stdout = bz2Proxy()
+							sys.stdout = bz2.BZ2File("/dev/stdout", "w")
+					elif s == "gz":
+						if t[0] == '+':
+							sys.stdout = gzip.GzipFile("/dev/stdout", "w")
+					else:
+						print >> sys.stderr, "Option non reconnue:", s
+						error_usage()
 				elif opt[s][0] != bool:
 					print >> sys.stderr, "Utiliser -%s=valeur" % s
 					error_usage()

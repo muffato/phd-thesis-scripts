@@ -60,8 +60,8 @@ def mkEnsemblPhylAdjustment(oldAnc, theoryAnc):
 #
 def proceedFile(fin, fout, foutR):
 	fout = utils.myTools.myOpenFile(fout, 'w')
-	if foutR != None:
-		foutR = utils.myTools.myOpenFile(foutR, 'w')
+	#if foutR != None:
+	#	foutR = utils.myTools.myOpenFile(foutR, 'w')
 	nb1 = 0
 	nb2 = 0
 	try:
@@ -75,21 +75,23 @@ def proceedFile(fin, fout, foutR):
 			if newAnc == theoryAnc:
 				nb2 += 1
 			
-			if options["releaseID"] in [44,45,46]:
+			if options["releaseID"] in [44,45,46,47]:
 				r = (c[7],c[4],c[24], c[i1+15],c[i1+12],c[i1+32], newAnc, c[i1+4],c[i1+5], c[i2+4],c[i2+5], c[0])
 			else:
 				r = (c[3],c[25],c[44], c[i2-8],c[i2+14],c[i2+33], newAnc, c[29],c[30], c[i2+18],c[i2+19], c[0])
 			
 			print >> fout, "\t".join(r)
-			if foutR != None:
-				print >> foutR, "\t".join([r[i] for i in (3,4,5, 0,1,2, 6, 9,10, 7,8, 11)])
+			#if foutR != None:
+			#	print >> foutR, "\t".join([r[i] for i in (3,4,5, 0,1,2, 6, 9,10, 7,8, 11)])
 			
 			c = fin.next().split('\t')
 	except StopIteration:
 		pass
 	fout.close()
+	#if foutR != None:
+	#	foutR.close()
 	if foutR != None:
-		foutR.close()
+		os.symlink(fout, foutR)
 	return (nb1,nb2)
 
 
@@ -101,7 +103,7 @@ def proceedFile(fin, fout, foutR):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("releaseID",int,[42,43,44,45,46]), ("OUT.directory",str,""), \
+	[("releaseID",int,[42,43,44,45,46,47]), ("OUT.directory",str,""), \
 	("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mart_XXX/data/mysql/"), \
 	("IN.parasFile",str,"compara_mart_homology_XXX/compara_%s_%s_paralogs__paralogs__main.txt.table.gz"), \
 	("IN.orthosFile",str,"compara_mart_homology_XXX/compara_%s_%s_orthologs__orthologs__main.txt.table.gz"), \
@@ -153,4 +155,3 @@ for ((esp1,esp1B),(esp2,esp2B)) in utils.myTools.myIterator.tupleOnUpperList(nom
 		nb,_ = proceedFile(options["IN.parasFile"] % (esp1,esp2), OUTparas2File % (phylTree.fileName[esp1B],phylTree.fileName[esp2B]), OUTparas2File % (phylTree.fileName[esp2B],phylTree.fileName[esp1B]))
 		print >> sys.stderr, "%d genes OK" % nb
 	
-

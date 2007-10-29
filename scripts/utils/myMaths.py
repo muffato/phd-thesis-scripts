@@ -5,6 +5,8 @@
 
 import sys
 import math
+import bisect
+import random
 
 #
 # Renvoie la moyenne d'une liste
@@ -103,7 +105,19 @@ class myStats:
 		(self.getValue(0), self.getValue(25),self.getValue(50),self.getValue(75), self.getValueNX(75),self.getValueNX(50),self.getValueNX(25),
 			self.getValue(100), self.mean,self.stddev, len(self.data))
 
+#
+# Renvoie un indice au hasard dans l, compte tenu des valeurs de l, qui indiquent une frequence d'apparition
+#
+class randomValue:
 
+	def __init__(self, l):
+		self.l = [0] * (len(l)+1)
+		for i in xrange(len(l)):
+			self.l[i+1] = self.l[i] + l[i]
+		self.m = self.l[-1]
+
+	def getRandomPos(self):
+		return bisect.bisect_left(self.l, random.random() * self.m) - 1
 
 
 def issublist(l1, l2):

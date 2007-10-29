@@ -11,7 +11,7 @@ A partir de toutes les diagonales extraites entre les especes,
 ##################
 
 # Librairies
-#import os
+import os
 import sys
 #import math
 #import time
@@ -20,13 +20,110 @@ import random
 #import operator
 #import utils.myGenomes
 import utils.myTools
-#import utils.myMaths
+import utils.myMaths
 #import utils.myDiags
 #import utils.myPsOutput
-#import utils.myPhylTree
+import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
 
+
+p = [1,2,5,3,1]
+
+randPick = utils.myMaths.randomValue(p)
+nb = [0] * len(p)
+for i in xrange(10000000):
+	nb[randPick.getRandomPos()] += 1
+
+print nb
+print [nb[i]/p[i] for i in xrange(len(p))]
+
+sys.exit(0)
+
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
+
+def fileName(anc):
+	if anc in phylTree.listAncestr:
+		return "/users/ldog/muffato/work/ancestralGenomes43/3.sorted/Genome.%s.bz2" % phylTree.fileName[anc]
+	else:
+		return "/users/ldog/muffato/work/data43/genes/genes.%s.list.bz2" % phylTree.fileName[anc]
+
+for anc in phylTree.listAncestr:
+
+	for (esp,_) in phylTree.items[anc]:
+		res = [anc, esp]
+		(stdin,stdout,stderr) = os.popen3("/users/ldog/muffato/work/scripts/printDiags.py +psyco -sameStrand -fusionThreshold=0 %s %s +includeScaffolds +includeRandoms -orthologuesList=/users/ldog/muffato/work/data43/ancGenes/ancGenes.%s.list.bz2" % (fileName(anc),fileName(esp),phylTree.fileName[anc]))
+		stdin.close()
+		for l in stdout:
+			pass
+		res = None
+		for l in stderr:
+			if l.startswith("Extraction des diagonales"):
+				t = l.split()
+				res = [t[7], t[5].split('/')[1], t[6].split('/')[1]]
+				t = t[8][1:-1].replace('/',' ').replace('-',' ').split()
+				res += [t[0],t[2]]
+				break
+		#if res == None:
+		#	continue
+		res = [anc, esp, phylTree.ages[anc], phylTree.ages[esp]] + res
+		print "\t".join([str(x) for x in res])
+		stdout.close()
+		stderr.close()
+
+
+sys.exit(0)
+
+
+def fileName(anc):
+	if anc in phylTree.listAncestr:
+		return "/users/ldog/muffato/work/ancestralGenomes43/1.ini/Genome.%s.bz2" % phylTree.fileName[anc]
+	else:
+		return "/users/ldog/muffato/work/data43/genes/genes.%s.list.bz2" % phylTree.fileName[anc]
+
+for anc in phylTree.listAncestr:
+
+	for (esp,_) in phylTree.items[anc]:
+		res = [anc, esp]
+		(stdin,stdout,stderr) = os.popen3("/users/ldog/muffato/work/scripts/printOrthologousChr.py +psyco %s %s +includeScaffolds +includeRandoms" % (fileName(anc),fileName(esp)))
+		stdin.close()
+		nbC = "0"
+		nbF = "0"
+		for l in stderr:
+			if "Nb points de cassures" in l:
+				nbC = l.split()[4]
+			elif "Nb points de fusions" in l:
+				nbF = l.split()[4]
+		res = [anc, esp, phylTree.ages[anc], phylTree.ages[esp], nbC, nbF]
+		print "\t".join([str(x) for x in res])
+		stdout.close()
+		stderr.close()
+
+
+sys.exit(0)
+
+
+for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(phylTree.listSpecies):
+
+	(stdin,stdout) = os.popen2("/users/ldog/muffato/work/scripts/searchConservedSynteny.py %s +psyco -species=%s,%s -genesFile=data46/genes/genes.%%s.list.bz2 -ancGenesFile=data46/ancGenes/ancGenes.%%s.list.bz2 | awk -f /users/ldog/muffato/work/scripts/searchConservedSynteny.mkOrientationClass.awk | sort | awk '$1==$2' | uniq -c" % (sys.argv[1],e1.replace(' ','^'),e2.replace(' ','^')))
+
+	stdin.close()
+	resC = resD = resU = 0
+	for ligne in stdout:
+		t = ligne.split()
+		if t[1] == 'C':
+			resC = float(t[0])
+		elif t[1] == 'D':
+			resD = float(t[0])
+		elif t[1] == 'U':
+			resU = float(t[0])
+	s = (resC+resD+resU)/100.
+	if s == 0:
+		continue
+	print phylTree.ages[phylTree.dicParents[e1][e2]], phylTree.fileName[e1], phylTree.fileName[e2], phylTree.fileName[phylTree.dicParents[e1][e2]], resC/s, resD/s, resU/s
+
+
+sys.exit(0)
 #print len(utils.myTools.myIterator.buildSubsets(range(int(sys.argv[1])), int(sys.argv[2])))
 
 f = open(sys.argv[1], "r")
