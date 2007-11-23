@@ -10,7 +10,7 @@ import utils.myGenomes
 import utils.myTools
 
 
-(noms_fichiers,options) = utils.myTools.checkArgs(["diagsFile", "genesFile"], [("ancestr",str,""), ("species",str,"")], __doc__)
+(noms_fichiers,options) = utils.myTools.checkArgs(["diagsFile", "genesFile"], [("ancestr",str,""), ("species",str,""), ("nbApp",int,1)], __doc__)
 
 print >> sys.stderr, "Chargement des diagonales ...",
 f = utils.myTools.myOpenFile(noms_fichiers["diagsFile"], "r")
@@ -27,7 +27,7 @@ f.close()
 print >> sys.stderr, len(allDiags), "OK"
 
 genome = utils.myGenomes.Genome(noms_fichiers["genesFile"])
-allPairs = set()
+allPairs = utils.myTools.defaultdict(int)
 print >> sys.stderr, "Extraction des paires ...",
 for diag in allDiags:
 	genes = diag.split()
@@ -44,19 +44,19 @@ for diag in allDiags:
 		# Ordonnes selon 5' -> 3'
 		if i1 > i2:
 			(g1,g2) = (g2,g1)
-		# Eviter les doublons
-		if (g1,g2) in allPairs:
-			continue
-		allPairs.add( (g1,g2) )
-		# Genes imbriques ou chevaichants
+		# Genes imbriques ou chevauchants
 		if g1.end >= g2.beginning:
 			continue
-		if g1.strand == g2.strand:
-			print "U", g2.beginning - g1.end
-		elif g1.strand == 1:
-			print "C", g2.beginning - g1.end
-		else:
-			print "D", g2.beginning - g1.end
+		# Eviter les doublons
+		allPairs[(g1,g2)] += 1
+
+for (g1,g2) in allPairs:
+	if g1.strand == g2.strand:
+		print "U", g2.beginning - g1.end
+	elif g1.strand == 1:
+		print "C", g2.beginning - g1.end
+	else:
+		print "D", g2.beginning - g1.end
 print >> sys.stderr, len(allPairs), "OK"
 
 

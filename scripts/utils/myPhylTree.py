@@ -226,6 +226,18 @@ class PhylogeneticTree:
 
 		print >> sys.stderr, "OK"
 		
+	
+	# Renvoie le nom de l'ancetre commun de plusieurs especes
+	def lastCommonAncestor(self, species):
+		anc = species[0]
+		for e in species[1:]:
+			anc = self.dicParents[anc][e]
+		return anc
+
+	# Teste si le fils est bien un fils de son pere
+	def isChildOf(self, fils, pere):
+		return self.dicParents[fils][pere] == pere
+
 
 	#
 	# Renvoie un dictionnaire qui utilise en interne les noms officiels des taxons
@@ -255,23 +267,24 @@ class PhylogeneticTree:
 
 
 	# Charge toutes les especes qui descendent d'un ancetre
-	def loadAllSpeciesSince(self, ancestr, template):
-		self.loadSpeciesFromList(self.species.get(ancestr,self.listSpecies), template)
+	def loadAllSpeciesSince(self, ancestr, template, storeGenome = True):
+		self.loadSpeciesFromList(self.species.get(ancestr,self.listSpecies), template, storeGenome)
 	
 	# Charge toutes les especes outgroup d'un ancetre
-	def loadAllSpeciesBefore(self, ancestr, template):
-		self.loadSpeciesFromList(self.outgroupSpecies.get(ancestr,self.listSpecies), template)
+	def loadAllSpeciesBefore(self, ancestr, template, storeGenome = True):
+		self.loadSpeciesFromList(self.outgroupSpecies.get(ancestr,self.listSpecies), template, storeGenome)
 
 	# Charge toutes les especes d'une liste
-	def loadSpeciesFromList(self, lst, template):
+	def loadSpeciesFromList(self, lst, template, storeGenome = True):
 
 		for esp in lst:
 			esp = self.officialName[esp]
 			g = myGenomes.Genome(template % self.fileName[esp])
-			self.dicGenomes[esp] = g
+			if storeGenome:
+				self.dicGenomes[esp] = g
 			for (x,(c,i)) in g.dicGenes.iteritems():
 				self.dicGenes[x] = (esp, c, i)
-
+	
 	# Renvoie le nombre de genes dans chaque espece pour une famille donnee
 	def findFamilyComposition(self, fam):
 		

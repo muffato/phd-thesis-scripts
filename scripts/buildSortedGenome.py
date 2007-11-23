@@ -116,10 +116,9 @@ if options["ancestr"] not in (phylTree.listAncestr + phylTree.listSpecies):
 	sys.exit(1)
 # On charge les genomes
 if options["useOutgroups"] > 0:
-	phylTree.loadAllSpeciesSince(None, options["genesFile"])
+	phylTree.loadAllSpeciesSince(None, options["genesFile"], False)
 else:
-	phylTree.loadAllSpeciesSince(options["ancestr"], options["genesFile"])
-del phylTree.dicGenomes
+	phylTree.loadAllSpeciesSince(options["ancestr"], options["genesFile"], False)
 genesAnc = utils.myGenomes.Genome(noms_fichiers["genomeAncestral"])
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])

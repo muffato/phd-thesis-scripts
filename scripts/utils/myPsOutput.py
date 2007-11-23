@@ -103,6 +103,11 @@ def initColor(silent = False):
 # Fonctions de dessin #
 #######################
 
+
+def alphaColor((r1,g1,b1), (r2,g2,b2), alpha):
+	return (int(r1*(1.-alpha)+r2*alpha), int(g1*(1.-alpha)+g2*alpha), int(b1*(1.-alpha)+b2*alpha))
+
+
 # Les coordonnes sont en cm (portrait/paysage)
 #   X: de gauche (0) a droite (21/29.7)
 #   Y: de bas (0) en haut (29.7/21)

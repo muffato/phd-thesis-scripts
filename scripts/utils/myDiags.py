@@ -6,9 +6,12 @@
 import sys
 import operator
 import myMaths
-import myGenomes
 import myTools
-from collections import defaultdict
+
+defaultdict = myTools.defaultdict
+slidingTuple = myTools.myIterator.slidingTuple
+tupleOnTwoLists = myTools.myIterator.tupleOnTwoLists
+getMinMax = myMaths.getMinMax
 
 #
 # Extrait toutes les diagonales entre deux genomes (eventuellement des singletons)
@@ -24,7 +27,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 		a = lst[0]
 		b = lst[-1]
 		if abs(a-b) < len(lst)-1:
-			return myMaths.getMinMax(lst)
+			return getMinMax(lst)
 		elif a < b:
 			return (a,b)
 		else:
@@ -47,7 +50,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 				presI2 = dic2[j1]
 			
 			# On regarde chaque orthologue du gene
-			for ((c2,i2,s2), (lastC2,lastI2,lastS2)) in myTools.myIterator.tupleOnTwoLists(presI2, lastPos2):
+			for ((c2,i2,s2), (lastC2,lastI2,lastS2)) in tupleOnTwoLists(presI2, lastPos2):
 				# Chromosomes differents -> indiscutable
 				if c2 != lastC2:
 					continue
@@ -203,7 +206,7 @@ class WeightedDiagGraph:
 		self.aretes = defaultdict(newDicInt)
 		self.strand = defaultdict(newDicList)
 		for d in lstDiags:
-			for ((x,sx),(y,sy)) in myTools.myIterator.slidingTuple(d):
+			for ((x,sx),(y,sy)) in slidingTuple(d):
 				if x != y:
 					# On compte pour chaque arete le nombre de fois qu'on l'a vue
 					self.aretes[x][y] += 1
@@ -243,11 +246,11 @@ class WeightedDiagGraph:
 				except KeyError:
 					# On reconstruit l'orientation
 					# La liste des co-orientations
-					iniStrand = [self.strand[x][y] for (x,y) in myTools.myIterator.slidingTuple(res)]
+					iniStrand = [self.strand[x][y] for (x,y) in slidingTuple(res)]
 					# La premiere orientation
 					strand = [iniStrand[0][1][0]]
 					# On scanne les paires de co-orientations pour voir si elles sont consistantes
-					for ((v1,(_,sy1)),(v2,(sx2,_))) in myTools.myIterator.slidingTuple(iniStrand):
+					for ((v1,(_,sy1)),(v2,(sx2,_))) in slidingTuple(iniStrand):
 						if (sy1 == sx2) or (v1 > v2):
 							strand.append( sy1 )
 						else:
@@ -264,9 +267,11 @@ class WeightedDiagGraph:
 				continue
 			vois = sx.items()
 			# On trie selon la certitude de chaque lien
-			vois.sort(key = operator.itemgetter(1), reverse=True)
+			vois.sort(key = operator.itemgetter(1))
+			#vois.reverse()
 			# On ne garde que les deux premiers et les autres seront supprimes
-			todo.append( (vois[2][1]-vois[1][1], x, tuple(i for (i,_) in vois[2:])) )
+			#todo.append( (vois[2][1]-vois[1][1], x, tuple(i for (i,_) in vois[2:])) )
+			todo.append( (vois[-3][1]-vois[-2][1], x, tuple(i for (i,_) in vois[:-2])) )
 		
 		# Les liens a supprimer en premier sont ceux qui ont un plus fort differentiel par rapport aux liens gardes
 		todo.sort()
@@ -279,13 +284,13 @@ class WeightedDiagGraph:
 					continue
 				del self.aretes[x][y]
 				del self.aretes[y][x]
+		todo = []
 		
 		for (x,sx) in self.aretes.iteritems():
 			if (len(sx) == 1):
 				yield followSommet(x)
 
 		# 2. On coupe les boucles en chemins
-		todo = []
 		for (x,sx) in self.aretes.iteritems():
 			if (len(sx) == 2):
 				for (y,val) in sx.iteritems():

@@ -18,7 +18,7 @@ print
 phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
 indSim = int(sys.argv[2])
 
-for (weightM,weightP,genes,distScoring,randomWalks,anc) in utils.myTools.myIterator.tupleOnManyLists("-+","-+","-+","-+",[2,3,4,5,7,10,15,25],phylTree.listAncestr):
+for (anc,randomWalks,distScoring,genes,weightM,weightP) in utils.myTools.myIterator.tupleOnManyLists(phylTree.listAncestr,[2,3,4,5,7,10,15,25],"-+","-+","-+","-+"):
 	ancF = phylTree.fileName[anc]
 	print "Output = /workspace/muffato/tmp/allsimu/%d/communities/%s.%d.%s.%s.%s.%s.res" % (indSim,ancF,randomWalks,distScoring,genes,weightM,weightP)
 	print "Error = /workspace/muffato/tmp/allsimu/%d/communities/%s.%d.%s.%s.%s.%s.log" % (indSim,ancF,randomWalks,distScoring,genes,weightM,weightP)

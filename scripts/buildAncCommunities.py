@@ -37,7 +37,7 @@ def loadDiagsFile(nom, ancName):
 		# La diagonale
 		d = [int(x) for x in ct[2].split(' ')]
 		# On joint les especes qui ont vu la diagonale et celles qui n'apportent que le chromosome
-		tmp = [y.split("/") for y in "|".join([x for x in ct[3:] if len(x) > 0]).split("|")]
+		tmp = [y.split("/") for y in "|".join([x for x in ct[-2:] if '/' in x]).split("|")]
 		# Les chromosomes de ces especes
 		espChr = frozenset( (phylTree.officialName[e],c) for (e,c) in tmp if ('Un' not in c) )
 		# On la garde en memoire
@@ -112,10 +112,12 @@ def checkAlreadyBuildAnc():
 			print >> sys.stderr, "Not found"
 
 	print >> sys.stderr, "Mise a jour des chromosomes des diagonales ...",
-	for (d,esp) in lstDiagsIni:
+	for (j,(d,esp)) in enumerate(lstDiagsIni):
 		g = utils.myMaths.flatten([lstGenesAnc[i].names for i in d])
+		esp = set(esp)
 		for f in genAlready:
 			esp.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
+		lstDiagsIni[j] = (d,frozenset(esp))
 	print >> sys.stderr, "OK"
 
 

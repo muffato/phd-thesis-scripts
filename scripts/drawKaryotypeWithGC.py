@@ -99,7 +99,7 @@ else:
 	dy = (hauteur-4.) / float(max([len(x) for x in table12.values()]))
 y0 = 1.
 
-leniter = utils.myTools.leniter
+leniter = utils.myTools.myIterator.leniter
 drawBox = utils.myPsOutput.drawBox
 
 

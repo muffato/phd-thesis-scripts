@@ -25,8 +25,49 @@ import utils.myMaths
 #import utils.myPsOutput
 import utils.myPhylTree
 #import utils.walktrap
-#from collections import defaultdict
+from collections import defaultdict
 
+f = utils.myTools.myOpenFile(sys.argv[1], "r")
+nb = {}
+for l in f:
+	t = l[:-1].split('\t')
+	t = "|".join(t[4:])
+	r = []
+	for x in t.split('|'):
+		if x.startswith("Homo sapiens"):
+			r.append( x.split('/')[1] )
+	print " ".join(sorted(r))
+sys.exit(0)
+f = utils.myTools.myOpenFile(sys.argv[1], "r")
+nb = {}
+for l in f:
+	t = l[:-1].split('\t')
+	t = "|".join(t[4:])
+	e = [x.split('/')[0] for x in t.split('|')]
+	for x in set(e):
+		if x not in nb:
+			nb[x] = defaultdict(int)
+		nb[x][e.count(x)] += 1
+for e in nb:
+	print e
+	print dict(nb[e])
+sys.exit(0)
+
+f = utils.myTools.myOpenFile(sys.argv[1], "r")
+bad = set()
+for l in f:
+	bad.update(l.split())
+f.close()
+print len(bad)
+
+f = utils.myTools.myOpenFile(sys.argv[2], "r")
+for l in f:
+	t = l.split()
+	x = bad.intersection(t)
+	if len(x) > 0:
+		print x
+
+sys.exit(0)
 
 p = [1,2,5,3,1]
 
@@ -551,44 +592,46 @@ sys.exit(0)
 
 
 def countAltern(lst):
-	
-	#lst = [x[eD] for (_,_,x) in lstDCS]
 
+	# La liste des chromosomes de l'alternance
+	#lst = [x[eD] for (_,_,x) in lstDCS.__reversed__()]
+
+	# Compte le nombre d'occurrences de c dans la liste courante
 	def countChr(c):
 		nb = 0
 		for x in lst:
 			if c not in x:
 				break
 			nb += 1
-		#print >> sys.stderr, "count", c, nb, lst
 		return nb
-	
-	count = {}
-	last = {}
+
+	# Le compte final
+	count = defaultdict(int)
+	# La derniere ligne lue
+	last = defaultdict(int)
+	# On parcourt la liste
 	while len(lst) > 0:
-		#print >> sys.stderr, "iteration", lst
-		curr = lst.pop(0)
-		#print >> sys.stderr, "count", count
-		#print >> sys.stderr, "last", last
+		curr = lst.pop()
 		for x in curr:
+			# Les alternances sont mesurees entre deux positions consecutives
 			for y in last:
 				if y == x:
 					continue
-				s = (countChr(x)+1) * last[y] + count.get((x,y), 0)
-				count[(x,y)] = count[(y,x)] = s
+				count[(x,y)] += (countChr(x)+1) * last[y]
+				count[(y,x)] = count[(x,y)]
+			# Et aussi entre les paralogues
 			for y in curr:
 				if y >= x:
 					continue
-				s = 1 + count.get((x,y), 0)
-				count[(x,y)] = count[(y,x)] = s
-				
-				
+				count[(x,y)] += 1
+				count[(y,x)] = count[(x,y)]
+
+		# On met a jour last
 		for y in last:
 			if y not in curr:
 				last[y] = 0
 		for x in curr:
-			last[x] = last.get(x,0) + 1
-		#print >> sys.stderr
+			last[x] += 1
 
 	return count
 
@@ -597,7 +640,6 @@ print countAltern([[5],[6],[5],[5],[5,13],[7,13],[13],[5],[1],[5],[5],[13],[13],
 
 
 sys.exit(0)
-
 
 
 # Arguments

@@ -20,21 +20,8 @@ import utils.myPhylTree
 # FONCTIONS #
 #############
 
-#
-# Permet de telecharger, decompresser et lire a la volee un fichier
-#
-def fileIterator(nom):
-	stdout = utils.myTools.myOpenFile( ("%s/%s" % (options["IN.EnsemblURL"],nom)).replace("XXX", str(options["releaseID"])) , "r")
-	tmp = ""
-	for ligne in stdout:
-		if ligne[-2] == '\\':
-			tmp = ligne[:-2]
-		else:
-			yield tmp + ligne[:-1]
-			tmp = ""
-	stdout.close()
-
-
+def getEnsemblFile(nom):
+	return utils.myTools.myOpenFile( ("%s/%s" % (options["IN.EnsemblURL"],nom)).replace("XXX", str(options["releaseID"])) , "r")
 
 
 ########
@@ -85,7 +72,8 @@ for (tmp,esp) in nomReel:
 	fo2 = utils.myTools.myOpenFile(OUTfullGenesFile % phylTree.fileName[esp], 'w')
 	nb1 = 0
 	nb2 = 0
-	for ligne in fileIterator(options["IN.genesFile"] % tmp):
+	fi = getEnsemblFile(options["IN.genesFile"] % tmp)
+	for ligne in MySQLFileLoader(fi):
 		c = ligne.split('\t')
 		s = "\t".join( [c[11],c[7],c[8],c[9],c[1]] )
 		if ("RNA" not in c[3]) and ("pseudogene" not in c[3]):
@@ -93,7 +81,7 @@ for (tmp,esp) in nomReel:
 			nb1 += 1
 		print >> fo2, s
 		nb2 += 1
-	
+	fi.close()
 	fo1.close()
 	fo2.close()
 	print >> sys.stderr, "%d/%d genes OK" % (nb1,nb2)
@@ -101,9 +89,11 @@ for (tmp,esp) in nomReel:
 	# Les references dans xref
 	print >> sys.stderr, "Telechargement des annotations xref de %s ..." % esp,
 	dic = utils.myTools.defaultdict(set)
-	for ligne in fileIterator(options["IN.xrefFile"] % tmp):
+	fi = getEnsemblFile(options["IN.genesFile"] % tmp)
+	for ligne in MySQLFileLoader(fi):
 		c = ligne.split("\t")
 		dic[(c[1],c[3],c[5])].update( [x for x in c[6:] if (x != "\\N") and (len(x) > 0)] )
+	fi.close()
 	
 	fo = utils.myTools.myOpenFile(OUTxrefFile % phylTree.fileName[esp], 'w')
 	for ((gg,gt,gp),xref) in dic.iteritems():
