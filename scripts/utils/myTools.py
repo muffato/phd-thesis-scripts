@@ -18,21 +18,10 @@ stdinInput = os.isatty(sys.stdin.fileno())
 def fileAccess(s):
 	return os.access(s, os.R_OK)
 
-
-###########################################################################
-# Consomme les elements d'un iterateur et renvoie la longueur de la liste #
-###########################################################################
-def leniter(it):
-	nb = 0
-	for _ in it:
-		nb += 1
-	return nb
-
-
-##################################################################
-# Cette classe ouvre le fichier en le decompressant s'il le faut #
-#   Retourne l'objet FILE et le nom complet du fichier           #
-##################################################################
+####################################################################
+# Cette fonction ouvre le fichier en le decompressant s'il le faut #
+#   Retourne l'objet FILE et le nom complet du fichier             #
+####################################################################
 def myOpenFile(nom, mode):
 	if nom.startswith("http://") or nom.startswith("ftp://"):
 		comm = "wget %s -O -"
@@ -53,35 +42,68 @@ def myOpenFile(nom, mode):
 			f = open(nom, mode)
 	return f
 
+
+#####################################################
+# Cree le repertoire pour les sorties dans fichiers #
+#####################################################
+def mkDirs(dir):
+	try:
+		os.makedirs(os.path.dirname(dir))
+	except OSError:
+		pass
+
+########################################
+# Permet de charger les dumps de MySQL #
+#    Raboute les lignes tronquees      #
+########################################
+def MySQLFileLoader(f):
+	tmp = ""
+	for ligne in f:
+		if ligne[-2] == '\\':
+			# Signe que la ligne n'est pas terminee
+			tmp = ligne[:-2]
+		else:
+			yield tmp + ligne[:-1]
+			tmp = ""
+	# Normalement, ici, tmp == ""
+	if tmp != "":
+		print >> sys.stderr, "File consistency error !"
+
+
 #####################################################################
 # Une classe pour avoir un iterateur a deux positions sur une liste #
 #####################################################################
 class myIterator:
 	
-	def _tupleOnWholeList(lst):
+	@staticmethod
+	def tupleOnWholeList(lst):
 		for x in lst:
 			for y in lst:
 				yield (x,y)
 
-	def _tupleOnUpperList(lst):
+	@staticmethod
+	def tupleOnUpperList(lst):
 		for i in xrange(len(lst)):
 			x = lst[i]
 			for y in lst[i:]:
 				yield (x,y)
 
-	def _tupleOnStrictUpperList(lst):
+	@staticmethod
+	def tupleOnStrictUpperList(lst):
 		for i in xrange(len(lst)):
 			x = lst[i]
 			for y in lst[i+1:]:
 				yield (x,y)
 	
-	def _tupleOnTwoLists(lstX, lstY):
+	@staticmethod
+	def tupleOnTwoLists(lstX, lstY):
 		for x in lstX:
 			for y in lstY:
 				yield (x,y)
 
 	# Fonction de Charles pour renvoyer toutes les combinaisons des elements des differentes listes passees en argument
-	def _tupleOnManyLists(*args):
+	@staticmethod
+	def tupleOnManyLists(*args):
 		""" This generator combine all versus all sequences elements as follow:
 		>>> args = [['A','C'],['A','C'],['A','C']]
 		>>> [k for k in combination(args)]
@@ -94,14 +116,25 @@ class myIterator:
 		for n in xrange(reduce(operator.mul, lengths)):
 			yield tuple( args[r][(n/dividers[r])%lengths[r]] for r in range_len_args )
 	
-	def _slidingTuple(lst):
+	@staticmethod
+	def slidingTuple(lst):
 		x = lst[0]
 		for i in xrange(1, len(lst)):
 			y = lst[i]
 			yield (x,y)
 			x = y
 	
-	def _buildSubsets(lst, n):
+	# Consomme les elements d'un iterateur et renvoie la longueur de la liste
+	@staticmethod
+	def leniter(it):
+		nb = 0
+		for _ in it:
+			nb += 1
+		return nb
+
+	
+	@staticmethod
+	def buildSubsets(lst, n):
 		l = len(lst)
 		mem = {}
 
@@ -124,16 +157,6 @@ class myIterator:
 
 		return rec(0, n)
 	
-	buildSubsets = staticmethod(_buildSubsets)
-
-	tupleOnWholeList = staticmethod(_tupleOnWholeList)
-	tupleOnUpperList = staticmethod(_tupleOnUpperList)
-	tupleOnStrictUpperList = staticmethod(_tupleOnStrictUpperList)
-	tupleOnTwoLists = staticmethod(_tupleOnTwoLists)
-	tupleOnManyLists = staticmethod(_tupleOnManyLists)
-
-	slidingTuple = staticmethod(_slidingTuple)
-
 
 ########################################################################
 # Cette classe permet de regrouper une liste d'elements                #
@@ -201,7 +224,7 @@ class myCombinator:
 	# Le nombre de groupes
 	#
 	def getNbGrp(self):
-		return leniter(self)
+		return myIterator.leniter(self)
 
 	#
 	# Enleve les ensembles vides
