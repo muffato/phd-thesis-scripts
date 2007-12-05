@@ -160,7 +160,7 @@ class PhylogeneticTree:
 								# Mais pas trop
 								if (dicLinks[f1][f3][-2] == dicLinks[f3][f2][1]):
 									f = False
-						except Exception:
+						except IndexError:
 							pass
 						if f:
 							# Pour ne pas que les modifications se perturbent entre elles

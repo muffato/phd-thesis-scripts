@@ -35,5 +35,5 @@ for l in sys.stdin:
 	comb.addLink([a,b])
 
 for g in comb:
-	print >> sys.stderr, " ".join([str(x) for x in g])
+	print >> sys.stderr, utils.myTools.printLine(g, " ")
 

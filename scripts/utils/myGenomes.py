@@ -27,11 +27,10 @@ class Gene:
 def commonChrName(x):
 	try:
 		return int(x)
-	except Exception:
-		try:
-			return intern(x)
-		except TypeError:
-			return None
+	except TypeError:
+		return None
+	except ValueError:
+		return intern(x)
 
 
 ##########################################
@@ -195,8 +194,8 @@ class Genome:
 	# Renvoie tous les genes
 	#
 	def __iter__(self):
-		for c in self.lstGenes:
-			for g in self.lstGenes[c]:
+		for t in self.lstGenes.itervalues():
+			for g in t:
 				yield g
 
 	#

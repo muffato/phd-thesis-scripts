@@ -196,7 +196,8 @@ def doSynthese(combin, eND, orthos):
 	print >> sys.stderr, len(lstBlocs), "blocs pour", sum([len(x) for x in lstBlocs]), "orthologues",
 
 	if options["showDCS"]:
-		print "%s\t\t\t\t%s\t" % (eND, "\t".join(especesDup))
+		#print "%s\t\t\t\t%s\t" % (eND, "\t".join(especesDup))
+		print utils.myTools.printLine( [eND, "", "", ""] + [especesDup] )
 	
 	res = []
 	DCSlen = 0
@@ -210,8 +211,10 @@ def doSynthese(combin, eND, orthos):
 			DCSlen += len(gr)
 		if options["showDCS"]:
 			for ((c,i),g,a) in gr:
-				print "%s\t%d\t%s\t\t%s" % \
-				(c, i, g, "\t".join(["/".join([str(x) for x in frozenset(a[eD])]) for eD in especesDup]))
+				#print "%s\t%d\t%s\t\t%s" % \
+				#(c, i, g, "\t".join(["/".join([str(x) for x in frozenset(a[eD])]) for eD in especesDup]))
+				#(c, i, g, "\t".join([utils.myTools.printLine(frozenset(a[eD]),  "/") for eD in especesDup]))
+				print utils.myTools.printLine( [c, i, g, ""] + [utils.myTools.printLine(frozenset(a[eD]),  "/") for eD in especesDup] )
 			print "---"
 
 	print >> sys.stderr, "/", len(res), "DCS pour", DCSlen, "orthologues"
@@ -355,14 +358,17 @@ def printColorAncestr(genesAnc, chrAncGenes):
 	chrNames = sorted(chrAncGenes)
 	
 	if options["showQuality"]:
-		print "\t\t%s" % "\t".join([str(c) for c in chrNames])
+		#print "\t\t%s" % "\t".join([str(c) for c in chrNames])
+		print utils.myTools.printLine( [""] + chrNames)
 
 	for c in chrNames:
 		nb = 0
 		for i in chrAncGenes[c]:
 			nb += 1
 			if options["showQuality"]:
-				print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][c-1][0])
+				#print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][c-1][0])
+				#print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][c-1][0])
+				print utils.myTools.printLine( [c, nb, utils.myTools.printLine(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][c-1][0]] )
 			if options["showAncestralGenome"]:
 				print c, " ".join(genesAnc[i].names)
 		
@@ -482,7 +488,7 @@ for (nodes,cuts,_,dend) in walktrapInstance.res:
 				print >> sys.stderr, "Choix ? ",
 				x = int(raw_input())
 				break
-			except Exception:
+			except ValueError:
 				pass
 	(alpha,relevance,(clusters,lonely)) = res[x]
 	print >> sys.stderr, "Choix de alpha=%f relevance=%f clusters=%d size=%d lonely=%d sizes={%s}" % \

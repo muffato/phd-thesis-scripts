@@ -167,7 +167,8 @@ for c in genesAnc.lstChr:
 	solUniq = utils.myMaths.unique(lstTot)
 	if nbConcorde > 1:
 		for sol in solUniq:
-			print ".%s" % c, " ".join([str(i) for i in sol])
+			print ".", c, utils.myTools.printLine(sol)
+			#print ".%s" % c, " ".join([str(i) for i in sol])
 	print >> sys.stderr, len(solUniq), "solutions"
 
 	if options["searchAllSol"]:

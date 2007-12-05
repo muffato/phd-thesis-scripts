@@ -8,38 +8,16 @@ import math
 import bisect
 import random
 
-#
 # Renvoie la moyenne d'une liste
-#
+#################################
 def mean(lst):
 	if len(lst) == 0:
 		return 0.
 	return float(sum(lst))/float(len(lst))
 
 
-#
-# Ecart type
-#
-def stddev(lst):
-	if len(lst) == 0:
-		return 0
-	m = mean(lst)
-	return math.sqrt(mean([(x-m)*(x-m) for x in lst]))
-
-#
-# Mediane
-#
-def median(lst):
-	if len(lst) == 0:
-		return 0
-	l = lst[:]
-	l.sort()
-	return l[len(l)/2]
-
-
-#
 # Min et max
-#
+#############
 def getMinMax(lst):
 	mn = mx = None
 	for x in lst:
@@ -53,9 +31,46 @@ def getMinMax(lst):
 	return (mn, mx)
 
 
-#
-# Contient les stats classiques d'une serie de nombres
-#
+# Calcule la proba dans le cas d'une distribution binomiale
+#  On observe l parmi ll, alors qu'on attendait une proportion pi
+############################################################################
+def binom(pi, l, ll):
+	p = pow(pi, l) * pow(1.-pi, ll-l)
+	for i in xrange(l):
+		p *= float(ll-i)/float(i+1)
+	return p
+
+# Calcule le log de cette meme proba
+#################################################
+def binomLog(pi, l, ll):
+	p = l*math.log10(pi) + (ll-l)*math.log10(1-pi)
+	for i in xrange(l):
+		p += math.log10(ll-i) - math.log10(i+1)
+	return p
+
+# Calcule la p-value de l'observation de l/ll (attendu: pi)
+############################################################
+def binomPvalue(pi, l, ll, above):
+	# La p-value pour > l
+	s = 0
+	lastS = 0
+	for i in xrange(l,ll):
+		s += binom(pi, i+1, ll)
+		if s == lastS:
+			break
+		lastS = s
+	# Selon above, on renvoit ...
+	if above:
+		# pvalue pour >= l
+		return binom(pi, l, ll) + s
+	else:
+		# pvalue pour <= l
+		return 1. - s
+
+
+########################################################
+# Contient les stats classiques d'une serie de nombres #
+########################################################
 class myStats:
 
 	def __init__(self, lst):
@@ -105,19 +120,18 @@ class myStats:
 		(self.getValue(0), self.getValue(25),self.getValue(50),self.getValue(75), self.getValueNX(75),self.getValueNX(50),self.getValueNX(25),
 			self.getValue(100), self.mean,self.stddev, len(self.data))
 
-#
 # Renvoie un indice au hasard dans l, compte tenu des valeurs de l, qui indiquent une frequence d'apparition
-#
+#############################################################################################################
 class randomValue:
 
 	def __init__(self, l):
 		self.l = [0] * (len(l)+1)
 		for i in xrange(len(l)):
 			self.l[i+1] = self.l[i] + l[i]
-		self.m = self.l[-1]
+		self.max = self.l[-1]
 
 	def getRandomPos(self):
-		return bisect.bisect_left(self.l, random.random() * self.m) - 1
+		return bisect.bisect_left(self.l, random.random() * self.max) - 1
 
 
 def issublist(l1, l2):

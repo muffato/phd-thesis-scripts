@@ -195,7 +195,7 @@ for (c,tab) in newGenome.iteritems():
 			print c, strand[i], " ".join(genesAnc.lstGenes[None][g].names)
 		
 	for sol in lstTot:
-		print "# .%s" % c, " ".join([str(i) for i in sol])
+		print "# .%s" % c, utils.myTools.printLine(sol, " ")
 	
 	print >> sys.stderr, len(lstTot), "solutions OK"
 

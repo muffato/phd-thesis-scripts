@@ -54,17 +54,13 @@ if options["includeRandoms"]:
 print >> sys.stderr, "Extraction des diagonales ",
 for ((c1,d1),(c2,d2),ds) in utils.myDiags.calcDiags(genome1, genome2, genesAnc, options["minimalLength"], options["fusionThreshold"], options["sameStrand"], not options["includeGaps"]):
 	
-	res = []
-	res.append(str(len(ds)))
-
-	res.append(str(c1))
-	res.append(" ".join([genome1.lstGenes[c1][i1].names[0] for i1 in d1]))
-	
-	res.append(str(c2))
-	res.append(" ".join([genome2.lstGenes[c2][i2].names[0] for i2 in d2]))
-	
-	res.append(" ".join([str(x) for x in ds]))
-	
-	print '\t'.join(res)
+	print utils.myTools.printLine([len(ds), c1," ".join([genome1.lstGenes[c1][i1].names[0] for i1 in d1]), c2," ".join([genome2.lstGenes[c2][i2].names[0] for i2 in d2]), ds])
+	#res.append(str(len(ds)))
+	#res.append(str(c1))
+	#res.append(" ".join([genome1.lstGenes[c1][i1].names[0] for i1 in d1]))
+	#res.append(str(c2))
+	#res.append(" ".join([genome2.lstGenes[c2][i2].names[0] for i2 in d2]))
+	#res.append(" ".join([str(x) for x in ds]))
+	#print '\t'.join(res)
 
 print >> sys.stderr, "OK"

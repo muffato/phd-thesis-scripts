@@ -131,7 +131,7 @@ def setColor(C, txt):
 			elif C[0] == '#':
 				try:
 					(r,g,b) = [int(x) for x in C[1:].split(':')]
-				except Exception:
+				except ValueError:
 					(r,g,b) = [int(x,16) for x in C[1:].split(':')]
 			else:
 				return

@@ -51,10 +51,8 @@ tmpLinks = {}
 f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.member"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
-	# A un numero member_id, on associe les noms (gene/transcrit/proteine) et l'espece
-	if t[7] != "\\N":
-		x = t[8].split()
-		tmpLinks[t[0]] = (x[1].split(':')[1], x[0].split(':')[1], t[1], taxonName[t[4]])
+	# A un numero member_id, on associe un nom et eventuellement un autre numero (pour passer de la proteine au gene)
+	tmpLinks[t[0]] = (t[1], t[7], taxonName.get(t[4], None))
 f.close()
 print >> sys.stderr, len(tmpLinks), "OK"
 
@@ -66,15 +64,18 @@ links = {}
 f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.protein_tree_member"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
-	links[ int(t[0]) ] = tmpLinks[t[1]]
+	# Le nom de la proteine et l'indice du nom du gene
+	(p,ig,esp) = tmpLinks[ t[1] ]
+	# A un numero node_id, on associe une proteine et un gene
+	links[ int(t[0]) ] = (p, tmpLinks[ig][0], esp)
 f.close()
 print >> sys.stderr, len(links), "liens OK"
 del tmpLinks
 del taxonName
 
 
-# On charge les liens node_id -> infos 
-#######################################
+# On charge les infos supplementaires
+######################################
 print >> sys.stderr, "Chargement des infos des noeuds ...",
 info = utils.myTools.defaultdict(dict)
 f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.protein_tree_tag"]), "r")
@@ -96,8 +97,8 @@ f.close()
 print >> sys.stderr, len(info), "infos OK"
 
 
-# On charge les liens node_id_father -> node_id_son
-####################################################
+# On charge l'arbre
+####################
 print >> sys.stderr, "Chargement des arbres ...",
 data = utils.myTools.defaultdict(list)
 f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.protein_tree_node"]), "r")
@@ -125,21 +126,25 @@ def printTree(f, n, node):
 			printTree(f, n+1, g)
 	else:
 		# Une feuille: un gene
-		(g,t,p,e) = links[node]
-		print >> f, "%snames\t%s\t%s\t%s" % (indent, g, t, p)
+		(p,g,e) = links[node]
+		print >> f, "%snames\t%s\t%s" % (indent, p, g)
 		print >> f, "%sspecies\t%s" % (indent, e)
 
 
 ##################################
 # Nettoie l'arbre                #
+# Renomme certains taxons:       #
+#    Smegmamorpha -> Percomorpha #
+#    Eutheria ~> Boreoeutheria   #
+# Supprime certains infos:       #
 #    - taxon_id                  #
 #    - lost_taxon_id             #
 ##################################
 def cleanTree(node):
 	
-	# Si on est sur une feuille (un gene), on rajoute le taxon_name
+	# Si on est sur une feuille (un gene)
 	if node not in data:
-		info[node]['taxon_name'] = links[node][-1]
+		info[node]['taxon_name'] = links[node][2]
 		return
 	
 	inf = info[node]
@@ -149,16 +154,15 @@ def cleanTree(node):
 	if 'taxon_id' in inf:
 		del inf['taxon_id']
 
+	# Remplacement de Smegmamorpha par Percomorpha
+	#if inf['taxon_name'] == 'Smegmamorpha':
+	#	inf['taxon_name'] = 'Percomorpha'
+	#if inf['taxon_name'] == 'Coelomata':
+	#	inf['taxon_name'] = 'Bilateria'
+
 	# Les appels recursifs
 	for (g,d) in data[node]:
 		cleanTree(g)
-
-
-####################################################################
-# On considere que les duplications 'dubious' ne sont pas valables #
-####################################################################
-def isDuplicatedNode(inf):
-	return (inf['Duplication'] != 0) and ('dubious_duplication' not in inf)
 
 
 ########################################################
@@ -173,7 +177,7 @@ def rebuildTree(node):
 
 	inf = info[node]
 	# Si c'est une vraie duplication, on n'a plus rien a faire
-	if not isDuplicatedNode(inf):
+	if (inf['Duplication'] == 0) or ('dubious_duplication' in inf):
 		# A. On trie les enfants en paquets selon l'arbre phylogenetique
 		anc = inf['taxon_name']
 		fils = utils.myTools.defaultdict(list)
@@ -220,7 +224,7 @@ def flattenTree(node, rec):
 			flattenTree(g, rec)
 	inf = info[node]
 	# Si c'est une vraie duplication, on n'a plus rien a faire
-	if isDuplicatedNode(inf):
+	if (inf['Duplication'] != 0) and ('dubious_duplication' not in inf):
 		return
 
 	newData = []
@@ -228,7 +232,7 @@ def flattenTree(node, rec):
 	for (g,d) in data[node]:
 		inf = info[g]
 		# 2x le meme taxon et pas de duplication
-		if (g in data) and (inf['taxon_name'] == taxonName) and not isDuplicatedNode(inf):
+		if (g in data) and (inf['taxon_name'] == taxonName) and ((inf['Duplication'] == 0) or ('dubious_duplication' in inf)):
 			newData.extend([(g2,d+d2) for (g2,d2) in data[g]])
 		else:
 			newData.append( (g,d) )
@@ -240,42 +244,38 @@ def flattenTree(node, rec):
 ###########################################
 # Sauvegarde toutes les familles de genes #
 ###########################################
-def extractGeneFamilies(node, previousAnc, lastWrittenAnc):
+#def extractGeneFamilies(node, previousAnc, previousDup):
+def extractGeneFamilies(node, lastAnc):
 
 	newAnc = info[node]['taxon_name']
-
-	#if previousAnc == lastWrittenAnc:
-	#	if previousAnc != None:
-	#		# Cas normal
-	#		toWrite = phylTree.dicLinks[lastWrittenAnc][newAnc][1:]
-	#	else:
-	#		# On commence tout juste l'arbre
-	#		toWrite = [newAnc]
-	#else:
+	newDup = ((info[node]['Duplication'] != 0) and ('dubious_duplication' not in info[node]))
 
 	# Les noeuds ou ecrire les familles
-	if lastWrittenAnc == None:
-		if previousAnc == None:
-			toWrite = [newAnc]
-		else:
-			toWrite = phylTree.dicLinks[previousAnc][newAnc]
+	if lastAnc == None:
+		toWrite = [newAnc]
 	else:
-		toWrite = phylTree.dicLinks[lastWrittenAnc][newAnc][1:]
-	if isDuplicatedNode(info[node]):
+		toWrite = phylTree.dicLinks[lastAnc][newAnc][1:]
+	if newDup:
 		toWrite = toWrite[:-1]
-	
 	if len(toWrite) == 0:
-		newLastWritten = lastWrittenAnc
+		newAnc = lastAnc
 	else:
-		newLastWritten = toWrite[-1]
+		newAnc = toWrite[-1]
+
+	#toWrite = phylTree.dicLinks[previousAnc][newAnc]
+	#if newDup:
+	#	toWrite = toWrite[:-1]
+	#if not previousDup:
+	#	toWrite = toWrite[1:]
 
 	# Les genes des descendants
 	if node in data:
 		allGenes = []
 		for (g,d) in data[node]:
-			allGenes.extend( extractGeneFamilies(g, newAnc, newLastWritten) )
+			#allGenes.extend( extractGeneFamilies(g, newAnc, newDup) )
+			allGenes.extend( extractGeneFamilies(g, newAnc) )
 	else:
-		allGenes = [links[node][0]]
+		allGenes = [links[node][1]]
 
 	for a in toWrite:
 		geneFamilies[a].append( allGenes )
@@ -300,7 +300,9 @@ for (root,_) in data[1]:
 		flattenTree(root, True)
 		printTree(ft3, 0, root)
 		rebuildTree(root)
-		extractGeneFamilies(root, None, None)
+		#extractGeneFamilies(root, None, False)
+		#extractGeneFamilies(root, info[root]['taxon_name'], True)
+		extractGeneFamilies(root, None)
 		printTree(ft4, 0, root)
 		nb += 1
 print >> sys.stderr, nb, "arbres OK"
@@ -310,6 +312,8 @@ ft3.close()
 ft4.close()
 
 for (anc,lst) in geneFamilies.iteritems():
+	#if anc in phylTree.listSpecies:
+	#	continue
 	print >> sys.stderr, "Ecriture des familles de %s ..." % anc,
 	f = utils.myTools.myOpenFile(options["OUT.ancGenesFile"] % phylTree.fileName[anc], "w")
 	for gg in lst:

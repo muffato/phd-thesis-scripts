@@ -57,7 +57,8 @@ for c1 in chr1:
 		g1 = genome1.lstGenes[c1][i1]
 		for (c2,i2) in t:
 			g2 = genome2.lstGenes[c2][i2]
-			r = (c1, g1.beginning, g1.end, g1.strand, "/".join(g1.names), \
-				c2, g2.beginning, g2.end, g2.strand, "/".join(g2.names))
-			print "\t".join([str(x) for x in r])
+			print utils.myTools.printLine( [c1,g1.beginning,g1.end,g1.strand,"/".join(g1.names), c2,g2.beginning,g2.end,g2.strand,"/".join(g2.names)] )
+			#r = (c1, g1.beginning, g1.end, g1.strand, "/".join(g1.names), \
+			#	c2, g2.beginning, g2.end, g2.strand, "/".join(g2.names))
+			#print "\t".join([str(x) for x in r])
 

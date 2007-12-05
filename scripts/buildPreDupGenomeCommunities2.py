@@ -469,7 +469,7 @@ for (nodes,cuts,_,dend) in walktrapInstance.res:
 				print >> sys.stderr, "Choix ? ",
 				x = int(raw_input())
 				break
-			except Exception:
+			except ValueError:
 				pass
 	(alpha,relevance,(clusters,lonely)) = res[x]
 	print >> sys.stderr, "Choix de alpha=%f relevance=%f clusters=%d size=%d lonely=%d sizes={%s}" % \

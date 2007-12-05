@@ -11,21 +11,74 @@ A partir de toutes les diagonales extraites entre les especes,
 ##################
 
 # Librairies
-import os
+#import os
 import sys
 #import math
 #import time
 #import numpy
-import random
+#import random
 #import operator
 #import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 #import utils.myDiags
 #import utils.myPsOutput
-import utils.myPhylTree
+#import utils.myPhylTree
 #import utils.walktrap
-from collections import defaultdict
+#from collections import defaultdict
+
+#import utils.psyco
+#utils.psyco.full()
+
+for l in sys.stdin:
+	x = int(l.split()[0])
+	#print l[:-1], "%e" % utils.myMaths.proba(1./12., x, 487)
+	#print l[:-1], "%e" % sum([utils.myMaths.proba(1./12., y, 487) for y in xrange(x,488) ])
+	print l[:-1], "%e" % sum([utils.myMaths.proba(1./12., y, 487) for y in xrange(x+1) ])
+
+sys.exit(0)
+
+
+
+keys = range(int(sys.argv[1]))
+nb = int(sys.argv[2])
+
+
+def getSubsets1(keys, nb):
+	res = set()
+	lst = [keys] * nb
+	for t in utils.myTools.myIterator.tupleOnManyLists(*lst):
+		tt = frozenset(t)
+		if tt in res:
+			continue
+		res.add(tt)
+	return res
+def buildSubsets(lst, n):
+	l = len(lst)
+	mem = {}
+
+	def rec(i, n):
+		if (i,n) in mem:
+			return mem[(i,n)]
+		
+		if i >= l-n:
+			res = [lst[i:]]
+		elif n <= 1:
+			res = [[x] for x in lst[i:]]
+		else:
+			ref = [lst[i]]
+			res = rec(i+1, n)
+			for x in rec(i+1, n-1):
+				res.append(ref + x)
+
+		mem[(i,n)] = res
+		return res
+
+	return rec(0, n)
+	
+#print len(getSubsets1(keys, nb))
+print len(utils.myTools.myIterator.buildSubsets(keys, nb))
+sys.exit(0)
 
 f = utils.myTools.myOpenFile(sys.argv[1], "r")
 nb = {}

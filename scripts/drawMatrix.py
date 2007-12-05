@@ -40,9 +40,9 @@ if options["orthologuesList"] != "":
 	genesAnc = utils.myGenomes.Genome(options["orthologuesList"])
 else:
 	genesAnc = None
-try:
+if options["colorFile"] != "":
 	colors = utils.myGenomes.Genome(options["colorFile"])
-except Exception:
+else:
 	colors = None
 
 # Les chromosomes a etudier

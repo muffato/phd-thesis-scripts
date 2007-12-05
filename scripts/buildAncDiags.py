@@ -205,23 +205,12 @@ for anc in diagEntry:
 		s = []
 		for ((e1,c1,d1),(e2,c2,d2),da,ds) in lst:
 			s.append( len(d1) )
-			
-			res = []
-			res.append(anc)
-			res.append(str(len(da)))
+			res = [anc,len(da)]
+			res += [e1,c1,utils.myTools.printLine( [dicGenomes[e1].lstGenes[c1][i1].names[0] for i1 in d1], " " )]
+			res += [e2,c2,utils.myTools.printLine( [dicGenomes[e2].lstGenes[c2][i2].names[0] for i2 in d2], " " )]
+			res += [utils.myTools.printLine(da, " "),utils.myTools.printLine(ds, " ")]
+			print utils.myTools.printLine(res)
 
-			res.append(e1)
-			res.append(str(c1))
-			res.append(" ".join([dicGenomes[e1].lstGenes[c1][i1].names[0] for i1 in d1]))
-			
-			res.append(e2)
-			res.append(str(c2))
-			res.append(" ".join([dicGenomes[e2].lstGenes[c2][i2].names[0] for i2 in d2]))
-			
-			res.append(" ".join([str(x) for x in da]))
-			res.append(" ".join([str(x) for x in ds]))
-			
-			print '\t'.join(res)
 		print >> sys.stderr, utils.myMaths.myStats(s), "OK"
 
 
@@ -239,17 +228,14 @@ for anc in diagEntry:
 		s = []
 		for (da,ds,esp) in lst:
 			s.append( len(da) )
-			res = []
-			res.append(anc)
-			res.append(str(len(da)))
-			res.append(" ".join([str(x) for x in da]))
-			res.append(" ".join([str(x) for x in ds]))
-			res.append("|".join(["%s/%s" % (e,c) for (e,c) in esp]))
+			res = [anc,len(da),utils.myTools.printLine(da, " "),utils.myTools.printLine(ds, " ")]
+			
+			res.append( utils.myTools.printLine(["%s/%s" % (e,c) for (e,c) in esp], "|") )
 
 			if options["searchUndetectedSpecies"]:
-				res.append('|'.join(["%s/%s" % (e,c) for (e,c) in findNewSpecies(da, esp, anc)]))
+				res.append( utils.myTools.printLine(["%s/%s" % (e,c) for (e,c) in findNewSpecies(da, esp, anc)], "|") )
 
-			print '\t'.join(res)
+			print utils.myTools.printLine(res)
 	
 		print >> sys.stderr, utils.myMaths.myStats(s), "OK"
 
