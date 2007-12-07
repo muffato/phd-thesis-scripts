@@ -17,36 +17,53 @@ import utils.myTools
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["studiedGenome", "paralogsList"], \
-	[], \
+	[("minNbParas",int,5)], \
 	__doc__
 )
 
 genome = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
 paralogues = utils.myGenomes.Genome(noms_fichiers["paralogsList"])
 
+
 # Ecriture des paralogues
 ##########################
 print >> sys.stderr, "Ecriture des liens ...",
 (fd,fname) = tempfile.mkstemp()
 nb = 0
+nbPara = 0
+para = utils.myTools.defaultdict(lambda : utils.myTools.defaultdict(int))
+allLinks = []
 for g in paralogues:
 	tg = genome.getPosition(g.names)
+	allLinks.append( genome.getPosition(g.names) )
+	for ((c1,_),(c2,_)) in utils.myTools.myIterator.tupleOnStrictUpperList(list(tg)):
+		para[c1][c2] += 1
+		para[c2][c1] += 1
+		nbPara += 2
+
+for tg in allLinks:
 	for ((c1,i1),(c2,i2)) in utils.myTools.myIterator.tupleOnStrictUpperList(list(tg)):
-		g1 = genome.lstGenes[c1][i1]
-		g2 = genome.lstGenes[c2][i2]
-		os.write(fd, "sd%d %s %d %d\n" % (nb, c1, g1.beginning, g1.end) )
-		os.write(fd, "sd%d %s %d %d\n" % (nb, c2, g2.beginning, g2.end) )
+		if para[c1][c2] < options["minNbParas"]:
+			continue
+		#g1 = genome.lstGenes[c1][i1]
+		#g2 = genome.lstGenes[c2][i2]
+		#os.write(fd, "sd%d %s %d %d\n" % (nb, c1, g1.beginning, g1.end) )
+		#os.write(fd, "sd%d %s %d %d\n" % (nb, c2, g2.beginning, g2.end) )
+		os.write(fd, "sd%d %s %d %d\n" % (nb, c1, i1, i1) )
+		os.write(fd, "sd%d %s %d %d\n" % (nb, c2, i2, i2) )
 		nb += 1
 os.close(fd)
 options["datafile"] = fname
-print >> sys.stderr, nb, "OK"
+print >> sys.stderr, nb, nbPara/2, "OK"
 
 # Ecriture du karyotype
 ########################
 (fd,fname) = tempfile.mkstemp()
 for c in genome.lstChr:
-	beginning = min([g.beginning for g in genome.lstGenes[c]])
-	end = max([g.end for g in genome.lstGenes[c]])+1
+	beginning = 0
+	end = len(genome.lstGenes[c])
+	#beginning = min([g.beginning for g in genome.lstGenes[c]])
+	#end = max([g.end for g in genome.lstGenes[c]])+1
 	#os.write(fd, "chr%s %d %d band black\n" % (c, beginning, end) )
 	os.write(fd, "chr - %s %s %d %d black\n" % (c, c, beginning, end) )
 os.close(fd)
@@ -116,7 +133,7 @@ karyotype   = %(karyofile)s
  file = %(pngfilename)s
 
  # radius of inscribed circle in image
- radius         = 100p
+ radius         = 500p
  background     = white
  # by default angle=0 is at 3 o'clock position
  angle_offset   = -90

@@ -131,7 +131,8 @@ class randomValue:
 		self.max = self.l[-1]
 
 	def getRandomPos(self):
-		return bisect.bisect_left(self.l, random.random() * self.max) - 1
+		x = random.random()
+		return bisect.bisect_left(self.l, x * self.max) - 1
 
 
 def issublist(l1, l2):

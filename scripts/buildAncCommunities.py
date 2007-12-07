@@ -39,7 +39,7 @@ def loadDiagsFile(nom, ancName):
 		# On joint les especes qui ont vu la diagonale et celles qui n'apportent que le chromosome
 		tmp = [y.split("/") for y in "|".join([x for x in ct[-2:] if '/' in x]).split("|")]
 		# Les chromosomes de ces especes
-		espChr = frozenset( (phylTree.officialName[e],c) for (e,c) in tmp if ('Un' not in c) )
+		espChr = frozenset( (phylTree.officialName[e],c) for (e,c) in tmp if ('Un' not in c) and (e in phylTree.officialName) )
 		# On la garde en memoire
 		lst.append( (d,espChr) )
 

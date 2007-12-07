@@ -18,6 +18,14 @@ stdinInput = os.isatty(sys.stdin.fileno())
 def fileAccess(s):
 	return os.access(s, os.R_OK)
 
+
+###############################################
+# Renvoie la ligne preparee pour l'impression "
+###############################################
+def printLine(line, delim = "\t", func = str):
+	return delim.join([func(x) for x in line])
+
+
 ####################################################################
 # Cette fonction ouvre le fichier en le decompressant s'il le faut #
 #   Retourne l'objet FILE et le nom complet du fichier             #
@@ -46,7 +54,7 @@ def myOpenFile(nom, mode):
 #####################################################
 # Cree le repertoire pour les sorties dans fichiers #
 #####################################################
-def mkDirs(dir):
+def mkDir(dir):
 	try:
 		os.makedirs(os.path.dirname(dir))
 	except OSError:
@@ -156,7 +164,33 @@ class myIterator:
 			return res
 
 		return rec(0, n)
+
+
+class memoize:
+	"""Decorator that caches a function's return value each time it is called.
+	If called later with the same arguments, the cached value is returned, and
+	not re-evaluated.
+	"""
+	def __init__(self, func):
+		self.func = func
+		self.cache = {}
+
+	def __call__(self, *args):
+		try:
+			return self.cache[args]
+		except KeyError:
+			self.cache[args] = value = self.func(*args)
+			return value
+		except TypeError:
+			# uncachable -- for instance, passing a list as an argument.
+			# Better to not cache than to blow up entirely.
+			return self.func(*args)
 	
+	def __repr__(self):
+		"""Return the function's docstring."""
+		return self.func.__doc__
+
+
 
 ########################################################################
 # Cette classe permet de regrouper une liste d'elements                #
@@ -305,7 +339,7 @@ def checkArgs(args, options, info):
 				valOpt[s] = opt[s][0](v)
 				if (type(opt[s][1]) == list) and (valOpt[s] not in opt[s][1]):
 					print >> sys.stderr, "Les valeurs autorisees pour '%s' sont %s (ligne de commande: '%s')" \
-						% (s,'/'.join([str(x) for x in opt[s][1]]),valOpt[s])
+						% (s,printLine(opt[s][1], '/'),valOpt[s])
 					error_usage()
 				
 			# Si on ne trouve pas de '=', c'est une type bool
@@ -315,15 +349,15 @@ def checkArgs(args, options, info):
 				if s not in valOpt:
 
 					# Valeurs predefinies
-					if s == "psyco":
+					if s.startswith("psyco"):
 						if t[0] == '+':
 							try:
 								import utils.psyco
 								from utils.psyco.classes import __metaclass__
-								#utils.psyco.log()
-								utils.psyco.full()
-								#utils.psyco.full(memory=100)
-								#utils.psyco.profile(0.1, memory=100)
+								if s.startswith("psycoL"):
+									utils.psyco.log()
+								else:
+									utils.psyco.full()
 							except ImportError:
 								print >> sys.stderr, "Unable to load psyco !"
 					elif s == "bz2":

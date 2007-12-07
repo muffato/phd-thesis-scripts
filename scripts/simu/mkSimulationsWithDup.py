@@ -18,7 +18,7 @@ Genere des fichiers similaires a ceux d'Ensembl
 import sys
 import math
 import random
-import itertools
+import utils.myMaths
 import utils.myTools
 import utils.myPhylTree
 
@@ -26,41 +26,32 @@ import utils.myPhylTree
 # FONCTIONS #
 #############
 
+
 # +1 ou -1 au hasard
 def randomStrand():
 	return random.choice([-1,1])
+
 
 # Un taux specifique compris entre 1/rate et rate
 def randomRate():
 	return math.pow(options["rearrRateAccel"], random.vonmisesvariate(0, options["vonMisesKappa"]) / math.pi)
 
-# Retourne la region genomique si necessaire
-def applyStrand(chr, strand):
-	if strand > 0:
-		return chr
-	else:
-		return [(gene,-strand) for (gene,strand) in chr.__reversed__()]
 
+# Un chromosome au hasard (en tenant compte des tailles)
+def randomChromosome(genome):
+	tmp = [len(x) for x in genome]
+	return utils.myMaths.randomValue(tmp).getRandomPos()
 
 # Un endroit du genome au hasard (mettre includeEnd=1 si on autorise la fin du chromosome comme position)
 # Un chromosome plus long a plus de chance d'etre choisi
 def randomPlace(genome, includeEnd = 0):
-	tmp = [len(x) for x in genome]
-	c = utils.myMaths.randomValue(tmp).getRandomPos()
-	return (c,random.randint(0,tmp[c]+includeEnd))
-	#tmp[-1] += includeEnd
-	#r = random.randint(0, sum(tmp)-1)
-	#for (c,l) in enumerate(tmp):
-	#	if r < l:
-	#		return (c, r)
-	#	r -= l
+	c = randomChromosome(genome)
+	return (c,random.randint(0,len(genome[c])-1+includeEnd))
 
 
 # Une region du genome au hasard
 def randomSlice(genome):
-
-	(c,_) = randomPlace(genome)
-	
+	c = randomChromosome(genome)
 	l = int(abs(random.vonmisesvariate(0, options["vonMisesKappa"])) * len(genome[c]) / math.pi)
 	x1 = random.randint(0, len(genome[c])-1-l)
 	return (c,x1,x1+l)
@@ -71,6 +62,14 @@ def doChrBreak(genome):
 	(c,x) = randomPlace(genome)
 	genome.append(genome[c][x:])
 	genome[c] = genome[c][:x]
+
+
+# Retourne la region genomique si necessaire
+def applyStrand(chr, strand):
+	if strand > 0:
+		return chr
+	else:
+		return [(gene,-strand) for (gene,strand) in chr.__reversed__()]
 
 
 
@@ -115,7 +114,7 @@ def buildGenomes(node):
 		print >> sys.stderr, "dupGenes=%d" % nbDup,
 		
 		# On enleve les genes perdus
-		for i in xrange(nbPertes):
+		for _ in xrange(nbPertes):
 			(c,x) = randomPlace(newGenome, 0)
 			del newGenome[c][x]
 		print >> sys.stderr, "lostGenes=%d" % nbPertes,
@@ -131,30 +130,26 @@ def buildGenomes(node):
 		nbEvents = int(options["chrEventRate"] * dist * randomRate() * evolRate)
 		# CONSTRAINT-SET
 		if fils == "Monodelphis domestica":
-			(InvertRate,TranslocRate,FusionRate,BreakRate) = (85,5,8,2)
+			rates = (85,5,8,2)
 		elif fils == "Gallus gallus":
-			(InvertRate,TranslocRate,FusionRate,BreakRate) = (85,9,1,5)
+			rates = (85,9,1,5)
 		else:
-			(InvertRate,TranslocRate,FusionRate,BreakRate) = [options[x]*randomRate() for x in ["chrInvertWeight","chrTranslocWeight","chrFusionWeight","chrBreakWeight"]]
+			rates = [options[x]*randomRate() for x in ["chrInvertWeight","chrTranslocWeight","chrFusionWeight","chrBreakWeight"]]
 		
-		s = InvertRate + TranslocRate + FusionRate + BreakRate
 		nb = [0,0,0,0]
-		for i in xrange(nbEvents):
-			r = random.uniform(0, s)
+		rates = utils.myMaths.randomValue(rates)
+		for _ in xrange(nbEvents):
+			evt = rates.getRandomPos()
 			
 			# C'est une inversion
-			r -= InvertRate
-			if r < 0:
+			if evt == 0:
 				# La region qui s'inverse
 				(c,x1,x2) = randomSlice(newGenome)
 				# Le nouveau chromosome avec la region qui s'inverse au milieu
 				newGenome[c]= newGenome[c][:x1] + applyStrand(newGenome[c][x1:x2], -1) + newGenome[c][x2:]
-				nb[0] += 1
-				continue
 			
 			# C'est une translocation
-			r -= TranslocRate
-			if r < 0:
+			elif evt == 1:
 				# La region qui se deplace
 				(c,x1,x2) = randomSlice(newGenome)
 				# On l'enleve
@@ -164,24 +159,21 @@ def buildGenomes(node):
 				(newC,newX) = randomPlace(newGenome)
 				# On l'insere (eventuellement en le retournant)
 				newGenome[newC] = newGenome[newC][:newX] + applyStrand(r, randomStrand()) + newGenome[newC][newX:]
-				nb[1] += 1
-				continue
 			
 			# C'est une fusion
-			r -= FusionRate
-			if r < 0 and len(newGenome) >= 2:
+			elif evt == 2:
 				# Les deux chromosomes a fusionnerr
 				(c1,c2) = random.sample(xrange(len(newGenome)), 2)
 				# On met l'un au bout de l'autre (eventuellement en le retournant)
 				newGenome[c1].extend( applyStrand(newGenome[c2], randomStrand()) )
 				# Et on supprime l'original
 				del newGenome[c2]
-				nb[2] += 1
-				continue
 			
 			# Finalement, c'est une cassure
-			doChrBreak(newGenome)
-			nb[3] += 1
+			else:
+				doChrBreak(newGenome)
+			
+			nb[evt] += 1
 		
 		print >> sys.stderr, "events=%s / %d chromosomes" % (nb,len(newGenome))
 
@@ -193,7 +185,7 @@ def buildGenomes(node):
 	if node in genomes2x:
 		print >> sys.stderr, "Applying 2x coverage on %s ..." % node,
 		tmp = genomes[node]
-		for i in xrange(random.randint(12000,18000)):
+		for _ in xrange(random.randint(12000,18000)):
 			doChrBreak(tmp)
 		# On n'a que 2/3 du genome
 		random.shuffle(tmp)
@@ -203,7 +195,7 @@ def buildGenomes(node):
 	if node in genomesScaffolds:
 		print >> sys.stderr, "Applying 6x coverage on %s ..." % node,
 		tmp = genomes[node]
-		for i in xrange(random.randint(2000,4000)):
+		for _ in xrange(random.randint(2000,4000)):
 			doChrBreak(tmp)
 		print >> sys.stderr, "OK (%d chromosomes)" % len(genomes[node])
 
@@ -213,28 +205,28 @@ def buildGenomes(node):
 # Imprime les donnees en tenant compte des duplications successives
 def printData(node):
 
-	# On ecrit le veritable genome ancestral
+	# On ecrit le veritable genome ancestral et on prepare les familles
+	# Initialement les familles de genes contiennent les genes eux-memes
+	familles = {}
 	print >> sys.stderr, "Writing %s genome (nbChr=%d) ..." % (node,len(genomes[node])),
 	s = phylTree.fileName[node]
 	f = utils.myTools.myOpenFile(options["genomeFile"] % s, 'w')
 	for (c,lst) in enumerate(genomes[node]):
 		for (i,(gene,strand)) in enumerate(lst):
-			print >> f, "%d\t%d\t%d\t%d\t%s.%d" % (c+1,i,i,strand,s,gene)
+			nom = "%s.%d" % (s,gene)
+			familles[gene] = nom + " "
+			print >> f, utils.myTools.printLine( (c+1,i,i,strand,nom) )
 	f.close()
 	print >> sys.stderr, "OK"
 
-	# Initialement les familles de genes contiennent les genes eux-memes
-	familles = {}
-	for lst in genomes[node]:
-		for (gene,_) in lst:
-			familles[gene] = "%s.%d " % (s,gene)
-	
 	for fils in phylTree.branches[node]:
 		subFam = printData(fils)
+
+		# Quelques fausses assignations
 		falseOrthologs = random.sample(subFam.keys(), int(len(subFam)*(100-options["orthologyQuality"])/100.))
-		falseAssociations = [subFam[x] for x in falseOrthologs]
+		falseAssociations = [(x,subFam[x]) for x in falseOrthologs]
 		random.shuffle(falseAssociations)
-		for (old,new) in itertools.izip(falseOrthologs,falseAssociations):
+		for (old,new) in falseAssociations:
 			subFam[old] = new
 
 		# On rajoute les noms des genes dans les especes filles
@@ -269,8 +261,8 @@ def printData(node):
 	("chrEventRate",float,2), ("rearrRateAccel",float,1.732), ("vonMisesKappa",float,2), \
 	("geneLossRate",float,6), ("geneGainRate",float,6), ("geneDuplicationRate",float,3), \
 	("chrInvertWeight",float,91), ("chrTranslocWeight",float,4), ("chrFusionWeight",float,2.5), ("chrBreakWeight",float,2.5), \
-	("genomeFile",str,"~/work/simu/genes/genes.%s.list.bz2"), \
-	("ancGenesFile",str,"~/work/simu/ancGenes/ancGenes.%s.list.bz2")], \
+	("genomeFile",str,"simu/genes/genes.%s.list.bz2"), \
+	("ancGenesFile",str,"simu/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
@@ -281,6 +273,8 @@ if options["root"] not in phylTree.listAncestr:
 	print >> sys.stderr, "Unknown root '%s'" % options["root"]
 	sys.exit(1)
 
+utils.myTools.mkDir(options["genomeFile"])
+utils.myTools.mkDir(options["ancGenesFile"])
 
 genomes2x = ["Loxodonta africana", "Echinops telfairi", "Dasypus novemcinctus", "Felis catus", "Erinaceus europaeus", "Myotis lucifugus", "Tupaia belangeri", "Otolemur garnettii", "Oryctolagus cuniculus", "Cavia porcellus", "Spermophilus tridecemlineatus", "Sorex araneus"]
 genomesScaffolds = ["Xenopus tropicalis", "Ornithorhynchus anatinus", "Takifugu rubripes"]
