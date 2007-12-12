@@ -255,17 +255,6 @@ class PhylogeneticTree:
 		return commonNamesMapper()
 		
 
-	# Renvoie l'arbre au format avec des parentheses
-	def convertToFlatFile(self, anc):
-
-		a = anc.replace(' ', '.')
-		if anc in self.listSpecies:
-			return a
-		else:
-			return "(" + ",".join(["%s:%d" % (self.convertToFlatFile(e),l) for (e,l) in self.items[anc]]) + ")%s|%d" % (a,self.ages[anc])
-
-
-
 	# Charge toutes les especes qui descendent d'un ancetre
 	def loadAllSpeciesSince(self, ancestr, template, storeGenome = True):
 		self.loadSpeciesFromList(self.species.get(ancestr,self.listSpecies), template, storeGenome)
