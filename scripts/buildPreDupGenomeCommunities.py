@@ -55,7 +55,7 @@ def buildParaOrtho():
 	# On rajoute les outgroup
 	
 	# Les ancetres correspondant a chaque outgroup
-	toLoad = utils.myTools.defaultdict(list)
+	toLoad = defaultdict(list)
 	for e in especesNonDup:
 		par = phylTree.dicParents[e][options["target"]]
 		toLoad[par].append(e)
@@ -196,8 +196,7 @@ def doSynthese(combin, eND, orthos):
 	print >> sys.stderr, len(lstBlocs), "blocs pour", sum([len(x) for x in lstBlocs]), "orthologues",
 
 	if options["showDCS"]:
-		#print "%s\t\t\t\t%s\t" % (eND, "\t".join(especesDup))
-		print utils.myTools.printLine( [eND, "", "", ""] + [especesDup] )
+		print utils.myTools.printLine( [eND, "", "", ""] + especesDup )
 	
 	res = []
 	DCSlen = 0
@@ -211,10 +210,7 @@ def doSynthese(combin, eND, orthos):
 			DCSlen += len(gr)
 		if options["showDCS"]:
 			for ((c,i),g,a) in gr:
-				#print "%s\t%d\t%s\t\t%s" % \
-				#(c, i, g, "\t".join(["/".join([str(x) for x in frozenset(a[eD])]) for eD in especesDup]))
-				#(c, i, g, "\t".join([utils.myTools.printLine(frozenset(a[eD]),  "/") for eD in especesDup]))
-				print utils.myTools.printLine( [c, i, g, ""] + [utils.myTools.printLine(frozenset(a[eD]),  "/") for eD in especesDup] )
+				print utils.myTools.printLine( [c, i, g, ""] + [utils.myTools.printLine(frozenset(a[eD]), "/") for eD in especesDup] )
 			print "---"
 
 	print >> sys.stderr, "/", len(res), "DCS pour", DCSlen, "orthologues"
@@ -294,43 +290,25 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 	# Renvoie un score (~pourcentage d'especes) qui soutiennent l'attribution d'un gene a un chromosome
 	#
 	def calcChrAncScore(col, ch):
-		espOK = [eND for (_,c,eND) in col if c == ch]
-		espNO = [eND for (_,c,eND) in col if c != ch]
 		
-		def recCalc(node):
-			if node in espALL:
-				return float(espOK.count(node))/float(espOK.count(node)+espNO.count(node))
-			r = []
-			for fils in phylTree.branches[node]:
-				if len(espALL.intersection(phylTree.species[fils])) != 0:
-					r.append(recCalc(fils))
-			return utils.myMaths.mean(r)
-
-		if options["usePhylTreeScoring"]:
-			espALL = set(espOK + espNO)
-			return recCalc(rootNonDup)
-
-		moyTot = 0.
-		nbTot = 0.
-		for gr in espNames:
-			nbOK = 0.
-			nbNO = 0.
-			for e in gr:
-				if e in espOK:
-					nbOK += 1.
-				elif e in espNO:
-					nbNO += 0.
-			nb = nbOK+nbNO
-			if nb > 0.:
-				nbTot += 1.
-				moyTot += nbOK/nb
-		if nbTot > 0:
-			return moyTot/nbTot
+		if options["usePhylTreeScoringNonDup"]:
+			values = phylTree.newCommonNamesMapperInstance()
 		else:
-			return 0.
+			values = {}
 		
-	
-	espNames = [[phylTree.officialName[x] for x in g] for g in especesNonDupGrp]
+		# Une tetrapode rapporte 1 si un de ses representants a vote pour le chromosome ancestral
+		for (_,c,eND) in col:
+			values[eND] = max(values.get(eND,0), float(c == ch))
+
+		# Soit on fait un calcul phylogenetique
+		if options["usePhylTreeScoringNonDup"]:
+			return phylTree.calcDist(values)
+
+		# On fait les groupes
+		rTot = [[values[e] for e in gr if e in values] for gr in especesNonDupGrp]
+		# La moyenne des moyennes de chaque groupe non vide
+		return utils.myMaths.mean([utils.myMaths.mean(r) for r in rTot if len(r) > 0])
+
 	chrNames = sorted(chrAncGenes)
 	for (i,col) in enumerate(genesAncCol):
 	
@@ -358,7 +336,6 @@ def printColorAncestr(genesAnc, chrAncGenes):
 	chrNames = sorted(chrAncGenes)
 	
 	if options["showQuality"]:
-		#print "\t\t%s" % "\t".join([str(c) for c in chrNames])
 		print utils.myTools.printLine( [""] + chrNames)
 
 	for c in chrNames:
@@ -366,8 +343,6 @@ def printColorAncestr(genesAnc, chrAncGenes):
 		for i in chrAncGenes[c]:
 			nb += 1
 			if options["showQuality"]:
-				#print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][c-1][0])
-				#print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][c-1][0])
 				print utils.myTools.printLine( [c, nb, utils.myTools.printLine(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][c-1][0]] )
 			if options["showAncestralGenome"]:
 				print c, " ".join(genesAnc[i].names)
@@ -383,7 +358,7 @@ def printColorAncestr(genesAnc, chrAncGenes):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"],
-	[("minChrLen",int,20), ("windowSize",int,25), ("usePhylTreeScoring",bool,False), ("keepUncertainGenes",bool,False), \
+	[("minChrLen",int,20), ("windowSize",int,25), ("usePhylTreeScoringDup",bool,False), ("usePhylTreeScoringNonDup",bool,False), ("keepUncertainGenes",bool,False), \
 	("especesNonDup",str,""), ("especesDup",str,""), ("target",str,""), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
@@ -395,7 +370,9 @@ def printColorAncestr(genesAnc, chrAncGenes):
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
 def proceedList(l):
-	return utils.myMaths.flatten([phylTree.species[s] for s in l])
+	l1 = [s[1:] for s in l if s[0] == "."]
+	l2 = [s for s in l if s[0] != "."]
+	return utils.myMaths.flatten([phylTree.species[s] for s in l2]) + l1
 especesDup = proceedList(options["especesDup"].split(','))
 especesNonDupGrp = [proceedList(x.split('+')) for x in options["especesNonDup"].split(',')]
 especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
@@ -414,6 +391,7 @@ lstGenesAnc = genesAnc.lstGenes[None]
 # De quoi stocker les DCS
 col = [[] for i in xrange(len(lstGenesAnc))]
 allDCS = []
+phylTree.initCalcDist(rootNonDup, False)
 
 # Decoupage de chaque tetrapode
 for eND in especesNonDup:
@@ -439,30 +417,32 @@ for i1 in xrange(len(allDCS)):
 	for i2 in xrange(i1):
 		(_,alt2) = allDCS[i2]
 
-		val = 0.
-		nb = 0.
-		for e in especesDup:
-			
-			if (len(alt2[e]) != 0) and (len(alt2[e]) != 0):
-				nb += 1
-			for x in (esp1[e] & allDCSe2[i2][e]):
-				val += min(alt1[e][x], alt2[e][x])
-		
-		if val > 0:
-			edges[i1][i2] = edges[i2][i1] = val/nb
+		if options["usePhylTreeScoringDup"]:
 
-		# On calcule par une moyenne les autres distances
-		#scores = phylTree.newCommonNamesMapperInstance()
-		#for e in especesDup:
-		#	if len(esp1[e]) == 0 or len(allDCSe2[i2][e]) == 0:
-		#		continue
-		#	val = 0
-		#	for x in (allDCSe2[e][i1] & allDCSe2[e][i2]):
-		#		val += min(allDCSe1[e][i1][x], allDCSe1[e][i2][x])
-		#	scores[e] = val
-		#
-		# On calcule par une moyenne les autres distances
-		#return phylTree.calcDist(scores)
+			scores = phylTree.newCommonNamesMapperInstance()
+			for e in especesDup:
+				val = 0.
+				for x in (esp1[e] & allDCSe2[i2][e]):
+					val += min(alt1[e][x], alt2[e][x])
+				scores[e] = val
+			val = phylTree.calcDist(scores)
+			if val > 0:
+				edges[i1][i2] = edges[i2][i1] = val
+
+		else:
+
+			val = 0.
+			nb = 0.
+			for e in especesDup:
+				if (len(alt2[e]) != 0) and (len(alt2[e]) != 0):
+					nb += 1
+				for x in (esp1[e] & allDCSe2[i2][e]):
+					val += min(alt1[e][x], alt2[e][x])
+			if val > 0:
+				edges[i1][i2] = edges[i2][i1] = val/nb
+
+
+
 
 print >> sys.stderr, "Lancement de walktrap ...",
 walktrapInstance.doWalktrap()

@@ -41,7 +41,8 @@ def loadDiagsFile(nom, ancName):
 		# Les chromosomes de ces especes
 		espChr = frozenset( (phylTree.officialName[e],c) for (e,c) in tmp if ('Un' not in c) and (e in phylTree.officialName) )
 		# On la garde en memoire
-		lst.append( (d,espChr) )
+		#lst.append( (d,espChr) )
+		lst.append( (d,espChr,ct[2],ct[3]) )
 
 	f.close()
 	print >> sys.stderr, "OK (%d diagonales)" % len(lst)
@@ -62,7 +63,7 @@ def checkLonelyGenes():
 	print >> sys.stderr, "Ajout des genes solitaires ...",
 	# Les genes seuls vont devenir des diagonales de 1
 	genesSeuls = set(xrange(len(lstGenesAnc)))
-	for (d,_) in lstDiagsIni:
+	for (d,_,_,_) in lstDiagsIni:
 		genesSeuls.difference_update(d)
 	
 	nb = 0
@@ -88,7 +89,7 @@ def checkLonelyGenes():
 		# Petit test: ne peuvent etre utilises que les genes avec au moins 2 especes
 		# Pour etre exact, il faudrait avec 2 groupes parmi (fils1 + ... + filsN + outgroup)
 		if len(lst) >= 2:
-			new.append( ([i],frozenset(lst)) )
+			new.append( ([i],frozenset(lst),str(i),"1") )
 			nb += 1
 	
 	print >> sys.stderr, "%d genes OK" % len(new)
@@ -112,12 +113,12 @@ def checkAlreadyBuildAnc():
 			print >> sys.stderr, "Not found"
 
 	print >> sys.stderr, "Mise a jour des chromosomes des diagonales ...",
-	for (j,(d,esp)) in enumerate(lstDiagsIni):
+	for (j,(d,esp,a1,a2)) in enumerate(lstDiagsIni):
 		g = utils.myMaths.flatten([lstGenesAnc[i].names for i in d])
 		esp = set(esp)
 		for f in genAlready:
 			esp.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
-		lstDiagsIni[j] = (d,frozenset(esp))
+		lstDiagsIni[j] = (d,frozenset(esp),a1,a2)
 	print >> sys.stderr, "OK"
 
 
@@ -204,7 +205,7 @@ if options["alreadyBuiltAnc"] != "":
 # On reduit les diagonales
 print >> sys.stderr, "Reduction de %d elements a ..." % len(lstDiagsIni),
 red = utils.myTools.defaultdict(list)
-for (i,(_,e)) in enumerate(lstDiagsIni):
+for (i,(_,e,_,_)) in enumerate(lstDiagsIni):
 	red[e].append(i)
 lstDiags = [ (d,e,frozenset(x for (x,_) in e)) for (e,d) in red.iteritems() ]
 nbDiags = len(lstDiags)
@@ -340,11 +341,12 @@ if options["removeDuplicates"]:
 
 for indChr in xrange(len(lstChr)):
 	for d in lstChr[indChr][0]:
-		(d,_) = lstDiagsIni[d]
-		print "# Diag chr=%d len=%d" % (indChr+1,len(d))
 		if options["printDiags"]:
-			print indChr+1, " ".join([str(g) for g in d if g not in inter])
+			(_,_,d,s) = lstDiagsIni[d]
+			print "%d\t%s\t%s" % (indChr+1,d,s)
 		else:
+			(d,_) = lstDiagsIni[d]
+			print "# Diag chr=%d len=%d" % (indChr+1,len(d))
 			for g in d:
 				if g not in inter:
 					print indChr+1, " ".join(lstGenesAnc[g].names)

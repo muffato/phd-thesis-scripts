@@ -129,6 +129,40 @@ def printTree(f, n, node):
 		print >> f, "%snames\t%s\t%s\t%s" % (indent, g, t, p)
 		print >> f, "%sspecies\t%s" % (indent, e)
 
+####################################
+# Imprime l'arbre au format Newick #
+####################################
+def printNewickTree(f, node):
+	already = set()
+	dup = {}
+	dup = utils.myTools.defaultdict(int)
+	genes = []
+	def rec1(node):
+		if node in data:
+			x = phylTree.fileName[info[node]['taxon_name']]
+			if (x in already) and (x not in dup):
+				dup[x] = 0
+			already.add(x)
+			for (x,_) in data[node]:
+				rec1(x)
+		else:
+			genes.append(links[node][0])
+	
+	def rec2(node):
+		if node not in data:
+			return links[node][0]
+		else:
+			name = phylTree.fileName[info[node]['taxon_name']]
+			if name in dup:
+				dup[name] += 1
+				name = name + str(dup[name])
+			return "(" + ",".join([rec2(x) + ":" + str(l) for (x,l)  in data[node]]) + ")" + name
+
+	rec1(node)
+	print >> f, " ".join(genes)
+	print >> f, rec2(node), ";"
+
+
 
 ##################################
 # Nettoie l'arbre                #
@@ -244,15 +278,6 @@ def extractGeneFamilies(node, previousAnc, lastWrittenAnc):
 
 	newAnc = info[node]['taxon_name']
 
-	#if previousAnc == lastWrittenAnc:
-	#	if previousAnc != None:
-	#		# Cas normal
-	#		toWrite = phylTree.dicLinks[lastWrittenAnc][newAnc][1:]
-	#	else:
-	#		# On commence tout juste l'arbre
-	#		toWrite = [newAnc]
-	#else:
-
 	# Les noeuds ou ecrire les familles
 	if lastWrittenAnc == None:
 		if previousAnc == None:
@@ -269,6 +294,9 @@ def extractGeneFamilies(node, previousAnc, lastWrittenAnc):
 	else:
 		newLastWritten = toWrite[-1]
 
+	if (lastWrittenAnc == None) and (newLastWritten != None):
+		trueRoots.append(node)
+ 
 	# Les genes des descendants
 	if node in data:
 		allGenes = []
@@ -289,25 +317,31 @@ ft1 = utils.myTools.myOpenFile(options["OUT.tree"] + ".1", "w")
 ft2 = utils.myTools.myOpenFile(options["OUT.tree"] + ".2", "w")
 ft3 = utils.myTools.myOpenFile(options["OUT.tree"] + ".3", "w")
 ft4 = utils.myTools.myOpenFile(options["OUT.tree"] + ".4", "w")
+ft5 = utils.myTools.myOpenFile(options["OUT.tree"] + ".5", "w")
 print >> sys.stderr, "Mise en forme des arbres ...",
 nb = 0
 nextNodeID = max(data) + 1
 for (root,_) in data[1]:
 	if 'taxon_name' in info[root]:
+		trueRoots = []
 		printTree(ft1, 0, root)
 		cleanTree(root)
 		printTree(ft2, 0, root)
 		flattenTree(root, True)
 		printTree(ft3, 0, root)
 		rebuildTree(root)
+		trueRoots = []
 		extractGeneFamilies(root, None, None)
 		printTree(ft4, 0, root)
+		for r in trueRoots:
+			printNewickTree(ft5, r)
 		nb += 1
 print >> sys.stderr, nb, "arbres OK"
 ft1.close()
 ft2.close()
 ft3.close()
 ft4.close()
+ft5.close()
 
 for (anc,lst) in geneFamilies.iteritems():
 	print >> sys.stderr, "Ecriture des familles de %s ..." % anc,

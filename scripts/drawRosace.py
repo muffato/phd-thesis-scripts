@@ -41,10 +41,13 @@ for g in paralogues:
 		para[c2][c1] += 1
 		nbPara += 2
 
+lstChr = set()
 for tg in allLinks:
 	for ((c1,i1),(c2,i2)) in utils.myTools.myIterator.tupleOnStrictUpperList(list(tg)):
 		if para[c1][c2] < options["minNbParas"]:
 			continue
+		lstChr.add(c1)
+		lstChr.add(c2)
 		#g1 = genome.lstGenes[c1][i1]
 		#g2 = genome.lstGenes[c2][i2]
 		#os.write(fd, "sd%d %s %d %d\n" % (nb, c1, g1.beginning, g1.end) )
@@ -59,7 +62,7 @@ print >> sys.stderr, nb, nbPara/2, "OK"
 # Ecriture du karyotype
 ########################
 (fd,fname) = tempfile.mkstemp()
-for c in genome.lstChr:
+for c in lstChr:
 	beginning = 0
 	end = len(genome.lstGenes[c])
 	#beginning = min([g.beginning for g in genome.lstGenes[c]])
