@@ -4,33 +4,18 @@ __doc__ = """
 	Calcule les taux de GC des especes modernes
 """
 
-
-##################
-# INITIALISATION #
-##################
-
-# Librairies
-import os
 import sys
 import utils.myTools
 import utils.myPhylTree
 
-########
-# MAIN #
-########
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( ["phylTree.conf"], [("CDSfile",str,""), ("GCfile",str,"")], __doc__ )
 
-
 # L'arbre phylogenetique
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
-# Le repertoire
-try:
-	os.makedirs(os.path.dirname(options["GCfile"]))
-except OSError:
-	pass
+utils.myTools.mkDir(options["GCfile"])
 
 for esp in phylTree.listSpecies:
 	
@@ -46,7 +31,8 @@ for esp in phylTree.listSpecies:
 			dicALL[i % 3] += 1
 			if base in "GC":
 				dicGC[i % 3] += 1
-		res = [gene] + dicGC + dicALL + [(100.*dicGC[i])/dicALL[i] for i in xrange(3)] + [100.*float(sum(dicGC)-dicGC[2])/float(sum(dicALL)-dicALL[2]), float(100*sum(dicGC))/sum(dicALL)]
+		# Nom du gene + nbGC + nbACGT + GC1/2/3 + GC12 + GCtot
+		res = [gene] + dicGC + dicALL + [(100.*dicGC[i])/dicALL[i] for i in xrange(3)] + [100.*float(dicGC[0]+dicGC[1])/float(dicALL[0]+dicALL[1]), float(100*sum(dicGC))/sum(dicALL)]
 		print >> fo, utils.myTools.printLine(res)
 	fo.close()
 	fi.close()

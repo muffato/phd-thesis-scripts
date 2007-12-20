@@ -110,9 +110,6 @@ for c in chr1:
 		print "%.5f %.5f 2cm rlineto" % (0,-len(table12[c])*dy+dx)
 		print "closepath"
 
-	#if options["dy"] < 0:
-	#	dy = (hauteur-4.) / float(len(table12[c]))
-
 	if options["roundedChr"]:
 		print "initclip"
 		printBorder()

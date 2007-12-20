@@ -1,26 +1,15 @@
 #! /users/ldog/muffato/python -OO
 
 __doc__ = """
-	Dessine le karyotype d'un genome face a l'autre
+	Renvoie la difference moyenne entre 2 GC consecutifs
 """
 
-##################
-# INITIALISATION #
-##################
-
-# Librairies
 import sys
 import random
 import utils.myTools
 
-
-########
-# MAIN #
-########
-
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( ["GCPercent"], [], __doc__)
-
 
 # Chargement du fichier avec les taux de GC
 f = utils.myTools.myOpenFile(noms_fichiers["GCPercent"], "r")

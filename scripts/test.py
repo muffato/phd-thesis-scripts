@@ -11,14 +11,14 @@ A partir de toutes les diagonales extraites entre les especes,
 ##################
 
 # Librairies
-#import os
+import os
 import sys
 #import math
 #import time
 #import numpy
-#import random
+import random
 #import operator
-#import utils.myGenomes
+import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 #import utils.myDiags
@@ -29,6 +29,78 @@ import utils.myMaths
 
 #import utils.psyco
 #utils.psyco.full()
+
+f = utils.myTools.myOpenFile(sys.argv[1], 'r')
+nb = 1
+for i in xrange(42370):
+	ligne = f.readline()
+	arb = f.readline()
+	ng = len(ligne.split())
+	if ng >= 3:
+		toto = open("/workspace/muffato/EVAL_NDGC/%d/tree.txt" % nb, "w")
+		print >> toto, arb,
+		print nb
+		toto.close()
+		nb += 1
+
+sys.exit(0)
+genome1 = utils.myTools.myOpenFile(sys.argv[1], 'r')
+genome2 = utils.myTools.myOpenFile(sys.argv[2], 'r')
+
+for (i,g) in enumerate(genome1):
+	g1 = frozenset(g.split())
+	g2 = frozenset(genome2.readline().split())
+	if g1 != g2:
+		print "CONTENT-MISMATCH", i, g1, g2
+	continue
+	pos = genome2.getPosition(g.names)
+	if len(pos) != 1:
+		print "LENGTH-MISMATCH", i, g, pos
+	else:
+		(_,j) = pos.pop()
+		if i != j:
+			print "INDEX-MISMATCH", i, g, j
+
+
+
+sys.exit(0)
+
+seq = sys.stdin.readline()[:-1]
+for l in [1,2,3,4,5,6,7]:
+	count = utils.myTools.defaultdict(int)
+	for x in xrange(len(seq)-l+1):
+		count[seq[x:x+l]] += 1
+	print utils.myMaths.myStats(count.values()), 1000000 / (4**l)
+sys.exit(0)
+
+bases = "ACGT"
+seq = ""
+nb = 0
+#f = open("/dev/urandom", "rb", 0)
+#f = random.Random()
+#seq = []
+#for b in bases:
+#	seq.extend( [b] * 250000)
+#random.shuffle(seq)
+#seq = "".join(seq)
+for _ in xrange(1000000):
+	break
+	seq += f.choice(bases)
+	nb += 1
+while nb < 1000000:
+	input = sys.stdin.read(500)
+	#break
+	#input = os.urandom(250000)
+	for c in input:
+		c = ord(c)
+		for _ in xrange(4):
+			x = c & 3
+			c >>= 2
+			seq += bases[x]
+		nb += 4
+#f.close()
+print seq[:1000000]
+sys.exit(0)
 
 for l in sys.stdin:
 	x = int(l.split()[0])

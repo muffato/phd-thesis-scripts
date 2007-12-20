@@ -23,22 +23,22 @@ import utils.myPsOutput
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
-	["studiedGenome", "referenceGenome", "GCPercent"], \
+	["studiedGenome", "referenceGenome", "GCGenesNames", "GCPercent"], \
 	[("orthologuesList",str,""), ("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
+	("GCorthologues",str,""), ("GCcolumn",int,0), ("GCaxisMin",float,25), ("GCaxisMax",float,85), ("GCsmoothing",int,10), \
 	("reverse",bool,False), ("dx",float,0), ("dy",float,0), ("roundedChr",bool,False), ("landscape",bool,False), ("showText",bool,True), ("drawBorder",bool,False), \
 	("defaultColor",str,"black"), ("penColor",str,"black"), ("backgroundColor",str,"")], \
 	__doc__
 )
 
 
-# Le premier genome
+# Le genome avec les couleurs
 genome2 = utils.myGenomes.Genome(noms_fichiers["referenceGenome"])
-
 
 # Si on a utilise /dev/null, c'est que le caryotype est donne sous un autre format
 if len(genome2.dicGenes) == 0:
 
-	f = open(noms_fichiers["studiedGenome"], "r")
+	f = utils.myTools.myOpenFile(noms_fichiers["studiedGenome"], "r")
 	table12 = {}
 	for (i,l) in enumerate(f):
 		nbChr = i+1
@@ -56,18 +56,18 @@ if len(genome2.dicGenes) == 0:
 
 	chr1 = sorted(table12.keys())
 
+# Sinon, procedure normale: on charge le genome avec les orthologues
 else:
 	genome1 = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
+	if options["reverse"]:
+		x = genome1
+		genome1 = genome2
+		genome2 = x
 
-
-if options["reverse"]:
-	x = genome1
-	genome1 = genome2
-	genome2 = x
-if options["orthologuesList"] != "":
-	genesAnc = utils.myGenomes.Genome(options["orthologuesList"])
-else:
-	genesAnc = None
+	if options["orthologuesList"] != "":
+		genesAnc = utils.myGenomes.Genome(options["orthologuesList"])
+	else:
+		genesAnc = None
 
 # Les chromosomes a etudier
 chr1 = genome1.lstChr
@@ -92,7 +92,7 @@ if len(options["backgroundColor"]) > 0:
 if options["dx"] > 0:
 	dx = options["dx"]
 else:
-	dx = (largeur-2.) / (5./2.*len(chr1) + 1.*(len(chr1)-1.))
+	dx = (largeur-4.) / (5./2.*len(chr1) + 1.*(len(chr1)-1.))
 if options["dy"] > 0:
 	dy = options["dy"]
 else:
@@ -104,26 +104,31 @@ drawBox = utils.myPsOutput.drawBox
 
 
 # Chargement du fichier avec les taux de GC
-f = utils.myTools.myOpenFile(noms_fichiers["GCPercent"], "r")
+gcP = utils.myTools.myOpenFile(noms_fichiers["GCPercent"], "r")
+gcN = utils.myTools.myOpenFile(noms_fichiers["GCGenesNames"], "r")
+if len(options["GCorthologues"]) == 0:
+	gcO = None
+else:
+	gcO = utils.myGenomes.Genome(options["GCorthologues"])
 dicGC = {}
-genes = list(genome1)
-gcs = [None for _ in genes]
-for ligne in f:
-	(t,_,_,gc) = ligne.split()
-	(_,_,j) = t.split('-')
-	j = int(j) - 1
-	if j >= len(genes):
-		continue
-	dicGC[genome1.dicGenes[genes[j].names[0]]] = float(gc)
-f.close()
+for (ligne1,ligne2) in itertools.izip(gcP,gcN):
+	gc = float(ligne1.split()[options["GCcolumn"]])
+	names = ligne2.split()
+	if gcO != None:
+		names = utils.myMaths.flatten( [gcO.lstGenes[c][i].names for (c,i) in gcO.getPosition(names)] )
+	for (c,i) in genome1.getPosition(names):
+		dicGC[(c,i)] = gc
+gcP.close()
+gcN.close()
 
-nb = 10
 dicGC2 = {}
 for (c,i) in dicGC:
-	tmp = [dicGC[(c,j)] for j in xrange(i-nb,i+nb+1) if (c,j) in dicGC]
+	tmp = [dicGC[(c,j)] for j in xrange(i-options["GCsmoothing"],i+1+options["GCsmoothing"]) if (c,j) in dicGC]
 	dicGC2[(c,i)] = utils.myMaths.mean(tmp)
 
 
+count = 0.
+countNB = 0.
 xx = 1
 for c in chr1:
 	def printBorder():
@@ -133,9 +138,6 @@ for c in chr1:
 		print "%.5f cm %.5f cm %.5f cm 0 180 arc" % (xx+dx/2., y0+1+len(table12[c])*dy-dx/2., dx/2.)
 		print "%.5f %.5f 2cm rlineto" % (0,-len(table12[c])*dy+dx)
 		print "closepath"
-
-	#if options["dy"] < 0:
-	#	dy = (hauteur-4.) / float(len(table12[c]))
 
 	if options["roundedChr"]:
 		print "initclip"
@@ -153,20 +155,25 @@ for c in chr1:
 	utils.myPsOutput.drawLine(xx+5./2.*dx, y0+0.7, 0, 0.1, options["penColor"])
 	
 	y = y0 + 1
-	lastGC = None
+	#lastGC = None
 	for (col,items) in itertools.groupby(table12[c], key=trans):
 		items = list(items)
 		hauteur = len(items) * dy
 		drawBox(xx, y, dx, hauteur, col, col)
 		for (i,_) in items:
-			GC = dicGC2[(c,i)]
+			GC = dicGC2.get( (c,i), None )
 			if GC != None:
-				GC = (GC-30.) * 100./55.
+				GC = (GC-options["GCaxisMin"]) * 100. / (options["GCaxisMax"] - options["GCaxisMin"])
 			if GC != None:
 				drawBox(xx+3./2.*dx, y, dx*GC/100., dy, options["penColor"], options["penColor"])
 			#if lastGC != None:
 			#	utils.myPsOutput.drawLine(xx+3./2.*dx + dx*lastGC/100., y-dy, dx*(GC-lastGC)/100., dy, options["penColor"])
-			lastGC = GC
+			
+			#if (GC != None) and (lastGC != None):
+			#	count += abs(lastGC-GC)
+			#	countNB += 1.
+			#if GC != None:
+			#	lastGC = GC
 			y += dy
 	
 	utils.myPsOutput.drawLine(xx+3./2.*dx, y+0.25, dx, 0, options["penColor"])
@@ -185,6 +192,6 @@ for c in chr1:
 	xx += (7./2.*dx)
 
 utils.myPsOutput.printPsFooter()
-print >> sys.stderr, "OK"
+print >> sys.stderr, "OK" #, count/countNB
 
 

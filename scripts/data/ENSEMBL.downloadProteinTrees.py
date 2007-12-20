@@ -133,34 +133,17 @@ def printTree(f, n, node):
 # Imprime l'arbre au format Newick #
 ####################################
 def printNewickTree(f, node):
-	already = set()
-	dup = {}
-	dup = utils.myTools.defaultdict(int)
 	genes = []
-	def rec1(node):
-		if node in data:
-			x = phylTree.fileName[info[node]['taxon_name']]
-			if (x in already) and (x not in dup):
-				dup[x] = 0
-			already.add(x)
-			for (x,_) in data[node]:
-				rec1(x)
-		else:
-			genes.append(links[node][0])
-	
-	def rec2(node):
+	def rec(node):
 		if node not in data:
+			genes.append(links[node][0])
 			return links[node][0]
 		else:
-			name = phylTree.fileName[info[node]['taxon_name']]
-			if name in dup:
-				dup[name] += 1
-				name = name + str(dup[name])
-			return "(" + ",".join([rec2(x) + ":" + str(l) for (x,l)  in data[node]]) + ")" + name
+			return "(" + ",".join([rec(x) + ":" + str(l) for (x,l)  in data[node]]) + ")"
 
-	rec1(node)
+	tr = rec(node)
 	print >> f, " ".join(genes)
-	print >> f, rec2(node), ";"
+	print >> f, tr, ";"
 
 
 
@@ -206,35 +189,72 @@ def rebuildTree(node):
 		return
 
 	inf = info[node]
-	# Si c'est une vraie duplication, on n'a plus rien a faire
+
+	# On ne change les fils que si ce n'est pas une vraie duplication
 	if not isDuplicatedNode(inf):
-		# A. On trie les enfants en paquets selon l'arbre phylogenetique
-		anc = inf['taxon_name']
-		fils = utils.myTools.defaultdict(list)
-		for (i,(g,d)) in enumerate(data[node]):
-			gname = info[g]['taxon_name']
-			for a in phylTree.branches[anc]:
-				if phylTree.isChildOf(gname, a):
-					fils[a].append( (g,d) )
-					break
-			else:
-				fils[g].append( (g,d) )
 		
-		# B. Si un paquet a plus de 2 representants, on fonce dedans
-		newData = []
-		for (anc,lst) in fils.iteritems():
-			if len(lst) == 1:
-				newData.extend( lst )
-			elif len(lst) > 1:
-				global nextNodeID
-				nextNodeID += 1
-				newData.append( (nextNodeID,0) )
-				data[nextNodeID] = lst
-				info[nextNodeID] = {'taxon_name':anc, 'Duplication':0, 'Bootstrap':-1}
-				flattenTree(nextNodeID, False)
-	
-		data[node] = newData
-	
+		# Permet d'eviter les noeuds superflus en ayant juste le bon nom de taxon
+		while True:
+
+			# On s'assure que le noeud est bien aplati
+			#  - si on vient de changer le nom du taxon, celui-ci peut correspondre avec le fils, d'ou la fusion
+			#  - si on vient de creer le noeud, des dubious_duplication successifs ont pu faire aterrir ensemble des branches de meme taxon (ex Euarchontoglires)
+			flattenTree(node, False)
+
+			# A. On trie les enfants en paquets selon l'arbre phylogenetique
+			fils = utils.myTools.defaultdict(list)
+			anc = inf['taxon_name']
+			for (i,(g,d)) in enumerate(data[node]):
+				gname = info[g]['taxon_name']
+				for a in phylTree.branches[anc]:
+					if phylTree.isChildOf(gname, a):
+						fils[a].append( (g,d) )
+						break
+				else:
+					# Apparait si g est le meme ancetre que node et que g est une duplication, ce qui l'a empeche d'etre aplati par flatten
+					#if gname != anc:
+					#	print >> sys.stderr, "PB1", node, anc, gname
+					fils[anc].append( (g,d) )
+			
+			# Si il y a un seul fils, qui correspond a un vrai enfant, on renomme et recommence
+			if (len(fils) == 1) and (anc not in fils):
+				info[node]['taxon_name'] = fils.popitem()[0]
+			else:
+				break
+
+		if len(fils) == 1:
+			# Ici, si il y a un seul fils, celui-ci a le meme taxon que son pere
+			# -> On ne change rien
+			pass
+		else:
+			if len(fils) == 2:
+				# Fonctionnement normal
+				items = fils.items()
+
+			else:
+				# Ici, len(fils) == 3, On a les deux sous-branches + le meme ancetre
+				# On regroupe en deux
+				lst1 = fils.pop(anc)
+				lst2 = []
+				for tmp in fils.itervalues():
+					lst2.extend(tmp)
+				items = [(anc,lst1), (anc,lst2)]
+
+			# On construit la nouvelle structure data
+			newData = []
+			for (anc,lst) in items:
+				if len(lst) == 1:
+					newData.append( lst[0] )
+				elif len(lst) > 1:
+					global nextNodeID
+					nextNodeID += 1
+					length = min([d for (_,d) in lst]) / 2
+					data[nextNodeID] = [(g,d-length) for (g,d) in lst]
+					info[nextNodeID] = {'taxon_name':anc, 'Duplication':0, 'Bootstrap':-1}
+					newData.append( (nextNodeID,length) )
+			data[node] = newData
+
+	# Appels recursifs
 	for (g,_) in data[node]:
 		rebuildTree(g)
 
@@ -252,6 +272,7 @@ def flattenTree(node, rec):
 	if rec:
 		for (g,_) in data[node]:
 			flattenTree(g, rec)
+
 	inf = info[node]
 	# Si c'est une vraie duplication, on n'a plus rien a faire
 	if isDuplicatedNode(inf):
@@ -265,6 +286,8 @@ def flattenTree(node, rec):
 		if (g in data) and (inf['taxon_name'] == taxonName) and not isDuplicatedNode(inf):
 			newData.extend([(g2,d+d2) for (g2,d2) in data[g]])
 		else:
+			#if (g in data) and (inf['taxon_name'] == taxonName) and isDuplicatedNode(inf):
+			#	print >> sys.stderr, "SOURCE", node, info[node], (g,d), inf
 			newData.append( (g,d) )
 	data[node] = newData
 
@@ -322,6 +345,8 @@ print >> sys.stderr, "Mise en forme des arbres ...",
 nb = 0
 nextNodeID = max(data) + 1
 for (root,_) in data[1]:
+#for (root,_) in [(200984,0)]:
+#for (root,_) in [(753697,0)]:
 	if 'taxon_name' in info[root]:
 		trueRoots = []
 		printTree(ft1, 0, root)
