@@ -1,7 +1,7 @@
 #! /users/ldog/muffato/python -OO
 
 __doc__ = """
-	Lit la matrice des p-values et extrait les clusters de fortement lies
+	Lit la matrice des p-values et cree le graphe (en fonction du seuil)
 """
 
 import sys

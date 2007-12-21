@@ -48,10 +48,6 @@ for tg in allLinks:
 			continue
 		lstChr.add(c1)
 		lstChr.add(c2)
-		#g1 = genome.lstGenes[c1][i1]
-		#g2 = genome.lstGenes[c2][i2]
-		#os.write(fd, "sd%d %s %d %d\n" % (nb, c1, g1.beginning, g1.end) )
-		#os.write(fd, "sd%d %s %d %d\n" % (nb, c2, g2.beginning, g2.end) )
 		os.write(fd, "sd%d %s %d %d\n" % (nb, c1, i1, i1) )
 		os.write(fd, "sd%d %s %d %d\n" % (nb, c2, i2, i2) )
 		nb += 1
@@ -63,12 +59,7 @@ print >> sys.stderr, nb, nbPara/2, "OK"
 ########################
 (fd,fname) = tempfile.mkstemp()
 for c in lstChr:
-	beginning = 0
-	end = len(genome.lstGenes[c])
-	#beginning = min([g.beginning for g in genome.lstGenes[c]])
-	#end = max([g.end for g in genome.lstGenes[c]])+1
-	#os.write(fd, "chr%s %d %d band black\n" % (c, beginning, end) )
-	os.write(fd, "chr - %s %s %d %d black\n" % (c, c, beginning, end) )
+	os.write(fd, "chr - %s %s %d %d black\n" % (c, c, 0, len(genome.lstGenes[c])) )
 os.close(fd)
 options["karyofile"] = fname
 
