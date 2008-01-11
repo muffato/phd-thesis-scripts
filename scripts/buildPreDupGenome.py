@@ -222,6 +222,7 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 	
 	nbDCS = 0
 	DCSlen = 0
+	eND = phylTree.officialName[eND]
 
 	# On va assigner un chromosome ancestral a chaque DCS en fonction des alternances predefinies
 	for gr in lstBlocs:
@@ -289,28 +290,19 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 	#
 	def calcChrAncScore(col, ch):
 		
-		# phylTree.calcDist requiert les noms latins
-		if options["usePhylTreeScoring"]:
-			values = phylTree.newCommonNamesMapperInstance()
-		else:
-			values = {}
-		
+		values = {}
 		# Une tetrapode rapporte 1 si un de ses representants a vote pour le chromosome ancestral
 		for (_,c,eND) in col:
 			values[eND] = max(values.get(eND,0), float(c == ch))
 
 		# Soit on fait un calcul phylogenetique
 		if options["usePhylTreeScoring"]:
-			return phylTree.calcDist(values)
+			return phylTree.calcWeightedValue(values, 0, rootNonDup, rootNonDup)[2]
 
 		# On fait les groupes
 		rTot = [[values[e] for e in gr if e in values] for gr in especesNonDupGrp]
 		# La moyenne des moyennes de chaque groupe non vide
 		return utils.myMaths.mean([utils.myMaths.mean(r) for r in rTot if len(r) > 0])
-
-	
-	if options["usePhylTreeScoring"]:
-		phylTree.initCalcDist(rootNonDup, False)
 
 	chrNames = sorted(chrAncGenes)
 	for (i,col) in enumerate(genesAncCol):

@@ -112,7 +112,10 @@ else:
 	gcO = utils.myGenomes.Genome(options["GCorthologues"])
 dicGC = {}
 for (ligne1,ligne2) in itertools.izip(gcP,gcN):
-	gc = float(ligne1.split()[options["GCcolumn"]])
+	try:
+		gc = float(ligne1.split()[options["GCcolumn"]])
+	except ValueError:
+		continue
 	names = ligne2.split()
 	if gcO != None:
 		names = utils.myMaths.flatten( [gcO.lstGenes[c][i].names for (c,i) in gcO.getPosition(names)] )
@@ -163,9 +166,9 @@ for c in chr1:
 		for (i,_) in items:
 			GC = dicGC2.get( (c,i), None )
 			if GC != None:
-				GC = (GC-options["GCaxisMin"]) * 100. / (options["GCaxisMax"] - options["GCaxisMin"])
+				GC = (GC-options["GCaxisMin"]) / (options["GCaxisMax"] - options["GCaxisMin"])
 			if GC != None:
-				drawBox(xx+3./2.*dx, y, dx*GC/100., dy, options["penColor"], options["penColor"])
+				drawBox(xx+3./2.*dx, y, dx*GC, dy, options["penColor"], options["penColor"])
 			#if lastGC != None:
 			#	utils.myPsOutput.drawLine(xx+3./2.*dx + dx*lastGC/100., y-dy, dx*(GC-lastGC)/100., dy, options["penColor"])
 			

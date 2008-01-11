@@ -30,6 +30,35 @@ def getMinMax(lst):
 			mn = x
 	return (mn, mx)
 
+# Renvoie la correlation entre les deux variables
+##################################################
+def correlation(x, y):
+	N = len(x)
+	if N != len(y):
+		N = min(N, len(y))
+		x = x[:N]
+		y = y[:N]
+
+	sum_sq_x = 0.
+	sum_sq_y = 0.
+	sum_coproduct = 0.
+	mean_x = x[0]
+	mean_y = y[0]
+	for i in range(1,N):
+		sweep = i / (i + 1.0)
+		delta_x = x[i] - mean_x
+		delta_y = y[i] - mean_y
+		sum_sq_x += delta_x * delta_x * sweep
+		sum_sq_y += delta_y * delta_y * sweep
+		sum_coproduct += delta_x * delta_y * sweep
+		mean_x += delta_x / (i + 1.0)
+		mean_y += delta_y / (i + 1.0)
+	pop_sd_x = math.sqrt( sum_sq_x / N )
+	pop_sd_y = math.sqrt( sum_sq_y / N )
+	cov_x_y = sum_coproduct / N
+	correlation = cov_x_y / (pop_sd_x * pop_sd_y)
+	return correlation
+
 
 # Calcule la proba dans le cas d'une distribution binomiale
 #  On observe l parmi ll, alors qu'on attendait une proportion pi
@@ -238,4 +267,5 @@ def unique(s):
         if x not in u:
             u.append(x)
     return u
+
 

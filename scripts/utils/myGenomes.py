@@ -51,25 +51,7 @@ class Genome:
 			self.nom = fichier.name
 			self.f = fichier
 		
-	
-		# Le but est de pouvoir acceder au fichier et lire la premiere ligne sans devoir le fermer pour le reouvrir juste apres
-		class firstLineBuffer:
-			def __init__(self, f):
-				self.f = f
-				try:
-					self.firstLine = self.f.next()
-				except StopIteration:
-					self.firstLine = ""
-
-			def __iter__(self):
-				yield self.firstLine
-				for l in self.f:
-					if not l.startswith("#"):
-						yield l
-
-			def close(self):
-				return self.f.close()
-		self.f = firstLineBuffer(self.f)
+		self.f = myTools.firstLineBuffer(self.f)
 		
 		# la liste des genes par chromosome
 		self.lstGenes = myTools.defaultdict(list)

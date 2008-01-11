@@ -291,18 +291,14 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 	#
 	def calcChrAncScore(col, ch):
 		
-		if options["usePhylTreeScoringNonDup"]:
-			values = phylTree.newCommonNamesMapperInstance()
-		else:
-			values = {}
-		
 		# Une tetrapode rapporte 1 si un de ses representants a vote pour le chromosome ancestral
+		values = {}
 		for (_,c,eND) in col:
 			values[eND] = max(values.get(eND,0), float(c == ch))
 
 		# Soit on fait un calcul phylogenetique
 		if options["usePhylTreeScoringNonDup"]:
-			return phylTree.calcDist(values)
+			return phylTree.calcWeightedValue(values, 0, rootNonDup, rootNonDup)[2]
 
 		# On fait les groupes
 		rTot = [[values[e] for e in gr if e in values] for gr in especesNonDupGrp]
@@ -391,7 +387,6 @@ lstGenesAnc = genesAnc.lstGenes[None]
 # De quoi stocker les DCS
 col = [[] for i in xrange(len(lstGenesAnc))]
 allDCS = []
-phylTree.initCalcDist(rootNonDup, False)
 
 # Decoupage de chaque tetrapode
 for eND in especesNonDup:
@@ -407,7 +402,6 @@ for eND in especesNonDup:
 allDCSe2 = [dict([(e,frozenset(alt[e])) for e in alt]) for (_,alt) in allDCS]
 
 print >> sys.stderr, "Comparaison des %d DCS ..." % len(allDCS),
-phylTree.initCalcDist(rootDup, False)
 walktrapInstance = utils.walktrap.WalktrapLauncher()
 edges = walktrapInstance.edges
 for i1 in xrange(len(allDCS)):
@@ -425,7 +419,7 @@ for i1 in xrange(len(allDCS)):
 				for x in (esp1[e] & allDCSe2[i2][e]):
 					val += min(alt1[e][x], alt2[e][x])
 				scores[e] = val
-			val = phylTree.calcDist(scores)
+			val = phylTree.calcWeightedValue(scores, 0, rootDup, rootDup)[2]
 			if val > 0:
 				edges[i1][i2] = edges[i2][i1] = val
 
