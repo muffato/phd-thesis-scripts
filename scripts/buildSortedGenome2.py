@@ -54,7 +54,7 @@ def distInterGenes(tg1, tg2):
 					del distEsp[e]
 
 	# On calcule par une moyenne les autres distances
-	return calcDist(distEsp)
+	return phylTree.calcWeightedValue(distEsp, -1, root, anc)[2]
 
 
 #
@@ -129,8 +129,6 @@ anc = options["ancestr"]
 ancSpecies = frozenset(phylTree.species[anc])
 ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
 
-phylTree.initCalcDist(anc, useOutgroups != 0)
-calcDist = phylTree.calcDist
 genome = rewriteGenome()
 concordeInstance = utils.concorde.ConcordeLauncher()
 
@@ -144,15 +142,11 @@ for c in genesAnc.lstChr:
 	
 	# La matrice des distances intergenes
 	mat = [[None] * (n+1) for i in xrange(n+1)]
-	#mat = numpy.empty( (n+1,n+1) )
-	#mat.fill(-1)
-
 	
 	def f(i, j):
 		y = distInterGenes(tab[i], tab[j])
 		mat[i+1][j+1] = mat[j+1][i+1] = y
-		if y == None:
-			#TODO None
+		if y < 0:
 			return pen
 		elif y == 1:
 			return 0
@@ -189,11 +183,9 @@ for c in genesAnc.lstChr:
 			for (j,xj,xjp,djjp) in tmp[:max(i-1,0)]:
 				dij = mat[xi][xj]
 				if dij == None:
-				#if dij < 0:
 					continue
 				dijpp = mat[xip][xjp]
 				if dijpp == None:
-				#if dijpp < 0:
 					continue
 				if int(mult * (diip+djjp-dij-dijpp)) == 0:
 					# On a detecte une inversion potentielle

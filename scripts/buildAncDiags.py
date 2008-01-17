@@ -145,23 +145,22 @@ tmp = options["target"].split(',')
 if len(options["target"]) == 0:
 	print >> sys.stderr, "Aucune cible indiquee pour l'extraction des diagonales"
 	sys.exit(1)
-else:
-	listSpecies = []
-	for x in tmp:
-		if x[0] != '.':
-			listSpecies.extend(phylTree.species[x])
-			for e in phylTree.species[x]:
-				dicGenomes[e] = utils.myGenomes.Genome(options["genesFile"] % phylTree.fileName[e])
-		else:
-			listSpecies.append(x[1:])
-			dicGenomes[x[1:]] = utils.myGenomes.Genome(options["ancGenomesFile"] % phylTree.fileName[x[1:]], withChr=True)
+listSpecies = []
+for x in tmp:
+	if x[0] != '.':
+		listSpecies.extend(phylTree.species[x])
+		for e in phylTree.species[x]:
+			dicGenomes[e] = utils.myGenomes.Genome(options["genesFile"] % phylTree.fileName[e])
+	else:
+		listSpecies.append(x[1:])
+		dicGenomes[x[1:]] = utils.myGenomes.Genome(options["ancGenomesFile"] % phylTree.fileName[x[1:]], withChr=True)
 
 # Les outgroup du noeud le plus ancien
 if options["useOutgroups"]:
 	target = listSpecies[0]
 	for e in listSpecies:
 		target = phylTree.dicParents[target][e]
-	listSpecies += phylTree.outgroupSpecies[target]
+	listSpecies.extend(phylTree.outgroupSpecies[target])
 	for e in phylTree.outgroupSpecies[target]:
 		dicGenomes[e] = utils.myGenomes.Genome(options["genesFile"] % phylTree.fileName[e])
 

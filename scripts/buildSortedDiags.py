@@ -79,7 +79,7 @@ def rewriteGenome():
 	if options["useOutgroups"] > 0:
 		anc = options["ancestr"]
 		while anc in phylTree.parent:
-			anc = phylTree.parent[anc]
+			(anc,_) = phylTree.parent[anc]
 			# Le genome de l'ancetre superieur
 			tmpGenesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc])
 			del tmpGenesAnc.dicGenes
@@ -122,7 +122,7 @@ def rewriteGenome():
 
 # L'arbre phylogentique
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-if options["ancestr"] not in (phylTree.listAncestr + phylTree.listSpecies):
+if options["ancestr"] not in phylTree.allNames:
 	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["ancestr"]
 	sys.exit(1)
 # On charge les genomes

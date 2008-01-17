@@ -34,7 +34,6 @@ for anc in phylTree.listAncestr:
 	print >> sys.stderr, "Calculating ancestral %s ..." % anc,
 	fi = utils.myTools.myOpenFile(options["ancGenesFile"] % phylTree.fileName[anc], 'r')
 	fo = utils.myTools.myOpenFile(options["GCaFile"] % phylTree.fileName[anc], 'w')
-	phylTree.initCalcDist(anc, False)
 	for l in fi:
 		t = l.split()
 	
@@ -53,7 +52,7 @@ for anc in phylTree.listAncestr:
 			values = {}
 			for e in valL:
 				values[e] = sum(valL[e]) / len(valL[e])
-			res.append(phylTree.calcDist(values))
+			res.append(phylTree.calcWeightedValue(values, -1, anc, anc))
 		print >> fo, utils.myTools.printLine(res)
 	fo.close()
 	fi.close()

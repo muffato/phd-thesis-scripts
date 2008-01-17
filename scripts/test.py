@@ -1,34 +1,209 @@
 #! /users/ldog/muffato/python -OO
 
-__doc__ = """
-A partir de toutes les diagonales extraites entre les especes,
-  reconstruit les chromosomes (ou scaffold) de chaque ancetre.
-"""
-
-
-##################
-# INITIALISATION #
-##################
-
-# Librairies
-import os
+#import os
 import sys
 #import math
 #import time
-#import numpy
-import random
+import numpy
+#import random
 #import operator
-import utils.myGenomes
-import utils.myTools
-import utils.myMaths
+#import utils.myGenomes
+#import utils.myTools
+#import utils.myMaths
 #import utils.myDiags
 #import utils.myPsOutput
-#import utils.myPhylTree
+import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
 
+for _ in xrange(00):
+	phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1], False)
+#dsi = dict.__setitem__
+
+for _ in xrange(000):
+	r = phylTree.newCommonNamesMapperInstance()
+	for (a,t) in phylTree.officialName.iteritems():
+		#try:
+			dict.__setitem__(r, t, a)
+			#dsi(r, t, a)
+			#r.setdefault(t, a)
+			#r[t] = a
+			#phylTree.species[t]
+		#except KeyError:
+		#	pass
+
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1], False)
+values = {}
+#values["ENSGACG00000000274"] = 0
+values["Tetraodon nigroviridis"] = 0
+values["Danio rerio"] = 1
+
+print phylTree.allNames
+print phylTree.calcWeightedValue(values, -5, "Clupeocephala", "Stickleback")
+sys.exit(0)
+
+print
+print phylTree.allNames
+print
+print phylTree.indNames
+print
+print phylTree.items
+print
+print phylTree.root
+print
+print phylTree.parent
+print
+print
+
+print values
+
+print
+print
+print phylTree.calcWeightedValue(values, -5, "Clupeocephala", None)
+print phylTree.calcWeightedValue(values, -5, "Clupeocephala", "Clupeocephala")
+
+print phylTree.allNames
+print
+print phylTree.indNames
+print
+print phylTree.items
+print
+print phylTree.root
+print
+print phylTree.parent
+print
+print
+
+print values
+
+print phylTree.calcWeightedValue(values, -5, "Clupeocephala", "Clupeocephala")
+print phylTree.calcWeightedValue(values, -5, "Clupeocephala", None)
+
+sys.exit(0)
+
+
+n = 4000
+#l = [[0] * n for _ in xrange(n)]
+#l = [0] * n
+#l = numpy.array(l)
+l = numpy.zeros( (n,n) )
+print l
+
+for i in xrange(n):
+	#m[i] = i
+	#continue
+	t = l[i]
+	for j in xrange(n):
+		#m[i,j] = i+j
+		#l[i][j] = i+j
+		t[j] = i+j
+
+sys.exit(0)
+import numpy
+for _ in xrange(10000):
+	for _ in xrange(1000):
+		import numpy
+		#pass
+		#import numpy
+
+#phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
+
+#print len(phylTree.allNames)
+
+#print 1
+#print phylTree.parent["Human"]
+
+#print 2
+#print phylTree.parent.get("Human", "*NON*")
+
+#print 3
+#print phylTree.parent["Homo sapiens"]
+
+sys.exit(0)
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
+
+tree = utils.myTree.NewickTree("(W09G3.3:0.912111,((((SINFRUG00000163035:0.064359,GSTENG00018392001:0.055428):0.033866,ENSORLG00000010372:0.159161):0.906856,ENSGALG00000015890:0.591867):0.383249,(ENSCSAVG00000000038:0.333015,ENSCING00000004007:0.200122):0.386033):0.0) ;")
+print tree.data
+print tree.items
+print tree.root
+print tree.species
+print
+
+
+tree = utils.myTree.NewickTree("(W09G3.3 25.71:0.6125, ((ENSCSAVG00000000038 48.37:0.2672, ENSCING00000004007 36.11:4.7298)62.52:4.415183, (((SINFRUG00000163035 70.98:0.0768, GSTENG00018392001 74.30:0.1940)66.21:0.495336, ENSORLG00000010372 76.38:0.3924)93.88:7.135469, ENSGALG00000015890 29.44:0.0372)31.38:0.089361)27.19:2.718108);")
+print tree.data
+print tree.items
+print tree.root
+print
+
+values = {}
+for x in tree.allNames:
+	if ' ' in x:
+		gc = float(x[x.index(' ') + 1:])
+		values[x] = gc
+print values
+
+print tree.calcWeightedValue(values)
+
+sys.exit(0)
 #import utils.psyco
 #utils.psyco.full()
+
+class RTE:
+	pass
+	#def __init__(self):
+	#	self.allNames = []
+	#	self.items = {}
+	#	self.root = None
+
+self = RTE()
+self.allNames = ["A","B","C","D","1","2","3","4","5"]
+self.items["A"] = [("1",1),("2",1)]
+self.items["B"] = [("A",1),("3",2)]
+self.items["C"] = [("B",1),("D",2)]
+self.items["D"] = [("4",1),("5",1)]
+self.root = "C"
+
+values = {}
+values["1"] = 1
+values["2"] = 2
+values["3"] = 4
+values["4"] = 1
+values["5"] = 2
+
+print utils.myTree.calcWeightedValue(self, values)
+
+sys.exit(0)
+f1 = utils.myTools.myOpenFile(sys.argv[1], 'r')
+f2 = utils.myTools.myOpenFile(sys.argv[2], 'r')
+lx1 = []
+lx2 = []
+for l1 in f1:
+	l2 = f2.next()
+	try:
+		x1 = float(l1)
+		x2 = float(l2)
+		lx1.append(x1)
+		lx2.append(x2)
+		print x1, x2
+	except ValueError:
+		pass
+
+print >> sys.stderr, len(lx1)
+print >> sys.stderr, utils.myMaths.correlation(lx1, lx2)
+
+sys.exit(0)
+
+x = range(100)
+y = x
+#y = range(1000, 0, -1)
+
+print x
+print y
+print utils.myMaths.correlation(x, y)
+
+
+sys.exit(0)
 
 f = utils.myTools.myOpenFile(sys.argv[1], 'r')
 nb = 1

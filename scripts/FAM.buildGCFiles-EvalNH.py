@@ -20,7 +20,7 @@ utils.myTools.mkDir(options["outputGCFile"])
 # 1. On charge toutes les familles et on garde en leurs coordonnees
 dicFamilles = {}
 dicGC = {}
-for esp in phylTree.listSpecies+phylTree.listAncestr:
+for esp in phylTree.allNames:
 	nb = 0
 	for gene in utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[esp]):
 		names = frozenset(gene.names)

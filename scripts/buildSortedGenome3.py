@@ -6,7 +6,6 @@ Trie les gens selon l'ordre consensus issu des especes de l'arbre phylogenetique
 
 # Librairies
 import sys
-#import numpy
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
@@ -75,7 +74,7 @@ def rewriteGenome():
 			# Chaque gene
 			for g in tmpGenesAnc:
 				# Les autres sont les orthologues dans les autres especes
-				newGenes = [phylTree.dicGenes[s] for s in g.names]
+				newGenes = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
 				newGenes = [x for x in newGenes if x[0] not in speciesAlreadyUsed]
 				# On enregistre le lien entre les genes du genome a ordonner et les genes des outgroups
 				for x in genesAnc.getPosition(g.names):
@@ -101,7 +100,7 @@ def rewriteGenome():
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genomeAncestral", "phylTree.conf"], \
 	[("ancestr",str,""), ("seuilMaxDistInterGenes",int,1000000), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,0), \
-	("useOutgroups",int,[0,1,2]), ("nbConcorde",int,1), ("withConcordeOutput",bool,False), ("searchAllSol",bool,False), \
+	("useOutgroups",int,[0,1,2]), ("newParsimonyScoring",bool,False), ("nbConcorde",int,1), ("withConcordeOutput",bool,False), ("searchAllSol",bool,False), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -130,7 +129,10 @@ ancSpecies = frozenset(phylTree.species[anc])
 ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
 
 phylTree.initCalcDist(anc, useOutgroups != 0)
-calcDist = phylTree.calcDist
+if options["newParsimonyScoring"]:
+	calcDist = lambda distEsp: phylTree.calcWeightedValue(distEsp, -1, root, anc)[2]
+else:
+	calcDist = phylTree.calcDist
 genome = rewriteGenome()
 concordeInstance = utils.concorde.ConcordeLauncher()
 
@@ -144,25 +146,18 @@ for c in genesAnc.lstChr:
 	
 	# La matrice des distances intergenes
 	mat = [[None] * (n+1) for i in xrange(n+1)]
-	#mat = numpy.empty( (n+1,n+1) )
-	#mat.fill(-1)
-
 	
 	def f(i, j):
 		y = distInterGenes(tab[i], tab[j])
 		mat[i+1][j+1] = mat[j+1][i+1] = y
+		if y < 0:
+			y = None
 		if y == None:
-			#TODO None
 			return pen
 		elif y == 1:
 			return 0
 		else:
 			return int(mult*y+add)
-
-	#for i in xrange(n):
-	#	for j in xrange(i+1,n):
-	#		f(i,j)
-	#sys.exit(0)
 
 	lstTot = concordeInstance.doConcorde(n, f, nbConcorde, options["withConcordeOutput"])
 
@@ -189,11 +184,9 @@ for c in genesAnc.lstChr:
 			for (j,xj,xjp,djjp) in tmp[:max(i-1,0)]:
 				dij = mat[xi][xj]
 				if dij == None:
-				#if dij < 0:
 					continue
 				dijpp = mat[xip][xjp]
 				if dijpp == None:
-				#if dijpp < 0:
 					continue
 				if int(mult * (diip+djjp-dij-dijpp)) == 0:
 					# On a detecte une inversion potentielle

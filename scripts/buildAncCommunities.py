@@ -37,11 +37,10 @@ def loadDiagsFile(nom, ancName):
 		# La diagonale
 		d = [int(x) for x in ct[2].split(' ')]
 		# On joint les especes qui ont vu la diagonale et celles qui n'apportent que le chromosome
-		tmp = [y.split("/") for y in "|".join([x for x in ct[-2:] if '/' in x]).split("|")]
+		tmp = [y.split("/") for y in "|".join([x for x in ct[4:] if len(x) > 0]).split("|")]
 		# Les chromosomes de ces especes
-		espChr = frozenset( (phylTree.officialName[e],c) for (e,c) in tmp if ('Un' not in c) and (e in phylTree.officialName) )
+		espChr = set( (phylTree.officialName[e],c) for (e,c) in tmp if ('Un' not in c) and (e in phylTree.officialName) )
 		# On la garde en memoire
-		#lst.append( (d,espChr) )
 		lst.append( (d,espChr,ct[2],ct[3]) )
 
 	f.close()
@@ -113,12 +112,10 @@ def checkAlreadyBuildAnc():
 			print >> sys.stderr, "Not found"
 
 	print >> sys.stderr, "Mise a jour des chromosomes des diagonales ...",
-	for (j,(d,esp,a1,a2)) in enumerate(lstDiagsIni):
+	for (d,esp,_,_) in lstDiagsIni:
 		g = utils.myMaths.flatten([lstGenesAnc[i].names for i in d])
-		esp = set(esp)
 		for f in genAlready:
 			esp.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
-		lstDiagsIni[j] = (d,frozenset(esp),a1,a2)
 	print >> sys.stderr, "OK"
 
 
@@ -132,6 +129,7 @@ def checkAlreadyBuildAnc():
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "diagsList"], \
 	[("ancestr",str,""), ("alreadyBuiltAnc",str,""), ("removeDuplicates",bool,True), ("printDiags",bool,False), ("useOutgroups",bool,True), \
+	("newIOFormat",bool,False),
 	("mergeDiags",bool,False), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("newScoring",bool,False), ("walktrapLength",int,5), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
@@ -147,7 +145,7 @@ lstGenesAnc = genesAnc.lstGenes[None]
 
 lstNoeudsFils = phylTree.branches[options["ancestr"]]
 lstEspParNoeudsFils = [set(s) for s in phylTree.branchesSpecies[options["ancestr"]]]
-lstEspOutgroup = set(phylTree.outgroupSpecies[options["ancestr"]])
+lstEspOutgroup = phylTree.outgroupSpecies[options["ancestr"]]
 
 
 # Chargement des genomes si necessaire
@@ -222,9 +220,8 @@ for e in dicPoidsEspeces:
 # On calcule les scores
 print >> sys.stderr, "Calcul de la matrice ...",
 
-#scores = numpy.zeros( (len(lstDiags),len(lstDiags)) )
 if options["newScoring"] and (len(lstEspOutgroup) != 0):
-	lstNoeudsFils.append(phylTree.parent[options["ancestr"]])
+	lstNoeudsFils.append(phylTree.parent[options["ancestr"]][0])
 it = utils.myTools.myIterator.tupleOnStrictUpperList
 
 # On les stocke directement dans l'instance de walktrap
@@ -331,28 +328,38 @@ for clust in clusters:
 	lstChr.append( (lstD,lstG) )
 # -> lstChr contient la repartition des genes
 
-inter = set()
-if options["removeDuplicates"]:
-	for ((_,l1),(_,l2)) in utils.myTools.myIterator.tupleOnStrictUpperList(lstChr):
-		inter.update(l1.intersection(l2))
-	# -> inter contient les genes presents dans deux chromosomes a la fois
-	# Il reste des genes en double sur le meme chromosome
+if options["newIOFormat"]:
 
-
-for indChr in xrange(len(lstChr)):
-	for d in lstChr[indChr][0]:
-		if options["printDiags"]:
+	for indChr in xrange(len(lstChr)):
+		for d in lstChr[indChr][0]:
 			(_,_,d,s) = lstDiagsIni[d]
 			print "%d\t%s\t%s" % (indChr+1,d,s)
-		else:
-			(d,_) = lstDiagsIni[d]
-			print "# Diag chr=%d len=%d" % (indChr+1,len(d))
-			for g in d:
-				if g not in inter:
-					print indChr+1, " ".join(lstGenesAnc[g].names)
-					# On retient les genes deja imprimes pour ne pas les reimprimer (genes en double d'un meme chromosome)
-					if options["removeDuplicates"]:
-						inter.add(g)
+else:
+
+	inter = set()
+	if options["removeDuplicates"]:
+		for ((_,l1),(_,l2)) in utils.myTools.myIterator.tupleOnStrictUpperList(lstChr):
+			inter.update(l1.intersection(l2))
+		# -> inter contient les genes presents dans deux chromosomes a la fois
+		# Il reste des genes en double sur le meme chromosome
+
+
+	for indChr in xrange(len(lstChr)):
+		for d in lstChr[indChr][0]:
+			if options["printDiags"]:
+				(_,_,d,s) = lstDiagsIni[d]
+				print "%d\t%s\t%s" % (indChr+1,d,s)
+			else:
+				(d,_) = lstDiagsIni[d]
+				print "# Diag chr=%d len=%d" % (indChr+1,len(d))
+				for g in d:
+					if g not in inter:
+						print indChr+1, " ".join(lstGenesAnc[g].names)
+						# On retient les genes deja imprimes pour ne pas les reimprimer (genes en double d'un meme chromosome)
+						if options["removeDuplicates"]:
+							inter.add(g)
 
 print >> sys.stderr, "OK"
+
+
 
