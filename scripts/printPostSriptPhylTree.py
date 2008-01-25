@@ -32,10 +32,10 @@ if options["colorFile"] != "":
 		t = l.split("\t")
 		s1 = intern(t[0])
 		s2 = intern(t[1])
-		if (s1 in phylTree.officialName) and (s2 in phylTree.officialName):
-			x = func(float(t[2]))
-			colors[(s1,s2)] = x
-			colors[(s2,s1)] = x
+		#if (s1 in phylTree.officialName) and (s2 in phylTree.officialName):
+		x = func(float(t[2]))
+		colors[(s1,s2)] = x
+		colors[(s2,s1)] = x
 	f.close()
 	val = colors.values()
 	minV = float(min(val))

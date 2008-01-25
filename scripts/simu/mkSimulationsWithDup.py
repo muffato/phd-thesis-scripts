@@ -32,7 +32,7 @@ def randomStrand():
 	return random.choice([-1,1])
 
 
-# Un taux specifique compris entre 1/rate et rate
+# Un taux specifique compris entre rate^-1 et rate^1
 def randomRate():
 	return math.pow(options["rearrRateAccel"], random.vonmisesvariate(0, options["vonMisesKappa"]) / math.pi)
 
@@ -51,8 +51,19 @@ def randomPlace(genome, includeEnd = 0):
 
 # Une region du genome au hasard
 def randomSlice(genome):
+
+	# Un nombre entre 0 et 1
+	r = random.vonmisesvariate(0, options["vonMisesKappa"]) / (2*math.pi) + .5
+	# On decale la distribution vers la moyenne voulue
+	x0 = 2*options["vonMisesMean"] - 1
+	if x0 < 0:
+		r = abs(x0 + r*(1-x0))
+	else:
+		r = 1 - abs(-x0 + r*(1+x0))
+	# Le chromosome
 	c = randomChromosome(genome)
-	l = int(abs(random.vonmisesvariate(0, options["vonMisesKappa"])) * len(genome[c]) / math.pi)
+	# On passe de 0-1 a 0-len
+	l = int(len(genome[c]) * r)
 	x1 = random.randint(0, len(genome[c])-1-l)
 	return (c,x1,x1+l)
 
@@ -101,7 +112,7 @@ def buildGenomes(node):
 		nbDup = int(options["geneDuplicationRate"] * dist * evolRate * randomRate())
 
 		# CONSTRAINT-SET
-		if phylTree.dicParents[fils]["Tetraodon nigroviridis"] != "Euteleostomi":
+		if phylTree.dicParents[fils].get("Tetraodon nigroviridis","Euteleostomi") != "Euteleostomi":
 			nbDup *= 2
 			nbGains /= 2
 	
@@ -258,9 +269,11 @@ def printData(node):
 	["phylTree.conf"], \
 	[("root",str,""), ("orthologyQuality",float,98), \
 	("nbOrigGenes",int,20000), ("nbOrigChr",int,20), \
-	("chrEventRate",float,2), ("rearrRateAccel",float,1.732), ("vonMisesKappa",float,2), \
+	("chrEventRate",float,2), ("rearrRateAccel",float,1.732), ("vonMisesMean",float,.2), ("vonMisesKappa",float,2), \
 	("geneLossRate",float,6), ("geneGainRate",float,6), ("geneDuplicationRate",float,3), \
 	("chrInvertWeight",float,91), ("chrTranslocWeight",float,4), ("chrFusionWeight",float,2.5), ("chrBreakWeight",float,2.5), \
+	("2Xspecies",str,'Loxodonta^africana/Echinops^telfairi/Dasypus^novemcinctus/Felis^catus/Erinaceus^europaeus/Myotis^lucifugus/Tupaia^belangeri/Otolemur^garnettii/Oryctolagus^cuniculus/Cavia^porcellus/Spermophilus^tridecemlineatus/Sorex^araneus'), \
+	("6Xspecies",str,'Xenopus^tropicalis/Ornithorhynchus^anatinus/Takifugu^rubripes'), \
 	("genomeFile",str,"simu/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"simu/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -276,14 +289,14 @@ if options["root"] not in phylTree.listAncestr:
 utils.myTools.mkDir(options["genomeFile"])
 utils.myTools.mkDir(options["ancGenesFile"])
 
-genomes2x = ["Loxodonta africana", "Echinops telfairi", "Dasypus novemcinctus", "Felis catus", "Erinaceus europaeus", "Myotis lucifugus", "Tupaia belangeri", "Otolemur garnettii", "Oryctolagus cuniculus", "Cavia porcellus", "Spermophilus tridecemlineatus", "Sorex araneus"]
-genomesScaffolds = ["Xenopus tropicalis", "Ornithorhynchus anatinus", "Takifugu rubripes"]
+genomes2x = options["2Xspecies"].replace('^', ' ').split('/')
+genomesScaffolds = options["6Xspecies"].replace('^', ' ').split('/')
 
 dupGenes = {}
 genomes = {}
 
 # Le genome original
-tmp = [random.random() for i in xrange(options["nbOrigChr"])]
+tmp = [random.random() for _ in xrange(options["nbOrigChr"])]
 facteur = options["nbOrigGenes"]/sum(tmp)
 genome = []
 nbTotalGenes = 0

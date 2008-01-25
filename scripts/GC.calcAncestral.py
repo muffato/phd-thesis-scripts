@@ -1,61 +1,37 @@
 #! /users/ldog/muffato/python -OO
 
-__doc__ = """
-	Calcule les taux de GC des especes ancestrales
-"""
-
 import sys
+import utils.myMaths
 import utils.myTools
 import utils.myPhylTree
 
-# Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( ["phylTree.conf"], [("ancGenesFile",str,""), ("GCmFile",str,""), ("GCaFile",str,"")], __doc__ )
+(noms_fichiers, options) = utils.myTools.checkArgs( [], [("start",int,0), ("end",int,0), ("phylTree",str,""), ("alignment-FASTA",str,"")], "Retrouve le GC ancestral" )
 
-# L'arbre phylogenetique
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-
-utils.myTools.mkDir(options["GCaFile"])
-
-dicALLGC = {}
-dicSpecies = {}
-
-for esp in phylTree.listSpecies:
+for treeID in xrange(options["start"], options["end"]+1):
 	
-	print >> sys.stderr, "Parsing %s ..." % esp,
-	fi = utils.myTools.myOpenFile(options["GCmFile"] % phylTree.fileName[esp], 'r')
-	for l in fi:
-		t = l[:-1].split("\t")
-		dicALLGC[t[0]] = tuple([int(x) for x in t[1:7]] + [float(x) for x in t[7:]])
-		dicSpecies[t[0]] = esp
-	fi.close()
-	print >> sys.stderr, "OK"
+	print >> sys.stderr, treeID, "...",
 
-for anc in phylTree.listAncestr:
-	print >> sys.stderr, "Calculating ancestral %s ..." % anc,
-	fi = utils.myTools.myOpenFile(options["ancGenesFile"] % phylTree.fileName[anc], 'r')
-	fo = utils.myTools.myOpenFile(options["GCaFile"] % phylTree.fileName[anc], 'w')
-	for l in fi:
-		t = l.split()
-	
-		# Les simples sommes et moyennes
-		res = [sum([dicALLGC[x][i] for x in t]) for i in xrange(6)]
-		if 0 in res[3:]:
-			res += [0,0,0,0,0]
-		else:
-			res += [(100.*res[i])/res[i+3] for i in xrange(3)] + [100.*float(res[0]+res[1])/(res[3]+res[4]),100.*float(res[0]+res[1]+res[2])/(res[3]+res[4]+res[5])]
-		
-		# Les valeurs selon l'arbre
-		for i in xrange(6,11):
-			valL = utils.myTools.defaultdict(list)
-			for x in t:
-				valL[dicSpecies[x]].append(dicALLGC[x][i])
-			values = {}
-			for e in valL:
-				values[e] = sum(valL[e]) / len(valL[e])
-			res.append(phylTree.calcWeightedValue(values, -1, anc, anc))
-		print >> fo, utils.myTools.printLine(res)
-	fo.close()
-	fi.close()
-	print >> sys.stderr, "OK"
+	tree = utils.myPhylTree.PhylogeneticTree(options["phylTree"] % treeID, buildLinks = False)
 
+	# Chargement des CDS
+	seq = utils.myGenomes.loadFastaFile(options["alignment-FASTA"] % treeID)
+
+	res = []
+	n = len(seq.values()[0])
+	for i in xrange(n):
+		values = {}
+		for (e,s) in seq.iteritems():
+			if i < len(s):
+				c = s[i]
+			else:
+				print >> sys.stderr, "!1", e, s, i, n
+				c = "-"
+			if c in "GCgc":
+				values[e] = 1
+			elif c in "ATat":
+				values[e] = 0
+		res.append(tree.calcWeightedValue(values, -1, None, None))
+	for (ie,e) in enumerate(tree.allNames):
+		l = [r[ie] for r in res if r[ie] >= 0]
+		print utils.myTools.printLine([treeID, " ".join(tree.species[e]), len(l), utils.myMaths.mean(l)])
 

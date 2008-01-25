@@ -15,7 +15,7 @@ import utils.myPhylTree
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("releaseID",int,[47]), \
+	[("releaseID",int,[47]), ("treeAncestor",str,""), \
 	("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mysql/ensembl_compara_XXX"), \
 	("IN.member",str,"member.txt.gz"), \
 	("IN.genome_db",str,"genome_db.txt.gz"), \
@@ -23,7 +23,7 @@ import utils.myPhylTree
 	("IN.protein_tree_member",str,"protein_tree_member.txt.gz"), \
 	("IN.protein_tree_tag",str,"protein_tree_tag.txt.gz"), \
 	("OUT.ancGenesFile",str,""), \
-	("OUT.tree",str,""), \
+	("OUT.tree",str,"tree.%d.bz2"), \
 	], \
 	__doc__ \
 )
@@ -336,13 +336,20 @@ def extractGeneFamilies(node, previousAnc, lastWrittenAnc):
 
 # On a besoin des genomes modernes pour reconnaitre les genes
 geneFamilies = utils.myTools.defaultdict(list)
-ft1 = utils.myTools.myOpenFile(options["OUT.tree"] + ".1", "w")
-ft2 = utils.myTools.myOpenFile(options["OUT.tree"] + ".2", "w")
-ft3 = utils.myTools.myOpenFile(options["OUT.tree"] + ".3", "w")
-ft4 = utils.myTools.myOpenFile(options["OUT.tree"] + ".4", "w")
-ft5 = utils.myTools.myOpenFile(options["OUT.tree"] + ".5", "w")
+ft1 = utils.myTools.myOpenFile(options["OUT.tree"] % 1, "w")
+ft2 = utils.myTools.myOpenFile(options["OUT.tree"] % 2, "w")
+ft3 = utils.myTools.myOpenFile(options["OUT.tree"] % 3, "w")
+ft4 = utils.myTools.myOpenFile(options["OUT.tree"] % 4, "w")
+ft5 = utils.myTools.myOpenFile(options["OUT.tree"] % 5, "w")
+
+if options["treeAncestor"] == "":
+	treeAncestor = phylTree.root
+else:
+	treeAncestor = options["treeAncestor"]
+
 print >> sys.stderr, "Mise en forme des arbres ...",
 nb = 0
+nbA = 0
 nextNodeID = max(data) + 1
 for (root,_) in data[1]:
 #for (root,_) in [(200984,0)]:
@@ -355,13 +362,22 @@ for (root,_) in data[1]:
 		flattenTree(root, True)
 		printTree(ft3, 0, root)
 		rebuildTree(root)
-		trueRoots = []
-		extractGeneFamilies(root, None, None)
 		printTree(ft4, 0, root)
-		for r in trueRoots:
-			printNewickTree(ft5, r)
-		nb += 1
-print >> sys.stderr, nb, "arbres OK"
+		# Restreint les arbres a la racine que l'on demande
+		todo = [root]
+		while len(todo) > 0:
+			r = todo.pop()
+			if phylTree.isChildOf(info[r]['taxon_name'], treeAncestor):
+				# Extrait les genes ancestraux et renvoie les vraies racines des arbres
+				trueRoots = []
+				extractGeneFamilies(r, None, None)
+				for r in trueRoots:
+					printNewickTree(ft5, r)
+					nbA += 1
+				nb += 1
+			else:
+				todo.extend( [x for (x,_)  in data[r]] )
+print >> sys.stderr, "%d (%d) arbres OK" % (nb,nbA)
 ft1.close()
 ft2.close()
 ft3.close()

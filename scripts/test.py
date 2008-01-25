@@ -2,20 +2,74 @@
 
 #import os
 import sys
-#import math
+import math
 #import time
-import numpy
-#import random
+#import numpy
+import random
 #import operator
 #import utils.myGenomes
 #import utils.myTools
-#import utils.myMaths
+import utils.myMaths
 #import utils.myDiags
 #import utils.myPsOutput
-import utils.myPhylTree
+#import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
 
+# ESSAIS POUR randomSlice
+
+length = 10000
+
+# 5000 - 7500 - 2500 / 27"
+def v1():
+	x1 = random.randint(0, length-1)
+	x2 = random.randint(x1, length-1)
+	return (x1,x2)
+
+
+# 36"
+# 1 = 3400 -> 6600 = 3200 
+# 2 = 3900 -> 6100 = 2200
+# 3 = 4200 -> 5800 = 1600
+def v2():
+	l = int(abs(random.vonmisesvariate(0, 4)) * length / math.pi)
+	x1 = random.randint(0, length-1-l)
+	return (x1,x1+l)
+
+
+# 2500 - 7500 - 5000 / 27"
+def v3():
+	l = random.randint(0, length-1)
+	x1 = random.randint(0, length-1-l)
+	return (x1,x1+l)
+
+
+# 3333 - 6666 - 3333 / 30"
+def v4():
+	x = random.sample(xrange(length), 2)
+	return (min(x),max(x))
+
+
+# 3333 - 6666 - 3333 / 30"
+def v5():
+	x1 = random.randint(0, length-1)
+	x2 = random.randint(0, length-1)
+	return (min(x1,x2),max(x1,x2))
+
+res1 = []
+res2 = []
+resL = []
+for i in xrange(1000000):
+	(x1,x2) = v2()
+	res1.append(x1)
+	res2.append(x2)
+	resL.append(x2-x1+1)
+print utils.myMaths.myStats(res1)
+print utils.myMaths.myStats(res2)
+print utils.myMaths.myStats(resL)
+
+
+sys.exit(0)
 for _ in xrange(00):
 	phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1], False)
 #dsi = dict.__setitem__
