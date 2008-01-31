@@ -4,7 +4,9 @@ import sys
 import bz2
 import gzip
 import operator
-from collections import defaultdict
+import collections
+
+defaultdict = collections.defaultdict
 
 null = open('/dev/null', 'w')
 stdin = sys.stdin
@@ -52,7 +54,9 @@ def printLine(line, delim = "\t", func = str):
 #   Retourne l'objet FILE et le nom complet du fichier             #
 ####################################################################
 def myOpenFile(nom, mode):
-	if nom.startswith("http://") or nom.startswith("ftp://"):
+	if type(nom) != str:
+		return nom
+	elif nom.startswith("http://") or nom.startswith("ftp://"):
 		comm = "wget %s -O -"
 		if nom.endswith(".bz2"):
 			comm += " | bunzip2"

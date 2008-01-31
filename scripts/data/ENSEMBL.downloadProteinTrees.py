@@ -139,7 +139,7 @@ def printNewickTree(f, node):
 			genes.append(links[node][0])
 			return links[node][0]
 		else:
-			return "(" + ",".join([rec(x) + ":" + str(l) for (x,l)  in data[node]]) + ")"
+			return "(" + ",".join([rec(x) + ":" + str(l) for (x,l)  in data[node]]) + ") " + info[node]['family_name']
 
 	tr = rec(node)
 	print >> f, " ".join(genes)
@@ -297,7 +297,7 @@ def flattenTree(node, rec):
 ###########################################
 # Sauvegarde toutes les familles de genes #
 ###########################################
-def extractGeneFamilies(node, previousAnc, lastWrittenAnc):
+def extractGeneFamilies(node, baseName, previousAnc, lastWrittenAnc):
 
 	newAnc = info[node]['taxon_name']
 
@@ -319,17 +319,25 @@ def extractGeneFamilies(node, previousAnc, lastWrittenAnc):
 
 	if (lastWrittenAnc == None) and (newLastWritten != None):
 		trueRoots.append(node)
- 
+		global nbA
+		nbA += 1
+		baseName = "FAM%d" % nbA
+	info[node]['family_name'] = baseName
+
 	# Les genes des descendants
 	if node in data:
 		allGenes = []
-		for (g,d) in data[node]:
-			allGenes.extend( extractGeneFamilies(g, newAnc, newLastWritten) )
+		for (i,(g,d)) in enumerate(data[node]):
+			if isDuplicatedNode(info[node]):
+				newName = baseName + (".%d" % (i+1))
+			else:
+				newName = baseName
+			allGenes.extend( extractGeneFamilies(g, newName, newAnc, newLastWritten) )
 	else:
-		allGenes = [links[node][0]]
+		allGenes = [ links[node][0] ]
 
 	for a in toWrite:
-		geneFamilies[a].append( allGenes )
+		geneFamilies[a].append( [baseName] + allGenes )
 
 	return allGenes
 
@@ -370,11 +378,10 @@ for (root,_) in data[1]:
 			if phylTree.isChildOf(info[r]['taxon_name'], treeAncestor):
 				# Extrait les genes ancestraux et renvoie les vraies racines des arbres
 				trueRoots = []
-				extractGeneFamilies(r, None, None)
+				nb += 1
+				extractGeneFamilies(r, "NONAME", None, None)
 				for r in trueRoots:
 					printNewickTree(ft5, r)
-					nbA += 1
-				nb += 1
 			else:
 				todo.extend( [x for (x,_)  in data[r]] )
 print >> sys.stderr, "%d (%d) arbres OK" % (nb,nbA)
@@ -384,6 +391,7 @@ ft3.close()
 ft4.close()
 ft5.close()
 
+utils.myTools.mkDir(options["OUT.ancGenesFile"])
 for (anc,lst) in geneFamilies.iteritems():
 	print >> sys.stderr, "Ecriture des familles de %s ..." % anc,
 	f = utils.myTools.myOpenFile(options["OUT.ancGenesFile"] % phylTree.fileName[anc], "w")

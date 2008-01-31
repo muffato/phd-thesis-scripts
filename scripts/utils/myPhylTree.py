@@ -15,24 +15,24 @@ class PhylogeneticTree:
 	
 	def __init__(self, fichier, buildLinks = True):
 		
-		print >> sys.stderr, "Chargement de l'arbre phylogenique de %s ..." % fichier,
-		self.officialName = {}
-		self.items = self.newCommonNamesMapperInstance()
+		if type(fichier) == tuple:
+			print >> sys.stderr, "Creation de l'arbre phylogenetique"
+			(self.items, self.root, self.officialName) = fichier
+		else:
+			print >> sys.stderr, "Chargement de l'arbre phylogenique de %s ..." % fichier,
+			self.officialName = {}
+			self.items = self.newCommonNamesMapperInstance()
 
-		# le nom et l'instance de file
-		if type(fichier) == str:
-			self.nom = fichier
+			# le nom et l'instance de file
 			f = myTools.myOpenFile(fichier, 'r')
-		else:
-			self.nom = fichier.name
-			f = fichier
-		
-		f = myTools.firstLineBuffer(f)
-		if ';' in f.firstLine:
-			self.__loadFromNewick__(f.firstLine)
-		else:
-			self.__loadFromMyFormat__(f)
-		f.close()
+			self.nom = f.name
+			
+			f = myTools.firstLineBuffer(f)
+			if ';' in f.firstLine:
+				self.__loadFromNewick__(f.firstLine)
+			else:
+				self.__loadFromMyFormat__(f)
+			f.close()
 
 	
 		# La procedure d'analyse de l'arbre
@@ -484,6 +484,8 @@ class PhylogeneticTree:
 	#######################################
 	def __loadFromNewick__(self, s):
 
+		import string
+
 		# Lit les nb prochains caracteres de l'arbre
 		def readStr(nb):
 			ret = s[self.pos:self.pos+nb]
@@ -508,22 +510,25 @@ class PhylogeneticTree:
 		def readTree():
 			keepWhile(' ')
 			if s[self.pos] == '(':
-				elt = []
+				items = []
 				# '(' la premiere fois, puis des ',' jusqu'au ')' final
 				while readStr(1) != ')':
-					elt.append( readTree() )
+					items.append( readTree() )
 					keepWhile(' ')
 				keepWhile(' ')
-				elt = (elt, keepUntil("),:;"))
-				keepWhile(' ')
+				# Le resultat est la liste des fils + le nom
+				elt = (items, keepUntil("),:; "))
 			else:
+				# Le resultat est un nom
 				elt = keepUntil("),:;")
-				keepWhile(' ')
 		
-			length = 0
+			keepWhile(' ')
+			# Eventuellement une longueur de branche non nulle
 			if s[self.pos] == ':':
 				readStr(1) # ':"
-				length = float(keepWhile("0123456789.e-"))
+				length = float(keepWhile("0123456789.eE-"))
+			else:
+				length = 0
 			keepWhile(' ')
 			return (elt,length)
 

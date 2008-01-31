@@ -4,9 +4,9 @@ __doc__ = """
 Trie les gens selon l'ordre consensus issu des especes de l'arbre phylogenetique
 """
 
-# Librairies
+# TODO Numpy
+
 import sys
-#import numpy
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
@@ -74,8 +74,9 @@ def rewriteGenome():
 			del tmpGenesAnc.dicGenes
 			# Chaque gene
 			for g in tmpGenesAnc:
-				# Les autres sont les orthologues dans les autres especes
-				newGenes = [phylTree.dicGenes[s] for s in g.names]
+				# Les positions dans les genomes qu'on a charge (on evite le nom FAMxx)
+				newGenes = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
+				# On se restreint aux outgroup
 				newGenes = [x for x in newGenes if x[0] not in speciesAlreadyUsed]
 				# On enregistre le lien entre les genes du genome a ordonner et les genes des outgroups
 				for x in genesAnc.getPosition(g.names):
@@ -135,17 +136,14 @@ genome = rewriteGenome()
 concordeInstance = utils.concorde.ConcordeLauncher()
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
-for c in genesAnc.lstChr:
+for (c,tab) in genome.iteritems():
 
 	# Ecrit la matrice du chromosome c et lance concorde
-	tab = genome[c]
 	n = len(tab)
 	print >> sys.stderr, "\n- Chromosome %s (%d genes) -" % (c, n)
 	
 	# La matrice des distances intergenes
 	mat = [[None] * (n+1) for i in xrange(n+1)]
-	#mat = numpy.empty( (n+1,n+1) )
-	#mat.fill(-1)
 
 	
 	def f(i, j):
@@ -158,11 +156,6 @@ for c in genesAnc.lstChr:
 			return 0
 		else:
 			return int(mult*y+add)
-
-	#for i in xrange(n):
-	#	for j in xrange(i+1,n):
-	#		f(i,j)
-	#sys.exit(0)
 
 	lstTot = concordeInstance.doConcorde(n, f, nbConcorde, options["withConcordeOutput"])
 

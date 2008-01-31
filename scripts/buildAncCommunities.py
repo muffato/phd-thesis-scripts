@@ -39,7 +39,7 @@ def loadDiagsFile(nom, ancName):
 		# On joint les especes qui ont vu la diagonale et celles qui n'apportent que le chromosome
 		tmp = [y.split("/") for y in "|".join([x for x in ct[4:] if len(x) > 0]).split("|")]
 		# Les chromosomes de ces especes
-		espChr = set( (phylTree.officialName[e],c) for (e,c) in tmp if ('Un' not in c) and (e in phylTree.officialName) )
+		espChr = frozenset( (phylTree.officialName[e],c) for (e,c) in tmp if ('Un' not in c) and (e in phylTree.officialName) )
 		# On la garde en memoire
 		lst.append( (d,espChr,ct[2],ct[3]) )
 
@@ -88,7 +88,7 @@ def checkLonelyGenes():
 		# Petit test: ne peuvent etre utilises que les genes avec au moins 2 especes
 		# Pour etre exact, il faudrait avec 2 groupes parmi (fils1 + ... + filsN + outgroup)
 		if len(lst) >= 2:
-			new.append( ([i],frozenset(lst),str(i),"1") )
+			new.append( ([i],frozenset(lst),str(i),"0") )
 			nb += 1
 	
 	print >> sys.stderr, "%d genes OK" % len(new)
@@ -167,9 +167,10 @@ if options["weightNbChr+"] or options["weightNbChr-"] or options["useLonelyGenes
 # L'apport en terme de couverture de l'arbre phylogenetique
 def calcPoidsFils(node, calc):
 	dicPoidsEspeces[node] = calc
-	if node in phylTree.tmpItems:
-		poids = calc / float(len(phylTree.tmpItems[node]))
-		for (f,_) in phylTree.tmpItems[node]:
+	it = phylTree.tmpItems[node]
+	if len(it) > 0:
+		poids = calc / float(len(it))
+		for (f,_) in it:
 			calcPoidsFils(f, poids)
 dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
 phylTree.initCalcDist(options["ancestr"], options["useOutgroups"])
@@ -293,18 +294,20 @@ walktrapInstance.doWalktrap()
 clusters = []
 # Chaque composante connexe
 for (nodes,cuts,_,dend) in walktrapInstance.res:
-	print >> sys.stderr, cuts
+	print >> sys.stderr, cuts,
 	# Un score de relevance > 0.1
 	interessant = [(alpha,score,dend.cut(alpha)) for (alpha,score) in cuts if score > 0.1]
-	# Les noeuds seuls representent < de la moitie de l'ensemble des noeuds
-	interessant = [(alpha,score,clust) for (alpha,score,(clust,lonely)) in interessant if len(lonely) < len(nodes)/2]
+	# Les noeuds seuls doivent representer < de la moitie de l'ensemble des noeuds
+	interessant = [(alpha,score,clust,lonely) for (alpha,score,(clust,lonely)) in interessant if len(lonely) < len(nodes)/2]
 	if len(interessant) == 0:
-		print >> sys.stderr, "-",
+		print >> sys.stderr, "-"
 		clusters.append(nodes)
 	else:
+		(alpha,score,clust,lonely) = interessant[-1]
 		# Au choix, on prend la version la moins fusionnee
-		print >> sys.stderr, "+%d/%f/%f" % (len(interessant[-1][-1]), interessant[-1][0], interessant[-1][1]),
-		clusters.extend(interessant[-1][-1])
+		print >> sys.stderr, "+%d/%d/%f/%f" % (len(clust), len(lonely), alpha, score)
+		clusters.extend(clust)
+		#clusters.append(lonely)
 # -> clusters contient la repartition des diagonales
 print >> sys.stderr
 
@@ -330,10 +333,16 @@ for clust in clusters:
 
 if options["newIOFormat"]:
 
+	used = [False] * len(lstDiagsIni)
 	for indChr in xrange(len(lstChr)):
 		for d in lstChr[indChr][0]:
+			used[d] = True
 			(_,_,d,s) = lstDiagsIni[d]
 			print "%d\t%s\t%s" % (indChr+1,d,s)
+	for (d,x) in enumerate(used):
+		if not x:
+			(_,_,d,s) = lstDiagsIni[d]
+			print "-\t%s\t%s" % (d,s)
 else:
 
 	inter = set()

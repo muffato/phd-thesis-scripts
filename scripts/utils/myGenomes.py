@@ -33,6 +33,24 @@ def commonChrName(x):
 		return intern(x)
 
 
+##############################
+# Charge un alignement FASTA #
+##############################
+def loadFastaFile(name):
+	seq = {}
+	f = myTools.myOpenFile(name, "r")
+	name = None
+	for ligne in f:
+		if ligne[0] == ">":
+			name = ligne[1:-1]
+			seq[name] = ""
+		elif name != None:
+			seq[name] += ligne[:-1]
+	f.close()
+	return seq
+
+
+
 ##########################################
 # Classe generale pour stocker un genome #
 ##########################################
@@ -44,14 +62,9 @@ class Genome:
 	def __init__(self, fichier, **args):
 
 		# le nom et l'instance de file
-		if type(fichier) == str:
-			self.nom = fichier
-			self.f = myTools.myOpenFile(fichier, 'r')
-		else:
-			self.nom = fichier.name
-			self.f = fichier
-		
-		self.f = myTools.firstLineBuffer(self.f)
+		f = myTools.myOpenFile(fichier, 'r')
+		self.nom = f.name
+		self.f = myTools.firstLineBuffer(f)
 		
 		# la liste des genes par chromosome
 		self.lstGenes = myTools.defaultdict(list)

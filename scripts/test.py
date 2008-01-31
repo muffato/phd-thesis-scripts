@@ -3,20 +3,107 @@
 #import os
 import sys
 import math
-#import time
+import time
 #import numpy
 import random
+import zipfile
 #import operator
 #import utils.myGenomes
 #import utils.myTools
 import utils.myMaths
 #import utils.myDiags
 #import utils.myPsOutput
-#import utils.myPhylTree
+import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
 
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1], True)
+values = {}
+for espR in phylTree.listSpecies:
+	for esp in phylTree.listSpecies:
+		values[esp] = 0
+	values[espR] = 1
+	for anc in phylTree.listAncestr:
+		r = phylTree.calcWeightedValue(values, -5, None, anc)
+		if r[1] != anc:
+			print >> sys.stderr, "!", r, espR, anc
+		r = r[2]
+		comm = phylTree.dicParents[espR][anc]
+		d = 2*phylTree.ages[comm] - phylTree.ages[anc]
+		if comm == anc:
+			tmp = espR
+			d = 0
+			while tmp != anc:
+				(par,dist) = phylTree.parent[tmp]
+				if len(phylTree.items[par]) > 1:
+					dist *= len(phylTree.items[par])
+				d += dist
+				tmp = par
+			print espR, anc, r, 1./d, r*d
+				
+
+sys.exit(0)
+
+
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1], False)
+print phylTree.items
+sys.exit(0)
+
+# Write
+
+#f = zipfile.ZipFile("tata.zip", "r", zipfile.ZIP_STORED)
+f = zipfile.ZipFile("toto.zip", "w", zipfile.ZIP_STORED)
+
+s = "bonjour, jeune camarade !\nComment vas-tu ?\n"
+
+zinfo = zipfile.ZipInfo(filename="f1l3n4m3", date_time=time.localtime(time.time()))
+zinfo.compress_type =  zipfile.ZIP_DEFLATED
+zinfo.external_attr = 2175008768
+f.writestr( zinfo, s*100000)
+
+f.writestr( "f1l3n4m3", s*100)
+
+f.close()
+sys.exit(0)
+
+inf = f.getinfo("scripts/FamFetch/Help")
+#print inf
+#print dir(inf)
+for a in dir(inf):
+	print a, getattr(inf,a)
+#print f.namelist()
+#print f.infolist()
+#print f.read("scripts")
+
+inf = f.getinfo("scripts/buildPreDupGenome.py")
+for a in dir(inf):
+	print a, getattr(inf,a)
+
+f.close()
+sys.exit(0)
+
 # ESSAIS POUR randomSlice
+
+length = 1000
+mean = .2
+nb = [0] * (length+600)
+x0 = 2*mean - 1
+if x0 > 0:
+	x0 = -x0
+
+for _ in xrange(1000000):
+	# r entre 0 et 1
+	r = random.vonmisesvariate(0,2) / (2*math.pi) + .5
+	r = abs(x0 + r*(1-x0))
+	#r = x0 + r*(1-x0)
+	if mean > 0.5:
+		r = 1 - r
+	nb[int(length*r+600)] += 1
+
+for (i,v) in enumerate(nb):
+	print i-600, v
+
+sys.exit(0)
 
 length = 10000
 
