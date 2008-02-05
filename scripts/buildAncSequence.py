@@ -37,8 +37,8 @@ for treeID in xrange(options["start"], options["end"]+1):
 		res.append(proba)
 
 	for (ie,e) in enumerate(tree.allNames):
-		if len(tree.species[e]) == 1:
-			continue
+		#if len(tree.species[e]) == 1:
+		#	continue
 		seq = ""
 		nbM = 0
 		nbN = 0
@@ -66,6 +66,7 @@ for treeID in xrange(options["start"], options["end"]+1):
 				seq += l[0][1]
 	
 		print "ID\t%d" % treeID
+		print "NAME\t%s" % e
 		print "SPECIES\t%s" % " ".join(tree.species[e])
 		print "LENGTH\t%d\t%d\t%d" % (n,n-nbM,n-nbM-nbN)
 		print "SEQ\t%s" % seq

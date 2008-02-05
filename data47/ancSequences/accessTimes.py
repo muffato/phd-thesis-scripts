@@ -37,6 +37,8 @@ for i in xrange(36495):
 	outputF2 = "test2/" + "/".join("%05d" % i) + "/family.zip"
 	outputF3 = "test3/%d/family.zip" % i
 	
+	#shutil.copy(inputF, outputF1)
+
 	(xi,ri,rri) = fread(inputF)
 	(xo1,ro1,rro1) = fread(outputF1)
 	(xo2,ro2,rro2) = fread(outputF2)
@@ -58,4 +60,5 @@ for i in xrange(36495):
 
 print ti, to1, to2, to3
 print si, so1, so2, so3
+
 

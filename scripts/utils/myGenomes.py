@@ -42,7 +42,7 @@ def loadFastaFile(name):
 	name = None
 	for ligne in f:
 		if ligne[0] == ">":
-			name = ligne[1:-1]
+			name = ligne[1:-1].strip()
 			seq[name] = ""
 		elif name != None:
 			seq[name] += ligne[:-1]
