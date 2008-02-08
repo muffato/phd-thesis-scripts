@@ -121,12 +121,12 @@ def printTree(f, n, node):
 		print >> f, "%sinfo\t%s" % (indent, info[node])
 		for (g,d) in data[node]:
 			# Chaque sous-branche avec sa longueur
-			print >> f, "%s\tlen\t%f" % (indent, d)
+			print >> f, "%slen\t%f" % (indent, d)
 			printTree(f, n+1, g)
 	else:
 		# Une feuille: un gene
 		(g,t,p,e) = links[node]
-		print >> f, "%snames\t%s\t%s\t%s" % (indent, g, t, p)
+		print >> f, "%snames\t%s %s %s" % (indent, g, t, p)
 		print >> f, "%sspecies\t%s" % (indent, e)
 
 ####################################

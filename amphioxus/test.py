@@ -17,20 +17,67 @@ import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
 
-# ESSAIS POUR randomSlice
 
-length = 1000.
-nb = [0] * int(1.5*length)
+(noms_fichiers,options) = utils.myTools.checkArgs(["tree"],[],"")
 
-for _ in xrange(1000000):
-	#r = math.pow(2., random.uniform(-1., 1.))
-	r = math.pow(2., random.vonmisesvariate(0, 1) / math.pi)
-	nb[int(length*(r-.5))] += 1
+# Procedure de chargement du fichier
+def loadFile():
+	lignes = []
+	f = utils.myTools.myOpenFile(noms_fichiers["tree"], "r")
+	for ligne in f:
+		# On enleve le \n final et on coupe suivant les \t
+		l = ligne[:-1].split('\t')
+		# On stocke le triplet (indentation,key,value)
+		lignes.append( (len(l)-2,l[-2],l[-1]) )
+	f.close()
+	return lignes
+	
+lignes = loadFile()
+lignes.reverse()
 
-for (i,v) in enumerate(nb):
-	print (i/length)+.5, v
+# La procedure d'analyse des lignes du fichier
+def recLoad(indent):
+	
+	# l'ID du point
+	currID = int(lignes.pop()[2])
+	
+	l = lignes.pop()
+	if l[1] == "info":
+		# Un noeud avec des infos
+		info[currID] = eval(l[2])
+		# et des fils
+		data[currID] = []
+		#while (len(lignes) > 0) and (lignes[-1][0] == indent) and (lignes[-1][1] == 'len'):
+		while (len(lignes) > 0) and (lignes[-1][0] == indent+1):
+			length = float(lignes.pop()[2])
+			child = recLoad(indent + 1)
+			data[currID].append( (child,length) )
+	else:
+		# Une espece
+		info[currID] = {}
+		info[currID]['names'] = l[2]
+		info[currID]['species'] = lignes.pop()[2]
+	
+	return currID
+
+trees = []
+info = {}
+data = {}
+while len(lignes) > 0:
+	# = recLoad(0)
+	trees.append(recLoad(0))
+	print len(trees), trees[-1]
 
 sys.exit(0)
+
+#for l in f:
+#while True
+#def readEntity(indent)
+#	if l.startswith(indent + "id\t"):
+#		currid = int(l[3:-1])
+#		l = f.next()
+
+
 
 
 phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1], True)

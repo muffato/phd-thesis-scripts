@@ -173,6 +173,8 @@ class PhylogeneticTree:
 		anc = species[0]
 		for e in species[1:]:
 			anc = self.dicParents[anc][e]
+			if anc == self.root:
+				return self.root
 		return anc
 
 	# Teste si le fils est bien un fils de son pere
@@ -236,6 +238,7 @@ class PhylogeneticTree:
 			rootNode = 0
 		else:
 			rootNode = self.indNames[rootNode]
+		#rootNode = self.indNames[self.lastCommonAncestor(values.keys())]
 		recBuild(rootNode, None, 0)
 		# Resolution de l'equation
 		try:
@@ -520,7 +523,7 @@ class PhylogeneticTree:
 				elt = (items, keepUntil("),:; "))
 			else:
 				# Le resultat est un nom
-				elt = keepUntil("),:;")
+				elt = keepUntil("),:; ")
 		
 			keepWhile(' ')
 			# Eventuellement une longueur de branche non nulle
