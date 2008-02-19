@@ -27,7 +27,7 @@ f = utils.myTools.myOpenFile(noms_fichiers["inputFile"], "r")
 dic = {}
 seqName = None
 for ligne in f:
-	ligne = ligne[:-1]
+	ligne = ligne.replace('\n', '')
 	if ligne.startswith('>'):
 		if seqName != None:
 			if (seqName not in dic) or (len(seq) > len(dic[seqName])):

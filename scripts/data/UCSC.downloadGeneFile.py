@@ -41,7 +41,7 @@ for dir in [OUTgenesFile, OUTfullGenesFile, OUTxrefFile]:
 combGenes = utils.myTools.defaultdict(list)
 print >> sys.stderr, "Telechargement du fichier ...",
 for ligne in utils.myTools.myOpenFile(options["IN.UCSC-URL"].replace("XXX", options["database"]), 'r'):
-	t = [intern(x) for x in ligne[:-1].split('\t')]
+	t = [intern(x) for x in ligne.replace('\n', '').split('\t')]
 	combGenes[t[2]].append( (int(t[4]),int(t[5]),t[3], set([t[0],t[1]]) ) )
 
 # Le dictionnaire xref
@@ -49,8 +49,10 @@ lstXref = set()
 # D'abord charger celles deja connnues
 print >> sys.stderr, "Chargement des annotations xref de reference ",
 for esp in phylTree.listSpecies:
+	if phylTree.officialName[options["species"]] == esp:
+		continue
 	for ligne in utils.myTools.myOpenFile(OUTxrefFile % phylTree.fileName[esp], 'r'):
-		lstXref.update( ligne[:-1].split('\t')[3:] )
+		lstXref.update( ligne.replace('\n', '').split('\t')[3:] )
 	sys.stderr.write('.')
 print >> sys.stderr, " OK"
 

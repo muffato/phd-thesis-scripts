@@ -1,8 +1,6 @@
 
 import sys
-import numpy
 import myTools
-import myGenomes
 
 dsi = dict.__setitem__
 dgi = dict.__getitem__
@@ -25,7 +23,10 @@ class PhylogeneticTree:
 
 			# le nom et l'instance de file
 			f = myTools.myOpenFile(fichier, 'r')
-			self.nom = f.name
+			try:
+				self.nom = f.name
+			except AttributeError:
+				self.nom = fichier
 			
 			f = myTools.firstLineBuffer(f)
 			if ';' in f.firstLine:
@@ -61,6 +62,9 @@ class PhylogeneticTree:
 				self.branches.setdefault(node, [])
 				self.listSpecies.append(node)
 			
+		#for x in self.items.iteritems():
+		#	print x
+		
 		print >> sys.stderr, "Analyse des donnees ...",
 		self.parent = self.newCommonNamesMapperInstance()
 		self.branches = self.newCommonNamesMapperInstance()
@@ -92,6 +96,14 @@ class PhylogeneticTree:
 		self.dicGenes = {}
 		self.dicGenomes = self.newCommonNamesMapperInstance()
 
+		#print
+		#for x in self.parent.iteritems():
+		#	print x
+
+		#print
+		#for (i,e) in enumerate(self.allNames):
+		#	print e, self.numParent[i]
+		
 		if buildLinks:
 			self.buildPhylLinks()
 		else:
@@ -190,6 +202,9 @@ class PhylogeneticTree:
 	#  - resultNode indique de quel ancetre on veut le resultat
 	#########################################################################
 	def calcWeightedValue(self, values, notdefined, rootNode = None, resultNode = None):
+		
+		import numpy
+		
 		n = len(self.allNames)
 		# Par defaut, les resultats seront "notdefined"
 		matriceA = numpy.identity(n)
@@ -324,6 +339,8 @@ class PhylogeneticTree:
 	# Charge toutes les especes d'une liste
 	def loadSpeciesFromList(self, lst, template, storeGenomes = True):
 
+		import myGenomes
+
 		for esp in lst:
 			esp = self.officialName[esp]
 			g = myGenomes.Genome(template % self.fileName[esp])
@@ -422,7 +439,7 @@ class PhylogeneticTree:
 					continue
 
 				# On enleve le \n final et on coupe suivant les \t
-				l = ligne[:-1].split('\t')
+				l = ligne.replace('\n', '').split('\t')
 				
 				# Le niveau d'indentation
 				indent = 0

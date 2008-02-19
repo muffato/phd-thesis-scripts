@@ -31,7 +31,7 @@ def getEnsemblFile(nom):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("releaseID",int,[42,43,44,45,46,47]), ("OUT.directory",str,""), \
+	[("releaseID",int,[42,43,44,45,46,47,48]), ("OUT.directory",str,""), \
 	("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mart_XXX/data/mysql/"), \
 	("IN.genesFile",str,"ensembl_mart_XXX/%s_gene_ensembl__gene__main.txt.table.gz"), \
 	("IN.xrefFile",str,"ensembl_mart_XXX/%s_gene_ensembl__xref_{refseq_dna,pdb,unigene,refseq_peptide,mirbase,rfam,uniprot_swissprot,embl,protein_id,uniprot_accession,uniprot_id,uniprot_sptrembl,hugo,xref_ipi}__dm.txt.table.gz"), \
@@ -73,7 +73,7 @@ for (tmp,esp) in nomReel:
 	nb1 = 0
 	nb2 = 0
 	fi = getEnsemblFile(options["IN.genesFile"] % tmp)
-	for ligne in MySQLFileLoader(fi):
+	for ligne in utils.myTools.MySQLFileLoader(fi):
 		c = ligne.split('\t')
 		s = "\t".join( [c[11],c[7],c[8],c[9],c[1]] )
 		if ("RNA" not in c[3]) and ("pseudogene" not in c[3]):
@@ -90,7 +90,7 @@ for (tmp,esp) in nomReel:
 	print >> sys.stderr, "Telechargement des annotations xref de %s ..." % esp,
 	dic = utils.myTools.defaultdict(set)
 	fi = getEnsemblFile(options["IN.genesFile"] % tmp)
-	for ligne in MySQLFileLoader(fi):
+	for ligne in utils.myTools.MySQLFileLoader(fi):
 		c = ligne.split("\t")
 		dic[(c[1],c[3],c[5])].update( [x for x in c[6:] if (x != "\\N") and (len(x) > 0)] )
 	fi.close()

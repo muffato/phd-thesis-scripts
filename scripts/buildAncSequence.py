@@ -1,13 +1,19 @@
 #! /users/ldog/muffato/python -OO
 
 import sys
-import utils.myMaths
 import utils.myTools
+import utils.myGenomes
 import utils.myPhylTree
 
-(noms_fichiers, options) = utils.myTools.checkArgs( [], [("start",int,0), ("end",int,0), ("phylTree",str,""), ("alignment-FASTA",str,"")], "Retrouve le GC ancestral" )
+(noms_fichiers, options) = utils.myTools.checkArgs( \
+	[], \
+	[("start",int,0), ("end",int,0), ("alphabet",str,"ACGTN"), ("phylTree",str,""), ("alignment-FASTA",str,"")], \
+	"Reconstruit la sequence ancestrale" \
+)
 
-allBases = "ACGT"
+allBases = options["alphabet"][:-1]
+unknownBase = options["alphabet"][-1]
+unknownBaseCost = 1. / len(allBases)
 
 for treeID in xrange(options["start"], options["end"]+1):
 	
@@ -24,21 +30,21 @@ for treeID in xrange(options["start"], options["end"]+1):
 		for base in allBases:
 			values = {}
 			for (e,s) in seq.iteritems():
-				if i < len(s):
-					c = s[i].upper()
-				else:
-					print >> sys.stderr, "!1", e, s, i, n
-					c = "-"
+				c = s[i].upper()
+				#if i < len(s):
+				#else:
+				#	print >> sys.stderr, "!1", e, s, i, n
+				#	c = "-"
 				if c == base:
-					values[e] = 1
+					values[e] = 1.
+				elif c == unknownBase:
+					values[e] = unknownBaseCost
 				elif c in allBases:
-					values[e] = 0
+					values[e] = 0.
 			proba.append(tree.calcWeightedValue(values, -1, None, None))
 		res.append(proba)
 
 	for (ie,e) in enumerate(tree.allNames):
-		#if len(tree.species[e]) == 1:
-		#	continue
 		seq = ""
 		nbM = 0
 		nbN = 0
@@ -59,7 +65,7 @@ for treeID in xrange(options["start"], options["end"]+1):
 				nbM += 1
 			elif l[0][0] == l[1][0]:
 				# Plusieurs nucleotides a probabilites egales
-				seq += "N"
+				seq += unknownBase
 				nbN += 1
 			else:
 				# Une seule possibilite

@@ -37,7 +37,7 @@ def loadChrAncIni(nom, especesDup):
 	f = utils.myTools.myOpenFile(nom, 'r')
 	for ligne in f:
 
-		c = ligne[:-1].split('\t')
+		c = ligne.replace('\n', '').split('\t')
 		dic = {}
 		for x in c[1:]:
 			(e,x) = x.split('|')

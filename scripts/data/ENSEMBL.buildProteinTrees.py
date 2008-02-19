@@ -10,19 +10,18 @@ import os
 import sys
 import utils.myTools
 import utils.myPhylTree
-
+import utils.myProteinTree
 
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("releaseID",int,[47]), ("treeAncestor",str,""), \
+	[("releaseID",int,[47]), \
 	("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mysql/ensembl_compara_XXX"), \
 	("IN.member",str,"member.txt.gz"), \
 	("IN.genome_db",str,"genome_db.txt.gz"), \
 	("IN.protein_tree_node",str,"protein_tree_node.txt.gz"), \
 	("IN.protein_tree_member",str,"protein_tree_member.txt.gz"), \
 	("IN.protein_tree_tag",str,"protein_tree_tag.txt.gz"), \
-	("OUT.ancGenesFile",str,""), \
 	("OUT.tree",str,"tree.%d.bz2"), \
 	], \
 	__doc__ \
@@ -31,6 +30,12 @@ import utils.myPhylTree
 
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 ensemblURL = options["IN.EnsemblURL"].replace("XXX", str(options["releaseID"]))
+
+
+##############################################
+# Chargement de la base de donnees d'Ensembl #
+##############################################
+
 
 # On charge les liens taxon_id -> species name
 ###############################################
@@ -54,7 +59,7 @@ for ligne in utils.myTools.MySQLFileLoader(f):
 	# A un numero member_id, on associe les noms (gene/transcrit/proteine) et l'espece
 	if t[7] != "\\N":
 		x = t[8].split()
-		tmpLinks[t[0]] = (x[1].split(':')[1], x[0].split(':')[1], t[1], taxonName[t[4]])
+		tmpLinks[t[0]] = ((x[1].split(':')[1], x[0].split(':')[1], t[1]), taxonName[t[4]])
 f.close()
 print >> sys.stderr, len(tmpLinks), "OK"
 
@@ -62,13 +67,20 @@ print >> sys.stderr, len(tmpLinks), "OK"
 # On charge les liens node_id -> member_id
 ###########################################
 print >> sys.stderr, "Chargement des liens node_id -> member_id ...",
-links = {}
+x = 0
+info = utils.myTools.defaultdict(dict)
 f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.protein_tree_member"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
-	links[ int(t[0]) ] = tmpLinks[t[1]]
+	node = int(t[0])
+	data = tmpLinks[t[1]]
+	info[node]['gene_name'] = data[0][0]
+	info[node]['transcript_name'] = data[0][1]
+	info[node]['protein_name'] = data[0][2]
+	info[node]['taxon_name'] = data[1]
+	x += 1
 f.close()
-print >> sys.stderr, len(links), "liens OK"
+print >> sys.stderr, x, "liens OK"
 del tmpLinks
 del taxonName
 
@@ -76,7 +88,6 @@ del taxonName
 # On charge les liens node_id -> infos 
 #######################################
 print >> sys.stderr, "Chargement des infos des noeuds ...",
-info = utils.myTools.defaultdict(dict)
 f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.protein_tree_tag"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
@@ -109,41 +120,12 @@ f.close()
 print >> sys.stderr, len(data), "branches OK"
 
 
-######################################################
-# Imprime l'arbre sous forme indentee avec les infos #
-######################################################
-def printTree(f, n, node):
-	indent = "\t" * n
-	# L'id du noeud
-	print >> f, "%sid\t%d" % (indent, node)
-	if node in data:
-		# Ses infos
-		print >> f, "%sinfo\t%s" % (indent, info[node])
-		for (g,d) in data[node]:
-			# Chaque sous-branche avec sa longueur
-			print >> f, "%slen\t%f" % (indent, d)
-			printTree(f, n+1, g)
-	else:
-		# Une feuille: un gene
-		(g,t,p,e) = links[node]
-		print >> f, "%snames\t%s %s %s" % (indent, g, t, p)
-		print >> f, "%sspecies\t%s" % (indent, e)
 
-####################################
-# Imprime l'arbre au format Newick #
-####################################
-def printNewickTree(f, node):
-	genes = []
-	def rec(node):
-		if node not in data:
-			genes.append(links[node][0])
-			return links[node][0]
-		else:
-			return "(" + ",".join([rec(x) + ":" + str(l) for (x,l)  in data[node]]) + ") " + info[node]['family_name']
-
-	tr = rec(node)
-	print >> f, " ".join(genes)
-	print >> f, tr, ";"
+####################################################################
+# On considere que les duplications 'dubious' ne sont pas valables #
+####################################################################
+def isDuplicatedNode(inf):
+	return (inf['Duplication'] != 0) and ('dubious_duplication' not in inf)
 
 
 
@@ -154,9 +136,8 @@ def printNewickTree(f, node):
 ##################################
 def cleanTree(node):
 	
-	# Si on est sur une feuille (un gene), on rajoute le taxon_name
+	# Si on est sur une feuille (un gene)
 	if node not in data:
-		info[node]['taxon_name'] = links[node][-1]
 		return
 	
 	inf = info[node]
@@ -171,11 +152,37 @@ def cleanTree(node):
 		cleanTree(g)
 
 
-####################################################################
-# On considere que les duplications 'dubious' ne sont pas valables #
-####################################################################
-def isDuplicatedNode(inf):
-	return (inf['Duplication'] != 0) and ('dubious_duplication' not in inf)
+###################################################################################################################
+# Aplatit un noeud et des descendants directs si ils representent le meme taxon et qu'il n'y a pas de duplication #
+###################################################################################################################
+def flattenTree(node, rec):
+	
+	# Fin du process sur une feuille
+	if node not in data:
+		return
+
+	# Appels recursifs
+	if rec:
+		for (g,_) in data[node]:
+			flattenTree(g, rec)
+
+	inf = info[node]
+	# Si c'est une vraie duplication, on n'a plus rien a faire
+	if isDuplicatedNode(inf):
+		return
+
+	newData = []
+	taxonName = inf['taxon_name']
+	for (g,d) in data[node]:
+		inf = info[g]
+		# 2x le meme taxon et pas de duplication
+		if (g in data) and (inf['taxon_name'] == taxonName) and not isDuplicatedNode(inf):
+			newData.extend([(g2,d+d2) for (g2,d2) in data[g]])
+		else:
+			#if (g in data) and (inf['taxon_name'] == taxonName) and isDuplicatedNode(inf):
+			#	print >> sys.stderr, "SOURCE", node, info[node], (g,d), inf
+			newData.append( (g,d) )
+	data[node] = newData
 
 
 ########################################################
@@ -259,101 +266,30 @@ def rebuildTree(node):
 		rebuildTree(g)
 
 
-###################################################################################################################
-# Aplatit un noeud et des descendants directs si ils representent le meme taxon et qu'il n'y a pas de duplication #
-###################################################################################################################
-def flattenTree(node, rec):
-	
-	# Fin du process sur une feuille
-	if node not in data:
-		return
-
-	# Appels recursifs
-	if rec:
-		for (g,_) in data[node]:
-			flattenTree(g, rec)
-
-	inf = info[node]
-	# Si c'est une vraie duplication, on n'a plus rien a faire
-	if isDuplicatedNode(inf):
-		return
-
-	newData = []
-	taxonName = inf['taxon_name']
-	for (g,d) in data[node]:
-		inf = info[g]
-		# 2x le meme taxon et pas de duplication
-		if (g in data) and (inf['taxon_name'] == taxonName) and not isDuplicatedNode(inf):
-			newData.extend([(g2,d+d2) for (g2,d2) in data[g]])
-		else:
-			#if (g in data) and (inf['taxon_name'] == taxonName) and isDuplicatedNode(inf):
-			#	print >> sys.stderr, "SOURCE", node, info[node], (g,d), inf
-			newData.append( (g,d) )
-	data[node] = newData
-
-		
-	
-
-###########################################
-# Sauvegarde toutes les familles de genes #
-###########################################
-def extractGeneFamilies(node, baseName, previousAnc, lastWrittenAnc):
+#################################################
+# Retrouve les vraies racines dans les familles #
+#################################################
+def getRoots(node, previousAnc, lastWrittenAnc):
 
 	newAnc = info[node]['taxon_name']
+	(toWrite,newLastWritten,isroot) = utils.myProteinTree.getIntermediateAnc(phylTree, previousAnc, lastWrittenAnc, newAnc, isDuplicatedNode(info[node]))
 
-	# Les noeuds ou ecrire les familles
-	if lastWrittenAnc == None:
-		if previousAnc == None:
-			toWrite = [newAnc]
-		else:
-			toWrite = phylTree.dicLinks[previousAnc][newAnc]
-	else:
-		toWrite = phylTree.dicLinks[lastWrittenAnc][newAnc][1:]
-	if isDuplicatedNode(info[node]):
-		toWrite = toWrite[:-1]
-	
-	if len(toWrite) == 0:
-		newLastWritten = lastWrittenAnc
-	else:
-		newLastWritten = toWrite[-1]
-
-	if (lastWrittenAnc == None) and (newLastWritten != None):
-		trueRoots.append(node)
-		global nbA
-		nbA += 1
-		baseName = "FAM%d" % nbA
-	info[node]['family_name'] = baseName
+	if isroot:
+		return [node]
 
 	# Les genes des descendants
-	if node in data:
-		allGenes = []
-		for (i,(g,d)) in enumerate(data[node]):
-			if isDuplicatedNode(info[node]):
-				newName = baseName + (".%d" % (i+1))
-			else:
-				newName = baseName
-			allGenes.extend( extractGeneFamilies(g, newName, newAnc, newLastWritten) )
-	else:
-		allGenes = [ links[node][0] ]
-
-	for a in toWrite:
-		geneFamilies[a].append( [baseName] + allGenes )
-
-	return allGenes
+	subRoots = []
+	for (g,_) in data.get(node,[]):
+		subRoots.extend( getRoots(g, newAnc, newLastWritten) )
+	return subRoots
 
 
 # On a besoin des genomes modernes pour reconnaitre les genes
-geneFamilies = utils.myTools.defaultdict(list)
 ft1 = utils.myTools.myOpenFile(options["OUT.tree"] % 1, "w")
 ft2 = utils.myTools.myOpenFile(options["OUT.tree"] % 2, "w")
 ft3 = utils.myTools.myOpenFile(options["OUT.tree"] % 3, "w")
 ft4 = utils.myTools.myOpenFile(options["OUT.tree"] % 4, "w")
 ft5 = utils.myTools.myOpenFile(options["OUT.tree"] % 5, "w")
-
-if options["treeAncestor"] == "":
-	treeAncestor = phylTree.root
-else:
-	treeAncestor = options["treeAncestor"]
 
 print >> sys.stderr, "Mise en forme des arbres ...",
 nb = 0
@@ -363,40 +299,21 @@ for (root,_) in data[1]:
 #for (root,_) in [(200984,0)]:
 #for (root,_) in [(753697,0)]:
 	if 'taxon_name' in info[root]:
-		trueRoots = []
-		printTree(ft1, 0, root)
+		utils.myProteinTree.printTree(ft1, data, info, root)
 		cleanTree(root)
-		printTree(ft2, 0, root)
+		utils.myProteinTree.printTree(ft2, data, info, root)
 		flattenTree(root, True)
-		printTree(ft3, 0, root)
+		utils.myProteinTree.printTree(ft3, data, info, root)
 		rebuildTree(root)
-		printTree(ft4, 0, root)
-		# Restreint les arbres a la racine que l'on demande
-		todo = [root]
-		while len(todo) > 0:
-			r = todo.pop()
-			if phylTree.isChildOf(info[r]['taxon_name'], treeAncestor):
-				# Extrait les genes ancestraux et renvoie les vraies racines des arbres
-				trueRoots = []
-				nb += 1
-				extractGeneFamilies(r, "NONAME", None, None)
-				for r in trueRoots:
-					printNewickTree(ft5, r)
-			else:
-				todo.extend( [x for (x,_)  in data[r]] )
-print >> sys.stderr, "%d (%d) arbres OK" % (nb,nbA)
+		utils.myProteinTree.printTree(ft4, data, info, root)
+		for x in getRoots(root, None, None):
+			utils.myProteinTree.printTree(ft5, data, info, x)
+			nbA += 1
+		nb += 1
+print >> sys.stderr, "%d (%d) arbres OK" % (nbA,nb)
 ft1.close()
 ft2.close()
 ft3.close()
 ft4.close()
 ft5.close()
-
-utils.myTools.mkDir(options["OUT.ancGenesFile"])
-for (anc,lst) in geneFamilies.iteritems():
-	print >> sys.stderr, "Ecriture des familles de %s ..." % anc,
-	f = utils.myTools.myOpenFile(options["OUT.ancGenesFile"] % phylTree.fileName[anc], "w")
-	for gg in lst:
-		print >> f, " ".join(gg)
-	f.close()
-	print >> sys.stderr, len(lst), "OK"
 

@@ -42,7 +42,7 @@ foG = utils.myTools.myOpenFile(OUTgenesFile % phylTree.fileName[options["species
 foG2 = utils.myTools.myOpenFile(OUTfullGenesFile % phylTree.fileName[options["species"]], 'w')
 dicXref = {}
 for ligne in utils.myTools.myOpenFile(noms_fichiers["annotationFile"], 'r'):
-	t = [intern(x) for x in ligne[:-1].split('\t')]
+	t = [intern(x) for x in ligne.replace('\n', '').split('\t')]
 	print >> foG, "\t".join([t[x] for x in [2,4,5,3,1]])
 	print >> foG2, "\t".join([t[x] for x in [2,4,5,3,1]])
 	dicXref[t[1]] = t[-4]
@@ -58,7 +58,7 @@ lstXref = set()
 print >> sys.stderr, "Chargement des annotations xref de reference ",
 for esp in phylTree.listSpecies:
 	for ligne in utils.myTools.myOpenFile(OUTxrefFile % phylTree.fileName[esp], 'r'):
-		lstXref.update( ligne[:-1].split('\t')[3:] )
+		lstXref.update( ligne.replace('\n', '').split('\t')[3:] )
 	sys.stderr.write('.')
 print >> sys.stderr, " OK"
 

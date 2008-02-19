@@ -11,9 +11,9 @@ import utils.myTools
 alldata = []
 for l in sys.stdin:
 	data = []
-	f = open(l[:-1], "r")
+	f = open(l.replace('\n', ''), "r")
 	for s in f:
-		data.append(s[:-1].split("\t"))
+		data.append(s.replace('\n', '').split("\t"))
 	f.close()
 	alldata.append( data )
 

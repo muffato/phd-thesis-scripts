@@ -19,12 +19,6 @@ def write():
 	fz.close()
 	print currID
 
-def mkZipInfo(name):
-	zinfo = zipfile.ZipInfo(filename=name, date_time=time.localtime(time.time()))
-	zinfo.compress_type =  zipfile.ZIP_DEFLATED
-	zinfo.external_attr = 2175008768
-	return zinfo
-
 f = utils.myTools.myOpenFile(noms_fichiers["InputSeq"], "r")
 for l in f:
 	if l.startswith("ID"):

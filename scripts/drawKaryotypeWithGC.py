@@ -43,7 +43,7 @@ if len(genome2.dicGenes) == 0:
 	for (i,l) in enumerate(f):
 		nbChr = i+1
 		chrom = []
-		t = l[:-1].split(";")
+		t = l.replace('\n', '').split(";")
 		for s in t:
 			if len(s) == 0:
 				continue

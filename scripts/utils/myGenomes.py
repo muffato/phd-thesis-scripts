@@ -1,6 +1,5 @@
 
 import sys
-import operator
 import myTools
 
 
@@ -41,11 +40,14 @@ def loadFastaFile(name):
 	f = myTools.myOpenFile(name, "r")
 	name = None
 	for ligne in f:
+		ligne = ligne.replace('\n', '').strip()
+		if len(ligne) == 0:
+			continue
 		if ligne[0] == ">":
-			name = ligne[1:-1].strip()
+			name = ligne[1:].strip()
 			seq[name] = ""
 		elif name != None:
-			seq[name] += ligne[:-1]
+			seq[name] += ligne
 	f.close()
 	return seq
 
@@ -131,6 +133,8 @@ class Genome:
 	#
 	def sortGenome(self):
 		
+		import operator
+
 		self.lstChr.sort()
 		self.lstScaff.sort()
 		self.lstRand.sort()
@@ -283,7 +287,7 @@ class Genome:
 		
 		# On lit chaque ligne
 		for ligne in self.f:
-			champs = ligne[:-1].split('\t')
+			champs = ligne.replace('\n', '').split('\t')
 			if len(champs) == 12:
 				# Nouvelle version des fichiers
 				if (champs[-1] not in homologyFilter) and fH:

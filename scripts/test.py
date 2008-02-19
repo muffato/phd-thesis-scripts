@@ -8,7 +8,7 @@ import time
 import random
 import zipfile
 #import operator
-#import utils.myGenomes
+import utils.myGenomes
 #import utils.myTools
 import utils.myMaths
 #import utils.myDiags
@@ -17,7 +17,42 @@ import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
 
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1], False)
+
+print phylTree.listAncestr
+
+for e in phylTree.listSpecies:
+	values = dict.fromkeys(phylTree.listSpecies, 1)
+	values[e] = 1/math.e
+	r = phylTree.calcWeightedValue(values, -5, None, None)
+	#print e, " ".join([ "%.2g" % (r[phylTree.indNames[a]]) for a in phylTree.listAncestr ])
+	print e, "%g" % (1/r[phylTree.indNames["Boreoeutheria"]])
+
+sys.exit(0)
+
+
+
+f = utils.myGenomes.loadFastaFile("/workspace2/muffato/ancSequences47/tmp/cds.fa")
+
+for (name,seq) in f.iteritems():
+	print name
+	print len(seq)
+	print seq
+
+sys.exit(0)
+f = utils.myTools.myOpenFile("~/family.1.zip/ancSequence.txt", "r")
+nbL = 0
+for l in f:
+	print l,
+	nbL += 1
+
+print >> sys.stderr, nbL
+
+sys.exit(0)
+
 # ESSAIS POUR randomSlice
+
+
 
 length = 1000.
 nb = [0] * int(1.5*length)

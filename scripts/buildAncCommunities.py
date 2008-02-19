@@ -33,7 +33,7 @@ def loadDiagsFile(nom, ancName):
 		if not l.startswith(ancName):
 			continue
 		# On enleve les "_random" et on extrait chaque colonne
-		ct = l[:-1].replace("_random", "").split('\t')
+		ct = l.replace('\n', '').replace('_random', '').split('\t')
 		# La diagonale
 		d = [int(x) for x in ct[2].split(' ')]
 		# On joint les especes qui ont vu la diagonale et celles qui n'apportent que le chromosome
@@ -129,8 +129,8 @@ def checkAlreadyBuildAnc():
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "diagsList"], \
 	[("ancestr",str,""), ("alreadyBuiltAnc",str,""), ("removeDuplicates",bool,True), ("printDiags",bool,False), ("useOutgroups",bool,True), \
-	("newIOFormat",bool,False),
-	("mergeDiags",bool,False), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("newScoring",bool,False), ("walktrapLength",int,5), \
+	("newIOFormat",bool,False), ("scoringMethod",int,[0,1,2]), \
+	("mergeDiags",bool,False), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("walktrapLength",int,5), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -214,14 +214,14 @@ print >> sys.stderr, nbDiags
 print >> sys.stderr, "%-25s\t%s\t%s\t%s" % ("Ancetre", "Poids", "Cert", "Incert")
 for e in dicPoidsEspeces:
 	print >> sys.stderr, "%-25s\t%.3f\t%.3f\t%.3f" % (e, dicPoidsEspeces[e], espCertitude[e], espIncertitude[e])
-	if not options["newScoring"]:
+	if options["scoringMethod"] == 0:
 		espCertitude[e] *= dicPoidsEspeces[e]
 		espIncertitude[e] *= dicPoidsEspeces[e]
 
 # On calcule les scores
 print >> sys.stderr, "Calcul de la matrice ...",
 
-if options["newScoring"] and (len(lstEspOutgroup) != 0):
+if (options["scoringMethod"] == 1) and (len(lstEspOutgroup) != 0):
 	lstNoeudsFils.append(phylTree.parent[options["ancestr"]][0])
 it = utils.myTools.myIterator.tupleOnStrictUpperList
 
@@ -234,14 +234,17 @@ for i1 in xrange(nbDiags):
 	for i2 in xrange(i1):
 		(d2,ec2,e2) = lstDiags[i2]
 		
-		if options["newScoring"]:
+		if options["scoringMethod"] > 0:
 			values = {}
 			for e in e1.intersection(e2):
 				values[e] = espIncertitude[e]
 			for (e,_) in ec1.intersection(ec2):
 				values[e] = espCertitude[e]
-			prop = [phylTree.calcDist(values, f) for f in lstNoeudsFils]
-			s = sum( [f1 * f2 for (f1,f2) in it([x for x in prop if x != None])] )
+			if options["scoringMethod"] == 1:
+				prop = [phylTree.calcDist(values, f) for f in lstNoeudsFils]
+				s = sum( [f1 * f2 for (f1,f2) in it([x for x in prop if x != None])] )
+			else:
+				s = phylTree.calcWeightedValue(values, -1, None, options["ancestr"])
 		else:
 			comparedEsp = e1.intersection(e2)
 			communEsp = set([e for (e,_) in ec1.intersection(ec2)])

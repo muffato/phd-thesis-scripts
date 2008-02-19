@@ -1,15 +1,5 @@
 #! /users/ldog/muffato/python -OO
 
-__doc__ = """
-	Telecharge depuis le site d'Ensembl les CDS des genes
-"""
-
-
-##################
-# INITIALISATION #
-##################
-
-# Librairies
 import os
 import sys
 import utils.myTools
@@ -27,44 +17,31 @@ request = """<?xml version="1.0" encoding="UTF-8"?>
 </Query>"""
 
 
-########
-# MAIN #
-########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf"], \
-	[("OUT.file",str,"")], \
-	__doc__ \
-)
-
+(noms_fichiers, options) = utils.myTools.checkArgs( ["phylTree.conf"], [("OUT.file",str,"")], "Telecharge depuis le site d'Ensembl les CDS des genes")
 
 # L'arbre phylogenetique
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
-# Le repertoire
-try:
-	os.makedirs(os.path.dirname(options["OUT.file"]))
-except OSError:
-	pass
+utils.myTools.mkDir(options["OUT.file"])
 
-
-# Les noms utilises dans les fichiers "Homo Sapiens" -> "hsapiens"
-nomReel = []
 for esp in phylTree.listSpecies:
+	
+	# Les noms utilises dans les fichiers "Homo Sapiens" -> "hsapiens"
 	tmp = esp.lower().split()
 	tmp = tmp[0][0] + tmp[1]
 	
 	print >> sys.stderr, "Downloading %s (%s) ..." % (esp,tmp),
-	nb = 0
 	(stdin,stdout,stderr) = os.popen3( 'wget -O - http://www.biomart.org/biomart/martservice --post-data="query=`cat /dev/stdin`" ')
 	stderr.close()
 	print >> stdin, request % tmp
 	stdin.close()
 	dic = {}
+	nb = 0
 	for l in stdout:
 		try:
-			(seq,gene) = l[:-1].split("\t")
+			(seq,gene) = l.replace('\n', '').split("\t")
 			if seq == "Sequence unavailable":
 				continue
 			nb += 1
@@ -73,6 +50,7 @@ for esp in phylTree.listSpecies:
 			dic[gene] = seq
 		except ValueError:
 			print l,
+	stdout.close()
 	f = utils.myTools.myOpenFile( options["OUT.file"] % phylTree.fileName[esp], "w")
 	for (gene,seq) in dic.iteritems():
 		print >> f, "%s\t%s" % (gene,seq)

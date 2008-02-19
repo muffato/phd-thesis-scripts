@@ -29,7 +29,7 @@ def loadDiagsFile(nom):
 	for l in f:
 		
 		# On n'utilise que "l'appartenance" a un chromosome, le fait que ce soit du random n'est pas important
-		ct = l[:-1].replace("_random", "").split('\t')
+		ct = l.replace('\n', '').replace("_random", "").split('\t')
 		d = [int(x) for x in ct[2].split(' ')]
 		esp = set()
 		if len(ct[3]) > 0:
@@ -71,7 +71,8 @@ for anc in phylTree.listAncestr:
 
 
 for l in sys.stdin:
-	lstDiags = loadDiagsFile(l[:-1])
+	l = l.replace('\n', '')
+	lstDiags = loadDiagsFile(l)
 
 	allOK = 0.
 	allPerfect = 0.
@@ -116,7 +117,7 @@ for l in sys.stdin:
 				nbTotPairs += 1.
 
 
-		print "%s\t%s\t%d\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (l[:-1],anc, phylTree.ages[anc],100.*nbOK/len(lstDiags[anc]),100.*nbPerfect/len(lstDiags[anc]),averageShift/nbTotPairs,100.*nbPerfectPairs/nbTotPairs,100. * float(len(allPos)) / float(sum([len(x) for x in genomes[anc].lstGenes.itervalues()])))
+		print "%s\t%s\t%d\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (l,anc, phylTree.ages[anc],100.*nbOK/len(lstDiags[anc]),100.*nbPerfect/len(lstDiags[anc]),averageShift/nbTotPairs,100.*nbPerfectPairs/nbTotPairs,100. * float(len(allPos)) / float(sum([len(x) for x in genomes[anc].lstGenes.itervalues()])))
 		
 		allOK += nbOK
 		allPerfect += nbPerfect
@@ -127,5 +128,5 @@ for l in sys.stdin:
 		allCov += float(len(allPos)) / float(sum([len(x) for x in genomes[anc].lstGenes.itervalues()]))
 
 
-	print  "%s\t%s\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (l[:-1],"----",100.*allOK/allDiags, 100.*allPerfect/allDiags, allShift/allPairs, 100.*allPerfectPairs/allPairs, 100.*allCov/len(lstDiags))
+	print  "%s\t%s\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (l,"----",100.*allOK/allDiags, 100.*allPerfect/allDiags, allShift/allPairs, 100.*allPerfectPairs/allPairs, 100.*allCov/len(lstDiags))
 
