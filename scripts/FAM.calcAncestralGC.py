@@ -5,9 +5,9 @@ import utils.myMaths
 import utils.myTools
 import utils.myPhylTree
 
-(noms_fichiers, options) = utils.myTools.checkArgs( [], [("start",int,0), ("end",int,0), ("phylTree",str,""), ("alignment-FASTA",str,"")], "Retrouve le GC ancestral" )
+(noms_fichiers, options) = utils.myTools.checkArgs( [], [("range",str,""), ("phylTree",str,""), ("alignment-FASTA",str,"")], "Retrouve le GC ancestral" )
 
-for treeID in xrange(options["start"], options["end"]+1):
+for treeID in utils.myTools.getRange(options["range"]):
 	
 	print >> sys.stderr, treeID, "...",
 

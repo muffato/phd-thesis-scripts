@@ -3,10 +3,8 @@ import os
 import sys
 import bz2
 import gzip
-import operator
-import collections
 
-defaultdict = collections.defaultdict
+from collections import defaultdict
 
 null = open('/dev/null', 'w')
 stdin = sys.stdin
@@ -67,7 +65,13 @@ def myOpenFile(nom, mode):
 		stderr.close()
 	else:
 		nom = nom.replace("~", os.environ['HOME'])
-		if nom.endswith(".bz2"):
+		i = nom.find(".zip/")
+		if (mode == "r") and (i >= 0):
+			import zipfile
+			import cStringIO
+			f = zipfile.ZipFile(nom[:i+4], "r")
+			f = cStringIO.StringIO(f.read(nom[i+5:]))
+		elif nom.endswith(".bz2"):
 			f = bz2.BZ2File(nom, mode)
 		elif nom.endswith(".gz"):
 			f = gzip.GzipFile(nom, mode)
@@ -92,11 +96,12 @@ def mkDir(dir):
 def MySQLFileLoader(f):
 	tmp = ""
 	for ligne in f:
-		if ligne[-2] == '\\':
+		ligne = ligne.replace('\n', '')
+		if ligne[-1] == '\\':
 			# Signe que la ligne n'est pas terminee
-			tmp = ligne[:-2]
+			tmp = ligne[:-1]
 		else:
-			yield tmp + ligne[:-1]
+			yield tmp + ligne
 			tmp = ""
 	# Normalement, ici, tmp == ""
 	if tmp != "":
@@ -109,11 +114,15 @@ def MySQLFileLoader(f):
 class myIterator:
 	
 	@staticmethod
+	# Parcourt tous les (x,y)
+	##########################
 	def tupleOnWholeList(lst):
 		for x in lst:
 			for y in lst:
 				yield (x,y)
 
+	# Parcourt les (xi,yj) pour j>=i
+	#################################
 	@staticmethod
 	def tupleOnUpperList(lst):
 		for i in xrange(len(lst)):
@@ -121,6 +130,8 @@ class myIterator:
 			for y in lst[i:]:
 				yield (x,y)
 
+	# Parcourt les (xi,yj) pour j>i
+	################################
 	@staticmethod
 	def tupleOnStrictUpperList(lst):
 		for i in xrange(len(lst)):
@@ -129,19 +140,23 @@ class myIterator:
 				yield (x,y)
 	
 	@staticmethod
+	# Parcourt tous les (x,y)
+	##########################
 	def tupleOnTwoLists(lstX, lstY):
 		for x in lstX:
 			for y in lstY:
 				yield (x,y)
 
-	# Fonction de Charles pour renvoyer toutes les combinaisons des elements des differentes listes passees en argument
 	@staticmethod
+	# Fonction de Charles pour renvoyer toutes les combinaisons des elements des differentes listes passees en argument
+	####################################################################################################################
 	def tupleOnManyLists(*args):
 		""" This generator combine all versus all sequences elements as follow:
 		>>> args = [['A','C'],['A','C'],['A','C']]
 		>>> [k for k in combination(args)]
 		['AAA', 'AAC', 'ACA', 'ACC', 'CAA', 'CAC', 'CCA', 'CCC']
 		"""
+		import operator
 		lengths = [len(seq) for seq in args]
 		_tmp = lengths + [1] # append multiplicative identity
 		range_len_args = range(len(args))
@@ -150,6 +165,8 @@ class myIterator:
 			yield tuple( args[r][(n/dividers[r])%lengths[r]] for r in range_len_args )
 	
 	@staticmethod
+	# Couple (x,y) glissant
+	########################
 	def slidingTuple(lst):
 		x = lst[0]
 		for i in xrange(1, len(lst)):
@@ -158,6 +175,7 @@ class myIterator:
 			x = y
 	
 	# Consomme les elements d'un iterateur et renvoie la longueur de la liste
+	##########################################################################
 	@staticmethod
 	def leniter(it):
 		nb = 0
@@ -191,6 +209,25 @@ class myIterator:
 		return rec(0, n)
 
 
+##########################################################
+# Gestion du lancement multiple sur une plage de valeurs #
+##########################################################
+def getRange(s):
+	if os.access(s, os.R_OK):
+		f = myOpenFile(s, "r")
+		lst = []
+		for l in f:
+			lst.extend( [int(x) for x in l.replace('\n', '').split()] )
+		f.close()
+		return lst
+	else:
+		(start,_,end) = s.partition(':')
+		return range(int(start), int(end)+1)
+
+
+################################################################################
+# Enregistre les resultats d'une fonction pour chaque valeur de ses parametres #
+################################################################################
 class memoize:
 	"""Decorator that caches a function's return value each time it is called.
 	If called later with the same arguments, the cached value is returned, and
@@ -224,9 +261,6 @@ class memoize:
 ########################################################################
 class myCombinator:
 
-	#
-	# Constructeur
-	#
 	def __init__(self, ini = []):
 		self.grp = list(ini)
 		self.dic = {}
@@ -235,9 +269,9 @@ class myCombinator:
 			for x in self.grp[i]:
 				self.dic[x] = i
 	
-	#
 	# Definit un lien entre tous les elements de obj
-	#
+	# Met a jour les ensembles deja construits
+	#################################################
 	def addLink(self, obj):
 	
 		if len(obj) == 0:
@@ -271,23 +305,16 @@ class myCombinator:
 			grpiextend(dd)
 	
 
-	#
 	# Renvoie un iterateur sur les donnees
-	#  Les ensembles vides sont donc elimines
-	#
+	# Les ensembles vides sont donc elimines
+	#########################################
 	def __iter__(self):
 		for g in self.grp:
 			if len(g) > 0:
 				yield g
-	#
-	# Le nombre de groupes
-	#
-	def getNbGrp(self):
-		return myIterator.leniter(self)
 
-	#
 	# Enleve les ensembles vides
-	#
+	# ###########################
 	def reduce(self):
 		self.__init__(self)
 
@@ -387,16 +414,6 @@ def checkArgs(args, options, info):
 								print >> sys.stderr, "Unable to load psyco !"
 					elif s == "bz2":
 						if t[0] == '+':
-							#class bz2Proxy():
-							#	def __init__(self):
-							#		self.comp = bz2.BZ2Compressor()
-							#		self.stdout = sys.stdout
-							#	def __del__(self):
-							#		self.stdout.write(self.comp.flush())
-							#		self.stdout.flush()
-							#	def write(self, data):
-							#		self.stdout.write(self.comp.compress(data))
-							#sys.stdout = bz2Proxy()
 							sys.stdout = bz2.BZ2File("/dev/stdout", "w")
 					elif s == "gz":
 						if t[0] == '+':

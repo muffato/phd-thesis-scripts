@@ -4,9 +4,9 @@ import sys
 import utils.myTools
 import utils.myGenomes
 
-(_,options) = utils.myTools.checkArgs( [], [("start",int,0), ("end",int,0), ("aligment-FASTA",str,""), ("CDS-FASTA",str,""), ("aligment-output",str,""), ("positions",str,"123")], "Converts a Muscle alignment of protein sequences to the corresponding CDS sequences" )
+(_,options) = utils.myTools.checkArgs( [], [("range",str,""), ("aligment-FASTA",str,""), ("CDS-FASTA",str,""), ("aligment-output",str,""), ("positions",str,"123")], "Converts a Muscle alignment of protein sequences to the corresponding CDS sequences" )
 
-for treeID in xrange(options["start"], options["end"]+1):
+for treeID in utils.myTools.getRange(options["range"]):
 	
 	print >> sys.stderr, treeID, "...",
 
@@ -18,15 +18,16 @@ for treeID in xrange(options["start"], options["end"]+1):
 	fo = utils.myTools.myOpenFile(options["aligment-output"] % treeID, "w")
 	seqFiltered = ""
 	for ligne in fi:
+		ligne = ligne.replace('\n', '')
 		if ligne[0] == ">":
 			print >> fo, seqFiltered
 			print >> fo, ligne,
-			name = ligne[1:-1]
+			name = ligne[1:]
 			seqFiltered = ""
 			pos = 0
 		else:
 			# Parcours des acides amines
-			for aa in ligne[:-1]:
+			for aa in ligne:
 				# Recuperation du codon associe
 				if aa == '-':
 					codon = '---'

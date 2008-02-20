@@ -2,7 +2,6 @@
 
 import os
 import sys
-import time
 import zipfile
 import utils.myTools
 import utils.myPhylTree
@@ -27,6 +26,7 @@ for esp in phylTree.listSpecies:
 
 
 def mkZipInfo(name):
+	import time
 	zinfo = zipfile.ZipInfo(filename=name, date_time=time.localtime(time.time()))
 	zinfo.compress_type =  zipfile.ZIP_DEFLATED
 	zinfo.external_attr = 2175008768
@@ -45,13 +45,13 @@ geneticCode = {
      'GTT': 'V', 'GTC': 'V', 'GTA': 'V', 'GTG': 'V', 'GCT': 'A',
      'GCC': 'A', 'GCA': 'A', 'GCG': 'A', 'GAT': 'D', 'GAC': 'D',
      'GAA': 'E', 'GAG': 'E', 'GGT': 'G', 'GGC': 'G', 'GGA': 'G',
-     'GGG': 'G', 'TAA':  '', 'TAG':  '', 'TGA':  '' }
+     'GGG': 'G' } #, 'TAA':  '', 'TAG':  '', 'TGA':  '' } # Les codons stop seront des X
 
 f = utils.myTools.myOpenFile(noms_fichiers["tree.5"], "r")
 for (i,ligneEspeces) in enumerate(f):
 	n = i+1
 	print >> sys.stderr, "Ligne", n,
-	ligneArbre = f.next()
+	ligneArbre = f.next().replace('\n', '')
 
 	# Generation des donnees FASTA prot & cds
 	esp = [(g,CDS[g]) for g in ligneEspeces.split()]
@@ -70,7 +70,7 @@ for (i,ligneEspeces) in enumerate(f):
 	fz = zipfile.ZipFile(options["OUT.ZipFile"] % n, "w", zipfile.ZIP_DEFLATED)
 	# L'arbre
 	zinfo = mkZipInfo(options["ZIP/tree"])
-	fz.writestr(zinfo, ligneArbre[:-1])
+	fz.writestr(zinfo, ligneArbre)
 	# Le multi-FASTA des CDS
 	zinfo = mkZipInfo(options["ZIP/FASTA-CDS"])
 	fz.writestr(zinfo, '\n'.join(cdsTab))
@@ -78,6 +78,6 @@ for (i,ligneEspeces) in enumerate(f):
 	zinfo = mkZipInfo(options["ZIP/FASTA-Prot"])
 	fz.writestr(zinfo, '\n'.join(protTab))
 	fz.close()
-	
+
 	print >> sys.stderr, "OK"
 f.close()
