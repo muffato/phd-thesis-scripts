@@ -21,7 +21,7 @@ def loadDiagsFile(nom, ancName):
 		if not l.startswith(ancName):
 			continue
 		# On enleve les "_random" et on extrait chaque colonne
-		ct = l[:-1].replace("_random", "").split('\t')
+		ct = l.replace('\n','').replace("_random", "").split('\t')
 		# La diagonale
 		d = [int(x) for x in ct[2].split(' ')]
 		# On joint les especes qui ont vu la diagonale et celles qui n'apportent que le chromosome

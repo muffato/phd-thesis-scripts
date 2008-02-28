@@ -1,6 +1,6 @@
 #! /users/ldog/muffato/python -OO
 
-#import os
+import os
 import sys
 import math
 import time
@@ -17,8 +17,60 @@ import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
 
-phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1], False)
+for i in xrange(10):
+	print os.isatty(sys.stdin.fileno())
+	time.sleep(1)
 
+sys.exit(0)
+print utils.myTools.myIterator.buildSubsets(range(4), 1)
+print utils.myTools.myIterator.buildSubsets(range(4), 2)
+print utils.myTools.myIterator.buildSubsets(range(4), 3)
+print utils.myTools.myIterator.buildSubsets(range(4), 4)
+
+print utils.myTools.myIterator.buildSubsets(range(4), -1)
+#print utils.myTools.myIterator.buildSubsets(range(5), 4)
+
+sys.exit(0)
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1], False)
+phylTree2 = utils.myPhylTree2.PhylogeneticTree(sys.argv[1])
+
+random.seed(0)
+
+#values = dict.fromkeys(phylTree.listSpecies, 0)
+
+s1 = []
+t1 = 0
+s2 = []
+t2 = 0
+print >> sys.stderr, len(phylTree.listSpecies)
+for _ in xrange(10000):
+	values = {}
+	for esp in random.sample(phylTree.listSpecies, 7):
+		values[esp] = 1
+	t1 -= time.clock()
+	s1.append(phylTree.calcWeightedValue(values, -5, None, None))
+	t1 += time.clock()
+	t2 -= time.clock()
+	s2.append(phylTree2.calcWeightedValue(values, -5, None))
+	t2 += time.clock()
+
+print >> sys.stderr, all([all(s1[i]==s2[i]) for i in xrange(len(s1))]), t1, t2
+
+sys.exit(0)
+
+
+#for i in xrange(100):
+#phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1], True)
+phylTree2 = utils.myPhylTree2.PhylogeneticTree(sys.argv[1])
+
+#print phylTree.dicParents == phylTree2.dicParents
+#print phylTree.dicLinks == phylTree2.dicLinks
+
+#print phylTree.dicParents["Theria"]
+#print phylTree.dicLinks["Theria"]
+
+
+sys.exit(0)
 print phylTree.listAncestr
 
 for e in phylTree.listSpecies:
@@ -64,32 +116,6 @@ for _ in xrange(1000000):
 
 for (i,v) in enumerate(nb):
 	print (i/length)+.5, v
-
-sys.exit(0)
-
-
-phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1], True)
-
-random.seed(0)
-
-#values = dict.fromkeys(phylTree.listSpecies, 0)
-
-s1 = []
-t1 = 0
-s2 = []
-t2 = 0
-for _ in xrange(10000):
-	values = {}
-	for esp in random.sample(phylTree.listSpecies, 15):
-		values[esp] = 1
-	t1 -= time.clock()
-	s1.append(phylTree.calcWeightedValue(values, -5, None, None))
-	t1 += time.clock()
-	t2 -= time.clock()
-	s2.append(phylTree.calcWeightedValue(values, -5, phylTree.lastCommonAncestor(values.keys()), None))
-	t2 += time.clock()
-
-print >> sys.stderr, all([all(s1[i]==s2[i]) for i in xrange(len(s1))]), t1, t2
 
 sys.exit(0)
 

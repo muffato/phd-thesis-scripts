@@ -11,7 +11,7 @@ for treeID in utils.myTools.getRange(options["range"]):
 	
 	print >> sys.stderr, treeID, "...",
 
-	tree = utils.myPhylTree.PhylogeneticTree(options["phylTree"] % treeID, buildLinks = False)
+	tree = utils.myPhylTree.PhylogeneticTree(options["phylTree"] % treeID)
 
 	# Chargement des CDS
 	seq = utils.myGenomes.loadFastaFile(options["alignment-FASTA"] % treeID)
@@ -30,7 +30,7 @@ for treeID in utils.myTools.getRange(options["range"]):
 				values[e] = 1
 			elif c in "ATat":
 				values[e] = 0
-		res.append(tree.calcWeightedValue(values, -1, None, None))
+		res.append(tree.calcWeightedValue(values, -1, None))
 	for (ie,e) in enumerate(tree.allNames):
 		l = [r[ie] for r in res if r[ie] >= 0]
 		print utils.myTools.printLine([treeID, " ".join(tree.species[e]), len(l), utils.myMaths.mean(l)])

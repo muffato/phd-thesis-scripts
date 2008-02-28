@@ -213,7 +213,7 @@ def rebuildTree(node):
 			anc = inf['taxon_name']
 			for (i,(g,d)) in enumerate(data[node]):
 				gname = info[g]['taxon_name']
-				for a in phylTree.branches[anc]:
+				for (a,_) in phylTree.items[anc]:
 					if phylTree.isChildOf(gname, a):
 						fils[a].append( (g,d) )
 						break

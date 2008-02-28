@@ -11,7 +11,7 @@ dgi = dict.__getitem__
 ##########################################
 class PhylogeneticTree:
 	
-	def __init__(self, fichier, buildLinks = True):
+	def __init__(self, fichier):
 		
 		if type(fichier) == tuple:
 			print >> sys.stderr, "Creation de l'arbre phylogenetique"
@@ -38,42 +38,77 @@ class PhylogeneticTree:
 	
 		# La procedure d'analyse de l'arbre
 		def recInitialize(node):
+			
+			sys.stderr.write(".")
+
+			self.dicLinks.setdefault(node, self.newCommonNamesMapperInstance())
+			self.dicLinks.get(node).setdefault(node, [node])
+			self.dicParents.setdefault(node, self.newCommonNamesMapperInstance())
+			self.dicParents.get(node).setdefault(node, node)
+			res = [node]
 
 			if node in self.items:
 				self.fileName.setdefault(node, node.replace(' ', '_').replace('/', '-'))
 				b = []
 				bs = []
 				s = []
+				ld = []
 				self.listAncestr.append(node)
 				for (f,l) in self.items.get(node):
 					self.parent.setdefault(f, (node,l))
-					recInitialize(f)
+					desc = recInitialize(f)
 					b.append(f)
 					x = self.species.get(f)
 					bs.append(x)
 					s.extend(x)
+					# On remonte a node
+					res.extend(desc)
+					ld.append(desc)
+					for e in desc:
+						self.dicParents.get(e).setdefault(node, node)
+						self.dicParents.get(node).setdefault(e, node)
+						self.dicLinks.get(e).setdefault(node, self.dicLinks.get(e).get(f) + [node])
+						self.dicLinks.get(node).setdefault(e, [node] + self.dicLinks.get(f).get(e))
 				self.branches.setdefault(node, b)
 				self.branchesSpecies.setdefault(node, bs)
 				self.species.setdefault(node, s)
+				# Liens de parente
+				for (s1,s2) in myTools.myIterator.tupleOnStrictUpperList(ld):
+					for e1 in s1:
+						for e2 in s2:
+							self.dicParents.get(e1).setdefault(e2, node)
+							self.dicParents.get(e2).setdefault(e1, node)
+							self.dicLinks.get(e1).setdefault(e2, self.dicLinks.get(e1).get(node) + self.dicLinks.get(node).get(e2)[1:])
+							self.dicLinks.get(e2).setdefault(e1, self.dicLinks.get(e2).get(node) + self.dicLinks.get(node).get(e1)[1:])
 			else:
 				self.fileName.setdefault(node, node.replace(' ', '.'))
 				self.branchesSpecies.setdefault(node, [node])
 				self.species.setdefault(node, [node])
 				self.branches.setdefault(node, [])
 				self.listSpecies.append(node)
+
+			self.allDescendants.setdefault(node, frozenset(res))
 			
-		#for x in self.items.iteritems():
-		#	print x
+			return res
+
+		print >> sys.stderr, "Analyse des donnees ",
 		
-		print >> sys.stderr, "Analyse des donnees ...",
+		# Initialisation des structures
 		self.parent = self.newCommonNamesMapperInstance()
 		self.branches = self.newCommonNamesMapperInstance()
 		self.branchesSpecies = self.newCommonNamesMapperInstance()
 		self.species = self.newCommonNamesMapperInstance()
 		self.fileName = self.newCommonNamesMapperInstance()
+		self.dicLinks = self.newCommonNamesMapperInstance()
+		self.dicParents = self.newCommonNamesMapperInstance()
+		self.allDescendants = self.newCommonNamesMapperInstance()
 		self.listSpecies = []
 		self.listAncestr = []
+
+		# Remplissage
 		recInitialize(self.root)
+
+		# Structures post-analyse
 		self.allNames = self.listAncestr + self.listSpecies
 		self.outgroupSpecies = self.newCommonNamesMapperInstance()
 		self.indNames = self.newCommonNamesMapperInstance()
@@ -96,87 +131,7 @@ class PhylogeneticTree:
 		self.dicGenes = {}
 		self.dicGenomes = self.newCommonNamesMapperInstance()
 
-		#print
-		#for x in self.parent.iteritems():
-		#	print x
-
-		#print
-		#for (i,e) in enumerate(self.allNames):
-		#	print e, self.numParent[i]
-		
-		if buildLinks:
-			self.buildPhylLinks()
-		else:
-			print >> sys.stderr, "OK"
-
-
-		
-	def buildPhylLinks(self):
-	
-		print >> sys.stderr, "Parcours des branches ...",
-		esp = self.allNames
-		tab = range(len(esp))
-		tmpPar = self.numParent
-
-		# Initialisation de la table de tous les liens entre les objets
-		dicLinks = [[[] for _ in tab] for _ in tab]
-		dicParents = [[None for _ in tab] for _ in tab]
-		for i in tab:
-			dicLinks[i][i] = [i]
-			dicParents[i][i] = i
-		
-		# Remplissage de chaque objet avec tous ses parents et vice-versa
-		for f1 in tab:
-			parent = f1
-			dlf1 = dicLinks[f1]
-			dpf1 = dicParents[f1]
-			while parent != 0:
-				f2 = parent
-				(parent,_) = tmpPar[f2]
-				dlf1[parent] = dlf1[f2] + [parent]
-				dicLinks[parent][f1] = [parent] + dicLinks[f2][f1]
-				dpf1[parent] = dicParents[parent][f1] = parent
-
-		# Liens entre objets de branches differentes
-		todo = []
-		for f1 in tab:
-			dlf1 = dicLinks[f1]
-			for f2 in tab:
-				if len(dlf1[f2]) != 0:
-					continue
-				for f3 in tab:
-					f = False
-					try:
-						# Pour continuer il faut que les extremites concordent
-						if dlf1[f3][-1] == dicLinks[f3][f2][0]:
-							f = True
-							# Mais pas trop
-							if dlf1[f3][-2] == dicLinks[f3][f2][1]:
-								f = False
-					except IndexError:
-						pass
-					if f:
-						# Pour ne pas que les modifications se perturbent entre elles
-						todo.append( (f1,f2,f3) )
-						break
-		
-		for (f1,f2,f3) in todo:
-			dicLinks[f1][f2] = dicLinks[f1][f3][:-1]  + dicLinks[f3][f2]
-			dicParents[f1][f2] = f3
-		
-		# Le dictionnaire final
-		self.dicLinks = self.newCommonNamesMapperInstance()
-		self.dicParents = self.newCommonNamesMapperInstance()
-		for i in tab:
-			t1 = self.newCommonNamesMapperInstance()
-			t2 = self.newCommonNamesMapperInstance()
-			self.dicLinks.setdefault(esp[i], t1)
-			self.dicParents.setdefault(esp[i], t2)
-			for j in tab:
-				t1.setdefault(esp[j], [esp[x] for x in dicLinks[i][j]])
-				t2.setdefault(esp[j], esp[dicParents[i][j]])
-		print >> sys.stderr, "OK"
-		
+		print >> sys.stderr, " OK"
 
 
 	# Renvoie le nom de l'ancetre commun de plusieurs especes
@@ -198,10 +153,9 @@ class PhylogeneticTree:
 	# Calcule les valeurs sur les noeuds de l'arbre
 	#  - values represente des valeurs definies (noeuds ou feuilles)
 	#  - notdefined est la valeur a renvoyer si pas de resultat
-	#  - rootNode permet de restreindre le calcul
 	#  - resultNode indique de quel ancetre on veut le resultat
 	#########################################################################
-	def calcWeightedValue(self, values, notdefined, rootNode = None, resultNode = None):
+	def calcWeightedValue(self, values, notdefined, resultNode = None):
 		
 		import numpy
 		
@@ -229,7 +183,6 @@ class PhylogeneticTree:
 			elif len(items) >= 2:
 				# S'il a suffisament de voisins, on ecrit l'equation
 				s = 0.
-				matriceA[ianc].fill(0)
 				for (e,p) in items:
 					p = 1./max(p,0.00001)
 					matriceA[ianc][e] = p
@@ -238,22 +191,13 @@ class PhylogeneticTree:
 				matriceB[ianc] = 0
 				return True
 			else:
-				# Sinon, on ne peut calculer la valeur
-				# Il faut appeler les fils qui etaient OK pour leur dire que ce n'est plus possible
-				for (e,_) in items:
-					if e != father:
-						recBuild(e, None, 0)
-				matriceA[ianc].fill(0)
-				matriceA[ianc][ianc] = 1
-				matriceB[ianc] = notdefined
 				return False
 		
 		# Construction de la matrice
-		if rootNode == None:
-			rootNode = 0
-		else:
-			rootNode = self.indNames[rootNode]
-		#rootNode = self.indNames[self.lastCommonAncestor(values.keys())]
+		if len(values) == 0:
+			return matriceB
+			
+		rootNode = self.indNames[self.lastCommonAncestor(values.keys())]
 		recBuild(rootNode, None, 0)
 		# Resolution de l'equation
 		try:

@@ -5,74 +5,106 @@ A partir de toutes les diagonales extraites entre les especes,
   reconstruit les chromosomes (ou scaffold) de chaque ancetre.
 """
 
-
-##################
-# INITIALISATION #
-##################
-
-# Librairies
 import sys
-import utils.myGenomes
 import utils.myTools
 import utils.myMaths
+import utils.myGenomes
 import utils.myPhylTree
 import utils.walktrap
 
-#############
-# FONCTIONS #
-#############
+it = utils.myTools.myIterator.tupleOnStrictUpperList
 
-# Charge le fichier de toutes les diagonales (supposees non chevauchantes)
+###############################################################################
+# La fonction de calcul du score de presence sur le meme chromosome ancestral #
+###############################################################################
+@utils.myTools.memoize
+def calcProba(comparedEsp, communEsp):
+	
+	# On renvoie une valeur non nulle uniquement si au moins deux branches sont couvertes par des especes OK
+	if len([l for l in lstEspParNoeudsFils if len(l.intersection(communEsp)) > 0]) < 2:
+		return 0
+
+	# Table des valeurs
+	values = {}
+	for e in comparedEsp:
+		values[e] = espIncertitude[e]
+	for e in communEsp:
+		values[e] = espCertitude[e]
+	
+	if options["scoringMethod"] == 0:
+		# Methode initiale: poids pre-calcules de chaque espece et bi-produits
+		prop = [sum([x*dicPoidsEspeces[f] for (f,x) in values.iteritems() if f in l]) for l in lstEspParNoeudsFils]
+		return sum( [f1 * f2 for (f1,f2) in it(prop)] )
+
+	if options["scoringMethod"] == 1:
+		# Methode intermediaire: interpolation sur les sous arbres et bi-produits
+		prop = [phylTree.calcDist(values, f) for f in lstNoeudsFils]
+		return sum( [f1 * f2 for (f1,f2) in it([x for x in prop if x != None])] )
+
+	# Nouvelle methode: interpolation sur l'arbre entier
+	return phylTree.calcWeightedValue(values, -1, None)[phylTree.indNames[anc]]
+
+
+####################################
+# Charge le fichier des diagonales #
+####################################
 def loadDiagsFile(nom, ancName):
 	
 	print >> sys.stderr, "Chargement du fichier de diagonales ...",
 	f = utils.myTools.myOpenFile(nom, 'r')
 	lst = []
 	for l in f:
+		# TODO non necessaire dans l'avenir
 		# Selection de l'ancetre
 		if not l.startswith(ancName):
 			continue
 		# On enleve les "_random" et on extrait chaque colonne
 		ct = l.replace('\n', '').replace('_random', '').split('\t')
+		
 		# La diagonale
 		d = [int(x) for x in ct[2].split(' ')]
+		
 		# On joint les especes qui ont vu la diagonale et celles qui n'apportent que le chromosome
 		tmp = [y.split("/") for y in "|".join([x for x in ct[4:] if len(x) > 0]).split("|")]
 		# Les chromosomes de ces especes
-		espChr = frozenset( (phylTree.officialName[e],c) for (e,c) in tmp if ('Un' not in c) and (e in phylTree.officialName) )
-		# On la garde en memoire
-		lst.append( (d,espChr,ct[2],ct[3]) )
+		espChr = frozenset( [(phylTree.officialName[e],c) for (e,c) in tmp if ('Un' not in c) and (e in phylTree.officialName)] )
+		esp = frozenset( [e for (e,_) in espChr] )
+		
+		lst.append( (d,espChr,esp,ct[2],ct[3]) )
 
 	f.close()
 	print >> sys.stderr, "OK (%d diagonales)" % len(lst)
 	return lst
 
 
-#
-# Rajoute les genes non presents dans des diagonales, en les considerant comme des diagonales de 1
-#
+#############################################################################################################
+# Rajoute les genes non presents dans des diagonales, en les considerant comme des diagonales de longueur 1 #
+#############################################################################################################
 def checkLonelyGenes():
 
 	# Charge les genomes des ancetres outgroup
 	genesAnc = {}
-	for a in phylTree.listAncestr:
-		if (phylTree.dicParents[options["ancestr"]][a] == a) and (a != options["ancestr"]):
-			genesAnc[a] = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[a])
+	a = anc
+	while a in phylTree.parent:
+		(a,_) = phylTree.parent[a]
+		genesAnc[a] = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[a])
 	
 	print >> sys.stderr, "Ajout des genes solitaires ...",
-	# Les genes seuls vont devenir des diagonales de 1
+	
+	# Liste des genes solitaires
 	genesSeuls = set(xrange(len(lstGenesAnc)))
-	for (d,_,_,_) in lstDiagsIni:
+	for (d,_,_,_,_) in lstDiags:
 		genesSeuls.difference_update(d)
 	
 	nb = 0
 	new = []
+	# Les genes seuls vont devenir des diagonales de 1
 	for i in genesSeuls:
 
 		lst = []
 		for e in phylTree.listSpecies:
-			if e in lstEspOutgroup:
-				a = phylTree.dicParents[options["ancestr"]][e]
+			if e in phylTree.outgroupSpecies[anc]:
+				a = phylTree.dicParents[anc][e]
 				names = genesAnc[a].getOtherNames(lstGenesAnc[i].names)
 			else:
 				names = lstGenesAnc[i].names
@@ -86,23 +118,25 @@ def checkLonelyGenes():
 					lst.append( (e,c) )
 		
 		# Petit test: ne peuvent etre utilises que les genes avec au moins 2 especes
-		# Pour etre exact, il faudrait avec 2 groupes parmi (fils1 + ... + filsN + outgroup)
+		# Pour etre exact, il faut avoir 2 groupes parmi (fils1 + ... + filsN + outgroup)
 		if len(lst) >= 2:
-			new.append( ([i],frozenset(lst),str(i),"0") )
+			new.append( ([i],frozenset(lst),frozenset([e for (e,_) in lst]),str(i),"0") )
 			nb += 1
 	
 	print >> sys.stderr, "%d genes OK" % len(new)
 	return new
 
 
-# Charge les ancetres deja construits et rajoute les infos dans les diagonales
+################################################################################
+# Charge les ancetres deja construits et rajoute les infos dans les diagonales #
+################################################################################
 def checkAlreadyBuildAnc():
 	genAlready = {}
 	for f in lstNoeudsFils:
 		s = options["alreadyBuiltAnc"] % phylTree.fileName[f]
 		print >> sys.stderr, "Checking %s ..." % f,
 		if utils.myTools.fileAccess(s):
-			genAlready[f] = utils.myGenomes.Genome(s, withChr=True)
+			genAlready[f] = utils.myGenomes.Genome(s)
 			s = len(genAlready[f].lstChr)
 			if options["weightNbChr+"] and (s > 0):
 				espCertitude[f] = 1. - 1. / float(s)
@@ -112,25 +146,22 @@ def checkAlreadyBuildAnc():
 			print >> sys.stderr, "Not found"
 
 	print >> sys.stderr, "Mise a jour des chromosomes des diagonales ...",
-	for (d,esp,_,_) in lstDiagsIni:
+	for (d,espC,esp,_,_) in lstDiags:
 		g = utils.myMaths.flatten([lstGenesAnc[i].names for i in d])
 		for f in genAlready:
-			esp.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
+			espC.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
+			esp.update([f for s in g if s in genAlready[f].dicGenes])
 	print >> sys.stderr, "OK"
 
 
 
-########
-# MAIN #
-########
 
-# Arguments
-############
+
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf", "diagsList"], \
-	[("ancestr",str,""), ("alreadyBuiltAnc",str,""), ("removeDuplicates",bool,True), ("printDiags",bool,False), ("useOutgroups",bool,True), \
-	("newIOFormat",bool,False), ("scoringMethod",int,[0,1,2]), \
-	("mergeDiags",bool,False), ("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("walktrapLength",int,5), \
+	[("ancestr",str,""), ("scoringMethod",int,[0,1,2]), \
+	("useOutgroups",bool,True), ("alreadyBuiltAnc",str,""), \
+	("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("walktrapLength",int,5), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -140,13 +171,14 @@ def checkAlreadyBuildAnc():
 #  Chargement et initialisation
 ################################
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[options.ancestr])
+anc = phylTree.officialName[options["ancestr"]]
+genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc])
 lstGenesAnc = genesAnc.lstGenes[None]
-
-lstNoeudsFils = phylTree.branches[options["ancestr"]]
-lstEspParNoeudsFils = [set(s) for s in phylTree.branchesSpecies[options["ancestr"]]]
-lstEspOutgroup = phylTree.outgroupSpecies[options["ancestr"]]
-
+lstNoeudsFils = [a for (a,_) in phylTree.items[anc]]
+lstEspParNoeudsFils = [phylTree.allDescendants[f] for f in lstNoeudsFils]
+if (anc in phylTree.parent) and options["useOutgroups"]:
+	lstNoeudsFils.append( phylTree.parent[anc][0] )
+	lstEspParNoeudsFils.append( phylTree.allDescendants[phylTree.root].difference(phylTree.allDescendants[anc]) )
 
 # Chargement des genomes si necessaire
 #######################################
@@ -167,14 +199,13 @@ if options["weightNbChr+"] or options["weightNbChr-"] or options["useLonelyGenes
 # L'apport en terme de couverture de l'arbre phylogenetique
 def calcPoidsFils(node, calc):
 	dicPoidsEspeces[node] = calc
-	it = phylTree.tmpItems[node]
-	if len(it) > 0:
-		poids = calc / float(len(it))
-		for (f,_) in it:
+	if len(phylTree.tmpItems[node]) > 0:
+		poids = calc / float(len(phylTree.tmpItems[node]))
+		for (f,_) in phylTree.tmpItems[node]:
 			calcPoidsFils(f, poids)
 dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
-phylTree.initCalcDist(options["ancestr"], options["useOutgroups"])
-calcPoidsFils(options["ancestr"], float(len(phylTree.tmpItems[0])))
+phylTree.initCalcDist(anc, options["useOutgroups"])
+calcPoidsFils(anc, float(len(phylTree.tmpItems[0])))
 
 espCertitude = dict.fromkeys(phylTree.commonNames, 1.)
 espIncertitude = dict.fromkeys(phylTree.commonNames, 0.)
@@ -191,107 +222,37 @@ if options["weightNbChr-"]:
 
 # Les diagonales et les scores possibles
 #########################################
-lstDiagsIni = loadDiagsFile(noms_fichiers["diagsList"], options["ancestr"])
+lstDiags = loadDiagsFile(noms_fichiers["diagsList"], anc)
 
 # On doit rajouter les genes non presents dans des diagonales
 if options["useLonelyGenes"]:
-	lstDiagsIni.extend(checkLonelyGenes())
+	lstDiags.extend(checkLonelyGenes())
 
 # On doit noter les chromosomes des diagonales sur ces ancetres deja construits
 if options["alreadyBuiltAnc"] != "":
 	checkAlreadyBuildAnc()
 
-# On reduit les diagonales
-print >> sys.stderr, "Reduction de %d elements a ..." % len(lstDiagsIni),
-red = utils.myTools.defaultdict(list)
-for (i,(_,e,_,_)) in enumerate(lstDiagsIni):
-	red[e].append(i)
-lstDiags = [ (d,e,frozenset(x for (x,_) in e)) for (e,d) in red.iteritems() ]
-nbDiags = len(lstDiags)
 dicGenes.clear()
-print >> sys.stderr, nbDiags
 
 print >> sys.stderr, "%-25s\t%s\t%s\t%s" % ("Ancetre", "Poids", "Cert", "Incert")
 for e in dicPoidsEspeces:
 	print >> sys.stderr, "%-25s\t%.3f\t%.3f\t%.3f" % (e, dicPoidsEspeces[e], espCertitude[e], espIncertitude[e])
-	if options["scoringMethod"] == 0:
-		espCertitude[e] *= dicPoidsEspeces[e]
-		espIncertitude[e] *= dicPoidsEspeces[e]
 
 # On calcule les scores
 print >> sys.stderr, "Calcul de la matrice ...",
 
-if (options["scoringMethod"] == 1) and (len(lstEspOutgroup) != 0):
-	lstNoeudsFils.append(phylTree.parent[options["ancestr"]][0])
-it = utils.myTools.myIterator.tupleOnStrictUpperList
+walktrapInstance = utils.walktrap.WalktrapLauncher(showProgress=True, randomWalksLength=options["walktrapLength"])
 
 # On les stocke directement dans l'instance de walktrap
-walktrapInstance = utils.walktrap.WalktrapLauncher(showProgress=True, randomWalksLength=options["walktrapLength"])
-edges = walktrapInstance.edges
-
-for i1 in xrange(nbDiags):
-	(d1,ec1,e1) = lstDiags[i1]
+for i1 in xrange(len(lstDiags)):
+	(d1,ec1,e1,_,_) = lstDiags[i1]
 	for i2 in xrange(i1):
-		(d2,ec2,e2) = lstDiags[i2]
-		
-		if options["scoringMethod"] > 0:
-			values = {}
-			for e in e1.intersection(e2):
-				values[e] = espIncertitude[e]
-			for (e,_) in ec1.intersection(ec2):
-				values[e] = espCertitude[e]
-			if options["scoringMethod"] == 1:
-				prop = [phylTree.calcDist(values, f) for f in lstNoeudsFils]
-				s = sum( [f1 * f2 for (f1,f2) in it([x for x in prop if x != None])] )
-			else:
-				s = phylTree.calcWeightedValue(values, -1, None, options["ancestr"])
-		else:
-			comparedEsp = e1.intersection(e2)
-			communEsp = set([e for (e,_) in ec1.intersection(ec2)])
-
-			propF = range(len(lstNoeudsFils))
-				
-			for (i,f) in enumerate(lstNoeudsFils):
-				# Chez l'ancetre du dessous - meme chr
-				if f in communEsp:
-					propF[i] = espCertitude[f]
-				# Chez l'ancetre du dessous - diff chr
-				elif f in comparedEsp:
-					propF[i] = espIncertitude[f]
-				# Sinon, on revient aux genomes modernes
-				else:
-					f = lstEspParNoeudsFils[i]
-					s = sum([espCertitude[e] for e in f.intersection(communEsp)])
-					# On peut rajouter l'incertitude des autres especes
-					#   - si au moins une espece a valide la fusion
-					#   - si la branche est constituee d'une unique espece
-					if (s > 0) or (len(f) == 1):
-						s += sum([espIncertitude[e] for e in f.difference(communEsp)])
-					propF[i] = s
-			
-			s = sum(propF)
-			if s != 0:
-				propOut = sum([espCertitude[e] for e in communEsp.intersection(lstEspOutgroup)])
-				# On rajoute l'incertitude
-				if (propOut > 0):
-					propOut += sum([espIncertitude[e] for e in communEsp.difference(lstEspOutgroup)])
-				
-				s *= propOut
-				for (f1,f2) in it(propF):
-					s += f1 * f2
-		
-		if s > 0:
-			if options["mergeDiags"]:
-				edges[i1][i2] = s
-				edges[i2][i1] = s
-			else:
-				for x1 in d1:
-					for x2 in d2:
-						edges[x1][x2] = s
-						edges[x2][x1] = s
+		(d2,ec2,e2,_,_) = lstDiags[i2]
+		x = calcProba( e1.intersection(e2), frozenset([e for (e,_) in ec1.intersection(ec2)]) )
+		if x > 0:
+			walktrapInstance.edges[i1][i2] = walktrapInstance.edges[i2][i1] = x
 
 print >> sys.stderr, "OK"
-
 walktrapInstance.doWalktrap()
 
 clusters = []
@@ -315,63 +276,15 @@ for (nodes,cuts,_,dend) in walktrapInstance.res:
 print >> sys.stderr
 
 print >> sys.stderr, "Impression des %d chromosomes ancestraux ..." % len(clusters),
-lstChr = []
-# Chaque cluster
-for clust in clusters:
-	lstD = []
-	lstG = set()
-	for t in clust:
-		# Chaque element du cluster est le numero d'un ensemble de diagonales initiales
-		if options["mergeDiags"]:
-			t = lstDiags[t][0]
-		else:
-			t = [t]
-		# lstD contient la liste des diagonales du chromosome
-		lstD.extend(t)
-		for i in t:
-			# lstG contient la liste des genes de ces diagonales
-			lstG.update(lstDiagsIni[i][0])
-	lstChr.append( (lstD,lstG) )
-# -> lstChr contient la repartition des genes
 
-if options["newIOFormat"]:
+used = [False] * len(lstDiags)
+for (i,chrom) in enumerate(clusters):
+	for d in chrom:
+		used[d] = True
+		(_,_,_,d,s) = lstDiags[d]
+		print "%d\t%s\t%s" % (i+1,d,s)
 
-	used = [False] * len(lstDiagsIni)
-	for indChr in xrange(len(lstChr)):
-		for d in lstChr[indChr][0]:
-			used[d] = True
-			(_,_,d,s) = lstDiagsIni[d]
-			print "%d\t%s\t%s" % (indChr+1,d,s)
-	for (d,x) in enumerate(used):
-		if not x:
-			(_,_,d,s) = lstDiagsIni[d]
-			print "-\t%s\t%s" % (d,s)
-else:
-
-	inter = set()
-	if options["removeDuplicates"]:
-		for ((_,l1),(_,l2)) in utils.myTools.myIterator.tupleOnStrictUpperList(lstChr):
-			inter.update(l1.intersection(l2))
-		# -> inter contient les genes presents dans deux chromosomes a la fois
-		# Il reste des genes en double sur le meme chromosome
-
-
-	for indChr in xrange(len(lstChr)):
-		for d in lstChr[indChr][0]:
-			if options["printDiags"]:
-				(_,_,d,s) = lstDiagsIni[d]
-				print "%d\t%s\t%s" % (indChr+1,d,s)
-			else:
-				(d,_) = lstDiagsIni[d]
-				print "# Diag chr=%d len=%d" % (indChr+1,len(d))
-				for g in d:
-					if g not in inter:
-						print indChr+1, " ".join(lstGenesAnc[g].names)
-						# On retient les genes deja imprimes pour ne pas les reimprimer (genes en double d'un meme chromosome)
-						if options["removeDuplicates"]:
-							inter.add(g)
-
-print >> sys.stderr, "OK"
-
-
-
+for (d,x) in enumerate(used):
+	if not x:
+		(_,_,_,d,s) = lstDiags[d]
+		print "-\t%s\t%s" % (d,s)

@@ -113,9 +113,9 @@ def MySQLFileLoader(f):
 #####################################################################
 class myIterator:
 	
-	@staticmethod
 	# Parcourt tous les (x,y)
 	##########################
+	@staticmethod
 	def tupleOnWholeList(lst):
 		for x in lst:
 			for y in lst:
@@ -139,17 +139,17 @@ class myIterator:
 			for y in lst[i+1:]:
 				yield (x,y)
 	
-	@staticmethod
 	# Parcourt tous les (x,y)
 	##########################
+	@staticmethod
 	def tupleOnTwoLists(lstX, lstY):
 		for x in lstX:
 			for y in lstY:
 				yield (x,y)
 
-	@staticmethod
 	# Fonction de Charles pour renvoyer toutes les combinaisons des elements des differentes listes passees en argument
 	####################################################################################################################
+	@staticmethod
 	def tupleOnManyLists(*args):
 		""" This generator combine all versus all sequences elements as follow:
 		>>> args = [['A','C'],['A','C'],['A','C']]
@@ -164,9 +164,9 @@ class myIterator:
 		for n in xrange(reduce(operator.mul, lengths)):
 			yield tuple( args[r][(n/dividers[r])%lengths[r]] for r in range_len_args )
 	
-	@staticmethod
 	# Couple (x,y) glissant
 	########################
+	@staticmethod
 	def slidingTuple(lst):
 		x = lst[0]
 		for i in xrange(1, len(lst)):
@@ -184,29 +184,33 @@ class myIterator:
 		return nb
 
 	
+	# Construit les sous-ensembles de taille n de la liste
+	#######################################################
 	@staticmethod
-	def buildSubsets(lst, n):
+	def buildSubsets(lst, s):
 		l = len(lst)
-		mem = {}
 
+		# Renvoie les sous-ensembles de taille n, avec des elements d'indices >= i
+		@memoize
 		def rec(i, n):
-			if (i,n) in mem:
-				return mem[(i,n)]
-			
 			if i >= l-n:
-				res = [lst[i:]]
+				return [lst[i:]]
 			elif n <= 1:
-				res = [[x] for x in lst[i:]]
+				return [[x] for x in lst[i:]]
 			else:
 				ref = [lst[i]]
-				res = rec(i+1, n)
+				res = list(rec(i+1, n))
 				for x in rec(i+1, n-1):
 					res.append(ref + x)
+				return res
 
-			mem[(i,n)] = res
+		if s <= 0:
+			res = [lst]
+			for i in xrange(1, l):
+				res.extend(rec(0, i))
 			return res
-
-		return rec(0, n)
+		else:
+			return rec(0, s)
 
 
 ##########################################################
@@ -225,6 +229,14 @@ def getRange(s):
 		return range(int(start), int(end)+1)
 
 
+###########################################################
+# Classe dict hashable, utile pour s'en servir comme clef #
+###########################################################
+class hashabledict(dict):
+	def __hash__(self):
+		return hash(tuple(sorted(self.items())))
+
+
 ################################################################################
 # Enregistre les resultats d'une fonction pour chaque valeur de ses parametres #
 ################################################################################
@@ -235,9 +247,14 @@ class memoize:
 	"""
 	def __init__(self, func):
 		self.func = func
+		self.nbcall = 0
 		self.cache = {}
 
+	def __repr__(self):
+		return "[%s: %d values cached, %d calls]" % (self.func.__name__, len(self.cache), self.nbcall)
+
 	def __call__(self, *args):
+		self.nbcall += 1
 		try:
 			return self.cache[args]
 		except KeyError:

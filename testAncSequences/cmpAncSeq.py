@@ -15,7 +15,7 @@ computed = {}
 proba = utils.myTools.defaultdict(dict)
 f = utils.myTools.myOpenFile(noms_fichiers["ComputedAligment"], "r")
 for l in f:
-	t = l[:-1].split('\t')
+	t = l.replace('\n','').split('\t')
 	if l.startswith("NAME"):
 		if t[1] == "NAME_0":
 			name = "Node1"

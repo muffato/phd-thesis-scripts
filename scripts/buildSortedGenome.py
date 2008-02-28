@@ -67,7 +67,6 @@ def rewriteGenome():
 	if useOutgroups > 0:
 		anc = options["ancestr"]
 		while anc in phylTree.parent:
-			speciesAlreadyUsed = frozenset(phylTree.species[anc])
 			(anc,_) = phylTree.parent[anc]
 			# Le genome de l'ancetre superieur
 			tmpGenesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc])
@@ -77,7 +76,7 @@ def rewriteGenome():
 				# Les positions dans les genomes qu'on a charge (on evite le nom FAMxx)
 				newGenes = [phylTree.dicGenes[s] for s in g.names if s in phylTree.dicGenes]
 				# On se restreint aux outgroup
-				newGenes = [x for x in newGenes if x[0] not in speciesAlreadyUsed]
+				newGenes = [x for x in newGenes if x[0] not in phylTree.species[anc]]
 				# On enregistre le lien entre les genes du genome a ordonner et les genes des outgroups
 				for x in genesAnc.getPosition(g.names):
 					dicOutgroupGenes[x].update(newGenes)
@@ -127,7 +126,7 @@ seuil = options["seuilMaxDistInterGenes"]
 pen = str(int(mult*options["infiniteDist"]))
 add = options["notConstraintPenalty"]
 anc = options["ancestr"]
-ancSpecies = frozenset(phylTree.species[anc])
+ancSpecies = phylTree.species[anc]
 ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
 
 phylTree.initCalcDist(anc, useOutgroups != 0)

@@ -12,15 +12,15 @@ import utils.myPhylTree
 	"Cree le fichier de travail ZIP de chaque famille (proteines & arbre)" \
 )
 
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree"], buildLinks = False)
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree"])
 
 CDS = {}
 for esp in phylTree.listSpecies:
 	print >> sys.stderr, "Chargement des CDS de", esp, "...",
 	f = utils.myTools.myOpenFile(options["IN.CDS"] % phylTree.fileName[esp], "r")
 	for ligne in f:
-		t = ligne.split('\t')
-		CDS[t[0]] = t[1][:3*(len(t[1])/3)] # On tronque aux codons entiers
+		t = ligne.replace('\n','').split('\t')
+		CDS[t[0]] = t[1] + "NN" # Pour tenir compte des CDS non entiers
 	f.close()
 	print >> sys.stderr, "OK"
 
@@ -45,7 +45,7 @@ geneticCode = {
      'GTT': 'V', 'GTC': 'V', 'GTA': 'V', 'GTG': 'V', 'GCT': 'A',
      'GCC': 'A', 'GCA': 'A', 'GCG': 'A', 'GAT': 'D', 'GAC': 'D',
      'GAA': 'E', 'GAG': 'E', 'GGT': 'G', 'GGC': 'G', 'GGA': 'G',
-     'GGG': 'G' } #, 'TAA':  '', 'TAG':  '', 'TGA':  '' } # Les codons stop seront des X
+     'GGG': 'G', 'TAA': '*', 'TAG': '*', 'TGA': '*' }
 
 f = utils.myTools.myOpenFile(noms_fichiers["tree.5"], "r")
 for (i,ligneEspeces) in enumerate(f):
@@ -62,8 +62,14 @@ for (i,ligneEspeces) in enumerate(f):
 	for (g,c) in esp:
 		cdsTab[j] = protTab[j] = '>' + g
 		j += 1
-		cdsTab[j] = c
-		protTab[j] = ''.join([geneticCode.get(c[3*i:3*i+3],'X') for i in xrange(len(c)/3)])
+		length = len(c)/3
+		cdsTab[j] = c[:3*length] # Pour avoir des codons entiers
+		protTab[j] = ''.join([geneticCode.get(c[3*i:3*i+3],'X') for i in xrange(length)])
+		# Le STOP/* final est enleve car non gere par muscle
+		if protTab[j][-1] == '*':
+			protTab[j] = protTab[j][:-1]
+		# Il faut pour la meme raison remplacer les STOP/* internes par des X
+		protTab[j] = protTab[j].replace('*', 'X')
 		j += 1
 	
 	# Creation du fichier ZIP

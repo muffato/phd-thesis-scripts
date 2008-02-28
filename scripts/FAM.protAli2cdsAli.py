@@ -6,12 +6,18 @@ import utils.myGenomes
 
 (_,options) = utils.myTools.checkArgs( [], [("range",str,""), ("aligment-FASTA",str,""), ("CDS-FASTA",str,""), ("aligment-output",str,""), ("positions",str,"123")], "Converts a Muscle alignment of protein sequences to the corresponding CDS sequences" )
 
+
+positions = [int(p)-1 for p in options["positions"]]
+
 for treeID in utils.myTools.getRange(options["range"]):
 	
 	print >> sys.stderr, treeID, "...",
 
 	# Chargement des CDS
 	CDS = utils.myGenomes.loadFastaFile(options["CDS-FASTA"] % treeID)
+	# Gestion des CDS non entiers
+	for (name,seq) in CDS.iteritems():
+		CDS[name] = seq + "NN"
 
 	# Conversion des alignements
 	fi = utils.myTools.myOpenFile(options["aligment-FASTA"] % treeID, "r")
@@ -21,7 +27,7 @@ for treeID in utils.myTools.getRange(options["range"]):
 		ligne = ligne.replace('\n', '')
 		if ligne[0] == ">":
 			print >> fo, seqFiltered
-			print >> fo, ligne,
+			print >> fo, ligne
 			name = ligne[1:]
 			seqFiltered = ""
 			pos = 0
@@ -32,11 +38,10 @@ for treeID in utils.myTools.getRange(options["range"]):
 				if aa == '-':
 					codon = '---'
 				else:
-					codon = (CDS[name][pos:pos+3] + "---")[:3] # Astuce pour les CDS avec une taille non multiple de 3
+					codon = CDS[name][pos:pos+3]
 					pos += 3
 				# On imprime les positions voulues
-				for p in options["positions"]:
-					seqFiltered += codon[int(p)-1]
+				seqFiltered += ''.join([codon[p] for p in positions])
 	print >> fo, seqFiltered
 	fi.close()
 	fo.close()

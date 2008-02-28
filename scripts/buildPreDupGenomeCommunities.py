@@ -292,19 +292,20 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 	def calcChrAncScore(col, ch):
 		
 		# Une tetrapode rapporte 1 si un de ses representants a vote pour le chromosome ancestral
-		values = {}
+		values = utils.myTools.hashabledict()
 		for (_,c,eND) in col:
 			values[eND] = max(values.get(eND,0), float(c == ch))
 
 		# Soit on fait un calcul phylogenetique
 		if options["usePhylTreeScoringNonDup"]:
-			return phylTree.calcWeightedValue(values, 0, rootNonDup, rootNonDup)[2]
+			return probaMemory(values, 0, rootNonDup)[2]
 
 		# On fait les groupes
 		rTot = [[values[e] for e in gr if e in values] for gr in especesNonDupGrp]
 		# La moyenne des moyennes de chaque groupe non vide
 		return utils.myMaths.mean([utils.myMaths.mean(r) for r in rTot if len(r) > 0])
 
+	probaMemory = utils.myTools.memoize(phylTree.calcWeightedValue)
 	chrNames = sorted(chrAncGenes)
 	for (i,col) in enumerate(genesAncCol):
 	
@@ -419,7 +420,7 @@ for i1 in xrange(len(allDCS)):
 				for x in (esp1[e] & allDCSe2[i2][e]):
 					val += min(alt1[e][x], alt2[e][x])
 				scores[e] = val
-			val = phylTree.calcWeightedValue(scores, 0, rootDup, rootDup)[2]
+			val = phylTree.calcWeightedValue(scores, 0, rootDup)[2]
 			if val > 0:
 				edges[i1][i2] = edges[i2][i1] = val
 
@@ -446,27 +447,9 @@ walktrapInstance.doWalktrap()
 chrInd = 0
 for (nodes,cuts,_,dend) in walktrapInstance.res:
 	print >> sys.stderr, "Communaute de %d noeuds:" % len(nodes)
-	# Un point de coupure virtuel si il n'y a pas
+	# Un point de coupure virtuel si il n'y en a pas
 	cuts.append( (1,0) )
-	# Les clusterings
-	res = [(alpha,relevance,dend.cut(alpha)) for (alpha,relevance) in cuts]
-	# Le choix par defaut
-	x = 0
-	if utils.myTools.stdinInput and (len(res) > 1):
-		# Si on peut, on propose a l'utilisateur de choisir
-		for (alpha,relevance,(clusters,lonely)) in res:
-			print >> sys.stderr, "> alpha=%f relevance=%f clusters=%d size=%d lonely=%d sizes={%s}" % \
-				(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely),utils.myMaths.myStats([len(c) for c in clusters]))
-		while True:
-			try:
-				print >> sys.stderr, "Choix ? ",
-				x = int(raw_input())
-				break
-			except ValueError:
-				pass
-	(alpha,relevance,(clusters,lonely)) = res[x]
-	print >> sys.stderr, "Choix de alpha=%f relevance=%f clusters=%d size=%d lonely=%d sizes={%s}" % \
-		(alpha,relevance,len(clusters),sum([len(c) for c in clusters]),len(lonely),utils.myMaths.myStats([len(c) for c in clusters]))
+	(alpha,relevance,(clusters,lonely)) = utils.walktrap.askPartitionChoice(dend, cuts)
 	# On enregistre les resultats
 	for cl in clusters:
 		chrInd += 1

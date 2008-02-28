@@ -230,7 +230,7 @@ def printData(node):
 	f.close()
 	print >> sys.stderr, "OK"
 
-	for fils in phylTree.branches[node]:
+	for (fils,_) in phylTree.items[node]:
 		subFam = printData(fils)
 
 		# Quelques fausses assignations

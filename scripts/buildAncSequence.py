@@ -7,7 +7,7 @@ import utils.myPhylTree
 
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	[], \
-	[("start",int,0), ("end",int,0), ("alphabet",str,"ACGTN"), ("phylTree",str,""), ("alignment-FASTA",str,"")], \
+	[("range",str,""), ("alphabet",str,"ACGTN"), ("phylTree",str,""), ("alignment-FASTA",str,"")], \
 	"Reconstruit la sequence ancestrale" \
 )
 
@@ -15,11 +15,11 @@ allBases = options["alphabet"][:-1]
 unknownBase = options["alphabet"][-1]
 unknownBaseCost = 1. / len(allBases)
 
-for treeID in xrange(options["start"], options["end"]+1):
+for treeID in utils.myTools.getRange(options["range"]):
 	
 	print >> sys.stderr, treeID, "...",
 
-	tree = utils.myPhylTree.PhylogeneticTree(options["phylTree"] % treeID, buildLinks=False)
+	tree = utils.myPhylTree.PhylogeneticTree(options["phylTree"] % treeID)
 
 	seq = utils.myGenomes.loadFastaFile(options["alignment-FASTA"] % treeID)
 
@@ -31,17 +31,13 @@ for treeID in xrange(options["start"], options["end"]+1):
 			values = {}
 			for (e,s) in seq.iteritems():
 				c = s[i].upper()
-				#if i < len(s):
-				#else:
-				#	print >> sys.stderr, "!1", e, s, i, n
-				#	c = "-"
 				if c == base:
 					values[e] = 1.
 				elif c == unknownBase:
 					values[e] = unknownBaseCost
 				elif c in allBases:
 					values[e] = 0.
-			proba.append(tree.calcWeightedValue(values, -1, None, None))
+			proba.append(tree.calcWeightedValue(values, -1, None))
 		res.append(proba)
 
 	for (ie,e) in enumerate(tree.allNames):

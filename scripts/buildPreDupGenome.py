@@ -285,19 +285,17 @@ def addDCS(bloc, col, dicGenesAnc, chrAnc, eNonDup):
 #
 def buildChrAnc(genesAncCol, chrAncGenes):
 
-	#
 	# Renvoie un score (~pourcentage d'especes) qui soutiennent l'attribution d'un gene a un chromosome
-	#
 	def calcChrAncScore(col, ch):
 		
-		values = {}
+		values = utils.myTools.hashabledict()
 		# Une tetrapode rapporte 1 si un de ses representants a vote pour le chromosome ancestral
 		for (_,c,eND) in col:
 			values[eND] = max(values.get(eND,0), float(c == ch))
 
 		# Soit on fait un calcul phylogenetique
 		if options["usePhylTreeScoring"]:
-			return phylTree.calcWeightedValue(values, 0, rootNonDup, rootNonDup)[2]
+			return probaMemory(values, 0, rootNonDup)[2]
 
 		# On fait les groupes
 		rTot = [[values[e] for e in gr if e in values] for gr in especesNonDupGrp]
@@ -305,6 +303,7 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 		return utils.myMaths.mean([utils.myMaths.mean(r) for r in rTot if len(r) > 0])
 
 	chrNames = sorted(chrAncGenes)
+	probaMemory = utils.myTools.memoize(phylTree.calcWeightedValue)
 	for (i,col) in enumerate(genesAncCol):
 	
 		if len(col) == 0:
