@@ -14,7 +14,7 @@ class PhylogeneticTree:
 	def __init__(self, fichier):
 		
 		if type(fichier) == tuple:
-			print >> sys.stderr, "Creation de l'arbre phylogenetique"
+			print >> sys.stderr, "Creation de l'arbre phylogenetique ...",
 			(self.items, self.root, self.officialName) = fichier
 		else:
 			print >> sys.stderr, "Chargement de l'arbre phylogenique de %s ..." % fichier,
@@ -48,19 +48,14 @@ class PhylogeneticTree:
 			res = [node]
 
 			if node in self.items:
-				self.fileName.setdefault(node, node.replace(' ', '_').replace('/', '-'))
-				b = []
-				bs = []
+				self.fileName.setdefault(node, str(node).replace(' ', '_').replace('/', '-'))
 				s = []
 				ld = []
 				self.listAncestr.append(node)
 				for (f,l) in self.items.get(node):
 					self.parent.setdefault(f, (node,l))
 					desc = recInitialize(f)
-					b.append(f)
-					x = self.species.get(f)
-					bs.append(x)
-					s.extend(x)
+					s.extend(self.species.get(f))
 					# On remonte a node
 					res.extend(desc)
 					ld.append(desc)
@@ -69,9 +64,7 @@ class PhylogeneticTree:
 						self.dicParents.get(node).setdefault(e, node)
 						self.dicLinks.get(e).setdefault(node, self.dicLinks.get(e).get(f) + [node])
 						self.dicLinks.get(node).setdefault(e, [node] + self.dicLinks.get(f).get(e))
-				self.branches.setdefault(node, b)
-				self.branchesSpecies.setdefault(node, bs)
-				self.species.setdefault(node, s)
+				self.species.setdefault(node, frozenset(s))
 				# Liens de parente
 				for (s1,s2) in myTools.myIterator.tupleOnStrictUpperList(ld):
 					for e1 in s1:
@@ -81,10 +74,8 @@ class PhylogeneticTree:
 							self.dicLinks.get(e1).setdefault(e2, self.dicLinks.get(e1).get(node) + self.dicLinks.get(node).get(e2)[1:])
 							self.dicLinks.get(e2).setdefault(e1, self.dicLinks.get(e2).get(node) + self.dicLinks.get(node).get(e1)[1:])
 			else:
-				self.fileName.setdefault(node, node.replace(' ', '.'))
-				self.branchesSpecies.setdefault(node, [node])
-				self.species.setdefault(node, [node])
-				self.branches.setdefault(node, [])
+				self.fileName.setdefault(node, str(node).replace(' ', '.'))
+				self.species.setdefault(node, frozenset([node]))
 				self.listSpecies.append(node)
 
 			self.allDescendants.setdefault(node, frozenset(res))
@@ -95,8 +86,6 @@ class PhylogeneticTree:
 		
 		# Initialisation des structures
 		self.parent = self.newCommonNamesMapperInstance()
-		self.branches = self.newCommonNamesMapperInstance()
-		self.branchesSpecies = self.newCommonNamesMapperInstance()
 		self.species = self.newCommonNamesMapperInstance()
 		self.fileName = self.newCommonNamesMapperInstance()
 		self.dicLinks = self.newCommonNamesMapperInstance()
@@ -117,8 +106,8 @@ class PhylogeneticTree:
 			self.indNames.setdefault(e, i)
 			self.officialName[i] = e
 		self.numItems = [[]] * len(self.allNames)
-		for (e,fils) in self.items.iteritems():
-			self.numItems[self.indNames.get(e)] = [(self.indNames.get(a),l) for (a,l) in fils]
+		for a in self.listAncestr:
+			self.numItems[self.indNames.get(a)] = [(self.indNames.get(f),l) for (f,l) in self.items.get(a)]
 		self.numParent = [None] * len(self.allNames)
 		for (e,(par,l)) in self.parent.iteritems():
 			self.numParent[self.indNames.get(e)] = (self.indNames.get(par),l)
@@ -251,10 +240,8 @@ class PhylogeneticTree:
 			def __getitem__(d, name):
 				if name in self.officialName:
 					return dgi(d, self.officialName[name])
-					#return d.get(self.officialName[name])
 				else:
 					return dgi(d, name)
-					#return d.get(name)
 			
 			def __setitem__(d, name, value):
 				if name in self.officialName:
@@ -521,7 +508,7 @@ class PhylogeneticTree:
 			return (nom,length)
 
 		self.pos = 0
-		self.data = readTree()
+		data = readTree()
 		self.pos = 0
-		storeTree(self.data)
+		storeTree(data)
 

@@ -1,4 +1,5 @@
 
+import sys
 import myTools
 
 
@@ -98,14 +99,18 @@ def loadTree(name):
 			
 		return currID
 
+	print >> sys.stderr, "Chargement du fichier d'arbres %s ..." % name,
 	lignes = loadFile(name)
 	lignes.reverse()
-	
+
 	roots = []
 	info = {}
 	data = {}
+	
+	print >> sys.stderr, "%d lignes, Analyse ..." % len(lignes),
 	while len(lignes) > 0:
 		roots.append(recLoad(0))
+	print >> sys.stderr, "%d racines, %d branches, %d noeuds OK" % (len(roots),len(data),len(info)-len(data))
 
 	return (data, info, roots)
 
