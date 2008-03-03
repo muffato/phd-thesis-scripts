@@ -88,6 +88,14 @@ def loadTree(name):
 		currID = int(lignes.pop()[2])
 		# Les infos associees
 		info[currID] = eval(lignes.pop()[2])
+		#info[currID] = {}
+		#for (k,v) in eval(lignes.pop()[2]).iteritems():
+		#	if type(k) == str:
+		#		k = intern(k)
+		#	if (type(v) == str) and ("{" not in v):
+		#		info[currID][k] = intern(v)
+		#	else:
+		#		info[currID][k] = v
 
 		# Des fils ?
 		child = []

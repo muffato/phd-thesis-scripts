@@ -68,16 +68,18 @@ print >> sys.stderr, len(tmpLinks), "OK"
 ###########################################
 print >> sys.stderr, "Chargement des liens node_id -> member_id ...",
 x = 0
-info = utils.myTools.defaultdict(dict)
+#info = utils.myTools.defaultdict(dict)
+info = {}
 f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.protein_tree_member"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	node = int(t[0])
 	data = tmpLinks[t[1]]
-	info[node]['gene_name'] = data[0][0]
-	info[node]['transcript_name'] = data[0][1]
-	info[node]['protein_name'] = data[0][2]
-	info[node]['taxon_name'] = data[1]
+	info[node] = {'gene_name': data[0][0], 'transcript_name': data[0][1], 'protein_name': data[0][2], 'taxon_name': data[1]}
+	#info[node]['gene_name'] = data[0][0]
+	#info[node]['transcript_name'] = data[0][1]
+	#info[node]['protein_name'] = data[0][2]
+	#info[node]['taxon_name'] = data[1]
 	x += 1
 f.close()
 print >> sys.stderr, x, "liens OK"
