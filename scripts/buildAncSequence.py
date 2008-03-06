@@ -12,6 +12,7 @@ import utils.myPhylTree
 )
 
 allBases = options["alphabet"][:-1]
+allBasesS = set(options["alphabet"])
 unknownBase = options["alphabet"][-1]
 unknownBaseCost = 1. / len(allBases)
 
@@ -30,12 +31,12 @@ for treeID in utils.myTools.getRange(options["range"]):
 		for base in allBases:
 			values = {}
 			for (e,s) in seq.iteritems():
-				c = s[i].upper()
+				c = s[i]
 				if c == base:
 					values[e] = 1.
 				elif c == unknownBase:
 					values[e] = unknownBaseCost
-				elif c in allBases:
+				elif c in allBasesS:
 					values[e] = 0.
 			proba.append(tree.calcWeightedValue(values, -1, None))
 		res.append(proba)

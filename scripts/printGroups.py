@@ -4,18 +4,10 @@ __doc__ = """
 	Lit des donnees dans un fichier et les regroupe
 """
 
-##################
-# INITIALISATION #
-##################
-
-# Librairies
 import sys
 import utils.myTools
 
 ########
-# MAIN #
-########
-
 # Les fichiers a regrouper (par defaut, on lit l'entree standard)
 files = sys.argv[1:]
 if len(files) == 0:

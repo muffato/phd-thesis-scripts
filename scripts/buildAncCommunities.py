@@ -17,7 +17,7 @@ it = utils.myTools.myIterator.tupleOnStrictUpperList
 ###############################################################################
 # La fonction de calcul du score de presence sur le meme chromosome ancestral #
 ###############################################################################
-@utils.myTools.memoize
+#@utils.myTools.memoize
 def calcProba(comparedEsp, communEsp):
 	
 	# On renvoie une valeur non nulle uniquement si au moins deux branches sont couvertes par des especes OK

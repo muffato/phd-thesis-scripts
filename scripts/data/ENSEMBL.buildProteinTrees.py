@@ -22,7 +22,7 @@ import utils.myProteinTree
 	("IN.protein_tree_node",str,"protein_tree_node.txt.gz"), \
 	("IN.protein_tree_member",str,"protein_tree_member.txt.gz"), \
 	("IN.protein_tree_tag",str,"protein_tree_tag.txt.gz"), \
-	("OUT.tree",str,"tree.%d.bz2"), \
+	("OUT.tree",str,"tree.%s.bz2"), \
 	], \
 	__doc__ \
 )
@@ -68,18 +68,12 @@ print >> sys.stderr, len(tmpLinks), "OK"
 ###########################################
 print >> sys.stderr, "Chargement des liens node_id -> member_id ...",
 x = 0
-#info = utils.myTools.defaultdict(dict)
-info = {}
+info = utils.myTools.defaultdict(dict)
 f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.protein_tree_member"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
-	node = int(t[0])
 	data = tmpLinks[t[1]]
-	info[node] = {'gene_name': data[0][0], 'transcript_name': data[0][1], 'protein_name': data[0][2], 'taxon_name': data[1]}
-	#info[node]['gene_name'] = data[0][0]
-	#info[node]['transcript_name'] = data[0][1]
-	#info[node]['protein_name'] = data[0][2]
-	#info[node]['taxon_name'] = data[1]
+	info[int(t[0])] = {'gene_name': data[0][0], 'transcript_name': data[0][1], 'protein_name': data[0][2], 'taxon_name': data[1]}
 	x += 1
 f.close()
 print >> sys.stderr, x, "liens OK"
@@ -287,11 +281,11 @@ def getRoots(node, previousAnc, lastWrittenAnc):
 
 
 # On a besoin des genomes modernes pour reconnaitre les genes
-ft1 = utils.myTools.myOpenFile(options["OUT.tree"] % 1, "w")
-ft2 = utils.myTools.myOpenFile(options["OUT.tree"] % 2, "w")
-ft3 = utils.myTools.myOpenFile(options["OUT.tree"] % 3, "w")
-ft4 = utils.myTools.myOpenFile(options["OUT.tree"] % 4, "w")
-ft5 = utils.myTools.myOpenFile(options["OUT.tree"] % 5, "w")
+ft1 = utils.myTools.myOpenFile(options["OUT.tree"] % "1.ensembl", "w")
+ft2 = utils.myTools.myOpenFile(options["OUT.tree"] % "2.clean", "w")
+ft3 = utils.myTools.myOpenFile(options["OUT.tree"] % "3.flatten", "w")
+ft4 = utils.myTools.myOpenFile(options["OUT.tree"] % "4.rebuilt", "w")
+ft5 = utils.myTools.myOpenFile(options["OUT.tree"] % "5.cut", "w")
 
 print >> sys.stderr, "Mise en forme des arbres ...",
 nb = 0

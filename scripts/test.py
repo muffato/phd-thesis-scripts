@@ -17,6 +17,11 @@ import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
 
+phylTree2 = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
+
+print phylTree2.allNames
+
+sys.exit(0)
 for i in xrange(10):
 	print os.isatty(sys.stdin.fileno())
 	time.sleep(1)

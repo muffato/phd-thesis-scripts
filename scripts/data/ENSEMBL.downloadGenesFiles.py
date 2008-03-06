@@ -97,7 +97,7 @@ for (tmp,esp) in nomReel:
 	
 	fo = utils.myTools.myOpenFile(OUTxrefFile % phylTree.fileName[esp], 'w')
 	for ((gg,gt,gp),xref) in dic.iteritems():
-		print >> fo, "\t".join([gg,gt,gp] + list(xref))
+		print >> fo, "\t".join([gg,gt,gp] + " ".join(xref))
 	fo.close()
 	print >> sys.stderr, "%d annotations xref" % len(dic)
 

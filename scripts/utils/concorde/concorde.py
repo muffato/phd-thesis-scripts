@@ -46,7 +46,7 @@ class ConcordeLauncher:
 		for i in xrange(repeat):
 			comm = '/users/ldog/muffato/work/scripts/utils/concorde/concorde -x %s >%s' % (self.filename,dest)
 			os.system(comm)
-			if os.access(self.filename + ".sol", os.R_OK):
+			if fileAccess(self.filename + ".sol"):
 				lstTot.append(ConcordeFile(self.filename + ".sol"))
 			os.system('rm -f 0%s* %s*' % (self.filename,self.filename) )
 			sys.stderr.write(".")
