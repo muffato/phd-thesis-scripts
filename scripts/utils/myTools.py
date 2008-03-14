@@ -217,7 +217,7 @@ class myIterator:
 # Gestion du lancement multiple sur une plage de valeurs #
 ##########################################################
 def getRange(s):
-	if os.access(s, os.R_OK):
+	if fileAccess(s):
 		f = myOpenFile(s, "r")
 		lst = []
 		for l in f:
@@ -292,7 +292,7 @@ class myCombinator:
 	def addLink(self, obj):
 	
 		if len(obj) == 0:
-			return
+			return []
 	
 		obj = set(obj)
 		grp = self.grp
@@ -307,6 +307,7 @@ class myCombinator:
 			grp.append(list(obj))
 			for x in obj:
 				dic[x] = i
+			return grp
 		else:
 			i = d.pop()
 			grpiextend = grp[i].extend
@@ -320,6 +321,7 @@ class myCombinator:
 			for x in dd:
 				dic[x] = i
 			grpiextend(dd)
+			return grp[i]
 	
 
 	# Renvoie un iterateur sur les donnees
@@ -444,7 +446,7 @@ def checkArgs(args, options, info):
 				else:
 					# Ici, on affecte False
 					valOpt[s] = (t[0] == '+')
-		elif os.access(t, os.R_OK):
+		elif fileAccess(t):
 			valArg.append(t)
 		else:
 			print >> sys.stderr, "Fichier %s non accessible" % t

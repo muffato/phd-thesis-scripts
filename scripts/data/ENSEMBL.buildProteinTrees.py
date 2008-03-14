@@ -46,7 +46,7 @@ for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	taxonName[t[1]] = t[2]
 f.close()
-print >> sys.stderr, len(taxonName), "OK"
+print >> sys.stderr, len(taxonName), "especes OK"
 
 
 # On charge les liens member_id -> protein name
@@ -61,7 +61,7 @@ for ligne in utils.myTools.MySQLFileLoader(f):
 		x = t[8].split()
 		tmpLinks[t[0]] = ((x[1].split(':')[1], x[0].split(':')[1], t[1]), taxonName[t[4]])
 f.close()
-print >> sys.stderr, len(tmpLinks), "OK"
+print >> sys.stderr, len(tmpLinks), "membres OK"
 
 
 # On charge les liens node_id -> member_id
@@ -76,14 +76,14 @@ for ligne in utils.myTools.MySQLFileLoader(f):
 	info[int(t[0])] = {'gene_name': data[0][0], 'transcript_name': data[0][1], 'protein_name': data[0][2], 'taxon_name': data[1]}
 	x += 1
 f.close()
-print >> sys.stderr, x, "liens OK"
+print >> sys.stderr, x, "proteines OK"
 del tmpLinks
 del taxonName
 
 
 # On charge les liens node_id -> infos 
 #######################################
-print >> sys.stderr, "Chargement des infos des noeuds ...",
+print >> sys.stderr, "Chargement des liens node_id -> infos ...",
 f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.protein_tree_tag"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
@@ -98,20 +98,24 @@ for ligne in utils.myTools.MySQLFileLoader(f):
 			pass
 	
 	# Le dictionnaire
-	info[ int(t[0]) ][t[1]] = t[2]
+	if t[1] not in ['lost_taxon_id', 'taxon_id']:
+		info[ int(t[0]) ][t[1]] = t[2]
+
 f.close()
 print >> sys.stderr, len(info), "infos OK"
 
-
 # On charge les liens node_id_father -> node_id_son
 ####################################################
-print >> sys.stderr, "Chargement des arbres ...",
+print >> sys.stderr, "Chargement des arbres (node_id_father -> node_id_son) ...",
 data = utils.myTools.defaultdict(list)
+nextNodeID = max(info)
 f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.protein_tree_node"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	# On rajoute le fils de son pere (avec une distance)
-	data[ int(t[1]) ].append( (int(t[0]), float(t[5])) )
+	node = int(t[1])
+	nextNodeID = max(nextNodeID, node)
+	data[ node ].append( (int(t[0]), float(t[5])) )
 f.close()
 print >> sys.stderr, len(data), "branches OK"
 
@@ -122,30 +126,6 @@ print >> sys.stderr, len(data), "branches OK"
 ####################################################################
 def isDuplicatedNode(inf):
 	return (inf['Duplication'] != 0) and ('dubious_duplication' not in inf)
-
-
-
-##################################
-# Nettoie l'arbre                #
-#    - taxon_id                  #
-#    - lost_taxon_id             #
-##################################
-def cleanTree(node):
-	
-	# Si on est sur une feuille (un gene)
-	if node not in data:
-		return
-	
-	inf = info[node]
-	# Suppression des infos non necessaires
-	if 'lost_taxon_id' in inf:
-		del inf['lost_taxon_id']
-	if 'taxon_id' in inf:
-		del inf['taxon_id']
-
-	# Les appels recursifs
-	for (g,d) in data[node]:
-		cleanTree(g)
 
 
 ###################################################################################################################
@@ -162,13 +142,12 @@ def flattenTree(node, rec):
 		for (g,_) in data[node]:
 			flattenTree(g, rec)
 
-	inf = info[node]
 	# Si c'est une vraie duplication, on n'a plus rien a faire
-	if isDuplicatedNode(inf):
+	if isDuplicatedNode(info[node]):
 		return
 
 	newData = []
-	taxonName = inf['taxon_name']
+	taxonName = info[node]['taxon_name']
 	for (g,d) in data[node]:
 		inf = info[g]
 		# 2x le meme taxon et pas de duplication
@@ -181,6 +160,28 @@ def flattenTree(node, rec):
 	data[node] = newData
 
 
+##########################################################################
+# Simple etape de contraction de l'arbre: flatten & renommage successifs #
+##########################################################################
+def contractTree(node):
+
+	if node not in data:
+		return
+
+	while True:
+		
+		# On s'assure que le nom de l'ancetre est le bon
+		info[node]['taxon_name'] = phylTree.lastCommonAncestor([info[g]['taxon_name'] for (g,_) in data[node]])
+		
+		# On s'assure que le noeud est bien aplati
+		#  - si on vient de changer le nom du taxon, celui-ci peut correspondre avec le fils, d'ou la fusion
+		#  - si on vient de creer le noeud, des dubious_duplication successifs ont pu faire aterrir ensemble des branches de meme taxon (ex Euarchontoglires)
+		backup = data[node]
+		flattenTree(node, False)
+		if backup == data[node]:
+			break
+
+
 ########################################################
 # Redonne la topologie attendue a l'arbre              #
 #   Rassemble les noeuds equivalents sous le meme fils #
@@ -191,43 +192,30 @@ def rebuildTree(node):
 	if node not in data:
 		return
 
-	inf = info[node]
+	contractTree(node)
 
 	# On ne change les fils que si ce n'est pas une vraie duplication
-	if not isDuplicatedNode(inf):
-		
-		# Permet d'eviter les noeuds superflus en ayant juste le bon nom de taxon
-		while True:
+	if not isDuplicatedNode(info[node]):
 
-			# On s'assure que le noeud est bien aplati
-			#  - si on vient de changer le nom du taxon, celui-ci peut correspondre avec le fils, d'ou la fusion
-			#  - si on vient de creer le noeud, des dubious_duplication successifs ont pu faire aterrir ensemble des branches de meme taxon (ex Euarchontoglires)
-			flattenTree(node, False)
-
-			# A. On trie les enfants en paquets selon l'arbre phylogenetique
-			fils = utils.myTools.defaultdict(list)
-			anc = inf['taxon_name']
-			for (i,(g,d)) in enumerate(data[node]):
-				gname = info[g]['taxon_name']
-				for (a,_) in phylTree.items[anc]:
-					if phylTree.isChildOf(gname, a):
-						fils[a].append( (g,d) )
-						break
-				else:
-					# Apparait si g est le meme ancetre que node et que g est une duplication, ce qui l'a empeche d'etre aplati par flatten
-					#if gname != anc:
-					#	print >> sys.stderr, "PB1", node, anc, gname
-					fils[anc].append( (g,d) )
-			
-			# Si il y a un seul fils, qui correspond a un vrai enfant, on renomme et recommence
-			if (len(fils) == 1) and (anc not in fils):
-				info[node]['taxon_name'] = fils.popitem()[0]
+		# On redefinit les fils pour -notre- arbre phylogenetique en triant les enfants en paquets
+		fils = utils.myTools.defaultdict(list)
+		anc = info[node]['taxon_name']
+		for (g,d) in data[node]:
+			gname = info[g]['taxon_name']
+			for (a,_) in phylTree.items.get(anc):
+				if phylTree.isChildOf(gname, a):
+					fils[a].append( (g,d) )
+					break
 			else:
-				break
+				# Apparait si g est le meme ancetre que node et que g est une duplication, ce qui l'a empeche d'etre aplati par flatten
+				#if gname != anc:
+				#	print >> sys.stderr, "PB1", node, anc, gname
+				fils[anc].append( (g,d) )
 
 		if len(fils) == 1:
 			# Ici, si il y a un seul fils, celui-ci a le meme taxon que son pere
 			# -> On ne change rien
+			#print >> sys.stderr, "PB3", info[node]['taxon_name'], [info[g]['taxon_name'] for (g,_) in data[node]], fils
 			pass
 		else:
 			if len(fils) == 2:
@@ -261,6 +249,8 @@ def rebuildTree(node):
 	for (g,_) in data[node]:
 		rebuildTree(g)
 
+	contractTree(node)
+
 
 #################################################
 # Retrouve les vraies racines dans les familles #
@@ -282,7 +272,6 @@ def getRoots(node, previousAnc, lastWrittenAnc):
 
 # On a besoin des genomes modernes pour reconnaitre les genes
 ft1 = utils.myTools.myOpenFile(options["OUT.tree"] % "1.ensembl", "w")
-ft2 = utils.myTools.myOpenFile(options["OUT.tree"] % "2.clean", "w")
 ft3 = utils.myTools.myOpenFile(options["OUT.tree"] % "3.flatten", "w")
 ft4 = utils.myTools.myOpenFile(options["OUT.tree"] % "4.rebuilt", "w")
 ft5 = utils.myTools.myOpenFile(options["OUT.tree"] % "5.cut", "w")
@@ -290,14 +279,10 @@ ft5 = utils.myTools.myOpenFile(options["OUT.tree"] % "5.cut", "w")
 print >> sys.stderr, "Mise en forme des arbres ...",
 nb = 0
 nbA = 0
-nextNodeID = max(data) + 1
 for (root,_) in data[1]:
-#for (root,_) in [(200984,0)]:
-#for (root,_) in [(753697,0)]:
+	# Permet d'eviter quelques noeuds artefacts
 	if 'taxon_name' in info[root]:
 		utils.myProteinTree.printTree(ft1, data, info, root)
-		cleanTree(root)
-		utils.myProteinTree.printTree(ft2, data, info, root)
 		flattenTree(root, True)
 		utils.myProteinTree.printTree(ft3, data, info, root)
 		rebuildTree(root)
@@ -308,7 +293,6 @@ for (root,_) in data[1]:
 		nb += 1
 print >> sys.stderr, "%d (%d) arbres OK" % (nbA,nb)
 ft1.close()
-ft2.close()
 ft3.close()
 ft4.close()
 ft5.close()
