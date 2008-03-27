@@ -47,6 +47,7 @@ def printTree(f, data, info, root):
 			rec(f, n+1, g)
 
 	rec(f, 0, root)
+	f.flush()
 
 
 # Imprime l'arbre au format Newick
@@ -88,15 +89,6 @@ def loadTree(name):
 		currID = int(lignes.pop()[2])
 		# Les infos associees
 		info[currID] = eval(lignes.pop()[2])
-		#info[currID] = {}
-		#for (k,v) in eval(lignes.pop()[2]).iteritems():
-		#	if type(k) == str:
-		#		k = intern(k)
-		#	if (type(v) == str) and ("{" not in v):
-		#		info[currID][k] = intern(v)
-		#	else:
-		#		info[currID][k] = v
-
 		# Des fils ?
 		child = []
 		while (len(lignes) > 0) and (lignes[-1][0] == indent+1):
@@ -119,6 +111,9 @@ def loadTree(name):
 	while len(lignes) > 0:
 		roots.append(recLoad(0))
 	print >> sys.stderr, "%d racines, %d branches, %d noeuds OK" % (len(roots),len(data),len(info)-len(data))
+	nextNodeID = max(info)
+	for lst in data.itervalues():
+		nextNodeID = max(nextNodeID, max([x[0] for x in lst]))
 
 	return (data, info, roots)
 

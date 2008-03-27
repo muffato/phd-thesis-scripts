@@ -66,7 +66,7 @@ def buildParaOrtho():
 		outgroups =  frozenset([phylTree.officialName[e] for e in outgroups])
 		for g in utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc]):
 			# On trie les genes ancestraux
-			dicGenes = {}
+			dicGenes = utils.myTools.defaultdict(list)
 			newPos = None
 			for x in g.names:
 				# La position dans le genome que l'on reconstruit
@@ -74,9 +74,8 @@ def buildParaOrtho():
 				if x not in phylTree.dicGenes:
 					continue
 				(esp,_,_) = phylTree.dicGenes[x]
-				if esp in dicEspNames:
-					esp = dicEspNames[esp]
-					dicGenes[esp] = dicGenes.get(esp,[]) + [x]
+				if esp in dicCommonEspNames:
+					dicGenes[dicCommonEspNames[esp]].append(x)
 			if newPos == None:
 				continue
 			gNT = []
@@ -379,7 +378,7 @@ for e in especesNonDup[1:]:
 rootDup = especesDup[0]
 for e in especesDup[1:]:
 	rootDup = phylTree.dicParents[rootDup][e]
-dicEspNames = dict([(phylTree.officialName[esp],esp) for esp in especesDup+especesNonDup])
+dicCommonEspNames = dict([(phylTree.officialName[esp],esp) for esp in especesDup+especesNonDup])
 phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
 genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[options["target"]])
 lstGenesAnc = genesAnc.lstGenes[None]
@@ -403,6 +402,17 @@ for eND in especesNonDup:
 allDCSe2 = [dict([(e,frozenset(alt[e])) for e in alt]) for (_,alt) in allDCS]
 
 print >> sys.stderr, "Comparaison des %d DCS ..." % len(allDCS),
+
+if options["usePhylTreeScoringDup"]:
+	dicCoeff = {}
+	for e in especesDup:
+		values = dict.fromkeys(especesDup, 0)
+		values[e] = 1
+		dicCoeff[e] = phylTree.calcWeightedValue(values, 0, rootDup)[2]
+else:
+	dicCoeff = dict.fromkeys(especesDup, 1./len(especesDup))
+
+
 walktrapInstance = utils.walktrap.WalktrapLauncher()
 edges = walktrapInstance.edges
 for i1 in xrange(len(allDCS)):
@@ -412,32 +422,15 @@ for i1 in xrange(len(allDCS)):
 	for i2 in xrange(i1):
 		(_,alt2) = allDCS[i2]
 
-		if options["usePhylTreeScoringDup"]:
-
-			scores = phylTree.newCommonNamesMapperInstance()
-			for e in especesDup:
-				val = 0.
-				for x in (esp1[e] & allDCSe2[i2][e]):
-					val += min(alt1[e][x], alt2[e][x])
-				scores[e] = val
-			val = phylTree.calcWeightedValue(scores, 0, rootDup)[2]
-			if val > 0:
-				edges[i1][i2] = edges[i2][i1] = val
-
-		else:
-
-			val = 0.
-			nb = 0.
-			for e in especesDup:
-				if (len(alt2[e]) != 0) and (len(alt2[e]) != 0):
-					nb += 1
-				for x in (esp1[e] & allDCSe2[i2][e]):
-					val += min(alt1[e][x], alt2[e][x])
-			if val > 0:
-				edges[i1][i2] = edges[i2][i1] = val/nb
-
-
-
+		score = 0
+		for e in especesDup:
+			val = 0
+			for x in (esp1[e] & allDCSe2[i2][e]):
+				val += min(alt1[e][x], alt2[e][x])
+			score += val*dicCoeff[e]
+		
+		if score > 0:
+			edges[i1][i2] = edges[i2][i1] = score
 
 print >> sys.stderr, "Lancement de walktrap ...",
 walktrapInstance.doWalktrap()

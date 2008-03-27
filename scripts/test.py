@@ -9,13 +9,104 @@ import random
 import zipfile
 #import operator
 import utils.myGenomes
-#import utils.myTools
+import utils.myTools
 import utils.myMaths
 #import utils.myDiags
 #import utils.myPsOutput
+import utils.myProteinTree
 import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
+
+# Un taux specifique compris entre rate^-1 et rate^1
+def randomRate():
+	return math.pow(options["rearrRateAccel"], random.vonmisesvariate(0, options["vonMisesKappa"]) / math.pi)
+
+# Une region du genome au hasard
+def randomSlice():
+
+	# Un nombre entre 0 et 1
+	r = random.vonmisesvariate(0, options["vonMisesKappa"]) / (2*math.pi) + .5
+	# On decale la distribution vers la moyenne voulue
+	x0 = 2*options["vonMisesMean"] - 1
+	if x0 < 0:
+		r = abs(x0 + r*(1-x0))
+	else:
+		r = 1 - abs(-x0 + r*(1+x0))
+	return r
+
+options = {"rearrRateAccel": 1.732, "vonMisesKappa": 2, "vonMisesMean": .65}
+
+def mkDistr(lst, nb):
+	mn = min(lst)
+	mx = max(lst)
+	res = [0] * nb
+	for x in lst:
+		res[int(nb * (float(x-mn)/(mx-mn+1)))] += 1
+	for (i,x) in enumerate(res):
+		print (i*(mx-mn+1))/nb+mn, x
+
+mkDistr([randomRate()*randomRate() for x in xrange(1000000)], 1000)
+
+sys.exit(0)
+
+lst = [math.exp(20*2*(random.random()-.5))-12129129.89/2 for x in xrange(10000000)]
+
+s1 = sum(lst)
+print s1
+
+s2 = 0.
+for x in lst:
+	s2 += x
+print s2
+
+s3 = 0.
+c = 0.
+for x in lst:
+	y = x - c
+	t = s3 + y
+	c = (t - s3) - y
+	s3 = t
+print s3
+
+#mkDistr([randomSlice() for x in xrange(1000000)], 1000)
+
+sys.exit(0)
+
+(noms_fichiers, options) = utils.myTools.checkArgs( ["phylTree.conf", "proteinTree"], [], __doc__)
+
+phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+(data,info,roots) = utils.myProteinTree.loadTree(noms_fichiers["proteinTree"])
+
+def isDuplicatedNode(inf):
+	return (inf['Duplication'] != 0) and ('dubious_duplication' not in inf)
+
+def checkNode(node, anc, dup):
+	newAnc = info[node]['taxon_name']
+
+	if node in data:
+		if len(data[node]) != 2:
+			print "BAD LENGTH", node, len(data[node])
+		for (r,_) in data[node]:
+			checkNode(r, newAnc, isDuplicatedNode(info[node]))
+
+	if newAnc == anc:
+		if not dup:
+			print "SAME ANC, NO OLD DUPLICATION", node
+		else:
+			# OK
+			pass
+	elif phylTree.isChildOf(newAnc, anc):
+		# OK
+		pass
+	else:
+		print "NOT A SON", node
+	
+for r in roots:
+	checkNode(r, info[r]['taxon_name'], True)
+
+
+sys.exit(0)
 
 phylTree2 = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
 

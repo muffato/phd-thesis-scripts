@@ -15,8 +15,7 @@ import utils.myProteinTree
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("releaseID",int,[47]), \
-	("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mysql/ensembl_compara_XXX"), \
+	[("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mysql/ensembl_compara_XXX"), \
 	("IN.member",str,"member.txt.gz"), \
 	("IN.genome_db",str,"genome_db.txt.gz"), \
 	("IN.protein_tree_node",str,"protein_tree_node.txt.gz"), \
@@ -29,7 +28,6 @@ import utils.myProteinTree
 
 
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-ensemblURL = options["IN.EnsemblURL"].replace("XXX", str(options["releaseID"]))
 
 
 ##############################################
@@ -41,7 +39,7 @@ ensemblURL = options["IN.EnsemblURL"].replace("XXX", str(options["releaseID"]))
 ###############################################
 print >> sys.stderr, "Chargement des liens taxon_id -> species name ...",
 taxonName = {}
-f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.genome_db"]), "r")
+f = utils.myTools.myOpenFile(os.path.join(options["IN.EnsemblURL"], options["IN.genome_db"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	taxonName[t[1]] = t[2]
@@ -53,7 +51,7 @@ print >> sys.stderr, len(taxonName), "especes OK"
 ################################################
 print >> sys.stderr, "Chargement des liens member_id -> protein name ...",
 tmpLinks = {}
-f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.member"]), "r")
+f = utils.myTools.myOpenFile(os.path.join(options["IN.EnsemblURL"], options["IN.member"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	# A un numero member_id, on associe les noms (gene/transcrit/proteine) et l'espece
@@ -69,7 +67,7 @@ print >> sys.stderr, len(tmpLinks), "membres OK"
 print >> sys.stderr, "Chargement des liens node_id -> member_id ...",
 x = 0
 info = utils.myTools.defaultdict(dict)
-f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.protein_tree_member"]), "r")
+f = utils.myTools.myOpenFile(os.path.join(options["IN.EnsemblURL"], options["IN.protein_tree_member"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	data = tmpLinks[t[1]]
@@ -84,7 +82,7 @@ del taxonName
 # On charge les liens node_id -> infos 
 #######################################
 print >> sys.stderr, "Chargement des liens node_id -> infos ...",
-f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.protein_tree_tag"]), "r")
+f = utils.myTools.myOpenFile(os.path.join(options["IN.EnsemblURL"], options["IN.protein_tree_tag"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 
@@ -98,7 +96,7 @@ for ligne in utils.myTools.MySQLFileLoader(f):
 			pass
 	
 	# Le dictionnaire
-	if t[1] not in ['lost_taxon_id', 'taxon_id']:
+	if (t[1] not in ['lost_taxon_id', 'taxon_id']) and ('SIS' not in t[1]):
 		info[ int(t[0]) ][t[1]] = t[2]
 
 f.close()
@@ -109,7 +107,7 @@ print >> sys.stderr, len(info), "infos OK"
 print >> sys.stderr, "Chargement des arbres (node_id_father -> node_id_son) ...",
 data = utils.myTools.defaultdict(list)
 nextNodeID = max(info)
-f = utils.myTools.myOpenFile(os.path.join(ensemblURL, options["IN.protein_tree_node"]), "r")
+f = utils.myTools.myOpenFile(os.path.join(options["IN.EnsemblURL"], options["IN.protein_tree_node"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	# On rajoute le fils de son pere (avec une distance)
@@ -171,7 +169,8 @@ def contractTree(node):
 	while True:
 		
 		# On s'assure que le nom de l'ancetre est le bon
-		info[node]['taxon_name'] = phylTree.lastCommonAncestor([info[g]['taxon_name'] for (g,_) in data[node]])
+		l = [info[g]['taxon_name'] for (g,_) in data[node]]
+		info[node]['taxon_name'] = phylTree.lastCommonAncestor(l)
 		
 		# On s'assure que le noeud est bien aplati
 		#  - si on vient de changer le nom du taxon, celui-ci peut correspondre avec le fils, d'ou la fusion
@@ -208,30 +207,31 @@ def rebuildTree(node):
 					break
 			else:
 				# Apparait si g est le meme ancetre que node et que g est une duplication, ce qui l'a empeche d'etre aplati par flatten
-				#if gname != anc:
-				#	print >> sys.stderr, "PB1", node, anc, gname
+				if gname != anc:
+					print "ERREUR: name!=anc", node, anc, gname
+				# Le noeud courant sera donc un noeud de duplication
+				info[node]['Duplication'] = 3
+				info[node].pop('dubious_duplication', None)
 				fils[anc].append( (g,d) )
+	
+		# len(fils):
+		#  1 -> uniquement anc
+		#  2 ou 3 parmi F1/F2/anc
+		if (len(fils) == 1) and (anc not in fils):
+			print "ERREUR: 1=anc", node, fils
+		elif len(fils) > 3:
+			print "ERREUR: len>3", node, fils
 
-		if len(fils) == 1:
-			# Ici, si il y a un seul fils, celui-ci a le meme taxon que son pere
-			# -> On ne change rien
-			#print >> sys.stderr, "PB3", info[node]['taxon_name'], [info[g]['taxon_name'] for (g,_) in data[node]], fils
-			pass
-		else:
-			if len(fils) == 2:
-				# Fonctionnement normal
-				items = fils.items()
-
-			else:
-				# Ici, len(fils) == 3, On a les deux sous-branches + le meme ancetre
-				# On regroupe en deux
+		if len(fils) > 1:
+			if len(fils) == 3:
 				lst1 = fils.pop(anc)
 				lst2 = []
 				for tmp in fils.itervalues():
 					lst2.extend(tmp)
 				items = [(anc,lst1), (anc,lst2)]
+			else:
+				items = fils.items()
 
-			# On construit la nouvelle structure data
 			newData = []
 			for (anc,lst) in items:
 				if len(lst) == 1:
@@ -272,9 +272,9 @@ def getRoots(node, previousAnc, lastWrittenAnc):
 
 # On a besoin des genomes modernes pour reconnaitre les genes
 ft1 = utils.myTools.myOpenFile(options["OUT.tree"] % "1.ensembl", "w")
-ft3 = utils.myTools.myOpenFile(options["OUT.tree"] % "3.flatten", "w")
-ft4 = utils.myTools.myOpenFile(options["OUT.tree"] % "4.rebuilt", "w")
-ft5 = utils.myTools.myOpenFile(options["OUT.tree"] % "5.cut", "w")
+ft2 = utils.myTools.myOpenFile(options["OUT.tree"] % "2.flatten", "w")
+ft3 = utils.myTools.myOpenFile(options["OUT.tree"] % "3.rebuilt", "w")
+ft4 = utils.myTools.myOpenFile(options["OUT.tree"] % "4.cut", "w")
 
 print >> sys.stderr, "Mise en forme des arbres ...",
 nb = 0
@@ -284,16 +284,16 @@ for (root,_) in data[1]:
 	if 'taxon_name' in info[root]:
 		utils.myProteinTree.printTree(ft1, data, info, root)
 		flattenTree(root, True)
-		utils.myProteinTree.printTree(ft3, data, info, root)
+		utils.myProteinTree.printTree(ft2, data, info, root)
 		rebuildTree(root)
-		utils.myProteinTree.printTree(ft4, data, info, root)
+		utils.myProteinTree.printTree(ft3, data, info, root)
 		for x in getRoots(root, None, None):
-			utils.myProteinTree.printTree(ft5, data, info, x)
+			utils.myProteinTree.printTree(ft4, data, info, x)
 			nbA += 1
 		nb += 1
 print >> sys.stderr, "%d (%d) arbres OK" % (nbA,nb)
 ft1.close()
+ft2.close()
 ft3.close()
 ft4.close()
-ft5.close()
 
