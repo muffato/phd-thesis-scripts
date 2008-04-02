@@ -94,7 +94,7 @@ def buildParaOrtho():
 		outgroups =  frozenset([phylTree.officialName[e] for e in outgroups])
 		for g in utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc]):
 			# On trie les genes ancestraux
-			dicGenes = {}
+			dicGenes = utils.myTools.defaultdict(list)
 			newPos = None
 			for x in g.names:
 				# La position dans le genome que l'on reconstruit
@@ -102,9 +102,8 @@ def buildParaOrtho():
 				if x not in phylTree.dicGenes:
 					continue
 				(esp,_,_) = phylTree.dicGenes[x]
-				if esp in dicEspNames:
-					esp = dicEspNames[esp]
-					dicGenes[esp] = dicGenes.get(esp,[]) + [x]
+				if esp in dicCommonEspNames:
+					dicGenes[dicCommonEspNames[esp]].append(x)
 			if newPos == None:
 				continue
 			gNT = []
@@ -218,7 +217,7 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 	print >> sys.stderr, len(lstBlocs), "blocs pour", sum([len(x) for x in lstBlocs]), "orthologues",
 
 	if options["showDCS"]:
-		print "%s\t\t\t\t%s\t" % (eND, "\t".join(especesDup))
+		print utils.myTools.printLine( [eND, "", "", ""] + especesDup )
 	
 	nbDCS = 0
 	DCSlen = 0
@@ -235,7 +234,7 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 			for ((c,i),g,a) in gr:
 				#fishContent = ["/".join([str(x) for x in set(y)]) for y in a]
 				fishContent = ["/".join(["%s|%s" % (phylTree.dicGenomes[eD].lstGenes[cT][iT].names[0],cT) for (cT,iT) in orthos[eD].get(g,[])]) for eD in especesDup]
-				print "%s\t%d\t%s\t\t%s\t%s" % (c, i, g, "\t".join(fishContent), cc)
+				print utils.myTools.printLine( [c, i, g, ""] + fishContent + [cc] )
 			print "---"
 
 	print >> sys.stderr, "/", nbDCS, "DCS pour", DCSlen, "orthologues"
@@ -288,8 +287,8 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 	# Renvoie un score (~pourcentage d'especes) qui soutiennent l'attribution d'un gene a un chromosome
 	def calcChrAncScore(col, ch):
 		
-		values = utils.myTools.hashabledict()
 		# Une tetrapode rapporte 1 si un de ses representants a vote pour le chromosome ancestral
+		values = utils.myTools.hashabledict()
 		for (_,c,eND) in col:
 			values[eND] = max(values.get(eND,0), float(c == ch))
 
@@ -302,14 +301,13 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 		# La moyenne des moyennes de chaque groupe non vide
 		return utils.myMaths.mean([utils.myMaths.mean(r) for r in rTot if len(r) > 0])
 
-	chrNames = sorted(chrAncGenes)
 	probaMemory = utils.myTools.memoize(phylTree.calcWeightedValue)
+	chrNames = sorted(chrAncGenes)
 	for (i,col) in enumerate(genesAncCol):
 	
 		if len(col) == 0:
 			# Certains genes n'ont pas de chance !
 			continue
-	
 		nb = [(calcChrAncScore(col,x), x) for x in chrNames]
 		
 		# On verifie les egalites
@@ -331,14 +329,14 @@ def printColorAncestr(genesAnc, chrAncGenes):
 	chrNames = sorted(chrAncGenes)
 	
 	if options["showQuality"]:
-		print "\t\t%s" % "\t".join([str(c) for c in chrNames])
+		print utils.myTools.printLine( [""] + chrNames)
 
 	for (j,c) in enumerate(chrNames):
 		nb = 0
 		for i in chrAncGenes[c]:
 			nb += 1
 			if options["showQuality"]:
-				print "%s\t%d\t%s\t%.2f" % (c, nb, "\t".join(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][j][0])
+				print utils.myTools.printLine( [c, nb, utils.myTools.printLine(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][j][0]] )
 			if options["showAncestralGenome"]:
 				print c, " ".join(genesAnc[i].names)
 		
@@ -365,14 +363,16 @@ def printColorAncestr(genesAnc, chrAncGenes):
 phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 
 def proceedList(l):
-	return utils.myMaths.flatten([phylTree.species[s] for s in l])
+	l1 = [s[1:] for s in l if s[0] == "."]
+	l2 = [s for s in l if s[0] != "."]
+	return utils.myMaths.flatten([phylTree.species[s] for s in l2]) + l1
 especesDup = proceedList(options["especesDup"].split(','))
 especesNonDupGrp = [proceedList(x.split('+')) for x in options["especesNonDup"].split(',')]
 especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
 rootNonDup = especesNonDup[0]
 for e in especesNonDup[1:]:
 	rootNonDup = phylTree.dicParents[rootNonDup][e]
-dicEspNames = dict([(phylTree.officialName[esp],esp) for esp in especesDup+especesNonDup])
+dicCommonEspNames = dict([(phylTree.officialName[esp],esp) for esp in especesDup+especesNonDup])
 phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
 genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[options["target"]])
 lstGenesAnc = genesAnc.lstGenes[None]

@@ -33,8 +33,8 @@ def randomStrand():
 
 
 # Un taux specifique compris entre rate^-1 et rate^1
-def randomRate():
-	return math.pow(options["rearrRateAccel"], random.vonmisesvariate(0, options["vonMisesKappa"]) / math.pi)
+def randomAccel():
+	return math.pow(options["eventAccel"], random.vonmisesvariate(0, options["vonMisesKappa"]) / math.pi)
 
 
 # Un chromosome au hasard (en tenant compte des tailles)
@@ -100,16 +100,18 @@ def buildGenomes(node):
 		
 		# CONSTRAINT-SET
 		if (fils == "Murinae") or (node == "Murinae"):
-			evolRate = 3.
+			geneAccel = 3.
 		elif fils == "Gallus gallus":
-			evolRate = 0.3
+			geneAccel = 0.3
 		else:
-			evolRate = randomRate()
-		print >> sys.stderr, "rate=%.3f" % evolRate,
+			geneAccel = randomAccel()
+		print >> sys.stderr, "genes {accel=%.3f" % geneAccel,
 
-		nbPertes = int(options["geneLossRate"] * dist * evolRate * randomRate())
-		nbGains = int(options["geneGainRate"] * dist * evolRate * randomRate())
-		nbDup = int(options["geneDuplicationRate"] * dist * evolRate * randomRate())
+		rates = [options[x]*randomAccel() for x in ["geneLossWeight", "geneGainWeight", "geneDuplicationWeight"]]
+		nbGeneEvents = (options["geneEventRate"] * dist * geneAccel) / sum(rates)
+		nbPertes = int(nbGeneEvents * rates[0])
+		nbGains = int(nbGeneEvents * rates[1])
+		nbDup = int(nbGeneEvents * rates[2])
 
 		# CONSTRAINT-SET
 		if phylTree.dicParents[fils].get("Tetraodon nigroviridis","Euteleostomi") != "Euteleostomi":
@@ -122,31 +124,35 @@ def buildGenomes(node):
 			(c,x) = randomPlace(newGenome, 0)
 			dup[newGenome[c][x][0]].append(nbTotalGenes+i)
 		dupGenes[fils] = dup
-		print >> sys.stderr, "dupGenes=%d" % nbDup,
+		print >> sys.stderr, "*%d" % nbDup,
 		
 		# On enleve les genes perdus
 		for _ in xrange(nbPertes):
 			(c,x) = randomPlace(newGenome, 0)
 			del newGenome[c][x]
-		print >> sys.stderr, "lostGenes=%d" % nbPertes,
+		print >> sys.stderr, "-%d" % nbPertes,
 		
 		# On place les nouveaux genes
 		for i in xrange(nbTotalGenes, nbTotalGenes+nbDup+nbGains):
 			(c,x) = randomPlace(newGenome, 1)
 			newGenome[c].insert(x, (i,randomStrand()))
 		nbTotalGenes += nbGains+nbDup
-		print >> sys.stderr, "newGenes=%d" % nbGains,
+		print >> sys.stderr, "+%d}" % nbGains,
 
-		# Rearrangements
-		nbEvents = int(options["chrEventRate"] * dist * randomRate() * evolRate)
 		# CONSTRAINT-SET
 		if fils == "Monodelphis domestica":
 			rates = (85,5,8,2)
 		elif fils == "Gallus gallus":
+			eventAccel = 0.3
 			rates = (85,9,1,5)
+		elif (fils == "Murinae") or (node == "Murinae"):
+			eventAccel = 3.
 		else:
-			rates = [options[x]*randomRate() for x in ["chrInvertWeight","chrTranslocWeight","chrFusionWeight","chrBreakWeight"]]
+			rates = [options[x]*randomAccel() for x in ["chrInvertWeight","chrTranslocWeight","chrFusionWeight","chrBreakWeight"]]
 		
+		# Rearrangements
+		eventAccel = randomAccel()
+		nbEvents = int(options["chrEventRate"] * dist * eventAccel)
 		nb = [0,0,0,0]
 		rates = utils.myMaths.randomValue(rates)
 		for _ in xrange(nbEvents):
@@ -173,6 +179,8 @@ def buildGenomes(node):
 			
 			# C'est une fusion
 			elif evt == 2:
+				if len(newGenome) < 2:
+					continue
 				# Les deux chromosomes a fusionnerr
 				(c1,c2) = random.sample(xrange(len(newGenome)), 2)
 				# On met l'un au bout de l'autre (eventuellement en le retournant)
@@ -186,7 +194,7 @@ def buildGenomes(node):
 			
 			nb[evt] += 1
 		
-		print >> sys.stderr, "events=%s / %d chromosomes" % (nb,len(newGenome))
+		print >> sys.stderr, "chr {accel=%.3f <>%d ^%d +%d /%d} %d chromosomes" % (eventAccel,nb[0],nb[1],nb[2],nb[3],len(newGenome))
 
 		# On boucle recursivement dessus
 		genomes[fils] = newGenome
@@ -230,26 +238,27 @@ def printData(node):
 	f.close()
 	print >> sys.stderr, "OK"
 
-	for (fils,_) in phylTree.items[node]:
-		subFam = printData(fils)
-
-		# Quelques fausses assignations
-		falseOrthologs = random.sample(subFam.keys(), int(len(subFam)*(100-options["orthologyQuality"])/100.))
-		falseAssociations = [(x,subFam[x]) for x in falseOrthologs]
-		random.shuffle(falseAssociations)
-		for (old,new) in falseAssociations:
-			subFam[old] = new
-
-		# On rajoute les noms des genes dans les especes filles
-		for g in familles:
-			familles[g] += subFam.get(g,"")
-		# ... en tenant compte des duplications
-		for (ini,new) in dupGenes[fils].iteritems():
-			for g in new:
-				familles[ini] += subFam.get(g,"")
-
 	# On ecrit les familles de genes ancestraux correspondantes
 	if node in phylTree.items:
+	
+		for (fils,_) in phylTree.items[node]:
+			subFam = printData(fils)
+
+			# Quelques fausses assignations
+			falseOrthologs = random.sample(subFam.keys(), int(len(subFam)*(100-options["orthologyQuality"])/100.))
+			falseAssociations = [(x,subFam[x]) for x in falseOrthologs]
+			random.shuffle(falseAssociations)
+			for (old,new) in falseAssociations:
+				subFam[old] = new
+
+			# On rajoute les noms des genes dans les especes filles
+			for g in familles:
+				familles[g] += subFam.get(g,"")
+			# ... en tenant compte des duplications
+			for (ini,new) in dupGenes[fils].iteritems():
+				for g in new:
+					familles[ini] += subFam.get(g,"")
+
 		print >> sys.stderr, "Writing %s ancestral genes ..." % node,
 		f = utils.myTools.myOpenFile(options["ancGenesFile"] % s, 'w')
 		for fam in familles.itervalues():
@@ -267,13 +276,23 @@ def printData(node):
 # Arguments
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["phylTree.conf"], \
-	[("root",str,""), ("orthologyQuality",float,98), \
+	[("root",str,""), \
+	# Genome initial
 	("nbOrigGenes",int,20000), ("nbOrigChr",int,20), \
-	("chrEventRate",float,2), ("rearrRateAccel",float,1.732), ("vonMisesMean",float,.2), ("vonMisesKappa",float,2), \
-	("geneLossRate",float,6), ("geneGainRate",float,6), ("geneDuplicationRate",float,3), \
-	("chrInvertWeight",float,91), ("chrTranslocWeight",float,4), ("chrFusionWeight",float,2.5), ("chrBreakWeight",float,2.5), \
+	# Parametres d'evolution
+	#("rearrRateAccel",float,1.732), ("vonMisesMean",float,.2), ("vonMisesKappa",float,2), \
+	("eventAccel",float,3.), ("vonMisesMean",float,.2), ("vonMisesKappa",float,2.), \
+	# Repertoire de genes
+	#("geneLossRate",float,6), ("geneGainRate",float,6), ("geneDuplicationRate",float,3), \
+	("geneEventRate",float,50.), ("geneLossWeight",float,40.), ("geneGainWeight",float,30.), ("geneDuplicationWeight",float,30.), \
+	# Rearrangements de chromosomes
+	("chrEventRate",float,2.), ("chrInvertWeight",float,91.), ("chrTranslocWeight",float,4.), ("chrFusionWeight",float,2.5), ("chrBreakWeight",float,2.5), \
+	# Couvertures de sequencage
 	("2Xspecies",str,'Loxodonta^africana/Echinops^telfairi/Dasypus^novemcinctus/Felis^catus/Erinaceus^europaeus/Myotis^lucifugus/Tupaia^belangeri/Otolemur^garnettii/Oryctolagus^cuniculus/Cavia^porcellus/Spermophilus^tridecemlineatus/Sorex^araneus'), \
 	("6Xspecies",str,'Xenopus^tropicalis/Ornithorhynchus^anatinus/Takifugu^rubripes'), \
+	# Qualite d'Ensembl
+	("orthologyQuality",float,98.), \
+	# Fichiers
 	("genomeFile",str,"simu/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"simu/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -312,56 +331,3 @@ buildGenomes(options["root"])
 # On ecrit les familles de genes
 printData(options["root"])
 
-
-
-"""
-# ESSAIS POUR randomSlice
-
-
-# 5000 - 7500 - 2500 / 27"
-def v1():
-	x1 = random.randint(0, length-1)
-	x2 = random.randint(x1, length-1)
-	return (x1,x2)
-
-
-# 1= 3400 - 6600 - 3200 / 36"
-# 2= 3900 - 6100 - 2200 / 36"
-def v2():
-	l = int(abs(random.vonmisesvariate(0, 2)) * length / math.pi)
-	l = 0
-	x1 = random.randint(0, length-1-l)
-	return (x1,x1+l)
-
-
-# 2500 - 7500 - 5000 / 27"
-def v3():
-	l = random.randint(0, length-1)
-	x1 = random.randint(0, length-1-l)
-	return (x1,x1+l)
-
-
-# 3333 - 6666 - 3333 / 30"
-def v4():
-	x = random.sample(xrange(length), 2)
-	return (min(x),max(x))
-
-
-# 3333 - 6666 - 3333 / 30"
-def v5():
-	x1 = random.randint(0, length-1)
-	x2 = random.randint(0, length-1)
-	return (min(x1,x2),max(x1,x2))
-
-res1 = []
-res2 = []
-resL = []
-for i in xrange(1000000):
-	(x1,x2) = v2()
-	res1.append(x1)
-	res2.append(x2)
-	resL.append(x2-x1+1)
-print utils.myMaths.myStats(res1)
-print utils.myMaths.myStats(res2)
-print utils.myMaths.myStats(resL)
-"""

@@ -43,7 +43,7 @@ def distInterGenes(tg1, tg2):
 		distEsp[e] = 1
 
 	# En mode outgroups/2 les outgroups qui montrent une distance plus grande que les fils sont supprimes
-	if useOutgroups == 2:
+	if useOutgroups == "onlyIfBetter":
 		x = [d for (e,d) in distEsp.iteritems() if e in ancSpecies]
 		if len(x) > 0:
 			x = max(x)
@@ -69,7 +69,7 @@ def rewriteGenome():
 
 	# On etend la liste des genes ancestraux pour utiliser les outgroup en remontant l'arbre jusqu'a la racine
 	dicOutgroupGenes = utils.myTools.defaultdict(set)
-	if useOutgroups > 0:
+	if useOutgroups != "no":
 		anc = options["ancestr"]
 		while anc in phylTree.parent:
 			(anc,_) = phylTree.parent[anc]
@@ -108,8 +108,10 @@ def rewriteGenome():
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genomeAncestralDiags", "phylTree.conf"], \
-	[("seuilMaxDistInterGenes",int,100000), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,10000), \
-	("ancestr",str,""), ("nbConcorde",int,1), ("useOutgroups",int,[0,1,2]), ("withConcordeOutput",bool,False),\
+	[("ancestr",str,""), \
+	("seuilMaxDistInterGenes",int,1000000), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,0), \
+	("useOutgroups",str,["no","always","onlyIfBetter"]), ("newParsimonyScoring",bool,False), \
+	("nbConcorde",int,1), ("withConcordeOutput",bool,False), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -122,7 +124,7 @@ if options["ancestr"] not in phylTree.allNames:
 	sys.exit(1)
 # On charge les genomes
 useOutgroups = options["useOutgroups"]
-if useOutgroups > 0:
+if useOutgroups != "no":
 	root = None
 else:
 	root = options["ancestr"]
@@ -132,14 +134,17 @@ genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[op
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 seuil = options["seuilMaxDistInterGenes"]
-pen = str(options["infiniteDist"] * mult)
+pen = str(int(mult * options["infiniteDist"]))
 add = options["notConstraintPenalty"]
 anc = options["ancestr"]
 ancSpecies = phylTree.species[anc]
 ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
 
-phylTree.initCalcDist(anc, useOutgroups != 0)
-calcDist = phylTree.calcDist
+phylTree.initCalcDist(anc, useOutgroups != "no")
+if options["newParsimonyScoring"]:
+	calcDist = lambda distEsp: phylTree.calcWeightedValue(distEsp, -1, anc)[2]
+else:
+	calcDist = phylTree.calcDist
 newGenome = rewriteGenome()
 concordeInstance = utils.concorde.ConcordeLauncher()
 
@@ -152,14 +157,6 @@ for (c,tab) in newGenome.iteritems():
 	
 	def f(i1, i2):
 
-		#print
-		#print
-		#print
-		#print
-		#print
-		#print "*** NEW CAL (%d/%d) ***" % (i1,i2)
-		#print
-
 		d1 = i1/2
 		d2 = i2/2
 		if d1 == d2:
@@ -167,44 +164,26 @@ for (c,tab) in newGenome.iteritems():
 		
 		diag1 = tab[d1]
 		if i1 != 2*d1:
-			diag1.reverse()
+			diag1 = reversed(diag1)
 		diag2 = tab[d2]
 		if i2 != 2*d2:
-			diag2.reverse()
+			diag2 = reversed(diag2)
 
-		#print "LENGTHS", len(diag1), len(diag2)
-		#print "DIAG1", diag1
-		#print "DIAG2", diag2
-		#print
 		dist = []
-
 		for (i1,g1) in enumerate(diag1):
 			for (i2,g2) in enumerate(diag2):
-				#print "POSITIONS", i1, i2
-				#print "G1", g1
-				#print "G2", g2
-				y = distInterGenes(g1, g2)
-				#print "DIST", y
-				#print
-				if y != None:
-					#print "CORRECTION",  y - i1 - i2,
-					y = y - i1 - i2
-					if y == 0:
-						#print "FINAL"
-						return int(mult*add)
-					elif y >= 0:
-						#print "OK"
-						dist.append(y)
-					#else:
-					#	print "NO"
+				y = distInterGenes(g1, g2) - i1 - i2
+				if y == 0:
+					return int(mult*add)
+				elif y > 0:
+					dist.append(y)
 
 		if len(dist) == 0:
-			#print "FINAL NO"
 			return pen
 		else:
-			#print "FINAL", min(dist)
-			return int(mult*(min(dist)+add))
-	
+			y = min(dist)
+			return int(mult*y+add)
+
 	lstTot = concordeInstance.doConcorde(2*n, f, nbConcorde, options["withConcordeOutput"])
 	lstTot = utils.myMaths.unique(lstTot)
 	if len(lstTot) == 0:
@@ -225,7 +204,6 @@ for (c,tab) in newGenome.iteritems():
 		print utils.myTools.printLine([c, 1-2*int(i1>i2), utils.myTools.printLine(diag, " "), utils.myTools.printLine(strand, " ")])
 		continue
 
-		#el
 		if i1 > i2:
 			# La diagonale est a inverser
 			diag.reverse()
@@ -235,9 +213,5 @@ for (c,tab) in newGenome.iteritems():
 		# On affiche les genes
 		for (i,g) in enumerate(diag):
 			print c, strand[i], " ".join(genesAnc.lstGenes[None][g].names)
-		
-	#for sol in lstTot:
-	#	print "# .%s" % c, utils.myTools.printLine(sol, " ")
 	
 	print >> sys.stderr, len(lstTot), "solutions OK"
-

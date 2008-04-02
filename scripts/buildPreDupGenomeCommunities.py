@@ -180,8 +180,8 @@ def doSynthese(combin, eND, orthos):
 	# Il faut le lire pour avoir chaque DCS final (qu'il faut reformatter)
 	lstBlocs = []
 	for gr in combin:
-		l = []
 		# On fait la liste des positions et des chromosomes des orthologues
+		l = []
 		for g in gr:
 			p = phylTree.dicGenomes[eND].dicGenes[g]
 			a = {}

@@ -4,8 +4,6 @@ __doc__ = """
 Trie les gens selon l'ordre consensus issu des especes de l'arbre phylogenetique
 """
 
-# TODO Numpy
-
 import sys
 import utils.myGenomes
 import utils.myTools
@@ -45,7 +43,7 @@ def distInterGenes(tg1, tg2):
 		distEsp[e] = 1
 
 	# En mode outgroups/2 les outgroups qui montrent une distance plus grande que les fils sont supprimes
-	if useOutgroups == 2:
+	if useOutgroups == "onlyIfBetter":
 		x = [d for (e,d) in distEsp.iteritems() if e in ancSpecies]
 		if len(x) > 0:
 			x = max(x)
@@ -64,7 +62,7 @@ def rewriteGenome():
 
 	# On etend la liste des genes ancestraux pour utiliser les outgroup en remontant l'arbre jusqu'a la racine
 	dicOutgroupGenes = utils.myTools.defaultdict(set)
-	if useOutgroups > 0:
+	if useOutgroups != "no":
 		anc = options["ancestr"]
 		while anc in phylTree.parent:
 			(anc,_) = phylTree.parent[anc]
@@ -100,8 +98,10 @@ def rewriteGenome():
 # Initialisation & Chargement des fichiers
 (noms_fichiers, options) = utils.myTools.checkArgs( \
 	["genomeAncestral", "phylTree.conf"], \
-	[("ancestr",str,""), ("seuilMaxDistInterGenes",int,1000000), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,0), \
-	("useOutgroups",int,[0,1,2]), ("nbConcorde",int,1), ("withConcordeOutput",bool,False), ("searchAllSol",bool,False), \
+	[("ancestr",str,""), \
+	("seuilMaxDistInterGenes",int,1000000), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,0), \
+	("useOutgroups",str,["no","always","onlyIfBetter"]), ("newParsimonyScoring",bool,False), \
+	("nbConcorde",int,1), ("withConcordeOutput",bool,False), ("searchAllSol",bool,False), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -114,7 +114,7 @@ if options["ancestr"] not in phylTree.allNames:
 	sys.exit(1)
 # On charge les genomes
 useOutgroups = options["useOutgroups"]
-if useOutgroups > 0:
+if useOutgroups != "no":
 	root = None
 else:
 	root = options["ancestr"]
@@ -123,33 +123,34 @@ genesAnc = utils.myGenomes.Genome(noms_fichiers["genomeAncestral"])
 nbConcorde = max(1, options["nbConcorde"])
 mult = pow(10, options["nbDecimales"])
 seuil = options["seuilMaxDistInterGenes"]
-pen = str(int(mult*options["infiniteDist"]))
+pen = str(int(mult * options["infiniteDist"]))
 add = options["notConstraintPenalty"]
 anc = options["ancestr"]
 ancSpecies = phylTree.species[anc]
 ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
 
-phylTree.initCalcDist(anc, useOutgroups != 0)
-calcDist = phylTree.calcDist
-genome = rewriteGenome()
+phylTree.initCalcDist(anc, useOutgroups != "no")
+if options["newParsimonyScoring"]:
+	calcDist = lambda distEsp: phylTree.calcWeightedValue(distEsp, -1, anc)[2]
+else:
+	calcDist = phylTree.calcDist
+newGenome = rewriteGenome()
 concordeInstance = utils.concorde.ConcordeLauncher()
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
-for (c,tab) in genome.iteritems():
+for (c,tab) in newGenome.iteritems():
 
 	# Ecrit la matrice du chromosome c et lance concorde
 	n = len(tab)
 	print >> sys.stderr, "\n- Chromosome %s (%d genes) -" % (c, n)
 	
 	# La matrice des distances intergenes
-	mat = [[None] * (n+1) for i in xrange(n+1)]
-
+	mat = [[None] * n for i in xrange(n)]
 	
-	def f(i, j):
-		y = distInterGenes(tab[i], tab[j])
-		mat[i+1][j+1] = mat[j+1][i+1] = y
-		if y == None:
-			#TODO None
+	def f(i1, i2):
+		mat[i1][i2] = mat[i2][i1] = y = distInterGenes(tab[i1], tab[i2])
+		# L'astuce est que None < 0
+		if y < 0:
 			return pen
 		elif y == 1:
 			return 0
@@ -157,39 +158,37 @@ for (c,tab) in genome.iteritems():
 			return int(mult*y+add)
 
 	lstTot = concordeInstance.doConcorde(n, f, nbConcorde, options["withConcordeOutput"])
-
+	lstTot = utils.myMaths.unique(lstTot)
 	if len(lstTot) == 0:
 		lstTot = [range(n)]
+
 	for (i,g) in enumerate(lstTot[0]):
 		print c,
 		if nbConcorde > 1:
 			print len(set([s[i] for s in lstTot])),
 		print " ".join(genesAnc.lstGenes[c][g].names)
 	
-	solUniq = utils.myMaths.unique(lstTot)
 	if nbConcorde > 1:
 		for sol in solUniq:
-			print ".", c, utils.myTools.printLine(sol)
+			print "# .", c, utils.myTools.printLine(sol)
 	print >> sys.stderr, len(solUniq), "solutions"
 
 	if options["searchAllSol"]:
 		print >> sys.stderr, "Etude des solutions alternatives ...",
 		nb = 0
 		res = lstTot[0]
-		tmp = [(i,res[i],res[i+1],mat[res[i]][res[i+1]]) for i in xrange(n)]
+		tmp = [(i,res[i],res[i+1],mat[res[i]][res[i+1]]) for i in xrange(n-1)]
 		for (i,xi,xip,diip) in tmp:
-			for (j,xj,xjp,djjp) in tmp[:max(i-1,0)]:
+			for (j,xj,xjp,djjp) in tmp[i+2:]:
 				dij = mat[xi][xj]
-				if dij == None:
-				#if dij < 0:
+				if dij < 0:
 					continue
 				dijpp = mat[xip][xjp]
-				if dijpp == None:
-				#if dijpp < 0:
+				if dijpp < 0:
 					continue
-				if int(mult * (diip+djjp-dij-dijpp)) == 0:
+				if int(mult*(diip+djjp)) == int(mult*(dij+dijpp)):
 					# On a detecte une inversion potentielle
-					print "# ... %d / %d ... %d / %d ..." % (j,j+1,i,i+1)
+					print "# ... %d / %d ... %d / %d ..." % (i,i+1,j,j+1)
 					nb += 1
 		
 		print >> sys.stderr, nb, "inversions possibles"

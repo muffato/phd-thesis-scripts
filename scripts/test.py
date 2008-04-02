@@ -4,7 +4,7 @@ import os
 import sys
 import math
 import time
-#import numpy
+import numpy
 import random
 import zipfile
 #import operator
@@ -17,6 +17,21 @@ import utils.myProteinTree
 import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
+
+n = int(sys.argv[1])
+mat = [[None] * (n+1) for i in xrange(n+1)]
+#mat = numpy.empty((n+1,n+1))
+#mat = numpy.matrix(mat)
+
+s = 0
+for i in xrange(n+1):
+	for j in xrange(n+1):
+		x = (i*j) % (i+j+1)
+		mat[i][j] = x
+		s += mat[i][j]
+print s
+
+sys.exit(0)
 
 # Un taux specifique compris entre rate^-1 et rate^1
 def randomRate():
