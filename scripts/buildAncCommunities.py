@@ -256,6 +256,7 @@ print >> sys.stderr, "OK"
 walktrapInstance.doWalktrap()
 
 clusters = []
+relev = []
 # Chaque composante connexe
 for (nodes,cuts,_,dend) in walktrapInstance.res:
 	print >> sys.stderr, cuts,
@@ -266,16 +267,18 @@ for (nodes,cuts,_,dend) in walktrapInstance.res:
 	if len(interessant) == 0:
 		print >> sys.stderr, "-"
 		clusters.append(nodes)
+		relev.append(0)
 	else:
 		(alpha,score,clust,lonely) = interessant[-1]
 		# Au choix, on prend la version la moins fusionnee
 		print >> sys.stderr, "+%d/%d/%f/%f" % (len(clust), len(lonely), alpha, score)
 		clusters.extend(clust)
 		#clusters.append(lonely)
+		relev.append(score)
 # -> clusters contient la repartition des diagonales
 print >> sys.stderr
 
-print >> sys.stderr, "Impression des %d chromosomes ancestraux ..." % len(clusters),
+print >> sys.stderr, "Impression des %d chromosomes ancestraux (score = %f)..." % (len(clusters),utils.myMaths.mean(relev)),
 
 used = [False] * len(lstDiags)
 for (i,chrom) in enumerate(clusters):
@@ -288,3 +291,6 @@ for (d,x) in enumerate(used):
 	if not x:
 		(_,_,_,d,s) = lstDiags[d]
 		print "-\t%s\t%s" % (d,s)
+
+print >> sys.stderr, "OK"
+

@@ -350,21 +350,20 @@ class dicContainer(dict):
 
 #################################################################################
 # Lit la ligne de commande et parse les arguments                               #
-#  1. les arguments obligatoires (des noms de fichiers)                         #
-#  2. des options sous la forme -opt=val                                        #
+#  1. des arguments obligatoires (nom,constructeur)                             #
+#  2. des options sous la forme -opt=val (nom, constructeur, val_defaut)        #
 # En cas d'erreur, affiche la syntaxe demandee et une courte description (info) #
-# -options- est un tableau de triplets (nom, constructeur, val_defaut)          #
 #################################################################################
 def checkArgs(args, options, info):
 
 	#
 	# Affiche le message d'erreur de mauvais arguments
 	#
-	def error_usage():
-		s = "- ERREUR - Usage : " + sys.argv[0]
+	def error_usage(reason):
+		print >> sys.stderr, "- ERREUR -", reason
+		print >> sys.stderr, " Usage :", sys.argv[0]
 		for t in args:
-			s += " " + t
-		print >> sys.stderr, s
+			print >> sys.stderr, "\t", "%s %s" % t
 		for t in options:
 			if t[1] == bool:
 				invite = "+/-"
@@ -375,8 +374,29 @@ def checkArgs(args, options, info):
 			print >> sys.stderr, "\n", info
 		sys.exit(1)
 
+	def putValue(typ, val, v):
+
+		# Creation de la valeur en fonction du type
+		if typ == bool:
+			# Type booleen
+			res = {"false": False, "true":True}[v.lower()]
+		elif typ == file:
+			# Type 'fichier': test de presence
+			if not fileAccess(v):
+				error_usage("Fichier '%s' non accessible" % v)
+			else:
+				res = v
+		else:
+			# Sinon, on utilise le constructeur
+			res = typ(v)
+		
+		if (type(val) == list) and (res not in val):
+			# Valeur de parametre non autorisee
+			error_usage("'%s' n'est pas parmi %s" % (res,printLine(val, '/')))
+		return res
+		
 	valOpt = dicContainer()
-	valArg = []
+	valArg = dicContainer()
 	opt = {}
 	for (name,typ,val) in options:
 		opt[name] = (typ,val)
@@ -397,22 +417,13 @@ def checkArgs(args, options, info):
 			try:
 				i = t.index('=')
 				s = t[1:i]
-				v = t[i+1:]
-				# Parametre non connu
-				if not s in valOpt:
-					print >> sys.stderr, "Option non reconnue:", s
-					error_usage()
-				# Mauvaise syntaxe pour les bool
-				if opt[s][0] == bool:
-					print >> sys.stderr, "Utiliser +%s ou -%s, sans '='" % (s,s)
-					error_usage()
-				# Valeur de parametre non autorisee
-				valOpt[s] = opt[s][0](v)
-				if (type(opt[s][1]) == list) and (valOpt[s] not in opt[s][1]):
-					print >> sys.stderr, "Les valeurs autorisees pour '%s' sont %s (ligne de commande: '%s')" \
-						% (s,printLine(opt[s][1], '/'),valOpt[s])
-					error_usage()
 				
+				# Le nom du parametre doit etre connnu
+				if not s in valOpt:
+					error_usage("Option '%s' non reconnue" % s)
+
+				valOpt[s] = putValue(opt[s][0], opt[s][1], t[i+1:])
+			
 			# Si on ne trouve pas de '=', c'est une type bool
 			except ValueError:
 				s = t[1:]
@@ -438,24 +449,24 @@ def checkArgs(args, options, info):
 						if t[0] == '+':
 							sys.stdout = gzip.GzipFile("/dev/stdout", "w")
 					else:
-						print >> sys.stderr, "Option non reconnue:", s
-						error_usage()
+						error_usage("Option '%s' non reconnue" % s)
 				elif opt[s][0] != bool:
-					print >> sys.stderr, "Utiliser -%s=valeur" % s
-					error_usage()
+					error_usage("Utiliser -%s=valeur" % s)
 				else:
 					# Ici, on affecte False
 					valOpt[s] = (t[0] == '+')
-		elif fileAccess(t):
-			valArg.append(t)
 		else:
-			print >> sys.stderr, "Fichier %s non accessible" % t
-			error_usage()
+			if len(valArg) < len(args):
+				(s,typ) = args[len(valArg)]
+				valArg[s] = putValue(typ, None, t)
+			else:
+				error_usage("Trop d'arguments sur ('%s')" % t)
 
 	# Il n'y a pas le nombre d'arguments minimal
-	if len(valArg) != len(args):
-		error_usage()
+	if len(valArg) < len(args):
+		error_usage("Pas assez d'arguments")
 	
-	return (dict([(arg,valArg[i]) for (i,arg) in enumerate(args)]), valOpt)
+	valArg.update(valOpt)
+	return valArg
 
 
