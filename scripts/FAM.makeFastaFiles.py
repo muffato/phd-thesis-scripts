@@ -5,18 +5,18 @@ import sys
 import utils.myTools
 import utils.myPhylTree
 
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree", "tree.5"], \
+arguments = utils.myTools.checkArgs( \
+	[("phylTree",file), ("tree.5",file)], \
 	[("IN.CDS",str,""), ("OUT.FASTA-CDS",str,""), ("OUT.FASTA-Prot",str,""), ("OUT.tree",str,"")], \
 	"Ecrit les familles" \
 )
 
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree"])
 
 CDS = {}
 for esp in phylTree.listSpecies:
 	print >> sys.stderr, "Chargement des CDS de", esp, "...",
-	f = utils.myTools.myOpenFile(options["IN.CDS"] % phylTree.fileName[esp], "r")
+	f = utils.myTools.myOpenFile(arguments["IN.CDS"] % phylTree.fileName[esp], "r")
 	for ligne in f:
 		t = ligne.replace('\n','').split('\t')
 		CDS[t[0]] = t[1] + "NN" # Pour tenir compte des CDS non entiers
@@ -39,7 +39,7 @@ geneticCode = {
      'GAA': 'E', 'GAG': 'E', 'GGT': 'G', 'GGC': 'G', 'GGA': 'G',
      'GGG': 'G', 'TAA': '*', 'TAG': '*', 'TGA': '*' }
 
-f = utils.myTools.myOpenFile(noms_fichiers["tree.5"], "r")
+f = utils.myTools.myOpenFile(arguments["tree.5"], "r")
 for (i,ligneEspeces) in enumerate(f):
 	n = i+1
 	print >> sys.stderr, "Ligne", n,
@@ -66,15 +66,15 @@ for (i,ligneEspeces) in enumerate(f):
 
 	try:
 		# L'arbre
-		tree = utils.myTools.myOpenFile(options["OUT.tree"] % n, "w")
+		tree = utils.myTools.myOpenFile(arguments["OUT.tree"] % n, "w")
 		print >> tree, ligneArbre
 		tree.close()
 		# Le multi-FASTA des CDS
-		fasta = utils.myTools.myOpenFile(options["OUT.FASTA-CDS"] % n, "w")
+		fasta = utils.myTools.myOpenFile(arguments["OUT.FASTA-CDS"] % n, "w")
 		print >> fasta, '\n'.join(cdsTab)
 		fasta.close()
 		# Le multi-FASTA des Proteines
-		fasta = utils.myTools.myOpenFile(options["OUT.FASTA-Prot"] % n, "w")
+		fasta = utils.myTools.myOpenFile(arguments["OUT.FASTA-Prot"] % n, "w")
 		print >> fasta, '\n'.join(protTab)
 		fasta.close()
 	except IOError:

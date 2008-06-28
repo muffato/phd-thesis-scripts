@@ -12,8 +12,8 @@ import utils.myPhylTree
 
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf", "xenoFile"], \
+arguments = utils.myTools.checkArgs( \
+	[("phylTree.conf",file), ("xenoFile",file)], \
 	[("species",str,""), ("speciesVersion",str,""), ("OUT.directory",str,""), \
 	("OUT.genesFile",str,"genes/genes.%s.list.bz2"), \
 	("OUT.fullGenesFile",str,"genes/full/genes.%s.list.bz2"), \
@@ -25,16 +25,16 @@ import utils.myPhylTree
 
 
 # L'arbre phylogenetique
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
-OUTgenesFile = os.path.join(options["OUT.directory"], options["OUT.genesFile"])
-OUTfullGenesFile = os.path.join(options["OUT.directory"], options["OUT.fullGenesFile"])
-OUTxrefFile = os.path.join(options["OUT.directory"], options["OUT.xrefFile"])
+OUTgenesFile = os.path.join(arguments["OUT.directory"], arguments["OUT.genesFile"])
+OUTfullGenesFile = os.path.join(arguments["OUT.directory"], arguments["OUT.fullGenesFile"])
+OUTxrefFile = os.path.join(arguments["OUT.directory"], arguments["OUT.xrefFile"])
 
 # On telecharge le fichier de l'UCSC
 combGenes = utils.myTools.defaultdict(list)
 print >> sys.stderr, "Telechargement du fichier ...",
-for ligne in utils.myTools.myOpenFile(noms_fichiers["xenoFile"], 'r'):
+for ligne in utils.myTools.myOpenFile(arguments["xenoFile"], 'r'):
 	t = ligne.replace('\n', '').split('\t')
 	combGenes[t[0]].append( (int(t[1]),int(t[2]), t[3], set(t[4:])) )
 
@@ -43,7 +43,7 @@ lstXref = set()
 # D'abord charger celles deja connnues
 print >> sys.stderr, "Chargement des annotations xref de reference ",
 for esp in phylTree.listSpecies:
-	if phylTree.officialName[options["species"]] == esp:
+	if phylTree.officialName[arguments["species"]] == esp:
 		continue
 	if not utils.myTools.fileAccess(OUTxrefFile % phylTree.fileName[esp]):
 		continue
@@ -72,10 +72,10 @@ for (c,comb) in combGenes.iteritems():
 		genes.append( (c,x1,x2,strand,list(reflink.intersection(lstXref))) )
 		#genes.append( (c,x1,x2,strand,reflink) )
 del combGenes
-noms = ["MYGENE.%s.%06d" % (options["speciesVersion"],i+1) for i in xrange(len(genes))]
+noms = ["MYGENE.%s.%06d" % (arguments["speciesVersion"],i+1) for i in xrange(len(genes))]
 print >> sys.stderr, "%d genes OK" % len(genes)
 
-esp = phylTree.fileName[options["species"]]
+esp = phylTree.fileName[arguments["species"]]
 
 # Ecriture des fichiers de genes / xref
 print >> sys.stderr, "Ecriture des fichiers ...",

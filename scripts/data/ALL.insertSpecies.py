@@ -12,18 +12,25 @@ import utils.myProteinTree
 
 # Arguments
 ############
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf", "proteinTree", "orthologues"], \
+arguments = utils.myTools.checkArgs( \
+	[("phylTree.conf",file), ("proteinTree",file), ("orthologues",file)], \
 	[("newSpecies",str,""), ("genesFile",str,"")], \
 	__doc__ \
 )
 
 # Chargement des fichiers
 ##########################
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-phylTree.loadAllSpeciesSince(None, options["genesFile"], storeGenomes = False)
-orthologues = utils.myGenomes.Genome(noms_fichiers["orthologues"])
-(data,info,roots) = utils.myProteinTree.loadTree(noms_fichiers["proteinTree"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
+phylTree.loadAllSpeciesSince(None, arguments["genesFile"], storeGenomes = False)
+orthologues = utils.myGenomes.Genome(arguments["orthologues"])
+
+roots = []
+data = {}
+info = {}
+for (r,d,i) in utils.myProteinTree.loadTree(arguments["proteinTree"]):
+	roots.append(r)
+	data.update(d)
+	info.update(i)
 
 
 # Indique s'il s'agit d'un noeud de duplication (les duplications 'dubious' ne sont pas valables
@@ -67,7 +74,7 @@ print >> sys.stderr, "Preparation des arbres ...",
 maxNodeID = max(info)
 for lst in data.itervalues():
 	maxNodeID = max(maxNodeID, max([x[0] for x in lst]))
-newSpecies = phylTree.officialName[options["newSpecies"]]
+newSpecies = phylTree.officialName[arguments["newSpecies"]]
 
 dicNames = {}
 dicTrees = {}

@@ -9,13 +9,13 @@ import bisect
 import utils.myTools
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["pvalueFile"], \
+arguments = utils.myTools.checkArgs( \
+	[("pvalueFile",file)], \
 	[("clustersSizes",str,"2,3,4,5,6,7"), ("cutoff",float,5)], \
 	__doc__
 )
 
-f = utils.myTools.myOpenFile(noms_fichiers["pvalueFile"], "r")
+f = utils.myTools.myOpenFile(arguments["pvalueFile"], "r")
 pvalues = utils.myTools.defaultdict(dict)
 for ligne in f:
 	t = ligne.split()
@@ -27,7 +27,7 @@ for ligne in f:
 f.close()
 
 res = []
-for n in options["clustersSizes"].split(","):
+for n in arguments["clustersSizes"].split(","):
 	n = int(n)
 	for t in utils.myTools.myIterator.buildSubsets(chrom, n):
 		t = tuple(t)
@@ -37,7 +37,7 @@ for n in options["clustersSizes"].split(","):
 			s += pvalues[x1][x2]
 			nb += 1
 		s /= nb
-		if s >= options["cutoff"]:
+		if s >= arguments["cutoff"]:
 			bisect.insort(res, (s,nb,t))
 	print >> sys.stderr, n, "ok"
 print >> sys.stderr, len(res)

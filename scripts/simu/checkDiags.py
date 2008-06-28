@@ -52,21 +52,21 @@ def loadDiagsFile(nom):
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf"], \
+arguments = utils.myTools.checkArgs( \
+	[("phylTree.conf",file)], \
 	[("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
 #  Chargement et initialisation
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 genomes = {}
 ancGenes = {}
 for anc in phylTree.listAncestr:
-	genomes[anc] = utils.myGenomes.Genome(options["genesFile"] % phylTree.fileName[anc])
-	ancGenes[anc] = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc])
+	genomes[anc] = utils.myGenomes.Genome(arguments["genesFile"] % phylTree.fileName[anc])
+	ancGenes[anc] = utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[anc])
 
 
 

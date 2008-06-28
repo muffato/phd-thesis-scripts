@@ -8,32 +8,32 @@ import utils.myPhylTree
 import utils.myPsOutput
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf"], \
+arguments = utils.myTools.checkArgs( \
+	[("phylTree.conf",file)], \
 	[("landscape",bool,False), ("printSpecies",bool,True), ("printAncestors",bool,True), ("printAges",bool,False), \
-	("colorFile",str,""), ("func",str,""), ("root",str,"")], \
+	("colorFile",str,""), ("func",str,""), ("root",str,""), ("min",float,None), ("max",float,None)], \
 	"Dessine l'arbre phylogenetique avec des informations dessus comme des evolutions de taux" \
 )
 
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
-(largeur,hauteur) = utils.myPsOutput.printPsHeader(landscape=options["landscape"])
+(largeur,hauteur) = utils.myPsOutput.printPsHeader(landscape=arguments["landscape"])
 
-if len(options["root"]) == 0:
-	root = phylTree.root
+if arguments["root"] in phylTree.ages:
+	root = arguments["root"]
 else:
-	root = options["root"]
+	root = phylTree.root
 maxAge = phylTree.ages[root]
 
 
-if options["func"] == "":
+if arguments["func"] == "":
 	func = lambda x: x
 else:
-	func = eval(options["func"])
+	func = eval(arguments["func"])
 
 colors = {}
-if options["colorFile"] != "":
-	f = utils.myTools.myOpenFile(options["colorFile"], "r")
+if arguments["colorFile"] != "":
+	f = utils.myTools.myOpenFile(arguments["colorFile"], "r")
 	for l in f:
 		t = l.replace('\n','').split("\t")
 		s1 = intern(t[0])
@@ -50,6 +50,11 @@ if options["colorFile"] != "":
 	val = colors.values()
 	minV = float(min(val))
 	maxV = float(max(val))
+
+if arguments["min"] != None:
+	minV = arguments["min"]
+if arguments["max"] != None:
+	maxV = arguments["max"]
 
 
 # Le degrade 
@@ -79,11 +84,11 @@ y = 0
 dy = hauteur / (len(phylTree.species[root])+1.)
 
 margeX1 = dy
-if options["printSpecies"]:
+if arguments["printSpecies"]:
 	margeX1 += max([len(x) for x in phylTree.species[root]]) * 0.15
 
 margeX2 = dy
-if options["printAncestors"]:
+if arguments["printAncestors"]:
 	margeX2 += len(root) * 0.15
 
 dx = (largeur-margeX1-margeX2) / phylTree.ages[root]
@@ -94,7 +99,7 @@ def printSubTree(node):
 	
 	if node not in phylTree.items:
 		y += dy
-		if options["printSpecies"]:
+		if arguments["printSpecies"]:
 			utils.myPsOutput.drawText(dy, y, node, "black")
 		return y
 	
@@ -126,9 +131,9 @@ def printSubTree(node):
 		utils.myPsOutput.drawLine(x, tmpY, 0, (mi+ma)/2.-tmpY, color)
 
 
-	if options["printAncestors"]:
+	if arguments["printAncestors"]:
 		utils.myPsOutput.drawText(x + .1, (mi+ma)/2. + .1, node, "black")
-	if options["printAges"]:
+	if arguments["printAges"]:
 		utils.myPsOutput.drawText(x + .1, (mi+ma)/2. - .4, "(%d)" % phylTree.ages[node], "black")
 
 	return (mi+ma)/2.

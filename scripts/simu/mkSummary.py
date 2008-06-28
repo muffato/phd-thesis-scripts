@@ -6,7 +6,7 @@ import sys
 import utils.myMaths
 import utils.myTools
 
-(noms_fichiers, options) = utils.myTools.checkArgs( [], [], "Lit une liste de noms de fichiers sur l'entree standard et affiche le fichier des moyennes" )
+arguments = utils.myTools.checkArgs( [], [], "Lit une liste de noms de fichiers sur l'entree standard et affiche le fichier des moyennes" )
 
 alldata = []
 for l in sys.stdin:

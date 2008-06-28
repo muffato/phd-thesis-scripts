@@ -5,16 +5,16 @@ import utils.myMaths
 import utils.myTools
 import utils.myPhylTree
 
-(noms_fichiers, options) = utils.myTools.checkArgs( [], [("range",str,""), ("phylTree",str,""), ("alignment-FASTA",str,"")], "Retrouve le GC ancestral" )
+arguments = utils.myTools.checkArgs( [], [("range",str,""), ("phylTree",str,""), ("alignment-FASTA",str,"")], "Retrouve le GC ancestral" )
 
-for treeID in utils.myTools.getRange(options["range"]):
+for treeID in utils.myTools.getRange(arguments["range"]):
 	
 	print >> sys.stderr, treeID, "...",
 
-	tree = utils.myPhylTree.PhylogeneticTree(options["phylTree"] % treeID)
+	tree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree"] % treeID)
 
 	# Chargement des CDS
-	seq = utils.myGenomes.loadFastaFile(options["alignment-FASTA"] % treeID)
+	seq = utils.myGenomes.loadFastaFile(arguments["alignment-FASTA"] % treeID)
 
 	res = []
 	n = len(seq.values()[0])

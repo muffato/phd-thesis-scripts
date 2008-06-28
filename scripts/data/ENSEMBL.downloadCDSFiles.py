@@ -19,12 +19,12 @@ request = """<?xml version="1.0" encoding="UTF-8"?>
 
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( ["phylTree.conf"], [("OUT.file",str,"")], "Telecharge depuis le site d'Ensembl les CDS des genes")
+arguments = utils.myTools.checkArgs( [("phylTree.conf",file)], [("OUT.file",str,"")], "Telecharge depuis le site d'Ensembl les CDS des genes")
 
 # L'arbre phylogenetique
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
-utils.myTools.mkDir(options["OUT.file"])
+utils.myTools.mkDir(arguments["OUT.file"])
 
 for esp in phylTree.listSpecies:
 	
@@ -51,7 +51,7 @@ for esp in phylTree.listSpecies:
 		except ValueError:
 			print l,
 	stdout.close()
-	f = utils.myTools.myOpenFile( options["OUT.file"] % phylTree.fileName[esp], "w")
+	f = utils.myTools.myOpenFile( arguments["OUT.file"] % phylTree.fileName[esp], "w")
 	for (gene,seq) in dic.iteritems():
 		print >> f, "%s\t%s" % (gene,seq)
 	f.close()

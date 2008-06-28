@@ -11,18 +11,18 @@ import utils.myTools
 
 
 
-(noms_fichiers, _) = utils.myTools.checkArgs( ["grapheInit", "lstNoms"], [], __doc__ )
+arguments = utils.myTools.checkArgs( [("grapheInit",file), ("lstNoms",file)], [], __doc__ )
 
 # MAIN #
 
 # On lit la liste des fusions
 lstOK = set()
-f = utils.myTools.myOpenFile(noms_fichiers["lstNoms"], 'r')
+f = utils.myTools.myOpenFile(arguments["lstNoms"], 'r')
 for l in f:
 	lstOK.update(l.split())
 
 # Le nouveau graphe
-fg = utils.myTools.myOpenFile(noms_fichiers["grapheInit"], 'r')
+fg = utils.myTools.myOpenFile(arguments["grapheInit"], 'r')
 nb = 0
 for l in fg:
 	

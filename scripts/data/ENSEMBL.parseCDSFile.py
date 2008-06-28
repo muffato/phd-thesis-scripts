@@ -20,10 +20,10 @@ import utils.myPhylTree
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( ["inputFile"], [], __doc__)
+arguments = utils.myTools.checkArgs( [("inputFile",file)], [], __doc__)
 
 
-f = utils.myTools.myOpenFile(noms_fichiers["inputFile"], "r")
+f = utils.myTools.myOpenFile(arguments["inputFile"], "r")
 dic = {}
 seqName = None
 for ligne in f:

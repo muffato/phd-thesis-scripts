@@ -10,14 +10,14 @@ import utils.myTools
 import utils.myGenomes
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["studiedGenome", "paralogsList"], \
+arguments = utils.myTools.checkArgs( \
+	[("studiedGenome",file), ("paralogsList",file)], \
 	[("greater",bool,True), ("log",bool,False), ("format",str,"%g")], \
 	__doc__
 )
 
-genome = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
-paralogues = utils.myGenomes.Genome(noms_fichiers["paralogsList"])
+genome = utils.myGenomes.Genome(arguments["studiedGenome"])
+paralogues = utils.myGenomes.Genome(arguments["paralogsList"])
 
 print >> sys.stderr, "Computing paralogs ...",
 para = utils.myTools.defaultdict(lambda : utils.myTools.defaultdict(int))
@@ -40,14 +40,14 @@ for (c1,c2) in utils.myTools.myIterator.tupleOnWholeList(lstChr):
 	else:
 		p *= float(sum(para[c2].values()))
 	p /= float(nbPara*(nbPara-1))
-	pvalues[c1][c2] = utils.myMaths.binomPvalue(p, para[c1][c2], nbPara/2, options["greater"])
+	pvalues[c1][c2] = utils.myMaths.binomPvalue(p, para[c1][c2], nbPara/2, arguments["greater"])
 print >> sys.stderr, "OK"
 
-if options["log"]:
+if arguments["log"]:
 	import math
-	transform = lambda x: options["format"] % abs(math.log10(x))
+	transform = lambda x: arguments["format"] % abs(math.log10(x))
 else:
-	transform = lambda x: options["format"] % x
+	transform = lambda x: arguments["format"] % x
 
 print utils.myTools.printLine(["+"] + lstChr)
 for c1 in lstChr:

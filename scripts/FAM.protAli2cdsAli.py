@@ -4,24 +4,24 @@ import sys
 import utils.myTools
 import utils.myGenomes
 
-(_,options) = utils.myTools.checkArgs( [], [("range",str,""), ("aligment-FASTA",str,""), ("CDS-FASTA",str,""), ("aligment-output",str,""), ("positions",str,"123")], "Converts a Muscle alignment of protein sequences to the corresponding CDS sequences" )
+arguments = utils.myTools.checkArgs( [], [("range",str,""), ("aligment-FASTA",str,""), ("CDS-FASTA",str,""), ("aligment-output",str,""), ("positions",str,"123")], "Converts a Muscle alignment of protein sequences to the corresponding CDS sequences" )
 
 
-positions = [int(p)-1 for p in options["positions"]]
+positions = [int(p)-1 for p in arguments["positions"]]
 
-for treeID in utils.myTools.getRange(options["range"]):
+for treeID in utils.myTools.getRange(arguments["range"]):
 	
 	print >> sys.stderr, treeID, "...",
 
 	# Chargement des CDS
-	CDS = utils.myGenomes.loadFastaFile(options["CDS-FASTA"] % treeID)
+	CDS = utils.myGenomes.loadFastaFile(arguments["CDS-FASTA"] % treeID)
 	# Gestion des CDS non entiers
 	for (name,seq) in CDS.iteritems():
 		CDS[name] = seq + "NN"
 
 	# Conversion des alignements
-	fi = utils.myTools.myOpenFile(options["aligment-FASTA"] % treeID, "r")
-	fo = utils.myTools.myOpenFile(options["aligment-output"] % treeID, "w")
+	fi = utils.myTools.myOpenFile(arguments["aligment-FASTA"] % treeID, "r")
+	fo = utils.myTools.myOpenFile(arguments["aligment-output"] % treeID, "w")
 	seqFiltered = ""
 	for ligne in fi:
 		ligne = ligne.replace('\n', '')

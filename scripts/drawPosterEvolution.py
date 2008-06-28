@@ -59,7 +59,7 @@ def getOrthosChr(table, chr):
 		lst = [x for (x,_) in utils.myMaths.flatten(table[c1].itervalues())]
 		count = [(lst.count(x),x) for x in set(lst)]
 		count.sort()
-		nb = (len(lst)*options["minHomology"])/100
+		nb = (len(lst)*arguments["minHomology"])/100
 		tmp = []
 		for (n,c2) in count.__reversed__():
 			tmp.append( (c2,n) )
@@ -121,17 +121,17 @@ def reorderGenome(genome1, genome2):
 
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( ["phylTree.conf"], [("penColor",str,"black"), ("minHomology",int,90), ("ancGenesFile",str,"")], __doc__)
+arguments = utils.myTools.checkArgs( [("phylTree.conf",file)], [("penColor",str,"black"), ("minHomology",int,90), ("ancGenesFile",str,"")], __doc__)
 
 
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 order = ["Euteleostomi", "Tetrapoda", "Amniota", "Mammalia", "Theria", "Boreoeutheria", "Euarchontoglires", "Catarrhini", "Homo/Pan/Gorilla group"]
 #order = order[:2]
 
 genomesAnc = []
 for anc in order:
-	gen = utils.myGenomes.Genome( options["ancGenesFile"] % phylTree.fileName[anc], withChr=True)
+	gen = utils.myGenomes.Genome( arguments["ancGenesFile"] % phylTree.fileName[anc], withChr=True)
 	if len(genomesAnc) > 0:
 		#gen = reorderGenome(genomesAnc[-1], gen)
 		gen = reorderGenome(gen, genomesAnc[-1])
@@ -174,9 +174,9 @@ for (ia1,ia2) in utils.myTools.myIterator.tupleOnWholeList(range(len(order))):
 		#func(y)
 		return lstNum
 
-	lstNum1 = prepareGenome(table12, lambda x: utils.myPsOutput.drawLine(1 + x*scaleX, 1, 0, float(sum([len(table21[c]) for c in table21]))*scaleY, options["penColor"]))
+	lstNum1 = prepareGenome(table12, lambda x: utils.myPsOutput.drawLine(1 + x*scaleX, 1, 0, float(sum([len(table21[c]) for c in table21]))*scaleY, arguments["penColor"]))
 	sys.stderr.write('.')
-	lstNum2 = prepareGenome(table21, lambda y: utils.myPsOutput.drawLine(1, 1 + y*scaleY, 19, 0, options["penColor"]))
+	lstNum2 = prepareGenome(table21, lambda y: utils.myPsOutput.drawLine(1, 1 + y*scaleY, 19, 0, arguments["penColor"]))
 	sys.stderr.write('.')
 
 	for c1 in table12:

@@ -18,6 +18,12 @@ import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
 
+#for x in loadTree3('/dev/stdin'):
+for x in utils.myProteinTree.loadTree3('/dev/stdin'):
+	print x[2][x[0]]
+
+sys.exit(0)
+
 n = int(sys.argv[1])
 mat = [[None] * (n+1) for i in xrange(n+1)]
 #mat = numpy.empty((n+1,n+1))
@@ -35,22 +41,22 @@ sys.exit(0)
 
 # Un taux specifique compris entre rate^-1 et rate^1
 def randomRate():
-	return math.pow(options["rearrRateAccel"], random.vonmisesvariate(0, options["vonMisesKappa"]) / math.pi)
+	return math.pow(arguments["rearrRateAccel"], random.vonmisesvariate(0, arguments["vonMisesKappa"]) / math.pi)
 
 # Une region du genome au hasard
 def randomSlice():
 
 	# Un nombre entre 0 et 1
-	r = random.vonmisesvariate(0, options["vonMisesKappa"]) / (2*math.pi) + .5
+	r = random.vonmisesvariate(0, arguments["vonMisesKappa"]) / (2*math.pi) + .5
 	# On decale la distribution vers la moyenne voulue
-	x0 = 2*options["vonMisesMean"] - 1
+	x0 = 2*arguments["vonMisesMean"] - 1
 	if x0 < 0:
 		r = abs(x0 + r*(1-x0))
 	else:
 		r = 1 - abs(-x0 + r*(1+x0))
 	return r
 
-options = {"rearrRateAccel": 1.732, "vonMisesKappa": 2, "vonMisesMean": .65}
+arguments = {"rearrRateAccel": 1.732, "vonMisesKappa": 2, "vonMisesMean": .65}
 
 def mkDistr(lst, nb):
 	mn = min(lst)
@@ -88,10 +94,10 @@ print s3
 
 sys.exit(0)
 
-(noms_fichiers, options) = utils.myTools.checkArgs( ["phylTree.conf", "proteinTree"], [], __doc__)
+arguments = utils.myTools.checkArgs( [("phylTree.conf",file), ("proteinTree",file)], [], __doc__)
 
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-(data,info,roots) = utils.myProteinTree.loadTree(noms_fichiers["proteinTree"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
+(data,info,roots) = utils.myProteinTree.loadTree(arguments["proteinTree"])
 
 def isDuplicatedNode(inf):
 	return (inf['Duplication'] != 0) and ('dubious_duplication' not in inf)
@@ -1308,13 +1314,13 @@ sys.exit(0)
 
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
+arguments = utils.myTools.checkArgs( \
 	["phylTree.conf" ], [], \
 	__doc__ \
 )
 
 # L'arbre phylogenetique
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 
 print phylTree.parent['Homo sapiens']

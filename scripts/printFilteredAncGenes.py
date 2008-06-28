@@ -21,18 +21,18 @@ import utils.myPhylTree
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf"],\
+arguments = utils.myTools.checkArgs( \
+	[("phylTree.conf",file)],\
 	[("breakWhenFamilyNotComplete",bool,False), ("speciesList",str,""), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2")], \
 	__doc__ \
 )
 
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-if options["speciesList"] == "":
-	phylTree.loadAllSpeciesSince(None, options["genesFile"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
+if arguments["speciesList"] == "":
+	phylTree.loadAllSpeciesSince(None, arguments["genesFile"])
 else:
-	phylTree.loadSpeciesFromList(options["speciesList"].split(','), options["genesFile"])
+	phylTree.loadSpeciesFromList(arguments["speciesList"].split(','), arguments["genesFile"])
 
 
 for e in phylTree.dicGenomes:
@@ -46,7 +46,7 @@ for l in sys.stdin:
 
 	for g in c:
 		if g not in phylTree.dicGenes:
-			if options["breakWhenFamilyNotComplete"]:
+			if arguments["breakWhenFamilyNotComplete"]:
 				break
 			else:
 				print >> sys.stderr, "Can't find %s" % g

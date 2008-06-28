@@ -13,8 +13,8 @@ import utils.myPhylTree
 import utils.myProteinTree
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf"], \
+arguments = utils.myTools.checkArgs( \
+	[("phylTree.conf",file)], \
 	[("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mysql/ensembl_compara_XXX"), \
 	("IN.member",str,"member.txt.gz"), \
 	("IN.genome_db",str,"genome_db.txt.gz"), \
@@ -27,7 +27,7 @@ import utils.myProteinTree
 )
 
 
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 
 ##############################################
@@ -39,7 +39,7 @@ phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
 ###############################################
 print >> sys.stderr, "Chargement des liens taxon_id -> species name ...",
 taxonName = {}
-f = utils.myTools.myOpenFile(os.path.join(options["IN.EnsemblURL"], options["IN.genome_db"]), "r")
+f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.genome_db"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	taxonName[t[1]] = t[2]
@@ -51,7 +51,7 @@ print >> sys.stderr, len(taxonName), "especes OK"
 ################################################
 print >> sys.stderr, "Chargement des liens member_id -> protein name ...",
 tmpLinks = {}
-f = utils.myTools.myOpenFile(os.path.join(options["IN.EnsemblURL"], options["IN.member"]), "r")
+f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.member"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	# A un numero member_id, on associe les noms (gene/transcrit/proteine) et l'espece
@@ -67,7 +67,7 @@ print >> sys.stderr, len(tmpLinks), "membres OK"
 print >> sys.stderr, "Chargement des liens node_id -> member_id ...",
 x = 0
 info = utils.myTools.defaultdict(dict)
-f = utils.myTools.myOpenFile(os.path.join(options["IN.EnsemblURL"], options["IN.protein_tree_member"]), "r")
+f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_member"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	data = tmpLinks[t[1]]
@@ -82,7 +82,7 @@ del taxonName
 # On charge les liens node_id -> infos 
 #######################################
 print >> sys.stderr, "Chargement des liens node_id -> infos ...",
-f = utils.myTools.myOpenFile(os.path.join(options["IN.EnsemblURL"], options["IN.protein_tree_tag"]), "r")
+f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_tag"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 
@@ -107,7 +107,7 @@ print >> sys.stderr, len(info), "infos OK"
 print >> sys.stderr, "Chargement des arbres (node_id_father -> node_id_son) ...",
 data = utils.myTools.defaultdict(list)
 nextNodeID = max(info)
-f = utils.myTools.myOpenFile(os.path.join(options["IN.EnsemblURL"], options["IN.protein_tree_node"]), "r")
+f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_node"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	# On rajoute le fils de son pere (avec une distance)
@@ -271,10 +271,10 @@ def getRoots(node, previousAnc, lastWrittenAnc):
 
 
 # On a besoin des genomes modernes pour reconnaitre les genes
-ft1 = utils.myTools.myOpenFile(options["OUT.tree"] % "1.ensembl", "w")
-ft2 = utils.myTools.myOpenFile(options["OUT.tree"] % "2.flatten", "w")
-ft3 = utils.myTools.myOpenFile(options["OUT.tree"] % "3.rebuilt", "w")
-ft4 = utils.myTools.myOpenFile(options["OUT.tree"] % "4.cut", "w")
+ft1 = utils.myTools.myOpenFile(arguments["OUT.tree"] % "1.ensembl", "w")
+ft2 = utils.myTools.myOpenFile(arguments["OUT.tree"] % "2.flatten", "w")
+ft3 = utils.myTools.myOpenFile(arguments["OUT.tree"] % "3.rebuilt", "w")
+ft4 = utils.myTools.myOpenFile(arguments["OUT.tree"] % "4.cut", "w")
 
 print >> sys.stderr, "Mise en forme des arbres ...",
 nb = 0

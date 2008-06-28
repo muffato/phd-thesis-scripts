@@ -10,26 +10,26 @@ import utils.myTools
 import utils.myPhylTree
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( ["phylTree.conf", "trees"], [("ancGenesFile",str,""), ("outputGCFile",str,"")], __doc__ )
+arguments = utils.myTools.checkArgs( [("phylTree.conf",file), ("trees",file)], [("ancGenesFile",str,""), ("outputGCFile",str,"")], __doc__ )
 
 # L'arbre phylogenetique
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
-utils.myTools.mkDir(options["outputGCFile"])
+utils.myTools.mkDir(arguments["outputGCFile"])
 
 # 1. On charge toutes les familles et on garde en leurs coordonnees
 dicFamilles = {}
 dicGC = {}
 for esp in phylTree.allNames:
 	nb = 0
-	for gene in utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[esp]):
+	for gene in utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[esp]):
 		names = frozenset(gene.names)
 		dicFamilles[names] = (esp, gene.beginning)
 		nb += 1
 	dicGC[esp] = [None] * nb
 
 # 2. On charge les arbres, reconstruit les familles et range les GC
-f = utils.myTools.myOpenFile(noms_fichiers["trees"], "r")
+f = utils.myTools.myOpenFile(arguments["trees"], "r")
 for arbre in f:
 
 	# Lit les nb prochains caracteres de l'arbre
@@ -93,7 +93,7 @@ for arbre in f:
 f.close()
 
 for (esp,tab) in dicGC.iteritems():
-	f = utils.myTools.myOpenFile(options["outputGCFile"] % phylTree.fileName[esp], "w")
+	f = utils.myTools.myOpenFile(arguments["outputGCFile"] % phylTree.fileName[esp], "w")
 	print >> f, utils.myTools.printLine(tab, "\n")
 	f.close()
 

@@ -19,13 +19,13 @@ import utils.myMaths
 
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs(["fichier"], [("type",str,"float")], __doc__)
+arguments = utils.myTools.checkArgs([("fichier",file)], [("type",str,"float")], __doc__)
 
-f = utils.myTools.myOpenFile(noms_fichiers["fichier"], 'r')
+f = utils.myTools.myOpenFile(arguments["fichier"], 'r')
 
 # Lit un flot de nombres et affiche les stats
 lst = []
-t = eval(options["type"])
+t = eval(arguments["type"])
 for l in f:
 	c = l.split()
 	lst.extend(t(x) for x in c)

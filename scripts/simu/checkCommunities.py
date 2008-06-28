@@ -62,10 +62,10 @@ def buildOrthosTable(genome1, chr1, genome2, chr2):
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( ["referenceGenome"], [], __doc__)
+arguments = utils.myTools.checkArgs( [("referenceGenome",file)], [], __doc__)
 
 
-genome2 = utils.myGenomes.Genome(noms_fichiers["referenceGenome"])
+genome2 = utils.myGenomes.Genome(arguments["referenceGenome"])
 
 for l in sys.stdin:
 	l = l.replace('\n', '')

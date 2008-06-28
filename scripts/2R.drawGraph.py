@@ -9,13 +9,13 @@ import bisect
 import utils.myTools
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["pvalueFile"], \
+arguments = utils.myTools.checkArgs( \
+	[("pvalueFile",file)], \
 	[("cutoff",float,5)], \
 	__doc__
 )
 
-f = utils.myTools.myOpenFile(noms_fichiers["pvalueFile"], "r")
+f = utils.myTools.myOpenFile(arguments["pvalueFile"], "r")
 pvalues = utils.myTools.defaultdict(dict)
 for ligne in f:
 	t = ligne.split()
@@ -31,7 +31,7 @@ print "graph {"
 for c1 in pvalues:
 	for (c2,w) in pvalues[c1].iteritems():
 		if c2 > c1:
-			if w >= options["cutoff"]:
+			if w >= arguments["cutoff"]:
 				print '%s -- %s [weight="%f"]' % (c1,c2,w)
 print "}"
 

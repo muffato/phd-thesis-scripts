@@ -6,8 +6,8 @@ __doc__ = """
 
 # Librairies
 import sys
-import utils.myGenomes
 import utils.myTools
+import utils.myGenomes
 
 
 def doAnalysis(genome1, genome2, txtDiff, txtDupDiff):
@@ -15,18 +15,18 @@ def doAnalysis(genome1, genome2, txtDiff, txtDupDiff):
 		lg1 = genome1.getPosition(g2.names)
 		if len(lg1) == 0:
 			print txtDiff, " ".join(g2.names)
-			all.add( frozenset(g2.names) )
+			all.add(g2.names)
 		elif len(lg1) > 1:
-			print txtDupDiff, "/".join([" ".join(genome1.lstGenes[c1][i1].names) for (c1,i1)  in lg1])
-			all.update([ frozenset(genome1.lstGenes[c1][i1].names) for (c1,i1) in lg1])
-			all.add( frozenset(g2.names) )
+			print txtDupDiff, "/".join([" ".join(genome1.lstGenes[c1][i1].names) for (c1,i1) in lg1])
+			all.update([genome1.lstGenes[c1][i1].names for (c1,i1) in lg1])
+			all.add(g2.names)
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( ["studiedGenome", "referenceGenome"], [], __doc__)
+arguments = utils.myTools.checkArgs( [("studiedGenome",file), ("referenceGenome",file)], [], __doc__)
 
 # Chargement des fichiers
-genome1 = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
-genome2 = utils.myGenomes.Genome(noms_fichiers["referenceGenome"])
+genome1 = utils.myGenomes.Genome(arguments["studiedGenome"])
+genome2 = utils.myGenomes.Genome(arguments["referenceGenome"])
 
 all = set()
 
@@ -34,6 +34,6 @@ doAnalysis(genome1, genome2, "+", "--")
 doAnalysis(genome2, genome1, "-", "++")
 
 for g2 in genome2:
-	if frozenset(g2.names) not in all:
+	if g2.names not in all:
 		print "=", " ".join(g2.names)
 

@@ -15,14 +15,14 @@ import utils.myTools
 
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["studiedGenome", "paralogsList"], \
+arguments = utils.myTools.checkArgs( \
+	[("studiedGenome",file), ("paralogsList",file)], \
 	[("minNbParas",int,5)], \
 	__doc__
 )
 
-genome = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
-paralogues = utils.myGenomes.Genome(noms_fichiers["paralogsList"])
+genome = utils.myGenomes.Genome(arguments["studiedGenome"])
+paralogues = utils.myGenomes.Genome(arguments["paralogsList"])
 
 
 # Ecriture des paralogues
@@ -44,7 +44,7 @@ for g in paralogues:
 lstChr = set()
 for tg in allLinks:
 	for ((c1,i1),(c2,i2)) in utils.myTools.myIterator.tupleOnStrictUpperList(list(tg)):
-		if para[c1][c2] < options["minNbParas"]:
+		if para[c1][c2] < arguments["minNbParas"]:
 			continue
 		lstChr.add(c1)
 		lstChr.add(c2)
@@ -52,7 +52,7 @@ for tg in allLinks:
 		os.write(fd, "sd%d %s %d %d\n" % (nb, c2, i2, i2) )
 		nb += 1
 os.close(fd)
-options["datafile"] = fname
+arguments["datafile"] = fname
 print >> sys.stderr, nb, nbPara/2, "OK"
 
 # Ecriture du karyotype
@@ -61,7 +61,7 @@ print >> sys.stderr, nb, nbPara/2, "OK"
 for c in lstChr:
 	os.write(fd, "chr - %s %s %d %d black\n" % (c, c, 0, len(genome.lstGenes[c])) )
 os.close(fd)
-options["karyofile"] = fname
+arguments["karyofile"] = fname
 
 # Ecriture du fichier de config
 ################################
@@ -173,14 +173,14 @@ units_nounit    = n
 
 (fd,fname) = tempfile.mkstemp()
 os.close(fd)
-options["pngfile"] = fname
-options["pngfiledir"] = os.path.dirname(fname)
-options["pngfilename"] = os.path.basename(fname)
+arguments["pngfile"] = fname
+arguments["pngfiledir"] = os.path.dirname(fname)
+arguments["pngfilename"] = os.path.basename(fname)
 (fd,fname) = tempfile.mkstemp()
-options["configfile"] = fname
-os.write(fd, conf % options)
+arguments["configfile"] = fname
+os.write(fd, conf % arguments)
 os.close(fd)
-os.system("/users/ldog/muffato/bin/circos -conf %s 1>&2" % options["configfile"])
-os.system("cat %s" % options["pngfile"])
-os.system("rm %(pngfile)s %(karyofile)s %(datafile)s %(configfile)s" % options )
+os.system("/users/ldog/muffato/bin/circos -conf %s 1>&2" % arguments["configfile"])
+os.system("cat %s" % arguments["pngfile"])
+os.system("rm %(pngfile)s %(karyofile)s %(datafile)s %(configfile)s" % arguments )
 

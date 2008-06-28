@@ -28,7 +28,7 @@ def getOrthosChr(table, chr):
 		lst = [x for (x,_) in utils.myMaths.flatten([x for (_,x) in table[c1]])]
 		count = [(lst.count(x),x) for x in set(lst)]
 		count.sort( reverse = True )
-		nb = (len(lst)*options["minHomology"])/100
+		nb = (len(lst)*arguments["minHomology"])/100
 		tmp = []
 		for (n,c2) in count:
 			tmp.append( (c2,n) )
@@ -47,8 +47,8 @@ def getOrthosChr(table, chr):
 
 # Arguments
 modeGenomeEvol = "GenomeEvolution"
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["studiedGenome", "referenceGenome"], \
+arguments = utils.myTools.checkArgs( \
+	[("studiedGenome",file), ("referenceGenome",file)], \
 	[("orthologuesList",str,""), ("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
 	("reverse",bool,False), ("minHomology",int,90)], \
 	__doc__
@@ -56,35 +56,35 @@ modeGenomeEvol = "GenomeEvolution"
 
 
 # Chargement des fichiers
-genome1 = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
-genome2 = utils.myGenomes.Genome(noms_fichiers["referenceGenome"])
-if options["reverse"]:
+genome1 = utils.myGenomes.Genome(arguments["studiedGenome"])
+genome2 = utils.myGenomes.Genome(arguments["referenceGenome"])
+if arguments["reverse"]:
 	x = genome1
 	genome1 = genome2
 	genome2 = x
-if options["orthologuesList"] != "":
-	genesAnc = utils.myGenomes.Genome(options["orthologuesList"])
+if arguments["orthologuesList"] != "":
+	genesAnc = utils.myGenomes.Genome(arguments["orthologuesList"])
 else:
 	genesAnc = genome2
 
 # Les chromosomes a etudier
 chr1 = genome1.lstChr
 chr2 = genome2.lstChr
-if options["includeScaffolds"]:
+if arguments["includeScaffolds"]:
 	chr1.extend(genome1.lstScaff)
 	chr2.extend(genome2.lstScaff)
-if options["includeRandoms"]:
+if arguments["includeRandoms"]:
 	chr1.extend(genome1.lstRand)
 	chr2.extend(genome2.lstRand)
 
 
-table12 = genome1.buildOrthosTable(chr1, genome2, chr2, options["includeGaps"], genesAnc)
+table12 = genome1.buildOrthosTable(chr1, genome2, chr2, arguments["includeGaps"], genesAnc)
 
 # Liste de chromosomes orthologues
 
 # On a besoin des equivalences d'un genome a l'autre
 res1 = getOrthosChr(table12, chr1)
-table21 = genome2.buildOrthosTable(chr2, genome1, chr1, options["includeGaps"], genesAnc)
+table21 = genome2.buildOrthosTable(chr2, genome1, chr1, arguments["includeGaps"], genesAnc)
 res2 = getOrthosChr(table21, chr2)
 
 # Et d'en tirer les best-hits reciproques chromosomiques

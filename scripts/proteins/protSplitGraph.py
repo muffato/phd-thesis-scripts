@@ -11,12 +11,12 @@ import utils.myTools
 
 
 
-(noms_fichiers, _) = utils.myTools.checkArgs( ["grapheInit", "nomsNoeuds", "lstComposantesConnexes", "dossierGraphes"], [], __doc__ )
+arguments = utils.myTools.checkArgs( [("grapheInit",file), ("nomsNoeuds",file), ("lstComposantesConnexes",file), ("dossierGraphes",file)], [], __doc__ )
 
 
 
 # On lit les noms des noeuds
-f = utils.myTools.myOpenFile(noms_fichiers["nomsNoeuds"], 'r')
+f = utils.myTools.myOpenFile(arguments["nomsNoeuds"], 'r')
 dicNodes = {}
 for l in f:
 	t = l.split()
@@ -26,12 +26,12 @@ f.close()
 print >> sys.stderr, "Noms des noeuds lus"
 
 # On lit les composantes
-f = utils.myTools.myOpenFile(noms_fichiers["lstComposantesConnexes"], 'r')
+f = utils.myTools.myOpenFile(arguments["lstComposantesConnexes"], 'r')
 dic = {}
 n = 0
 for l in f:
 	t = [x for x in l.split()]
-	fout = utils.myTools.myOpenFile(noms_fichiers["dossierGraphes"] + "nodes.%d" % n, 'w')
+	fout = utils.myTools.myOpenFile(arguments["dossierGraphes"] + "nodes.%d" % n, 'w')
 	for (i,x) in enumerate(t):
 		dic[x] = (n,i)
 	#for i in xrange(len(t)):
@@ -47,7 +47,7 @@ print >> sys.stderr, "Composantes connexes chargees et noeuds mis a jour"
 # On lit le graphe et cree les sous-graphes
 lastG = -1
 f = None
-fg = utils.myTools.myOpenFile(noms_fichiers["grapheInit"], 'r')
+fg = utils.myTools.myOpenFile(arguments["grapheInit"], 'r')
 openFiles = {}
 
 for l in fg:
@@ -61,7 +61,7 @@ for l in fg:
 		if len(openFiles) > 1000:
 			(x,f) = openFiles.popitem()
 			f.close()
-		f = utils.myTools.myOpenFile(noms_fichiers["dossierGraphes"] + "graph.%d" % g, 'a')
+		f = utils.myTools.myOpenFile(arguments["dossierGraphes"] + "graph.%d" % g, 'a')
 		openFiles[g] = f
 	else:
 		f = openFiles[g]

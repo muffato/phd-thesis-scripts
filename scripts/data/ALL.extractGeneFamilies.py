@@ -13,9 +13,9 @@ import utils.myPhylTree
 import utils.myProteinTree
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( ["phylTree.conf", "proteinTree"], [("OUT.ancGenesFile",str,"")], __doc__ )
+arguments = utils.myTools.checkArgs( [("phylTree.conf",file), ("proteinTree",file)], [("OUT.ancGenesFile",str,"")], __doc__ )
 
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 
 ####################################################################
@@ -53,22 +53,20 @@ def extractGeneFamilies(node, baseName, previousAnc, lastWrittenAnc):
 	return allGenes
 
 
-(data,info,roots) = utils.myProteinTree.loadTree(noms_fichiers["proteinTree"])
-
 print >> sys.stderr, "Mise en forme des arbres ...",
 nb = 0
 geneFamilies = utils.myTools.defaultdict(list)
-for r in roots:
+for (r,data,info) in utils.myProteinTree.loadTree(arguments["proteinTree"]):
 	nb += 1
 	extractGeneFamilies(r, "FAM%d" % nb, None, None)
 	utils.myProteinTree.printTree(sys.stdout, data, info, r)
 print >> sys.stderr, "%d arbres OK" % nb
 
 
-utils.myTools.mkDir(options["OUT.ancGenesFile"])
+utils.myTools.mkDir(arguments["OUT.ancGenesFile"])
 for (anc,lst) in geneFamilies.iteritems():
 	print >> sys.stderr, "Ecriture des familles de %s ..." % anc,
-	f = utils.myTools.myOpenFile(options["OUT.ancGenesFile"] % phylTree.fileName[anc], "w")
+	f = utils.myTools.myOpenFile(arguments["OUT.ancGenesFile"] % phylTree.fileName[anc], "w")
 	for gg in lst:
 		print >> f, " ".join(gg)
 	f.close()

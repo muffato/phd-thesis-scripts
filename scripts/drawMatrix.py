@@ -99,8 +99,11 @@ for c1 in table12:
 			if colors == None:
 				coul = arguments["defaultColor"]
 			else:
-				tmp = colors.getPosition(genome1.lstGenes[c1][i1].names)
-				tmp.update( colors.getPosition(genome2.lstGenes[c2][i2].names) )
+				tmp = set(colors.getPosition(genome1.lstGenes[c1][i1].names + genome2.lstGenes[c2][i2].names))
+				if genesAnc != None:
+					for (c,i) in genesAnc.getPosition(genome1.lstGenes[c1][i1].names + genome2.lstGenes[c2][i2].names):
+						tmp.update(colors.getPosition(genesAnc.lstGenes[c][i].names))
+
 				if len(tmp) == 0:
 					coul = arguments["defaultColor"]
 				else:

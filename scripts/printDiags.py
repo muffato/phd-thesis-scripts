@@ -21,8 +21,8 @@ import utils.myDiags
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["studiedGenome", "referenceGenome"], \
+arguments = utils.myTools.checkArgs( \
+	[("studiedGenome",file), ("referenceGenome",file)], \
 	[("orthologuesList",str,""), ("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
 	("reverse",bool,False), ("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True),], \
 	__doc__
@@ -30,29 +30,29 @@ import utils.myDiags
 
 
 # Chargement des fichiers
-genome1 = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
-genome2 = utils.myGenomes.Genome(noms_fichiers["referenceGenome"])
-if options["reverse"]:
+genome1 = utils.myGenomes.Genome(arguments["studiedGenome"])
+genome2 = utils.myGenomes.Genome(arguments["referenceGenome"])
+if arguments["reverse"]:
 	x = genome1
 	genome1 = genome2
 	genome2 = x
-if options["orthologuesList"] != "":
-	genesAnc = utils.myGenomes.Genome(options["orthologuesList"])
+if arguments["orthologuesList"] != "":
+	genesAnc = utils.myGenomes.Genome(arguments["orthologuesList"])
 else:
 	genesAnc = genome2
 
 # Les chromosomes a etudier
 chr1 = genome1.lstChr
 chr2 = genome2.lstChr
-if options["includeScaffolds"]:
+if arguments["includeScaffolds"]:
 	chr1.extend(genome1.lstScaff)
 	chr2.extend(genome2.lstScaff)
-if options["includeRandoms"]:
+if arguments["includeRandoms"]:
 	chr1.extend(genome1.lstRand)
 	chr2.extend(genome2.lstRand)
 
 print >> sys.stderr, "Extraction des diagonales ",
-for ((c1,d1),(c2,d2),ds) in utils.myDiags.calcDiags(genome1, genome2, genesAnc, options["minimalLength"], options["fusionThreshold"], options["sameStrand"], not options["includeGaps"]):
+for ((c1,d1),(c2,d2),ds) in utils.myDiags.calcDiags(genome1, genome2, genesAnc, arguments["minimalLength"], arguments["fusionThreshold"], arguments["sameStrand"], not arguments["includeGaps"]):
 	
 	print utils.myTools.printLine([len(ds), c1," ".join([genome1.lstGenes[c1][i1].names[0] for i1 in d1]), c2," ".join([genome2.lstGenes[c2][i2].names[0] for i2 in d2]), ds])
 	#res.append(str(len(ds)))

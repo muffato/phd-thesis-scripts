@@ -10,13 +10,13 @@ import utils.myTools
 import utils.myGenomes
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["studiedGenome", "paralogsList", "pvalueFile"], \
+arguments = utils.myTools.checkArgs( \
+	[("studiedGenome",file), ("paralogsList",file), ("pvalueFile",file)], \
 	[("cutoff",float,5)], \
 	__doc__
 )
 
-f = utils.myTools.myOpenFile(noms_fichiers["pvalueFile"], "r")
+f = utils.myTools.myOpenFile(arguments["pvalueFile"], "r")
 pvalues = utils.myTools.defaultdict(dict)
 for ligne in f:
 	t = ligne.split()
@@ -27,8 +27,8 @@ for ligne in f:
 			pvalues[t[0]][chrom[i]] = float(x)
 f.close()
 
-genome = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
-paralogues = utils.myGenomes.Genome(noms_fichiers["paralogsList"])
+genome = utils.myGenomes.Genome(arguments["studiedGenome"])
+paralogues = utils.myGenomes.Genome(arguments["paralogsList"])
 
 print >> sys.stderr, "Filtering %d paralogs ..." % len(paralogues.lstGenes[None]),
 nbPara = 0
@@ -36,7 +36,7 @@ for g in paralogues:
 	tg = [c for (c,_) in genome.getPosition(g.names) if type(c) == int]
 	chrpairs = frozenset(utils.myTools.myIterator.tupleOnStrictUpperList(tg))
 	for (c1,c2) in chrpairs:
-		if pvalues[str(c1)].get(str(c2),0) >= options["cutoff"]:
+		if pvalues[str(c1)].get(str(c2),0) >= arguments["cutoff"]:
 			print " ".join(g.names)
 			break
 print >> sys.stderr, "OK"

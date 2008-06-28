@@ -21,8 +21,8 @@ import utils.myPsOutput
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["studiedGenome", "referenceGenome"], \
+arguments = utils.myTools.checkArgs( \
+	[("studiedGenome",file), ("referenceGenome",file)], \
 	[("orthologuesList",str,""), ("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
 	("reverse",bool,False), ("dx",float,0), ("dy",float,0), ("roundedChr",bool,False), ("landscape",bool,False), ("showText",bool,True), ("drawBorder",bool,False), \
 	("defaultColor",str,"black"), ("penColor",str,"black"), ("backgroundColor",str,"")], \
@@ -31,12 +31,12 @@ import utils.myPsOutput
 
 
 # Le premier genome
-genome2 = utils.myGenomes.Genome(noms_fichiers["referenceGenome"])
+genome2 = utils.myGenomes.Genome(arguments["referenceGenome"])
 
 # Si on a utilise /dev/null, c'est que le caryotype est donne sous un autre format
 if len(genome2.dicGenes) == 0:
 
-	f = open(noms_fichiers["studiedGenome"], "r")
+	f = open(arguments["studiedGenome"], "r")
 	table12 = {}
 	for (i,l) in enumerate(f):
 		nbChr = i+1
@@ -55,44 +55,44 @@ if len(genome2.dicGenes) == 0:
 	chr1 = sorted(table12.keys())
 
 else:
-	genome1 = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
+	genome1 = utils.myGenomes.Genome(arguments["studiedGenome"])
 
 
-if options["reverse"]:
+if arguments["reverse"]:
 	x = genome1
 	genome1 = genome2
 	genome2 = x
-if options["orthologuesList"] != "":
-	genesAnc = utils.myGenomes.Genome(options["orthologuesList"])
+if arguments["orthologuesList"] != "":
+	genesAnc = utils.myGenomes.Genome(arguments["orthologuesList"])
 else:
 	genesAnc = None
 
 # Les chromosomes a etudier
 chr1 = genome1.lstChr
 chr2 = genome2.lstChr
-if options["includeScaffolds"]:
+if arguments["includeScaffolds"]:
 	chr1.extend(genome1.lstScaff)
 	chr2.extend(genome2.lstScaff)
-if options["includeRandoms"]:
+if arguments["includeRandoms"]:
 	chr1.extend(genome1.lstRand)
 	chr2.extend(genome2.lstRand)
 
-table12 = genome1.buildOrthosTable(chr1, genome2, chr2, options["includeGaps"], genesAnc)
+table12 = genome1.buildOrthosTable(chr1, genome2, chr2, arguments["includeGaps"], genesAnc)
 
 print >> sys.stderr, "Affichage ...",
 
 (largeur,hauteur) = utils.myPsOutput.printPsHeader()
 
-if len(options["backgroundColor"]) > 0:
-	utils.myPsOutput.drawBox(0,0, largeur,hauteur, options["backgroundColor"], options["backgroundColor"])
+if len(arguments["backgroundColor"]) > 0:
+	utils.myPsOutput.drawBox(0,0, largeur,hauteur, arguments["backgroundColor"], arguments["backgroundColor"])
 
 # On dessine
-if options["dx"] > 0:
-	dx = options["dx"]
+if arguments["dx"] > 0:
+	dx = arguments["dx"]
 else:
 	dx = ((largeur-2.)*3.)/(5.*len(chr1)-2.)
-if options["dy"] > 0:
-	dy = options["dy"]
+if arguments["dy"] > 0:
+	dy = arguments["dy"]
 else:
 	dy = (hauteur-4.) / float(max([len(x) for x in table12.values()]))
 y0 = 1.
@@ -110,14 +110,14 @@ for c in chr1:
 		print "%.5f %.5f 2cm rlineto" % (0,-len(table12[c])*dy+dx)
 		print "closepath"
 
-	if options["roundedChr"]:
+	if arguments["roundedChr"]:
 		print "initclip"
 		printBorder()
 		print "clip"
 
 	def trans( (_,val) ):
 		if len(val) == 0:
-			return options["defaultColor"]
+			return arguments["defaultColor"]
 		else:
 			return val[0][0]
 	
@@ -128,13 +128,13 @@ for c in chr1:
 		y += hauteur
 	
 	print "initclip"
-	if options["drawBorder"]:
+	if arguments["drawBorder"]:
 		printBorder()
-		utils.myPsOutput.setColor(options["penColor"], "color")
+		utils.myPsOutput.setColor(arguments["penColor"], "color")
 		print "stroke"
 
-	if options["showText"]:
-		utils.myPsOutput.drawText(xx, y0, str(c), options["penColor"])
+	if arguments["showText"]:
+		utils.myPsOutput.drawText(xx, y0, str(c), arguments["penColor"])
 	
 	xx += (5.*dx)/3.
 

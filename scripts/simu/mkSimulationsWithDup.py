@@ -34,13 +34,14 @@ def randomStrand():
 
 # Un taux specifique compris entre rate^-1 et rate^1
 def randomAccel():
-	return math.pow(options["eventAccel"], random.vonmisesvariate(0, options["vonMisesKappa"]) / math.pi)
+	return math.pow(arguments["eventAccel"], random.vonmisesvariate(0, arguments["vonMisesKappa"]) / math.pi)
 
 
 # Un chromosome au hasard (en tenant compte des tailles)
 def randomChromosome(genome):
-	tmp = [len(x) for x in genome]
-	return utils.myMaths.randomValue(tmp).getRandomPos()
+	x = utils.myMaths.randomValue()
+	x.initBisect([len(_) for _ in genome])
+	return x.getRandomBisectPos()
 
 # Un endroit du genome au hasard (mettre includeEnd=1 si on autorise la fin du chromosome comme position)
 # Un chromosome plus long a plus de chance d'etre choisi
@@ -52,18 +53,10 @@ def randomPlace(genome, includeEnd = 0):
 # Une region du genome au hasard
 def randomSlice(genome):
 
-	# Un nombre entre 0 et 1
-	r = random.vonmisesvariate(0, options["vonMisesKappa"]) / (2*math.pi) + .5
-	# On decale la distribution vers la moyenne voulue
-	x0 = 2*options["vonMisesMean"] - 1
-	if x0 < 0:
-		r = abs(x0 + r*(1-x0))
-	else:
-		r = 1 - abs(-x0 + r*(1+x0))
 	# Le chromosome
 	c = randomChromosome(genome)
 	# On passe de 0-1 a 0-len
-	l = int(len(genome[c]) * r)
+	l = int(len(genome[c]) * utils.myMaths.randomValue().myVonMises())
 	x1 = random.randint(0, len(genome[c])-1-l)
 	return (c,x1,x1+l)
 
@@ -107,8 +100,8 @@ def buildGenomes(node):
 			geneAccel = randomAccel()
 		print >> sys.stderr, "genes {accel=%.3f" % geneAccel,
 
-		rates = [options[x]*randomAccel() for x in ["geneLossWeight", "geneGainWeight", "geneDuplicationWeight"]]
-		nbGeneEvents = (options["geneEventRate"] * dist * geneAccel) / sum(rates)
+		rates = [arguments[x]*randomAccel() for x in ["geneLossWeight", "geneGainWeight", "geneDuplicationWeight"]]
+		nbGeneEvents = (arguments["geneEventRate"] * dist * geneAccel) / sum(rates)
 		nbPertes = int(nbGeneEvents * rates[0])
 		nbGains = int(nbGeneEvents * rates[1])
 		nbDup = int(nbGeneEvents * rates[2])
@@ -148,15 +141,16 @@ def buildGenomes(node):
 		elif (fils == "Murinae") or (node == "Murinae"):
 			eventAccel = 3.
 		else:
-			rates = [options[x]*randomAccel() for x in ["chrInvertWeight","chrTranslocWeight","chrFusionWeight","chrBreakWeight"]]
+			rates = [arguments[x]*randomAccel() for x in ["chrInvertWeight","chrTranslocWeight","chrFusionWeight","chrBreakWeight"]]
 		
 		# Rearrangements
 		eventAccel = randomAccel()
-		nbEvents = int(options["chrEventRate"] * dist * eventAccel)
+		nbEvents = int(arguments["chrEventRate"] * dist * eventAccel)
 		nb = [0,0,0,0]
-		rates = utils.myMaths.randomValue(rates)
+		ratesmgr = utils.myMaths.randomValue()
+		ratesmgr.initBisect(rates)
 		for _ in xrange(nbEvents):
-			evt = rates.getRandomPos()
+			evt = ratesmgr.getRandomBisectPos()
 			
 			# C'est une inversion
 			if evt == 0:
@@ -229,7 +223,7 @@ def printData(node):
 	familles = {}
 	print >> sys.stderr, "Writing %s genome (nbChr=%d) ..." % (node,len(genomes[node])),
 	s = phylTree.fileName[node]
-	f = utils.myTools.myOpenFile(options["genomeFile"] % s, 'w')
+	f = utils.myTools.myOpenFile(arguments["genomeFile"] % s, 'w')
 	for (c,lst) in enumerate(genomes[node]):
 		for (i,(gene,strand)) in enumerate(lst):
 			nom = "%s.%d" % (s,gene)
@@ -245,7 +239,7 @@ def printData(node):
 			subFam = printData(fils)
 
 			# Quelques fausses assignations
-			falseOrthologs = random.sample(subFam.keys(), int(len(subFam)*(100-options["orthologyQuality"])/100.))
+			falseOrthologs = random.sample(subFam.keys(), int(len(subFam)*(100-arguments["orthologyQuality"])/100.))
 			falseAssociations = [(x,subFam[x]) for x in falseOrthologs]
 			random.shuffle(falseAssociations)
 			for (old,new) in falseAssociations:
@@ -260,7 +254,7 @@ def printData(node):
 					familles[ini] += subFam.get(g,"")
 
 		print >> sys.stderr, "Writing %s ancestral genes ..." % node,
-		f = utils.myTools.myOpenFile(options["ancGenesFile"] % s, 'w')
+		f = utils.myTools.myOpenFile(arguments["ancGenesFile"] % s, 'w')
 		for fam in familles.itervalues():
 			print >> f, fam
 		f.close()
@@ -274,11 +268,10 @@ def printData(node):
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf"], \
-	[("root",str,""), \
+arguments = utils.myTools.checkArgs( \
+	[("phylTree.conf",file), ("root",str)], \
 	# Genome initial
-	("nbOrigGenes",int,20000), ("nbOrigChr",int,20), \
+	[("nbOrigGenes",int,20000), ("nbOrigChr",int,20), \
 	# Parametres d'evolution
 	#("rearrRateAccel",float,1.732), ("vonMisesMean",float,.2), ("vonMisesKappa",float,2), \
 	("eventAccel",float,3.), ("vonMisesMean",float,.2), ("vonMisesKappa",float,2.), \
@@ -300,34 +293,37 @@ def printData(node):
 
 
 # L'arbre phylogenetique
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-if options["root"] not in phylTree.listAncestr:
-	print >> sys.stderr, "Unknown root '%s'" % options["root"]
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
+if arguments["root"] not in phylTree.listAncestr:
+	print >> sys.stderr, "Unknown root '%s'" % arguments["root"]
 	sys.exit(1)
 
-utils.myTools.mkDir(options["genomeFile"])
-utils.myTools.mkDir(options["ancGenesFile"])
+utils.myTools.mkDir(arguments["genomeFile"])
+utils.myTools.mkDir(arguments["ancGenesFile"])
 
-genomes2x = options["2Xspecies"].replace('^', ' ').split('/')
-genomesScaffolds = options["6Xspecies"].replace('^', ' ').split('/')
+genomes2x = arguments["2Xspecies"].replace('^', ' ').split('/')
+genomesScaffolds = arguments["6Xspecies"].replace('^', ' ').split('/')
 
 dupGenes = {}
 genomes = {}
 
+utils.myMaths.randomValue.vonmisesmean = arguments["vonMisesMean"]
+utils.myMaths.randomValue.vonmiseskappa = arguments["vonMisesKappa"]
+
 # Le genome original
-tmp = [random.random() for _ in xrange(options["nbOrigChr"])]
-facteur = options["nbOrigGenes"]/sum(tmp)
+tmp = [random.random() for _ in xrange(arguments["nbOrigChr"])]
+facteur = arguments["nbOrigGenes"]/sum(tmp)
 genome = []
 nbTotalGenes = 0
 for chrlen in tmp:
 	nb = int(chrlen * facteur)
 	genome.append( [(x+nbTotalGenes,randomStrand()) for x in xrange(nb)] )
 	nbTotalGenes += nb
-genomes[options["root"]] = genome
+genomes[arguments["root"]] = genome
 
 # On construit le scenario evolutif
-buildGenomes(options["root"])
+buildGenomes(arguments["root"])
 
 # On ecrit les familles de genes
-printData(options["root"])
+printData(arguments["root"])
 

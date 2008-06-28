@@ -19,11 +19,11 @@ import utils.myPsOutput
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( ["lstGenomes"], [], __doc__)
+arguments = utils.myTools.checkArgs( [("lstGenomes",file)], [], __doc__)
 
 # Chargement de la liste des genomes
 lstGenomes = []
-f = utils.myTools.myOpenFile(noms_fichiers["lstGenomes"], 'r')
+f = utils.myTools.myOpenFile(arguments["lstGenomes"], 'r')
 for ligne in f:
 	if ligne[0] == '.':
 		gen = [int(x) for x in ligne.split()[1:]]

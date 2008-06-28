@@ -5,9 +5,9 @@ import sys
 import utils.myTools
 import utils.myPhylTree
 
-(noms_fichiers, options) = utils.myTools.checkArgs( ["phylTree.conf"], [("mode",str,["species","branches"]), ("ancGenomesFile",str,""), ("genesFile",str,""), ("ancGenesFile",str,"")], "Compare les jeux de genes de chaque espece")
+arguments = utils.myTools.checkArgs( [("phylTree.conf",file)], [("mode",str,["species","branches"]), ("ancGenomesFile",str,""), ("genesFile",str,""), ("ancGenesFile",str,"")], "Compare les jeux de genes de chaque espece")
 
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 def selectOutput(command, init):
 	print >> sys.stderr, "Computing %s/%s ..." % (init[0], init[1]),
@@ -45,23 +45,23 @@ def do(node):
 
 	for (e,l) in phylTree.items.get(node, []):
 
-		nodeA = options["ancGenomesFile"] % phylTree.fileName[node]
-		nodeG = options["ancGenesFile"] % phylTree.fileName[node]
+		nodeA = arguments["ancGenomesFile"] % phylTree.fileName[node]
+		nodeG = arguments["ancGenesFile"] % phylTree.fileName[node]
 		if e in phylTree.listSpecies:
-			eE = options["genesFile"] % phylTree.fileName[e]
+			eE = arguments["genesFile"] % phylTree.fileName[e]
 		else:
-			eE = options["ancGenomesFile"] % phylTree.fileName[e]
+			eE = arguments["ancGenomesFile"] % phylTree.fileName[e]
 		command = "/users/ldog/muffato/work/scripts/printOrthologousChr.py %s %s -orthologuesList=%s +includeScaffolds" % (nodeA,eE,nodeG)
 		selectOutput(command, [node,e,l])
 		do(e)
 
-if options["mode"] == "species":
+if arguments["mode"] == "species":
 
 	for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(phylTree.listSpecies):
 		par = phylTree.dicParents.get(e1).get(e2)
-		fE1 = options["genesFile"] % phylTree.fileName[e1]
-		fE2 = options["genesFile"] % phylTree.fileName[e2]
-		fA = options["ancGenesFile"] % phylTree.fileName[par]
+		fE1 = arguments["genesFile"] % phylTree.fileName[e1]
+		fE2 = arguments["genesFile"] % phylTree.fileName[e2]
+		fA = arguments["ancGenesFile"] % phylTree.fileName[par]
 		command = "/users/ldog/muffato/work/scripts/printOrthologousChr.py %s %s -orthologuesList=%s +includeScaffolds" % (fE1,fE2,fA)
 		selectOutput(command, [e1,e2,2*phylTree.ages.get(par)])
 

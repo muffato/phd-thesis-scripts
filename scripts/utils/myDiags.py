@@ -1,9 +1,10 @@
 
-#
-# Fonctions communes de traitement des diagonales
-#
+###################################################
+# Fonctions communes de traitement des diagonales #
+###################################################
 
 import sys
+import collections
 import operator
 import myMaths
 import myTools
@@ -13,118 +14,116 @@ slidingTuple = myTools.myIterator.slidingTuple
 tupleOnTwoLists = myTools.myIterator.tupleOnTwoLists
 getMinMax = myMaths.getMinMax
 
+def getMinMaxDiag(lst):
+	a = lst[0]
+	b = lst[-1]
+	if abs(a-b) < len(lst)-1:
+		return getMinMax(lst)
+	elif a < b:
+		return (a,b)
+	else:
+		return (b,a)
+
+
+
+
 #
 # Extrait toutes les diagonales entre deux genomes (eventuellement des singletons)
 # Pour optimiser, on demande 
 #   genome1 qui est un dictionnaire qui associe a chaque chromosome 
 #     la liste des numeros des genes ancestraux sur ce chromosome
 #   dic2 qui associe a un numero de gene ancestral ses positions sur le genome 2
-#
-
+########################################################################################
 def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 
-	def getMinMaxDiag(lst):
-		a = lst[0]
-		b = lst[-1]
-		if abs(a-b) < len(lst)-1:
-			return getMinMax(lst)
-		elif a < b:
-			return (a,b)
+	diag = collections.deque()
+	listI1 = []
+	listI2 = []
+	lastPos2 = []
+	listStrand = []
+	lastS1 = 0
+	
+	# Parcours du genome 1
+	for (i1,(j1,s1)) in enumerate(genome1):
+		if j1 < 0:
+			presI2 = []
 		else:
-			return (b,a)
-
-	for c1 in genome1:
+			presI2 = dic2[j1]
 		
-		diag = []
-		listI1 = []
-		listI2 = []
-		lastPos2 = []
-		listStrand = []
-		lastS1 = 0
-		
-		# Parcours du genome 1
-		for (i1,(j1,s1)) in enumerate(genome1[c1]):
-			if j1 < 0:
-				presI2 = []
-			else:
-				presI2 = dic2[j1]
-			
-			# On regarde chaque orthologue du gene
-			for ((c2,i2,s2), (lastC2,lastI2,lastS2)) in tupleOnTwoLists(presI2, lastPos2):
-				# Chromosomes differents -> indiscutable
-				if c2 != lastC2:
+		# On regarde chaque orthologue du gene
+		for ((c2,i2,s2), (lastC2,lastI2,lastS2)) in tupleOnTwoLists(presI2, lastPos2):
+			# Chromosomes differents -> indiscutable
+			if c2 != lastC2:
+				continue
+			# Meme brin
+			if sameStrand:
+				# Les brins initiaux imposent le sens de parcours (+1 ou -1)
+				if i2 != lastI2 + lastS1*lastS2:
 					continue
-				# Meme brin
-				if sameStrand:
-					# Les brins initiaux imposent le sens de parcours (+1 ou -1)
-					if i2 != lastI2 + lastS1*lastS2:
-						continue
-					# Le nouveau brin doit etre coherent
-					if lastS1*s1 != lastS2*s2:
-						continue
-				else:
-					# On demande juste a ce que les deux genes soient cote a cote
-					if abs(i2-lastI2) != 1:
-						continue
-				
-				# On a passe les test, c'est OK
-				# On ecrit l'orthologue que l'on a choisi pour le coup d'avant (aucun effet si one2one)
-				listI2[-1] = lastI2
-				listI2.append(i2)
-				lastPos2 = [(c2,i2,s2)]
-				break
-
-			# On n'a pas trouve de i2 satisfaisant, c'est la fin de la diagonale
+				# Le nouveau brin doit etre coherent
+				if lastS1*s1 != lastS2*s2:
+					continue
 			else:
-				# On l'enregistre si elle n'est pas vide
-				if len(listI2) > 0:
-					diag.append( (listI1,listI2, lastPos2[0][0], listStrand, (deb1,fin1),getMinMaxDiag(listI2)) )
-				# On recommence a zero
-				deb1 = i1
-				lastPos2 = presI2
-				listI1 = []
-				listStrand = []
-				# Pour que les diagonales de longueur 1 soient correctes
-				listI2 = [i2 for (lastC2,i2,_) in presI2[:1]]
+				# On demande juste a ce que les deux genes soient cote a cote
+				if abs(i2-lastI2) != 1:
+					continue
 			
-			listI1.append(i1)
-			listStrand.append(s1)
-			lastS1 = s1
-			fin1 = i1
+			# On a passe les test, c'est OK
+			# On ecrit l'orthologue que l'on a choisi pour le coup d'avant (aucun effet si one2one)
+			listI2[-1] = lastI2
+			listI2.append(i2)
+			lastPos2 = [(c2,i2,s2)]
+			break
+
+		# On n'a pas trouve de i2 satisfaisant, c'est la fin de la diagonale
+		else:
+			# On l'enregistre si elle n'est pas vide
+			if len(listI2) > 0:
+				diag.append( (listI1,listI2, lastPos2[0][0], listStrand, (deb1,fin1),getMinMaxDiag(listI2)) )
+			# On recommence a zero
+			deb1 = i1
+			lastPos2 = presI2
+			listI1 = []
+			listStrand = []
+			# Pour que les diagonales de longueur 1 soient correctes
+			listI2 = [i2 for (lastC2,i2,_) in presI2[:1]]
 		
-		if len(listI2) > 0:
-			diag.append( (listI1,listI2, lastC2, listStrand, (deb1,fin1),getMinMaxDiag(listI2)) )
+		listI1.append(i1)
+		listStrand.append(s1)
+		lastS1 = s1
+		fin1 = i1
+	
+	if len(listI2) > 0:
+		diag.append( (listI1,listI2, lastC2, listStrand, (deb1,fin1),getMinMaxDiag(listI2)) )
 
-		# On rassemble des diagonales separees par une espace pas trop large
+	# On rassemble des diagonales separees par une espace pas trop large
+	tmp = collections.deque()
+	while len(diag) > 0:
+		(d1,d2,c2,s,(deb1,fin1),(deb2,fin2)) = diag.popleft()
 		while len(diag) > 0:
-			#print >> sys.stderr, "on est sur", diag[0]
-			(d1,d2,c2,s,(deb1,fin1),(deb2,fin2)) = diag.pop(0)
-			i = 0
-			while i < len(diag):
-				(dd1,dd2,cc2,ss,(debb1,finn1),(debb2,finn2)) = diag[i]
-				#print >> sys.stderr, "test de", diag[i]
+			(dd1,dd2,cc2,ss,(debb1,finn1),(debb2,finn2)) = curr = diag.popleft()
 
-				# Aucune chance de poursuivre la diagonale
-				if debb1 > (fin1+largeurTrou+1):
-					#print >> sys.stderr, "meme pas la peine"
-					break
-				if (min(abs(deb2-finn2), abs(debb2-fin2)) <= (largeurTrou+1)) and (c2 == cc2):
-					#print >> sys.stderr, "OK"
-					d1.extend(dd1)
-					d2.extend(dd2)
-					s.extend(ss)
-					fin1 = finn1
-					deb2 = min(deb2,debb2)
-					fin2 = max(fin2,finn2)
-					del diag[i]
-				else:
-					#print >> sys.stderr, "non"
-					i += 1
-			#print >> sys.stderr, "envoi", (d1,d2,c2,(deb1,fin1),(deb2,fin2))
-			yield (c1, c2, d1, d2, s)
+			# Aucune chance de poursuivre la diagonale
+			if debb1 > (fin1+largeurTrou+1):
+				tmp.appendleft(curr)
+				break
+			elif (min(abs(deb2-finn2), abs(debb2-fin2)) <= (largeurTrou+1)) and (c2 == cc2):
+				d1.extend(dd1)
+				d2.extend(dd2)
+				s.extend(ss)
+				fin1 = finn1
+				deb2 = min(deb2,debb2)
+				fin2 = max(fin2,finn2)
+			else:
+				tmp.appendleft(curr)
 
+		yield (c2,d1,d2,s)
+		diag.extendleft(tmp)
+		tmp.clear()
 
-
+#
+# Procedure complete de calculs des diagonales a partir de 2 genomes, des orthologues et de certains parametres
+################################################################################################################
 def calcDiags(g1, g2, orthos, minimalLength, fusionThreshold, sameStrand, keepOnlyOrthos):
 
 
@@ -162,32 +161,32 @@ def calcDiags(g1, g2, orthos, minimalLength, fusionThreshold, sameStrand, keepOn
 	sys.stderr.write(". ")
 
 	statsDiags = []
-	for (c1,c2, d1,d2, s) in iterateDiags(newGen, newLoc, fusionThreshold, sameStrand):
+	for (c1,tmpGen1) in newGen.iteritems():
+		for (c2,d1,d2,s) in iterateDiags(tmpGen1, newLoc, fusionThreshold, sameStrand):
 
-		if len(d1) < minimalLength:
-			continue
-		
-		statsDiags.append(len(d1))
+			if len(d1) < minimalLength:
+				continue
+			
+			statsDiags.append(len(d1))
 
-		# Si on a garde uniquement les genes avec des orthologues, il faut revenir aux positions reelles dans le genome
-		if keepOnlyOrthos:
-			yield ((c1,[trans1[c1][i] for i in d1]), (c2,[trans2[c2][i] for i in d2]), s)
-		else:
-			yield ((c1,d1), (c2,d2), s)
+			# Si on a garde uniquement les genes avec des orthologues, il faut revenir aux positions reelles dans le genome
+			if keepOnlyOrthos:
+				yield ((c1,[trans1[c1][i] for i in d1]), (c2,[trans2[c2][i] for i in d2]), s)
+			else:
+				yield ((c1,d1), (c2,d2), s)
 	
 	print >> sys.stderr, myMaths.myStats(statsDiags),
 
 
 #
 # Un ensemble de diagonales que l'on represente comme un graphe ou les noeuds sont les genes
-#
+##############################################################################################
 class WeightedDiagGraph:
-
 
 	#
 	# Initialisation du graphe a partir de la liste des diagonales
 	# On construit la liste des genes voisins
-	#
+	################################################################
 	def __init__(self, lstDiags):
 		
 		# La liste des sommets
@@ -199,7 +198,8 @@ class WeightedDiagGraph:
 			return defaultdict(int)
 		def newDicList():
 			def newStrandCount():
-				return { (-1,-1):0, (-1,1):0, (1,-1):0, (1,1):0}
+				return defaultdict(int)
+				#return { (-1,-1):0, (-1,1):0, (1,-1):0, (1,1):0}
 			return defaultdict(newStrandCount)
 
 		# Les aretes du graphe et les orientations relatives des genes
@@ -268,9 +268,7 @@ class WeightedDiagGraph:
 			vois = sx.items()
 			# On trie selon la certitude de chaque lien
 			vois.sort(key = operator.itemgetter(1))
-			#vois.reverse()
 			# On ne garde que les deux premiers et les autres seront supprimes
-			#todo.append( (vois[2][1]-vois[1][1], x, tuple(i for (i,_) in vois[2:])) )
 			todo.append( (vois[-3][1]-vois[-2][1], x, tuple(i for (i,_) in vois[:-2])) )
 		
 		# Les liens a supprimer en premier sont ceux qui ont un plus fort differentiel par rapport aux liens gardes
@@ -305,5 +303,36 @@ class WeightedDiagGraph:
 				yield followSommet(x)
 			except KeyError:
 				pass
+
+
+####################################
+# Charge le fichier des diagonales #
+####################################
+def loadDiagsFile(nom, ancName, officialName):
+	
+	print >> sys.stderr, "Chargement des diagonales de %s ..." % nom,
+	f = myTools.myOpenFile(nom, 'r')
+	lst = []
+	for l in f:
+		# Selection de l'ancetre
+		if not l.startswith(ancName):
+			continue
+		# On enleve les "_random" et on extrait chaque colonne
+		ct = l.replace('\n', '').replace('_random', '').split('\t')
+		
+		# La diagonale
+		d = [int(x) for x in ct[2].split(' ')]
+		
+		# On joint les especes qui ont vu la diagonale et celles qui n'apportent que le chromosome
+		tmp = [y.split("/") for y in "|".join([x for x in ct[4:] if len(x) > 0]).split("|")]
+		# Les chromosomes de ces especes
+		espChr = frozenset( [(officialName[e],c) for (e,c) in tmp if ('Un' not in c) and (e in officialName)] )
+		esp = frozenset( [e for (e,_) in espChr] )
+		
+		lst.append( (d,espChr,esp,ct[2],ct[3]) )
+
+	f.close()
+	print >> sys.stderr, "OK (%d diagonales)" % len(lst)
+	return lst
 
 

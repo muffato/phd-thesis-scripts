@@ -63,11 +63,11 @@ def rewriteGenome():
 	# On etend la liste des genes ancestraux pour utiliser les outgroup en remontant l'arbre jusqu'a la racine
 	dicOutgroupGenes = utils.myTools.defaultdict(set)
 	if useOutgroups != "no":
-		anc = options["ancestr"]
+		anc = arguments["ancestr"]
 		while anc in phylTree.parent:
 			(anc,_) = phylTree.parent[anc]
 			# Le genome de l'ancetre superieur
-			tmpGenesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc])
+			tmpGenesAnc = utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[anc])
 			del tmpGenesAnc.dicGenes
 			# Chaque gene
 			for g in tmpGenesAnc:
@@ -96,8 +96,8 @@ def rewriteGenome():
 
 
 # Initialisation & Chargement des fichiers
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["genomeAncestral", "phylTree.conf"], \
+arguments = utils.myTools.checkArgs( \
+	[("genomeAncestral",file), ("phylTree.conf",file)], \
 	[("ancestr",str,""), \
 	("seuilMaxDistInterGenes",int,1000000), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,0), \
 	("useOutgroups",str,["no","always","onlyIfBetter"]), ("newParsimonyScoring",bool,False), \
@@ -108,34 +108,33 @@ def rewriteGenome():
 )
 
 # L'arbre phylogentique
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
-if options["ancestr"] not in phylTree.allNames:
-	print >> sys.stderr, "Can't retrieve the order of -%s- " % options["ancestr"]
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
+if arguments["ancestr"] not in phylTree.allNames:
+	print >> sys.stderr, "Can't retrieve the order of -%s- " % arguments["ancestr"]
 	sys.exit(1)
 # On charge les genomes
-useOutgroups = options["useOutgroups"]
+useOutgroups = arguments["useOutgroups"]
 if useOutgroups != "no":
 	root = None
 else:
-	root = options["ancestr"]
-phylTree.loadAllSpeciesSince(root, options["genesFile"], storeGenomes = False)
-genesAnc = utils.myGenomes.Genome(noms_fichiers["genomeAncestral"])
-nbConcorde = max(1, options["nbConcorde"])
-mult = pow(10, options["nbDecimales"])
-seuil = options["seuilMaxDistInterGenes"]
-pen = str(int(mult * options["infiniteDist"]))
-add = options["notConstraintPenalty"]
-anc = options["ancestr"]
+	root = arguments["ancestr"]
+phylTree.loadAllSpeciesSince(root, arguments["genesFile"], storeGenomes = False)
+genesAnc = utils.myGenomes.Genome(arguments["genomeAncestral"])
+nbConcorde = max(1, arguments["nbConcorde"])
+mult = pow(10, arguments["nbDecimales"])
+seuil = arguments["seuilMaxDistInterGenes"]
+pen = str(int(mult * arguments["infiniteDist"]))
+add = arguments["notConstraintPenalty"]
+anc = arguments["ancestr"]
 ancSpecies = phylTree.species[anc]
 ancOutgroupSpecies = phylTree.outgroupSpecies[anc]
 
 phylTree.initCalcDist(anc, useOutgroups != "no")
-if options["newParsimonyScoring"]:
+if arguments["newParsimonyScoring"]:
 	calcDist = lambda distEsp: phylTree.calcWeightedValue(distEsp, -1, anc)[2]
 else:
 	calcDist = phylTree.calcDist
 newGenome = rewriteGenome()
-concordeInstance = utils.concorde.ConcordeLauncher()
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
 for (c,tab) in newGenome.iteritems():
@@ -157,7 +156,7 @@ for (c,tab) in newGenome.iteritems():
 		else:
 			return int(mult*y+add)
 
-	lstTot = concordeInstance.doConcorde(n, f, nbConcorde, options["withConcordeOutput"])
+	lstTot = utils.concorde.doConcorde(n, f, nbConcorde, arguments["withConcordeOutput"])
 	lstTot = utils.myMaths.unique(lstTot)
 	if len(lstTot) == 0:
 		lstTot = [range(n)]
@@ -173,7 +172,7 @@ for (c,tab) in newGenome.iteritems():
 			print "# .", c, utils.myTools.printLine(sol)
 	print >> sys.stderr, len(solUniq), "solutions"
 
-	if options["searchAllSol"]:
+	if arguments["searchAllSol"]:
 		print >> sys.stderr, "Etude des solutions alternatives ...",
 		nb = 0
 		res = lstTot[0]

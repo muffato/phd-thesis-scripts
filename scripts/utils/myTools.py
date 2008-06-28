@@ -33,6 +33,19 @@ class firstLineBuffer:
 		return self.f.close()
 
 
+#############################################################################################
+# Lit un fichier tabulaire, en convertissant les colonnes separees de delim selon type_list #
+#############################################################################################
+def readTabular(filename, type_list, delim = '\t'):
+	f = myOpenFile(filename, 'r')
+	for (i,line) in enumerate(f):
+		current_line = line.replace('\n','').split(delim)
+		if len(current_line) != len(type_list):
+			raise IndexError,"Erreur nombre de colonne. Ligne:%d" % (i+1)
+		yield [t(x) for (x,t) in zip(current_line,type_list)]
+	f.close()
+
+
 ####################
 # Fichier existant #
 ####################
@@ -64,6 +77,8 @@ def myOpenFile(nom, mode):
 		stdin.close()
 		stderr.close()
 	else:
+		if "w" in mode:
+			mkDir(nom)
 		nom = nom.replace("~", os.environ['HOME'])
 		i = nom.find(".zip/")
 		if (mode == "r") and (i >= 0):
@@ -83,9 +98,9 @@ def myOpenFile(nom, mode):
 #####################################################
 # Cree le repertoire pour les sorties dans fichiers #
 #####################################################
-def mkDir(dir):
+def mkDir(fichier):
 	try:
-		os.makedirs(os.path.dirname(dir))
+		os.makedirs(os.path.dirname(fichier))
 	except OSError:
 		pass
 
@@ -362,14 +377,14 @@ def checkArgs(args, options, info):
 	def error_usage(reason):
 		print >> sys.stderr, "- ERREUR -", reason
 		print >> sys.stderr, " Usage :", sys.argv[0]
-		for t in args:
-			print >> sys.stderr, "\t", "%s %s" % t
+		for (i,t) in enumerate(args):
+			print >> sys.stderr, "\t", "%d:" % (i+1), "%s %s" % t
 		for t in options:
 			if t[1] == bool:
 				invite = "+/-"
+				print >> sys.stderr, "\t", "+/-%s (%s)" % (t[0],t[2])
 			else:
-				invite = "-"
-			print >> sys.stderr, "\t", invite + "%s %s (%s)" % t
+				print >> sys.stderr, "\t", "  -%s %s (%s)" % t
 		if info != "":
 			print >> sys.stderr, "\n", info
 		sys.exit(1)
@@ -460,7 +475,7 @@ def checkArgs(args, options, info):
 				(s,typ) = args[len(valArg)]
 				valArg[s] = putValue(typ, None, t)
 			else:
-				error_usage("Trop d'arguments sur ('%s')" % t)
+				error_usage("Trop d'arguments sur '%s'" % t)
 
 	# Il n'y a pas le nombre d'arguments minimal
 	if len(valArg) < len(args):

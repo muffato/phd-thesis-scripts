@@ -5,24 +5,24 @@ import utils.myTools
 import utils.myGenomes
 import utils.myPhylTree
 
-(noms_fichiers, options) = utils.myTools.checkArgs( \
+arguments = utils.myTools.checkArgs( \
 	[], \
 	[("range",str,""), ("alphabet",str,"ACGTN"), ("phylTree",str,""), ("alignment-FASTA",str,"")], \
 	"Reconstruit la sequence ancestrale" \
 )
 
-allBases = options["alphabet"][:-1]
-allBasesS = set(options["alphabet"])
-unknownBase = options["alphabet"][-1]
+allBases = arguments["alphabet"][:-1]
+allBasesS = set(arguments["alphabet"])
+unknownBase = arguments["alphabet"][-1]
 unknownBaseCost = 1. / len(allBases)
 
-for treeID in utils.myTools.getRange(options["range"]):
+for treeID in utils.myTools.getRange(arguments["range"]):
 	
 	print >> sys.stderr, treeID, "...",
 
-	tree = utils.myPhylTree.PhylogeneticTree(options["phylTree"] % treeID)
+	tree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree"] % treeID)
 
-	seq = utils.myGenomes.loadFastaFile(options["alignment-FASTA"] % treeID)
+	seq = utils.myGenomes.loadFastaFile(arguments["alignment-FASTA"] % treeID)
 
 	res = []
 	n = len(seq.values()[0])

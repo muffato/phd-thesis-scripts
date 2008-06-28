@@ -10,7 +10,7 @@ class Gene:
 
 	def __init__(self, names, chromosome, beg, end, strand):
 
-		self.names = tuple(intern(s) for s in names)
+		self.names = [intern(s) for s in names]
 		self.chromosome = commonChrName(chromosome)
 		self.beginning = beg
 		self.end = end

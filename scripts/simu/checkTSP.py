@@ -25,13 +25,13 @@ import utils.myDiags
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( ["referenceGenome","studiedGenome", "orthologuesList"], [], __doc__)
+arguments = utils.myTools.checkArgs( [("referenceGenome",file) ,("studiedGenome",file), ("orthologuesList",file)], [], __doc__)
 
 
 # Chargement des fichiers
-genome1 = utils.myGenomes.Genome(noms_fichiers["referenceGenome"])
-genome2 = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
-genesAnc = utils.myGenomes.Genome(noms_fichiers["orthologuesList"])
+genome1 = utils.myGenomes.Genome(arguments["referenceGenome"])
+genome2 = utils.myGenomes.Genome(arguments["studiedGenome"])
+genesAnc = utils.myGenomes.Genome(arguments["orthologuesList"])
 
 chr = genome2.lstChr[:]
 totMemeSens = 0.

@@ -287,4 +287,58 @@ strFontDef = """
 10 scalefont
 setfont
 """
+
+
+# Pour la posterite: un debut de frontend Cairo
+
+def cairoPrintHeader(landscape = False, format = "ps", filename = '/dev/stdout'):
+
+	format = format.strip().lower()
 	
+	if landscape:
+		width,height = 29.7, 21
+	else:
+		width,height = 21, 29.7
+	
+	if format == 'ps':
+		surface = cairo.PSSurface(filename, width*72/2.54, height*72/2.54)
+	elif format == 'pdf':
+		surface = cairo.PSSurface(filename, width*72/2.54, height*72/2.54)
+	else:
+		print >> sys.stderr, "Unknown output style '%s'" % format
+		sys.exit(1)
+	
+	global ctx
+	ctx = cairo.Context(surface)
+	ctx.scale(width, height)
+	ctx.set_line_width(0.001)
+
+	initColor()
+
+
+def cairoSetLineColor(C):
+	global ctx
+
+	if type(C) != tuple:
+		C = getColor(C, (0,0,0))
+	ctx.set_source_rgb(*C)
+
+def cairoDrawLine(X, Y, L, H, C):
+
+	global ctx
+	
+	setLineColor(C)
+	ctx.move_to(X, Y)
+	ctx.rel_line_to(L, H)
+	ctx.stroke()
+
+
+def cairoDrawBox(X, Y, L, H, Cb, Cr):
+
+	setLineColor(Cb)
+	ctx.rectangle(X, Y, L, H)
+
+	if Cr != None:
+		ctx.set_source(cairo.SolidPattern(Cr[0], Cr[1], Cr[2], 1))
+		ctx.fill()
+

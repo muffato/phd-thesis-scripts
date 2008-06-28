@@ -6,18 +6,18 @@ import zipfile
 import utils.myTools
 import utils.myPhylTree
 
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree", "tree.5"], \
+arguments = utils.myTools.checkArgs( \
+	[("phylTree",file), ("tree.5",file)], \
 	[("IN.CDS",str,""), ("OUT.ZipFile",str,""), ("ZIP/FASTA-CDS",str,"cds.fa"), ("ZIP/FASTA-Prot",str,"prot.fa"), ("ZIP/tree",str,"tree.txt")], \
 	"Cree le fichier de travail ZIP de chaque famille (proteines & arbre)" \
 )
 
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree"])
 
 CDS = {}
 for esp in phylTree.listSpecies:
 	print >> sys.stderr, "Chargement des CDS de", esp, "...",
-	f = utils.myTools.myOpenFile(options["IN.CDS"] % phylTree.fileName[esp], "r")
+	f = utils.myTools.myOpenFile(arguments["IN.CDS"] % phylTree.fileName[esp], "r")
 	for ligne in f:
 		t = ligne.replace('\n','').split('\t')
 		CDS[t[0]] = t[1] + "NN" # Pour tenir compte des CDS non entiers
@@ -47,7 +47,7 @@ geneticCode = {
      'GAA': 'E', 'GAG': 'E', 'GGT': 'G', 'GGC': 'G', 'GGA': 'G',
      'GGG': 'G', 'TAA': '*', 'TAG': '*', 'TGA': '*' }
 
-f = utils.myTools.myOpenFile(noms_fichiers["tree.5"], "r")
+f = utils.myTools.myOpenFile(arguments["tree.5"], "r")
 for (i,ligneEspeces) in enumerate(f):
 	n = i+1
 	print >> sys.stderr, "Ligne", n,
@@ -73,15 +73,15 @@ for (i,ligneEspeces) in enumerate(f):
 		j += 1
 	
 	# Creation du fichier ZIP
-	fz = zipfile.ZipFile(options["OUT.ZipFile"] % n, "w", zipfile.ZIP_DEFLATED)
+	fz = zipfile.ZipFile(arguments["OUT.ZipFile"] % n, "w", zipfile.ZIP_DEFLATED)
 	# L'arbre
-	zinfo = mkZipInfo(options["ZIP/tree"])
+	zinfo = mkZipInfo(arguments["ZIP/tree"])
 	fz.writestr(zinfo, ligneArbre)
 	# Le multi-FASTA des CDS
-	zinfo = mkZipInfo(options["ZIP/FASTA-CDS"])
+	zinfo = mkZipInfo(arguments["ZIP/FASTA-CDS"])
 	fz.writestr(zinfo, '\n'.join(cdsTab))
 	# Le multi-FASTA des Proteines
-	zinfo = mkZipInfo(options["ZIP/FASTA-Prot"])
+	zinfo = mkZipInfo(arguments["ZIP/FASTA-Prot"])
 	fz.writestr(zinfo, '\n'.join(protTab))
 	fz.close()
 

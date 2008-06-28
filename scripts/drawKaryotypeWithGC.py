@@ -22,8 +22,8 @@ import utils.myPsOutput
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["studiedGenome", "referenceGenome", "GCGenesNames", "GCPercent"], \
+arguments = utils.myTools.checkArgs( \
+	[("studiedGenome",file), ("referenceGenome",file)), ("GCGenesNames",file), ("GCPercent",file)], \
 	[("orthologuesList",str,""), ("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
 	("GCorthologues",str,""), ("GCcolumn",int,0), ("GCaxisMin",float,25), ("GCaxisMax",float,85), ("GCsmoothing",int,10), \
 	("reverse",bool,False), ("dx",float,0), ("dy",float,0), ("roundedChr",bool,False), ("landscape",bool,False), ("showText",bool,True), ("drawBorder",bool,False), \
@@ -33,12 +33,12 @@ import utils.myPsOutput
 
 
 # Le genome avec les couleurs
-genome2 = utils.myGenomes.Genome(noms_fichiers["referenceGenome"])
+genome2 = utils.myGenomes.Genome(arguments["referenceGenome"])
 
 # Si on a utilise /dev/null, c'est que le caryotype est donne sous un autre format
 if len(genome2.dicGenes) == 0:
 
-	f = utils.myTools.myOpenFile(noms_fichiers["studiedGenome"], "r")
+	f = utils.myTools.myOpenFile(arguments["studiedGenome"], "r")
 	table12 = {}
 	for (i,l) in enumerate(f):
 		nbChr = i+1
@@ -58,43 +58,43 @@ if len(genome2.dicGenes) == 0:
 
 # Sinon, procedure normale: on charge le genome avec les orthologues
 else:
-	genome1 = utils.myGenomes.Genome(noms_fichiers["studiedGenome"])
-	if options["reverse"]:
+	genome1 = utils.myGenomes.Genome(arguments["studiedGenome"])
+	if arguments["reverse"]:
 		x = genome1
 		genome1 = genome2
 		genome2 = x
 
-	if options["orthologuesList"] != "":
-		genesAnc = utils.myGenomes.Genome(options["orthologuesList"])
+	if arguments["orthologuesList"] != "":
+		genesAnc = utils.myGenomes.Genome(arguments["orthologuesList"])
 	else:
 		genesAnc = None
 
 # Les chromosomes a etudier
 chr1 = genome1.lstChr
 chr2 = genome2.lstChr
-if options["includeScaffolds"]:
+if arguments["includeScaffolds"]:
 	chr1.extend(genome1.lstScaff)
 	chr2.extend(genome2.lstScaff)
-if options["includeRandoms"]:
+if arguments["includeRandoms"]:
 	chr1.extend(genome1.lstRand)
 	chr2.extend(genome2.lstRand)
 
-table12 = genome1.buildOrthosTable(chr1, genome2, chr2, options["includeGaps"], genesAnc)
+table12 = genome1.buildOrthosTable(chr1, genome2, chr2, arguments["includeGaps"], genesAnc)
 
 print >> sys.stderr, "Affichage ...",
 
 (largeur,hauteur) = utils.myPsOutput.printPsHeader(landscape = True)
 
-if len(options["backgroundColor"]) > 0:
-	utils.myPsOutput.drawBox(0,0, largeur,hauteur, options["backgroundColor"], options["backgroundColor"])
+if len(arguments["backgroundColor"]) > 0:
+	utils.myPsOutput.drawBox(0,0, largeur,hauteur, arguments["backgroundColor"], arguments["backgroundColor"])
 
 # On dessine
-if options["dx"] > 0:
-	dx = options["dx"]
+if arguments["dx"] > 0:
+	dx = arguments["dx"]
 else:
 	dx = (largeur-4.) / (5./2.*len(chr1) + 1.*(len(chr1)-1.))
-if options["dy"] > 0:
-	dy = options["dy"]
+if arguments["dy"] > 0:
+	dy = arguments["dy"]
 else:
 	dy = (hauteur-4.) / float(max([len(x) for x in table12.values()]))
 y0 = 1.
@@ -104,16 +104,16 @@ drawBox = utils.myPsOutput.drawBox
 
 
 # Chargement du fichier avec les taux de GC
-gcP = utils.myTools.myOpenFile(noms_fichiers["GCPercent"], "r")
-gcN = utils.myTools.myOpenFile(noms_fichiers["GCGenesNames"], "r")
-if len(options["GCorthologues"]) == 0:
+gcP = utils.myTools.myOpenFile(arguments["GCPercent"], "r")
+gcN = utils.myTools.myOpenFile(arguments["GCGenesNames"], "r")
+if len(arguments["GCorthologues"]) == 0:
 	gcO = None
 else:
-	gcO = utils.myGenomes.Genome(options["GCorthologues"])
+	gcO = utils.myGenomes.Genome(arguments["GCorthologues"])
 dicGC = {}
 for (ligne1,ligne2) in itertools.izip(gcP,gcN):
 	try:
-		gc = float(ligne1.split()[options["GCcolumn"]])
+		gc = float(ligne1.split()[arguments["GCcolumn"]])
 	except ValueError:
 		continue
 	names = ligne2.split()
@@ -126,7 +126,7 @@ gcN.close()
 
 dicGC2 = {}
 for (c,i) in dicGC:
-	tmp = [dicGC[(c,j)] for j in xrange(i-options["GCsmoothing"],i+1+options["GCsmoothing"]) if (c,j) in dicGC]
+	tmp = [dicGC[(c,j)] for j in xrange(i-arguments["GCsmoothing"],i+1+arguments["GCsmoothing"]) if (c,j) in dicGC]
 	dicGC2[(c,i)] = utils.myMaths.mean(tmp)
 
 
@@ -142,20 +142,20 @@ for c in chr1:
 		print "%.5f %.5f 2cm rlineto" % (0,-len(table12[c])*dy+dx)
 		print "closepath"
 
-	if options["roundedChr"]:
+	if arguments["roundedChr"]:
 		print "initclip"
 		printBorder()
 		print "clip",
 
 	def trans( (_,val) ):
 		if len(val) == 0:
-			return options["defaultColor"]
+			return arguments["defaultColor"]
 		else:
 			return val[0][0]
 	
-	utils.myPsOutput.drawLine(xx+3./2.*dx, y0+0.75, dx, 0, options["penColor"])
-	utils.myPsOutput.drawLine(xx+3./2.*dx, y0+0.7, 0, 0.1, options["penColor"])
-	utils.myPsOutput.drawLine(xx+5./2.*dx, y0+0.7, 0, 0.1, options["penColor"])
+	utils.myPsOutput.drawLine(xx+3./2.*dx, y0+0.75, dx, 0, arguments["penColor"])
+	utils.myPsOutput.drawLine(xx+3./2.*dx, y0+0.7, 0, 0.1, arguments["penColor"])
+	utils.myPsOutput.drawLine(xx+5./2.*dx, y0+0.7, 0, 0.1, arguments["penColor"])
 	
 	y = y0 + 1
 	#lastGC = None
@@ -166,11 +166,11 @@ for c in chr1:
 		for (i,_) in items:
 			GC = dicGC2.get( (c,i), None )
 			if GC != None:
-				GC = (GC-options["GCaxisMin"]) / (options["GCaxisMax"] - options["GCaxisMin"])
+				GC = (GC-arguments["GCaxisMin"]) / (arguments["GCaxisMax"] - arguments["GCaxisMin"])
 			if GC != None:
-				drawBox(xx+3./2.*dx, y, dx*GC, dy, options["penColor"], options["penColor"])
+				drawBox(xx+3./2.*dx, y, dx*GC, dy, arguments["penColor"], arguments["penColor"])
 			#if lastGC != None:
-			#	utils.myPsOutput.drawLine(xx+3./2.*dx + dx*lastGC/100., y-dy, dx*(GC-lastGC)/100., dy, options["penColor"])
+			#	utils.myPsOutput.drawLine(xx+3./2.*dx + dx*lastGC/100., y-dy, dx*(GC-lastGC)/100., dy, arguments["penColor"])
 			
 			#if (GC != None) and (lastGC != None):
 			#	count += abs(lastGC-GC)
@@ -179,18 +179,18 @@ for c in chr1:
 			#	lastGC = GC
 			y += dy
 	
-	utils.myPsOutput.drawLine(xx+3./2.*dx, y+0.25, dx, 0, options["penColor"])
-	utils.myPsOutput.drawLine(xx+3./2.*dx, y+0.2, 0, 0.1, options["penColor"])
-	utils.myPsOutput.drawLine(xx+5./2.*dx, y+0.2, 0, 0.1, options["penColor"])
+	utils.myPsOutput.drawLine(xx+3./2.*dx, y+0.25, dx, 0, arguments["penColor"])
+	utils.myPsOutput.drawLine(xx+3./2.*dx, y+0.2, 0, 0.1, arguments["penColor"])
+	utils.myPsOutput.drawLine(xx+5./2.*dx, y+0.2, 0, 0.1, arguments["penColor"])
 	
 	print "initclip"
-	if options["drawBorder"]:
+	if arguments["drawBorder"]:
 		printBorder()
-		utils.myPsOutput.setColor(options["penColor"], "color")
+		utils.myPsOutput.setColor(arguments["penColor"], "color")
 		print "stroke"
 
-	if options["showText"]:
-		utils.myPsOutput.drawText(xx, y0, str(c), options["penColor"])
+	if arguments["showText"]:
+		utils.myPsOutput.drawText(xx, y0, str(c), arguments["penColor"])
 	
 	xx += (7./2.*dx)
 

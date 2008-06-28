@@ -10,12 +10,12 @@ import os
 import sys
 import utils.myTools
 import utils.myPhylTree
-
+import utils.myProteinTree
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( ["phylTree.conf", "proteinTree"], [("treeAncestor",str,"")], __doc__ )
+arguments = utils.myTools.checkArgs( [("phylTree.conf",file), ("proteinTree",file)], [("treeAncestor",str,"")], __doc__ )
 
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 
 ####################################################################
@@ -37,7 +37,13 @@ def extractGeneFamilies(node, baseName, previousAnc, lastWrittenAnc):
 		trueRoots.append(node)
 		global nbA
 		nbA += 1
-		baseName = "FAM%d" % nbA
+		#baseName = "FAM%d" % nbA
+		return
+	else:
+		for (g,_) in data.get(node,[]):
+			extractGeneFamilies(g, baseName, newAnc, newLastWritten)
+	
+	return
 	info[node]['family_name'] = baseName
 
 	# Les genes des descendants
@@ -58,18 +64,21 @@ def extractGeneFamilies(node, baseName, previousAnc, lastWrittenAnc):
 	return allGenes
 
 
-(data,info,roots) = utils.myProteinTree.loadTree(noms_fichiers["proteinTree"])
-
-if options["treeAncestor"] == "":
+if arguments["treeAncestor"] == "":
 	treeAncestor = phylTree.root
 else:
-	treeAncestor = options["treeAncestor"]
+	treeAncestor = arguments["treeAncestor"]
 
 print >> sys.stderr, "Mise en forme des arbres ...",
 nb = 0
 nbA = 0
-nextNodeID = max(data) + 1
-for r in roots:
+for (r,data,info) in utils.myProteinTree.loadTree(arguments["proteinTree"]):
+	trueRoots = []
+	nb += 1
+	extractGeneFamilies(r, "NONAME", None, None)
+	for r in trueRoots:
+		utils.myProteinTree.printTree(sys.stdout, data, info, r)
+	continue
 	# Restreint les arbres a la racine que l'on demande
 	todo = [r]
 	while len(todo) > 0:
@@ -80,16 +89,18 @@ for r in roots:
 			nb += 1
 			extractGeneFamilies(r, "NONAME", None, None)
 			for r in trueRoots:
-				printNewickTree(ft5, r)
+				utils.myProteinTree.printTree(sys.stdout, data, info, r)
+				#printNewickTree(ft5, r)
 		else:
 			todo.extend( [x for (x,_)  in data[r]] )
 print >> sys.stderr, "%d (%d) arbres OK" % (nb,nbA)
-ft5.close()
+#ft5.close()
+sys.exit(0)
 
-utils.myTools.mkDir(options["OUT.ancGenesFile"])
+utils.myTools.mkDir(arguments["OUT.ancGenesFile"])
 for (anc,lst) in geneFamilies.iteritems():
 	print >> sys.stderr, "Ecriture des familles de %s ..." % anc,
-	f = utils.myTools.myOpenFile(options["OUT.ancGenesFile"] % phylTree.fileName[anc], "w")
+	f = utils.myTools.myOpenFile(arguments["OUT.ancGenesFile"] % phylTree.fileName[anc], "w")
 	for gg in lst:
 		print >> f, " ".join(gg)
 	f.close()

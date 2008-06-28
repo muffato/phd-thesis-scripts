@@ -9,7 +9,7 @@ import math
 import utils.myTools
 
 
-(noms_fichiers, options) = utils.myTools.checkArgs( [], [], __doc__)
+arguments = utils.myTools.checkArgs( [], [], __doc__)
 
 
 comb = utils.myTools.myCombinator([])

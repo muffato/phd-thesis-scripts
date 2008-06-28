@@ -6,12 +6,26 @@
 import sys
 import math
 
+
 # Renvoie la moyenne d'une liste
 #################################
 def mean(lst):
 	if len(lst) == 0:
 		return 0.
 	return float(sum(lst))/float(len(lst))
+
+# Renvoie la moyenne ponderee d'une liste
+##############################
+def weightedMean(lst):
+	sV = 0.
+	sP = 0.
+	for (val,poids) in lst:
+		sV += val*poids
+		sP += poids
+	if sP == 0:
+		return 0.
+	return sV/sP
+
 
 
 # Min et max
@@ -67,13 +81,6 @@ def binom(pi, l, ll):
 		p *= float(ll-i)/float(i+1)
 	return p
 
-# Calcule le log de cette meme proba
-#################################################
-def binomLog(pi, l, ll):
-	p = l*math.log10(pi) + (ll-l)*math.log10(1-pi)
-	for i in xrange(l):
-		p += math.log10(ll-i) - math.log10(i+1)
-	return p
 
 # Calcule la p-value de l'observation de l/ll (attendu: pi)
 ############################################################
@@ -93,6 +100,14 @@ def binomPvalue(pi, l, ll, above):
 	else:
 		# pvalue pour <= l
 		return 1. - s
+
+# Calcule le log de cette meme proba
+#################################################
+def binomLog(pi, l, ll):
+	p = l*math.log10(pi) + (ll-l)*math.log10(1-pi)
+	for i in xrange(l):
+		p += math.log10(ll-i) - math.log10(i+1)
+	return p
 
 
 ########################################################
@@ -148,21 +163,41 @@ class myStats:
 			self.getValue(100), self.mean,self.stddev, len(self.data))
 
 
-# Renvoie un indice au hasard dans l, compte tenu des valeurs de l, qui indiquent une frequence d'apparition
-#############################################################################################################
+####################################
+# Generateur de valeurs aleatoires #
+####################################
 class randomValue:
+	
+	vonmisesmean = 0.5
+	vonmiseskappa = 2.
+	import random
+	import bisect
 
-	def __init__(self, l):
+	# Renvoie un indice au hasard dans l, compte tenu des valeurs de l, qui indiquent une frequence d'apparition
+	#############################################################################################################
+	def initBisect(self, l):
 		self.l = [0] * (len(l)+1)
 		for i in xrange(len(l)):
 			self.l[i+1] = self.l[i] + l[i]
 		self.max = self.l[-1]
 
-	def getRandomPos(self):
-		import bisect
-		import random
-		x = random.random()
-		return bisect.bisect_left(self.l, x * self.max) - 1
+	def getRandomBisectPos(self):
+		return self.bisect.bisect_left(self.l, self.random.random() * self.max) - 1
+
+
+	# Distribution VonMises restreinte a [0,1] et centree sur une moyenne
+	######################################################################
+	def myVonMises(self):
+		# Un nombre entre 0 et 1
+		r = self.random.vonmisesvariate(0, self.vonmiseskappa) / (2*math.pi) + .5
+		# On decale la distribution vers la moyenne voulue
+		x0 = 2*self.vonmisesmean - 1
+		if x0 < 0:
+			return abs(x0 + r*(1-x0))
+		else:
+			return (1 - abs(-x0 + r*(1+x0)))
+
+
 
 
 def issublist(l1, l2):
@@ -177,30 +212,19 @@ def issublist(l1, l2):
 	return False
 
 
-#
-# Renvoie la moyenne ponderee d'une liste
-#
-def moyennePonderee(lst):
-	sV = 0.
-	sP = 0.
-	for (val,poids) in lst:
-		sV += val*poids
-		sP += poids
-	if sP == 0:
-		return 0.
-	return sV/sP
 
 
-
-#
 # Applatit une liste
-#
+#####################
 def flatten(lst):
 	res = []
 	for x in lst:
 		res.extend(x)
 	return res
 
+
+# Eneleve les elements redondants d'une liste
+##############################################
 def unique(s):
     """Return a list of the elements in s, but without duplicates.
 

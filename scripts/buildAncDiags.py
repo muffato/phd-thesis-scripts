@@ -37,11 +37,6 @@ def getLongestDiags(oldDiags):
 		# Combinaison selon les genes ancestraux
 		for j in da:
 			dic[j].append(i)
-		# Combinaison selon les genes modernes
-		#for i1 in d1:
-		#	dic[(e1,c1,i1)].append(i)
-		#for i2 in d2:
-		#	dic[(e2,c2,i2)].append(i)
 		combin.addLink([i])
 	
 	for s in dic:
@@ -55,7 +50,7 @@ def getLongestDiags(oldDiags):
 		# Les diagonales resultat
 		for (res,strand) in gr.getBestDiags():
 			# Filtre de taille
-			if len(res) < options["minimalLength"]:
+			if len(res) < arguments["minimalLength"]:
 				continue
 			# On rajoute la liste des especes qui soutiennent la diagonale
 			ok = set()
@@ -124,8 +119,8 @@ def findNewSpecies(d, esp, anc):
 ########
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf"], \
+arguments = utils.myTools.checkArgs( \
+	[("phylTree.conf",file)], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
 	("useOutgroups",bool,False), ("target",str,""), \
 	("showProjected",bool,False), ("showAncestral",bool,True), ("searchUndetectedSpecies",bool,True), ("cutLongestPath",bool,True), \
@@ -137,12 +132,12 @@ def findNewSpecies(d, esp, anc):
 
 
 # L'arbre phylogenetique
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 # Les especes a utiliser
 dicGenomes = {}
-tmp = options["target"].split(',')
-if len(options["target"]) == 0:
+tmp = arguments["target"].split(',')
+if len(arguments["target"]) == 0:
 	print >> sys.stderr, "Aucune cible indiquee pour l'extraction des diagonales"
 	sys.exit(1)
 listSpecies = []
@@ -150,19 +145,19 @@ for x in tmp:
 	if x[0] != '.':
 		listSpecies.extend(phylTree.species[x])
 		for e in phylTree.species[x]:
-			dicGenomes[e] = utils.myGenomes.Genome(options["genesFile"] % phylTree.fileName[e])
+			dicGenomes[e] = utils.myGenomes.Genome(arguments["genesFile"] % phylTree.fileName[e])
 	else:
 		listSpecies.append(x[1:])
-		dicGenomes[x[1:]] = utils.myGenomes.Genome(options["ancGenomesFile"] % phylTree.fileName[x[1:]], withChr=True)
+		dicGenomes[x[1:]] = utils.myGenomes.Genome(arguments["ancGenomesFile"] % phylTree.fileName[x[1:]], withChr=True)
 
 # Les outgroup du noeud le plus ancien
-if options["useOutgroups"]:
+if arguments["useOutgroups"]:
 	target = listSpecies[0]
 	for e in listSpecies:
 		target = phylTree.dicParents[target][e]
 	listSpecies.extend(phylTree.outgroupSpecies[target])
 	for e in phylTree.outgroupSpecies[target]:
-		dicGenomes[e] = utils.myGenomes.Genome(options["genesFile"] % phylTree.fileName[e])
+		dicGenomes[e] = utils.myGenomes.Genome(arguments["genesFile"] % phylTree.fileName[e])
 
 # La liste des ancetres edites
 dicLinks = [(e1,e2,set(phylTree.dicLinks[e1][e2][1:-1] + [phylTree.dicParents[e1][e2]])) for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(listSpecies)]
@@ -173,14 +168,14 @@ diagEntry = {}
 genesAnc = {}
 for anc in tmp:
 	diagEntry[anc] = []
-	genesAnc[anc] = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc])
+	genesAnc[anc] = utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[anc])
 
 
 # On compare toutes les especes entre elles
 for (e1,e2,toStudy) in dicLinks:
 	print >> sys.stderr, "Extraction des diagonales entre %s et %s " % (e1,e2),
-	for ((c1,d1),(c2,d2),s) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], options["minimalLength"], \
-		options["fusionThreshold"], options["sameStrand"] and (e1 not in genesAnc) and (e2 not in genesAnc), options["keepOnlyOrthos"]):
+	for ((c1,d1),(c2,d2),s) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], arguments["minimalLength"], \
+		arguments["fusionThreshold"], arguments["sameStrand"] and (e1 not in genesAnc) and (e2 not in genesAnc), arguments["keepOnlyOrthos"]):
 		
 		pack1 = (e1,c1,tuple(d1))
 		pack2 = (e2,c2,tuple(d2))
@@ -198,7 +193,7 @@ for (e1,e2,toStudy) in dicLinks:
 # Traitement final
 for anc in diagEntry:
 
-	if options["showProjected"]:
+	if arguments["showProjected"]:
 		lst = diagEntry[anc]
 		print >> sys.stderr, "Impression des %d diagonales projetees de %s ..." % (len(lst),anc),
 		s = []
@@ -213,9 +208,9 @@ for anc in diagEntry:
 		print >> sys.stderr, utils.myMaths.myStats(s), "OK"
 
 
-	if options["showAncestral"]:
+	if arguments["showAncestral"]:
 	
-		if options["cutLongestPath"]:
+		if arguments["cutLongestPath"]:
 			print >> sys.stderr, "Extraction des chevauchements les plus longs de %s ..." % anc,
 			lst = getLongestDiags(diagEntry[anc])
 			print >> sys.stderr, "OK (%d -> %d)" % (len(diagEntry[anc]), len(lst))
@@ -231,7 +226,7 @@ for anc in diagEntry:
 			
 			res.append( utils.myTools.printLine(["%s/%s" % (e,c) for (e,c) in esp], "|") )
 
-			if options["searchUndetectedSpecies"]:
+			if arguments["searchUndetectedSpecies"]:
 				res.append( utils.myTools.printLine(["%s/%s" % (e,c) for (e,c) in findNewSpecies(da, esp, anc)], "|") )
 
 			print utils.myTools.printLine(res)

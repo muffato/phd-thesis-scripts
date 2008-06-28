@@ -10,8 +10,8 @@ import utils.myTools
 import utils.myPhylTree
 
 
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf"], \
+arguments = utils.myTools.checkArgs( \
+	[("phylTree.conf",file)], \
 	[("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-43/mart_43/data/mysql/ensembl_mart_43/%s_gene_ensembl__gene__main.txt.table.gz"), \
 	("OUT.genesFile",str,"genes.%s.list.bz2")], \
 	__doc__ \
@@ -19,7 +19,7 @@ import utils.myPhylTree
 
 
 # L'arbre phylogenetique
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 for esp in sorted(phylTree.listSpecies):
 
@@ -29,9 +29,9 @@ for esp in sorted(phylTree.listSpecies):
 
 	# Les fichiers de genes
 	print >> sys.stderr, "Telechargement de la liste des genes de %s ..." % esp,
-	fo = utils.myTools.myOpenFile(options["OUT.genesFile"] % phylTree.fileName[esp], 'w')
+	fo = utils.myTools.myOpenFile(arguments["OUT.genesFile"] % phylTree.fileName[esp], 'w')
 	nb = 0
-	fi = utils.myTools.myOpenFile(options["IN.EnsemblURL"] % tmp,'r')
+	fi = utils.myTools.myOpenFile(arguments["IN.EnsemblURL"] % tmp,'r')
 	for ligne in utils.myTools.MySQLFileLoader(fi):
 		c = ligne.split('\t')
 		print >> fo, "\t".join( [c[11],c[7],c[8],c[9],c[1],c[3]] )

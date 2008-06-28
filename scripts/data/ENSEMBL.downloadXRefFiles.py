@@ -10,8 +10,8 @@ import utils.myTools
 import utils.myPhylTree
 
 
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf"], \
+arguments = utils.myTools.checkArgs( \
+	[("phylTree.conf",file)], \
 	[("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-43/mart_43/data/mysql/ensembl_mart_43/%s_gene_ensembl__xref_{refseq_dna,pdb,unigene,refseq_peptide,mirbase,rfam,uniprot_swissprot,embl,protein_id,uniprot_accession,uniprot_id,uniprot_sptrembl,hugo,xref_ipi}__dm.txt.table.gz"), \
 	("OUT.xrefFile",str,"xref.%s.list.bz2")], \
 	__doc__ \
@@ -19,7 +19,7 @@ import utils.myPhylTree
 
 
 # L'arbre phylogenetique
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 for esp in sorted(phylTree.listSpecies):
 
@@ -30,13 +30,13 @@ for esp in sorted(phylTree.listSpecies):
 	# Les references dans xref
 	print >> sys.stderr, "Telechargement des annotations xref de %s ..." % esp,
 	dic = utils.myTools.defaultdict(set)
-	fi = utils.myTools.myOpenFile(options["IN.EnsemblURL"] % tmp,'r')
+	fi = utils.myTools.myOpenFile(arguments["IN.EnsemblURL"] % tmp,'r')
 	for ligne in utils.myTools.MySQLFileLoader(fi):
 		c = ligne.split('\t')
 		dic[(c[1],c[3],c[5])].update( [x for x in c[6:] if (x != "\\N") and (len(x) > 0)] )
 	fi.close()
 	
-	fo = utils.myTools.myOpenFile(options["OUT.xrefFile"] % phylTree.fileName[esp], 'w')
+	fo = utils.myTools.myOpenFile(arguments["OUT.xrefFile"] % phylTree.fileName[esp], 'w')
 	for ((gg,gt,gp),xref) in dic.iteritems():
 		l = [gg,gt,gp]
 		l.extend(xref)

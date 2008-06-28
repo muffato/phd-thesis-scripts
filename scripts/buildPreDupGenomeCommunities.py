@@ -57,14 +57,14 @@ def buildParaOrtho():
 	# Les ancetres correspondant a chaque outgroup
 	toLoad = defaultdict(list)
 	for e in especesNonDup:
-		par = phylTree.dicParents[e][options["target"]]
+		par = phylTree.dicParents[e][arguments["target"]]
 		toLoad[par].append(e)
-	toLoad.pop(options["target"], None)
+	toLoad.pop(arguments["target"], None)
 
 	for (anc,outgroups) in toLoad.iteritems():
 		print >> sys.stderr, "Rajout de %s ..." % "/".join(outgroups),
 		outgroups =  frozenset([phylTree.officialName[e] for e in outgroups])
-		for g in utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[anc]):
+		for g in utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[anc]):
 			# On trie les genes ancestraux
 			dicGenes = utils.myTools.defaultdict(list)
 			newPos = None
@@ -114,7 +114,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 	for c in genome.lstChr + genome.lstScaff:
 		
 		# Eviter d'essayer de creer des DCS sur des scaffolds trop petits
-		if len(genome.lstGenes[c]) < options["minChrLen"]:
+		if len(genome.lstGenes[c]) < arguments["minChrLen"]:
 			continue
 		
 		bloc = None
@@ -133,7 +133,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 			# On parcourt les orthologues
 			for (cT,i) in orthosDup[g]:
 				# La region environnante (chez l'espece dupliquee)
-				gTn = [gT.names[0] for gT in genomeDup.getGenesNear(cT, i, options["windowSize"])]
+				gTn = [gT.names[0] for gT in genomeDup.getGenesNear(cT, i, arguments["windowSize"])]
 				
 				# Si on reste sur le meme chromosome, on continue le DCS
 				if cT in lastCT:
@@ -194,7 +194,7 @@ def doSynthese(combin, eND, orthos):
 	
 	print >> sys.stderr, len(lstBlocs), "blocs pour", sum([len(x) for x in lstBlocs]), "orthologues",
 
-	if options["showDCS"]:
+	if arguments["showDCS"]:
 		print utils.myTools.printLine( [eND, "", "", ""] + especesDup )
 	
 	res = []
@@ -207,7 +207,7 @@ def doSynthese(combin, eND, orthos):
 		if ok:
 			res.append( (gr,alt) )
 			DCSlen += len(gr)
-		if options["showDCS"]:
+		if arguments["showDCS"]:
 			for ((c,i),g,a) in gr:
 				print utils.myTools.printLine( [c, i, g, ""] + [utils.myTools.printLine(frozenset(a[eD]), "/") for eD in especesDup] )
 			print "---"
@@ -296,7 +296,7 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 			values[eND] = max(values.get(eND,0), float(c == ch))
 
 		# Soit on fait un calcul phylogenetique
-		if options["usePhylTreeScoringNonDup"]:
+		if arguments["usePhylTreeScoringNonDup"]:
 			return probaMemory(values, 0, rootNonDup)[2]
 
 		# On fait les groupes
@@ -315,7 +315,7 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 		
 		# On verifie les egalites
 		s = sorted(nb)
-		if (s[-1][0] == s[-2][0]) and not options["keepUncertainGenes"]:
+		if (s[-1][0] == s[-2][0]) and not arguments["keepUncertainGenes"]:
 			continue
 
 		genesAncCol[i] = nb
@@ -331,16 +331,16 @@ def printColorAncestr(genesAnc, chrAncGenes):
 
 	chrNames = sorted(chrAncGenes)
 	
-	if options["showQuality"]:
+	if arguments["showQuality"]:
 		print utils.myTools.printLine( [""] + chrNames)
 
 	for c in chrNames:
 		nb = 0
 		for i in chrAncGenes[c]:
 			nb += 1
-			if options["showQuality"]:
+			if arguments["showQuality"]:
 				print utils.myTools.printLine( [c, nb, utils.myTools.printLine(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][c-1][0]] )
-			if options["showAncestralGenome"]:
+			if arguments["showAncestralGenome"]:
 				print c, " ".join(genesAnc[i].names)
 		
 	print >> sys.stderr, sum([len(chrAncGenes[c]) for c in chrNames]), "genes dans le genome ancestral"
@@ -352,8 +352,8 @@ def printColorAncestr(genesAnc, chrAncGenes):
 
 
 # Arguments
-(noms_fichiers, options) = utils.myTools.checkArgs( \
-	["phylTree.conf"],
+arguments = utils.myTools.checkArgs( \
+	[("phylTree.conf",file)],
 	[("minChrLen",int,20), ("windowSize",int,25), ("usePhylTreeScoringDup",bool,False), ("usePhylTreeScoringNonDup",bool,False), ("keepUncertainGenes",bool,False), \
 	("especesNonDup",str,""), ("especesDup",str,""), ("target",str,""), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
@@ -363,14 +363,14 @@ def printColorAncestr(genesAnc, chrAncGenes):
 )
 
 # Chargement des fichiers
-phylTree = utils.myPhylTree.PhylogeneticTree(noms_fichiers["phylTree.conf"])
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 def proceedList(l):
 	l1 = [s[1:] for s in l if s[0] == "."]
 	l2 = [s for s in l if s[0] != "."]
 	return utils.myMaths.flatten([phylTree.species[s] for s in l2]) + l1
-especesDup = proceedList(options["especesDup"].split(','))
-especesNonDupGrp = [proceedList(x.split('+')) for x in options["especesNonDup"].split(',')]
+especesDup = proceedList(arguments["especesDup"].split(','))
+especesNonDupGrp = [proceedList(x.split('+')) for x in arguments["especesNonDup"].split(',')]
 especesNonDup = utils.myMaths.flatten(especesNonDupGrp)
 rootNonDup = especesNonDup[0]
 for e in especesNonDup[1:]:
@@ -379,8 +379,8 @@ rootDup = especesDup[0]
 for e in especesDup[1:]:
 	rootDup = phylTree.dicParents[rootDup][e]
 dicCommonEspNames = dict([(phylTree.officialName[esp],esp) for esp in especesDup+especesNonDup])
-phylTree.loadSpeciesFromList(especesNonDup+especesDup, options["genesFile"])
-genesAnc = utils.myGenomes.Genome(options["ancGenesFile"] % phylTree.fileName[options["target"]])
+phylTree.loadSpeciesFromList(especesNonDup+especesDup, arguments["genesFile"])
+genesAnc = utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[arguments["target"]])
 lstGenesAnc = genesAnc.lstGenes[None]
 (para,orthos) = buildParaOrtho()
 
@@ -403,7 +403,7 @@ allDCSe2 = [dict([(e,frozenset(alt[e])) for e in alt]) for (_,alt) in allDCS]
 
 print >> sys.stderr, "Comparaison des %d DCS ..." % len(allDCS),
 
-if options["usePhylTreeScoringDup"]:
+if arguments["usePhylTreeScoringDup"]:
 	dicCoeff = {}
 	for e in especesDup:
 		values = dict.fromkeys(especesDup, 0)
@@ -413,8 +413,7 @@ else:
 	dicCoeff = dict.fromkeys(especesDup, 1./len(especesDup))
 
 
-walktrapInstance = utils.walktrap.WalktrapLauncher()
-edges = walktrapInstance.edges
+edges = utils.myTools.defaultdict(dict)
 for i1 in xrange(len(allDCS)):
 	(_,alt1) = allDCS[i1]
 	esp1 = allDCSe2[i1]
@@ -433,12 +432,12 @@ for i1 in xrange(len(allDCS)):
 			edges[i1][i2] = edges[i2][i1] = score
 
 print >> sys.stderr, "Lancement de walktrap ...",
-walktrapInstance.doWalktrap()
+res = utils.walktrap.doWalktrap(edges)
 
 # A partir d'ici, on a une association DCS <-> chromosomes, on retombe sur la regle de base, le vote a la majorite
 
 chrInd = 0
-for (nodes,cuts,_,dend) in walktrapInstance.res:
+for (nodes,cuts,_,dend) in res:
 	print >> sys.stderr, "Communaute de %d noeuds:" % len(nodes)
 	# Un point de coupure virtuel si il n'y en a pas
 	cuts.append( (1,0) )

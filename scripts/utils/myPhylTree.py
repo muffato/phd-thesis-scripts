@@ -411,7 +411,16 @@ class PhylogeneticTree:
 				fils.append( (tmp, currLine[2]-self.ages.get(tmp)) )
 			
 			n = currLine[1][0]
-			
+			if len(fils) == 0:
+				if n[0] == ".":
+					currLine[1][0] = n = n[1:]
+					self.lstEsp6X.add(n)
+				elif n[0] == "*":
+					currLine[1][0] = n = n[1:]
+					self.lstEsp2X.add(n)
+				else:
+					self.lstEspFull.add(n)
+				
 			# Un seul fils, on remonte le noeud
 			if len(fils) == 1:
 				return fils[0][0]
@@ -427,6 +436,9 @@ class PhylogeneticTree:
 			return n
 					
 		self.ages = self.newCommonNamesMapperInstance()
+		self.lstEsp2X = set()
+		self.lstEsp6X = set()
+		self.lstEspFull = set()
 		lignes = loadFile()
 		self.root = recLoad(0)
 	

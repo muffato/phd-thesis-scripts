@@ -11,13 +11,13 @@ import utils.myTools
 
 
 
-(noms_fichiers, _) = utils.myTools.checkArgs( ["grapheInit", "nomsNoeuds", "lstFusions"], [], __doc__ )
+arguments = utils.myTools.checkArgs( [("grapheInit",file), ("nomsNoeuds",file), ("lstFusions",file)], [], __doc__ )
 
 # MAIN #
 
 # On lit la liste des fusions
 comb = utils.myTools.myCombinator([])
-f = utils.myTools.myOpenFile(noms_fichiers["lstFusions"], 'r')
+f = utils.myTools.myOpenFile(arguments["lstFusions"], 'r')
 for l in f:
 	t = l.split()
 	comb.addLink(t)
@@ -45,7 +45,7 @@ def revert(ind):
 
 # Le nouveau graphe
 todo = utils.myTools.defaultdict(float)
-fg = utils.myTools.myOpenFile(noms_fichiers["grapheInit"], 'r')
+fg = utils.myTools.myOpenFile(arguments["grapheInit"], 'r')
 for l in fg:
 	
 	t = l.split()
@@ -75,7 +75,7 @@ todo = None
 
 
 # On lit les anciens noms des noeuds
-f = utils.myTools.myOpenFile(noms_fichiers["nomsNoeuds"], 'r')
+f = utils.myTools.myOpenFile(arguments["nomsNoeuds"], 'r')
 dicNodes = {}
 for l in f:
 	t = l.split()

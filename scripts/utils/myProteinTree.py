@@ -70,29 +70,35 @@ def printNewickTree(f, data, info, root):
 ###################################
 def loadTree(name):
 
-	# Chargement de toutes les lignes et mise en forme sommaire
-	def loadFile(name):
-		lignes = []
-		f = myTools.myOpenFile(name, "r")
-		for ligne in f:
+	global curr
+
+	# Lit la prochaine ligne du fichier (et bufferise la prochaine)
+	def nextLine():
+		global curr
+		old = curr
+		try:
 			# On enleve le \n final et on coupe suivant les \t
-			l = ligne.replace('\n', '').split('\t')
+			l = f.next().replace('\n', '').split('\t')
 			# On stocke le triplet (indentation,key,value)
-			lignes.append( (len(l)-2,l[-2],l[-1]) )
-		f.close()
-		return lignes
+			curr = (len(l)-2, l[-2], l[-1])
+			eval(l[-1])
+		except StopIteration:
+			curr = None
+		return old
+
 		
 	# La procedure d'analyse des lignes du fichier
 	def recLoad(indent):
 		
 		# l'ID du point
-		currID = int(lignes.pop()[2])
+		currID = int(nextLine()[2])
 		# Les infos associees
-		info[currID] = eval(lignes.pop()[2])
+		info[currID] = eval(nextLine()[2])
+		
 		# Des fils ?
 		child = []
-		while (len(lignes) > 0) and (lignes[-1][0] == indent+1):
-			length = float(lignes.pop()[2])
+		while (curr != None) and (curr[0] == indent+1):
+			length = float(nextLine()[2])
 			child.append( (recLoad(indent+1), length) )
 		if len(child) > 0:
 			data[currID] = child
@@ -100,20 +106,19 @@ def loadTree(name):
 		return currID
 
 	print >> sys.stderr, "Chargement du fichier d'arbres %s ..." % name,
-	lignes = loadFile(name)
-	lignes.reverse()
+	f = myTools.myOpenFile(name, "r")
+	curr = None
+	nextLine()
+	n = (0,0,0)
+	while True:
+		info = {}
+		data = {}
+		root = recLoad(0)
+		yield (root,data,info)
+		n = (n[0]+1, n[1]+len(data), n[2]+len(info)-len(data))
+		if curr == None:
+			break
+	print >> sys.stderr, "%d racines, %d branches, %d noeuds OK" % n
 
-	roots = []
-	info = {}
-	data = {}
-	
-	print >> sys.stderr, "%d lignes, Analyse ..." % len(lignes),
-	while len(lignes) > 0:
-		roots.append(recLoad(0))
-	print >> sys.stderr, "%d racines, %d branches, %d noeuds OK" % (len(roots),len(data),len(info)-len(data))
-	nextNodeID = max(info)
-	for lst in data.itervalues():
-		nextNodeID = max(nextNodeID, max([x[0] for x in lst]))
-
-	return (data, info, roots)
+	f.close()
 
