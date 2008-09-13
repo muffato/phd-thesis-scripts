@@ -5,51 +5,12 @@ Prend un genome ancestral et la liste des diagonales inferees a partir des espec
 Renvoie le pourcentage de qualite des diagonales.
 """
 
-
-##################
-# INITIALISATION #
-##################
-
-# Librairies
 import sys
-import utils.myGenomes
+import utils.myDiags
 import utils.myTools
+import utils.myGenomes
 import utils.myPhylTree
 
-#############
-# FONCTIONS #
-#############
-
-# Charge le fichier de toutes les diagonales (supposees non chevauchantes)
-def loadDiagsFile(nom):
-	
-	print >> sys.stderr, "Chargement de %s ..." % nom,
-	f = utils.myTools.myOpenFile(nom, 'r')
-	lst = {}
-	for l in f:
-		
-		# On n'utilise que "l'appartenance" a un chromosome, le fait que ce soit du random n'est pas important
-		ct = l.replace('\n', '').replace("_random", "").split('\t')
-		d = [int(x) for x in ct[2].split(' ')]
-		esp = set()
-		if len(ct[3]) > 0:
-			esp.update( set([tuple(x.split('/')) for x in ct[3].split('|')]) )
-		if len(ct) == 5 and len(ct[4]) > 0:
-			esp.update( set([tuple(x.split('/')) for x in ct[4].split('|')]) )
-		esp = set([(phylTree.officialName[e],c) for (e,c) in esp if (e in phylTree.officialName) and ('Un' not in c)])
-		if ct[0] in lst:
-			lst[ct[0]].append( (d,esp) )
-		else:
-			lst[ct[0]] = [(d,esp)]
-
-	f.close()
-	print >> sys.stderr, "OK (%d diagonales)" % sum([len(lst[x]) for x in lst])
-	return lst
-
-
-########
-# MAIN #
-########
 
 # Arguments
 arguments = utils.myTools.checkArgs( \
@@ -64,15 +25,10 @@ phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 genomes = {}
 ancGenes = {}
-for anc in phylTree.listAncestr:
-	genomes[anc] = utils.myGenomes.Genome(arguments["genesFile"] % phylTree.fileName[anc])
-	ancGenes[anc] = utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[anc])
-
-
 
 for l in sys.stdin:
 	l = l.replace('\n', '')
-	lstDiags = loadDiagsFile(l)
+	lstDiags = utils.myDiags.loadDiagsFile(l, phylTree.listAncestr, phylTree.officialName)
 
 	allOK = 0.
 	allPerfect = 0.
@@ -83,15 +39,18 @@ for l in sys.stdin:
 	allCov = 0.
 
 	for anc in lstDiags:
-		if anc not in genomes:
+		if len(lstDiags[anc]) == 0:
 			continue
+		if anc not in genomes:
+			genomes[anc] = utils.myGenomes.Genome(arguments["genesFile"] % phylTree.fileName[anc])
+			ancGenes[anc] = utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[anc])
 		nbOK = 0.
 		nbPerfect = 0.
 		nbPerfectPairs = 0.
 		nbTotPairs = 0.
 		averageShift = 0.
 		allPos = set()
-		for (d,_) in lstDiags[anc]:
+		for (d,_,_,_,_) in lstDiags[anc]:
 			lstPos = [genomes[anc].getPosition(ancGenes[anc].lstGenes[None][i].names) for i in d]
 			tmp = list(set([len(x) for x in lstPos]))
 			if tmp != [1]:
@@ -116,7 +75,8 @@ for l in sys.stdin:
 				averageShift += abs(x1-x2)
 				nbTotPairs += 1.
 
-
+	
+		# Fichier, ancetre, anciennete, %memeChr, %parfaite, ecart moyen, couverture
 		print "%s\t%s\t%d\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (l,anc, phylTree.ages[anc],100.*nbOK/len(lstDiags[anc]),100.*nbPerfect/len(lstDiags[anc]),averageShift/nbTotPairs,100.*nbPerfectPairs/nbTotPairs,100. * float(len(allPos)) / float(sum([len(x) for x in genomes[anc].lstGenes.itervalues()])))
 		
 		allOK += nbOK

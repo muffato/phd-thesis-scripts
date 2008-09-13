@@ -22,5 +22,5 @@ for l in f:
 
 f.close()
 
-print utils.myMaths.correlation(lx1, lx2)
+print utils.myMaths.myStats.correlation(lx1, lx2)
 

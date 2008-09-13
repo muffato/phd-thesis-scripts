@@ -7,9 +7,6 @@ On regroupe les genes en faisant des suites qui ont une origine commune.
 Chaque gene ancestral recoit son chromosome ancestral par un vote a la majorite en fonction l'annotation de chaque tetrapode
 """
 
-# INITIALISATION #
-
-# Librairies
 import sys
 import utils.myPhylTree
 import utils.myGenomes
@@ -19,8 +16,6 @@ import utils.walktrap
 
 defaultdict = utils.myTools.defaultdict
 
-
-# FONCTIONS #
 
 #
 # Construit les tables d'associations pour chaque especes dupliquee
@@ -209,7 +204,8 @@ def doSynthese(combin, eND, orthos):
 			DCSlen += len(gr)
 		if arguments["showDCS"]:
 			for ((c,i),g,a) in gr:
-				print utils.myTools.printLine( [c, i, g, ""] + [utils.myTools.printLine(frozenset(a[eD]), "/") for eD in especesDup] )
+				fishContent = ["/".join(["%s|%s" % (phylTree.dicGenomes[eD].lstGenes[cT][iT].names[0],cT) for (cT,iT) in orthos[eD].get(g,[])]) for eD in especesDup]
+				print utils.myTools.printLine( [c, i, g, ""] + fishContent)
 			print "---"
 
 	print >> sys.stderr, "/", len(res), "DCS pour", DCSlen, "orthologues"
@@ -222,36 +218,27 @@ def doSynthese(combin, eND, orthos):
 #
 def addDCS(dcs):
 
-	#
 	# Compte le score d'alternance de chaque paire de chromosomes de l'espece eD
-	#
-	def countAltern(lstDCS, eD):
-		
-		# La liste des chromosomes de l'alternance
-		lst = [x[eD] for (_,_,x) in lstDCS.__reversed__()]
+	#############################################################################
+	def countAltern(lst):
 
-		# Compte le nombre d'occurrences de c dans la liste courante
-		def countChr(c):
-			nb = 0
-			for x in lst:
-				if c not in x:
-					break
-				nb += 1
-			return nb
-		
-		# Le compte final
+		# Le compte final des chromosomes de l'alternance
 		count = defaultdict(int)
-		# La derniere ligne lue
-		last = defaultdict(int)
+		# Les derniers chromosomes lus, et leurs quantites
+		last = {}
 		# On parcourt la liste
-		while len(lst) > 0:
-			curr = lst.pop()
+		for (i,curr) in enumerate(lst):
 			for x in curr:
 				# Les alternances sont mesurees entre deux positions consecutives
 				for y in last:
 					if y == x:
 						continue
-					count[(x,y)] += (countChr(x)+1) * last[y]
+					nb = 1
+					for next in lst[i+1:]:
+						if x not in next:
+							break
+						nb += 1
+					count[(x,y)] += (nb * last[y])
 					count[(y,x)] = count[(x,y)]
 				# Et aussi entre les paralogues
 				for y in curr:
@@ -261,20 +248,17 @@ def addDCS(dcs):
 					count[(y,x)] = count[(x,y)]
 			
 			# On met a jour last
-			for y in last:
-				if y not in curr:
-					last[y] = 0
-			for x in curr:
-				last[x] += 1
+			last = dict([(x,last.get(x,0)+1) for x in curr])
 
 		return count
-
+	
 	# On parcourt les DCS en ne gardant que ceux qui alternent
 	res = {}
 	altern = False
 	for eD in especesDup:
-		res[eD] = countAltern(dcs, eD)
-		if len(res[eD]) > 0 and max(res[eD].values()) > 0:
+		res[eD] = countAltern( [x[eD] for (_,_,x) in dcs] )
+		assert not ((len(res[eD]) > 0) and (max(res[eD].values()) == 0))
+		if len(res[eD]) > 0:
 			altern = True
 	
 	return (altern,res)
@@ -285,9 +269,7 @@ def addDCS(dcs):
 #
 def buildChrAnc(genesAncCol, chrAncGenes):
 
-	#
 	# Renvoie un score (~pourcentage d'especes) qui soutiennent l'attribution d'un gene a un chromosome
-	#
 	def calcChrAncScore(col, ch):
 		
 		# Une tetrapode rapporte 1 si un de ses representants a vote pour le chromosome ancestral
@@ -302,7 +284,7 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 		# On fait les groupes
 		rTot = [[values[e] for e in gr if e in values] for gr in especesNonDupGrp]
 		# La moyenne des moyennes de chaque groupe non vide
-		return utils.myMaths.mean([utils.myMaths.mean(r) for r in rTot if len(r) > 0])
+		return utils.myMaths.myStats.mean([utils.myMaths.myStats.mean(r) for r in rTot if len(r) > 0])
 
 	probaMemory = utils.myTools.memoize(phylTree.calcWeightedValue)
 	chrNames = sorted(chrAncGenes)
@@ -353,9 +335,8 @@ def printColorAncestr(genesAnc, chrAncGenes):
 
 # Arguments
 arguments = utils.myTools.checkArgs( \
-	[("phylTree.conf",file)],
+	[("phylTree.conf",file), ("target",str), ("especesNonDup",str), ("especesDup",str)],
 	[("minChrLen",int,20), ("windowSize",int,25), ("usePhylTreeScoringDup",bool,False), ("usePhylTreeScoringNonDup",bool,False), ("keepUncertainGenes",bool,False), \
-	("especesNonDup",str,""), ("especesDup",str,""), ("target",str,""), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("showDCS",bool,False), ("showQuality",bool,False), ("showAncestralGenome",bool,True)], \

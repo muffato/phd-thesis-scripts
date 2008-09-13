@@ -4,7 +4,6 @@
 ###################################################
 
 import sys
-import collections
 import operator
 import myMaths
 import myTools
@@ -12,16 +11,21 @@ import myTools
 defaultdict = myTools.defaultdict
 slidingTuple = myTools.myIterator.slidingTuple
 tupleOnTwoLists = myTools.myIterator.tupleOnTwoLists
-getMinMax = myMaths.getMinMax
+getMinMax = myMaths.myStats.getMinMax
 
+# Renvoie le minimum et le maximum d'une diagonale
 def getMinMaxDiag(lst):
 	a = lst[0]
 	b = lst[-1]
 	if abs(a-b) < len(lst)-1:
 		return getMinMax(lst)
 	elif a < b:
+		if (a,b) != getMinMax(lst):
+			print >> sys.stderr, "!",
 		return (a,b)
 	else:
+		if (b,a) != getMinMax(lst):
+			print >> sys.stderr, "!",
 		return (b,a)
 
 
@@ -36,7 +40,7 @@ def getMinMaxDiag(lst):
 ########################################################################################
 def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 
-	diag = collections.deque()
+	diag = myTools.deque()
 	listI1 = []
 	listI2 = []
 	lastPos2 = []
@@ -97,7 +101,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 		diag.append( (listI1,listI2, lastC2, listStrand, (deb1,fin1),getMinMaxDiag(listI2)) )
 
 	# On rassemble des diagonales separees par une espace pas trop large
-	tmp = collections.deque()
+	tmp = myTools.deque()
 	while len(diag) > 0:
 		(d1,d2,c2,s,(deb1,fin1),(deb2,fin2)) = diag.popleft()
 		while len(diag) > 0:
@@ -175,7 +179,7 @@ def calcDiags(g1, g2, orthos, minimalLength, fusionThreshold, sameStrand, keepOn
 			else:
 				yield ((c1,d1), (c2,d2), s)
 	
-	print >> sys.stderr, myMaths.myStats(statsDiags),
+	print >> sys.stderr, myMaths.myStats.txtSummary(statsDiags),
 
 
 #
@@ -311,28 +315,23 @@ class WeightedDiagGraph:
 def loadDiagsFile(nom, ancName, officialName):
 	
 	print >> sys.stderr, "Chargement des diagonales de %s ..." % nom,
-	f = myTools.myOpenFile(nom, 'r')
-	lst = []
-	for l in f:
-		# Selection de l'ancetre
-		if not l.startswith(ancName):
+	lst = myTools.defaultdict(list)
+	for (anc,_,diag,strands,e1,e2) in myTools.readTabular(nom, [str,int,str,str,str,str]):
+		if anc not in ancName:
 			continue
-		# On enleve les "_random" et on extrait chaque colonne
-		ct = l.replace('\n', '').replace('_random', '').split('\t')
 		
 		# La diagonale
-		d = [int(x) for x in ct[2].split(' ')]
+		d = [int(x) for x in diag.split(' ')]
 		
 		# On joint les especes qui ont vu la diagonale et celles qui n'apportent que le chromosome
-		tmp = [y.split("/") for y in "|".join([x for x in ct[4:] if len(x) > 0]).split("|")]
+		tmp = [y.split("/") for y in (e1+'|'+e2).split("|") if len(y) > 0]
 		# Les chromosomes de ces especes
 		espChr = frozenset( [(officialName[e],c) for (e,c) in tmp if ('Un' not in c) and (e in officialName)] )
 		esp = frozenset( [e for (e,_) in espChr] )
 		
-		lst.append( (d,espChr,esp,ct[2],ct[3]) )
+		lst[anc].append( (d,espChr,esp,diag,strands) )
 
-	f.close()
-	print >> sys.stderr, "OK (%d diagonales)" % len(lst)
+	print >> sys.stderr, "OK (%d diagonales)" % sum([len(lst[x]) for x in ancName])
 	return lst
 
 

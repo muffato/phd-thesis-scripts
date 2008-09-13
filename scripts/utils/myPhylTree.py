@@ -4,6 +4,7 @@ import myTools
 
 dsi = dict.__setitem__
 dgi = dict.__getitem__
+GeneSpeciesPosition = myTools.newCustomType(['species', 'chromosome', 'index'])
 
 
 ##########################################
@@ -51,7 +52,7 @@ class PhylogeneticTree:
 				self.fileName.setdefault(node, str(node).replace(' ', '_').replace('/', '-'))
 				s = []
 				ld = []
-				self.listAncestr.append(node)
+				self.tmpA.append(node)
 				for (f,l) in self.items.get(node):
 					self.parent.setdefault(f, (node,l))
 					desc = recInitialize(f)
@@ -76,7 +77,7 @@ class PhylogeneticTree:
 			else:
 				self.fileName.setdefault(node, str(node).replace(' ', '.'))
 				self.species.setdefault(node, frozenset([node]))
-				self.listSpecies.append(node)
+				self.tmpS.append(node)
 
 			self.allDescendants.setdefault(node, frozenset(res))
 			
@@ -91,18 +92,21 @@ class PhylogeneticTree:
 		self.dicLinks = self.newCommonNamesMapperInstance()
 		self.dicParents = self.newCommonNamesMapperInstance()
 		self.allDescendants = self.newCommonNamesMapperInstance()
-		self.listSpecies = []
-		self.listAncestr = []
+		self.tmpS = []
+		self.tmpA = []
 
 		# Remplissage
 		recInitialize(self.root)
+		self.listSpecies = frozenset(self.species).difference(self.items)
+		self.listAncestr = frozenset(self.items)
 
 		# Structures post-analyse
-		self.allNames = self.listAncestr + self.listSpecies
+		self.allNames = list(self.species)
+		self.allNames = self.tmpA + self.tmpS
 		self.outgroupSpecies = self.newCommonNamesMapperInstance()
 		self.indNames = self.newCommonNamesMapperInstance()
 		for (i,e) in enumerate(self.allNames):
-			self.outgroupSpecies.setdefault(e, frozenset(self.listSpecies).difference(self.species.get(e)))
+			self.outgroupSpecies.setdefault(e, self.listSpecies.difference(self.species.get(e)))
 			self.indNames.setdefault(e, i)
 			self.officialName[i] = e
 		self.numItems = [[]] * len(self.allNames)
@@ -136,7 +140,7 @@ class PhylogeneticTree:
 	# Teste si le fils est bien un fils de son pere
 	################################################
 	def isChildOf(self, fils, pere):
-		return self.dicParents[fils][pere] == pere
+		return self.dicParents[fils][pere] == self.officialName[pere]
 
 
 	# Calcule les valeurs sur les noeuds de l'arbre
@@ -144,7 +148,7 @@ class PhylogeneticTree:
 	#  - notdefined est la valeur a renvoyer si pas de resultat
 	#  - resultNode indique de quel ancetre on veut le resultat
 	#########################################################################
-	def calcWeightedValue(self, values, notdefined, resultNode = None):
+	def calcWeightedValue(self, values, notdefined, resultNode):
 		
 		import numpy
 		
@@ -401,7 +405,7 @@ class PhylogeneticTree:
 			# On charge la ligne
 			currLine = lignes.pop()
 			
-			# On charge toutes les sous arbres-fils tant que possible
+			# On charge tous les sous arbres-fils tant que possible
 			fils = []
 			while True:
 				tmp = recLoad(indent + 1)

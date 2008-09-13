@@ -59,7 +59,8 @@ def loadDiagsFile(name):
 	diags = utils.myTools.defaultdict(list)
 	for l in f:
 		t = l.split('\t')
-		diags[utils.myGenomes.commonChrName(t[0])].append( ([int(x) for x in t[1].split()],[int(x) for x in t[2].split()]) )
+		diags[t[0]].append( ([int(x) for x in t[1].split()],[int(x) for x in t[2].split()]) )
+		#diags[utils.myGenomes.commonChrName(t[0])].append( ([int(x) for x in t[1].split()],[int(x) for x in t[2].split()]) )
 	return diags
 
 #
@@ -107,9 +108,8 @@ def rewriteGenome():
 
 # Initialisation & Chargement des fichiers
 arguments = utils.myTools.checkArgs( \
-	[("genomeAncestralDiags",file), ("phylTree.conf",file)], \
-	[("ancestr",str,""), \
-	("seuilMaxDistInterGenes",int,1000000), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,0), \
+	[("genomeAncestralDiags",file), ("phylTree.conf",file), ("ancestr",str,"")], \
+	[("seuilMaxDistInterGenes",int,1000000), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,0), \
 	("useOutgroups",str,["no","always","onlyIfBetter"]), ("newParsimonyScoring",bool,False), \
 	("nbConcorde",int,1), ("withConcordeOutput",bool,False), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \

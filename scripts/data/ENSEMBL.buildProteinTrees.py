@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 	Telecharge depuis le site d'Ensembl les fichiers des arbres de proteines
@@ -37,7 +37,7 @@ phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 # On charge les liens taxon_id -> species name
 ###############################################
-print >> sys.stderr, "Chargement des liens taxon_id -> species name ...",
+print >> sys.stderr, "Chargement des liens taxon_id -> species_name ...",
 taxonName = {}
 f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.genome_db"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
@@ -49,7 +49,7 @@ print >> sys.stderr, len(taxonName), "especes OK"
 
 # On charge les liens member_id -> protein name
 ################################################
-print >> sys.stderr, "Chargement des liens member_id -> protein name ...",
+print >> sys.stderr, "Chargement des liens member_id -> protein_name ...",
 tmpLinks = {}
 f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.member"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
@@ -96,7 +96,7 @@ for ligne in utils.myTools.MySQLFileLoader(f):
 			pass
 	
 	# Le dictionnaire
-	if (t[1] not in ['lost_taxon_id', 'taxon_id']) and ('SIS' not in t[1]):
+	if (t[1] not in ['lost_taxon_id', 'taxon_id', 'taxon_alias', 'original_cluster_id', 'Sitewise_dNdS_subroot_id']) and ('SIS' not in t[1]):
 		info[ int(t[0]) ][t[1]] = t[2]
 
 f.close()
@@ -118,12 +118,17 @@ f.close()
 print >> sys.stderr, len(data), "branches OK"
 
 
-
-####################################################################
-# On considere que les duplications 'dubious' ne sont pas valables #
-####################################################################
-def isDuplicatedNode(inf):
-	return (inf['Duplication'] != 0) and ('dubious_duplication' not in inf)
+# On regle les parametres de info
+##################################
+for (node,inf) in info.iteritems():
+	# On considere que les duplications 'dubious' ne sont pas valables pour une duplication
+	if 'dubious_duplication' in inf:
+		del inf['dubious_duplication']
+		inf['Duplication'] = 1
+	elif inf['Duplication'] != 0:
+		inf['Duplication'] = 2
+	# Pour passer des '/' et ' ' a '-' et '_'
+	inf['taxon_name'] = phylTree.officialName[inf['taxon_name']]
 
 
 ###################################################################################################################
@@ -141,7 +146,7 @@ def flattenTree(node, rec):
 			flattenTree(g, rec)
 
 	# Si c'est une vraie duplication, on n'a plus rien a faire
-	if isDuplicatedNode(info[node]):
+	if info[node]['Duplication'] >= 2:
 		return
 
 	newData = []
@@ -149,11 +154,9 @@ def flattenTree(node, rec):
 	for (g,d) in data[node]:
 		inf = info[g]
 		# 2x le meme taxon et pas de duplication
-		if (g in data) and (inf['taxon_name'] == taxonName) and not isDuplicatedNode(inf):
+		if (g in data) and (inf['taxon_name'] == taxonName) and (inf['Duplication'] < 2):
 			newData.extend([(g2,d+d2) for (g2,d2) in data[g]])
 		else:
-			#if (g in data) and (inf['taxon_name'] == taxonName) and isDuplicatedNode(inf):
-			#	print >> sys.stderr, "SOURCE", node, info[node], (g,d), inf
 			newData.append( (g,d) )
 	data[node] = newData
 
@@ -194,7 +197,7 @@ def rebuildTree(node):
 	contractTree(node)
 
 	# On ne change les fils que si ce n'est pas une vraie duplication
-	if not isDuplicatedNode(info[node]):
+	if info[node]['Duplication'] < 2:
 
 		# On redefinit les fils pour -notre- arbre phylogenetique en triant les enfants en paquets
 		fils = utils.myTools.defaultdict(list)
@@ -207,23 +210,19 @@ def rebuildTree(node):
 					break
 			else:
 				# Apparait si g est le meme ancetre que node et que g est une duplication, ce qui l'a empeche d'etre aplati par flatten
-				if gname != anc:
-					print "ERREUR: name!=anc", node, anc, gname
+				assert (gname == anc), "ERREUR: name!=anc [%s / %s / %s]" % (node, anc, gname)
 				# Le noeud courant sera donc un noeud de duplication
 				info[node]['Duplication'] = 3
-				info[node].pop('dubious_duplication', None)
 				fils[anc].append( (g,d) )
 	
 		# len(fils):
 		#  1 -> uniquement anc
 		#  2 ou 3 parmi F1/F2/anc
-		if (len(fils) == 1) and (anc not in fils):
-			print "ERREUR: 1=anc", node, fils
-		elif len(fils) > 3:
-			print "ERREUR: len>3", node, fils
+		assert (len(fils) != 1) or (anc in fils), "ERREUR: 1=anc [%s / %s]" % (node, fils)
+		assert (len(fils) <= (1+len(phylTree.items.get(anc)))), "ERREUR: len>(1+nbFils) [%s / %s]" % (node, fils)
 
 		if len(fils) > 1:
-			if len(fils) == 3:
+			if anc in fils:
 				lst1 = fils.pop(anc)
 				lst2 = []
 				for tmp in fils.itervalues():
@@ -258,7 +257,7 @@ def rebuildTree(node):
 def getRoots(node, previousAnc, lastWrittenAnc):
 
 	newAnc = info[node]['taxon_name']
-	(toWrite,newLastWritten,isroot) = utils.myProteinTree.getIntermediateAnc(phylTree, previousAnc, lastWrittenAnc, newAnc, isDuplicatedNode(info[node]))
+	(toWrite,newLastWritten,isroot) = utils.myProteinTree.getIntermediateAnc(phylTree, previousAnc, lastWrittenAnc, newAnc, info[node]['Duplication'] >=2)
 
 	if isroot:
 		return [node]

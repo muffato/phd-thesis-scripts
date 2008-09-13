@@ -47,7 +47,7 @@ def printPsFooter():
 def initColor(silent = False):
 
 	# La liste des couleurs et leurs valeurs RGB
-	f = open("/users/ldog/muffato/work/scripts/utils/rgb.txt", 'r')
+	f = open("/workspace/muffato/scripts/utils/rgb.txt", 'r')
 	for l in f:
 		c = l.split()
 		s = "".join(c[6:]).lower()

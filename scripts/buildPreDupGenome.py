@@ -7,20 +7,13 @@ On regroupe les genes en faisant des suites qui ont une origine commune.
 Chaque gene ancestral recoit son chromosome ancestral par un vote a la majorite en fonction l'annotation de chaque tetrapode
 """
 
-# INITIALISATION #
-
-# Librairies
 import sys
-import operator
-import itertools
 import utils.myPhylTree
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
 defaultdict = utils.myTools.defaultdict
 
-
-# FONCTIONS #
 
 
 #
@@ -232,7 +225,6 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 			DCSlen += len(gr)
 		if arguments["showDCS"]:
 			for ((c,i),g,a) in gr:
-				#fishContent = ["/".join([str(x) for x in set(y)]) for y in a]
 				fishContent = ["/".join(["%s|%s" % (phylTree.dicGenomes[eD].lstGenes[cT][iT].names[0],cT) for (cT,iT) in orthos[eD].get(g,[])]) for eD in especesDup]
 				print utils.myTools.printLine( [c, i, g, ""] + fishContent + [cc] )
 			print "---"
@@ -253,7 +245,7 @@ def addDCS(bloc, col, dicGenesAnc, chrAnc, eNonDup):
 		for (_,_,a) in bloc:
 			(flag1,flag2) = (False,False)
 			# On parcourt les especes
-			for ((expected1,expected2),observed) in itertools.izip(chrAnc[c],a):
+			for ((expected1,expected2),observed) in utils.myTools.izip(chrAnc[c],a):
 				flag1 |= len(expected1.intersection(observed)) > 0
 				flag2 |= len(expected2.intersection(observed)) > 0
 			# On met a jour nb1 et nb2: le nombre de genes vus a gauche / a droite
@@ -269,9 +261,10 @@ def addDCS(bloc, col, dicGenesAnc, chrAnc, eNonDup):
 			# Oui -> score = nb de genes qui appartiennent au chromosome
 			score[c] = nb1 + nb2
 
-	(c,s) = max(score.items(), key = operator.itemgetter(1))
+	c = max(score, key = score.__getitem__)
+
 	
-	if s == 0:
+	if score[c] == 0:
 		return None
 	
 	for g in bloc:
@@ -299,7 +292,7 @@ def buildChrAnc(genesAncCol, chrAncGenes):
 		# On fait les groupes
 		rTot = [[values[e] for e in gr if e in values] for gr in especesNonDupGrp]
 		# La moyenne des moyennes de chaque groupe non vide
-		return utils.myMaths.mean([utils.myMaths.mean(r) for r in rTot if len(r) > 0])
+		return utils.myMaths.myStats.mean([utils.myMaths.myStats.mean(r) for r in rTot if len(r) > 0])
 
 	probaMemory = utils.myTools.memoize(phylTree.calcWeightedValue)
 	chrNames = sorted(chrAncGenes)
@@ -350,9 +343,8 @@ def printColorAncestr(genesAnc, chrAncGenes):
 
 # Arguments
 arguments = utils.myTools.checkArgs( \
-	[("draftPreDupGenome.conf",file), ("phylTree.conf",file)],
+	[("draftPreDupGenome.conf",file), ("phylTree.conf",file), ("target",str), ("especesNonDup",str), ("especesDup",str)],
 	[("minChrLen",int,20), ("windowSize",int,25), ("usePhylTreeScoring",bool,True), ("keepUncertainGenes",bool,False), \
-	("especesNonDup",str,""), ("especesDup",str,""), ("target",str,""), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2"), \
 	("showDCS",bool,False), ("showQuality",bool,False), ("showAncestralGenome",bool,True)], \

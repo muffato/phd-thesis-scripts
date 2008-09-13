@@ -4,7 +4,7 @@ import os
 import sys
 import math
 import time
-import numpy
+#import numpy
 import random
 import zipfile
 #import operator
@@ -17,6 +17,91 @@ import utils.myProteinTree
 import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
+
+l = range(4)
+
+machin =  utils.myTools.myIterator()
+for x in machin.xselections(l, 3):
+:w
+for x in utils.myTools.myIterator.xselections(l, 3):
+	print x
+
+#for x in xrange(10):
+	#list(utils.myTools.myIterator.buildSubsets(l, 10))
+#	list(utils.myTools.myIterator.xuniqueCombinations(l, 10))
+
+#for x in utils.myTools.myIterator.buildSubsets(l, 6):
+#for x in utils.myTools.myIterator.xuniqueCombinations(l, 6):
+#	print x
+
+sys.exit(0)
+
+
+
+def gcd ( a, b ):
+    '''Greatest common divisor function; Euclid's algorithm.
+
+      [ a and b are integers ->
+          return the greatest common divisor of a and b ]
+   '''
+    if  b == 0:
+        return a
+    else:
+        return gcd(b, a%b)
+
+def gcd2(a, b):
+	while b != 0:
+		(a, b) = (b, a%b)
+	return a
+
+for _ in xrange(int(sys.argv[1])):
+	n1 = random.randint(1, 10**9)
+	n2 = random.randint(1, 10**9)
+	gcd2(n1, n2)
+
+
+
+sys.exit(0)
+t = utils.myTools.newCustomType
+print t, type(t)
+
+t = utils.myTools.newCustomType(["name", "chromosome"])
+print t, type(t)
+
+x = t()
+print x, type(x)
+y = t(["TRE", 85])
+print x, type(x)
+print y, type(y)
+
+x["name"] = "testNom"
+x.chromosome = "chr0m"
+print x, type(x)
+print y, type(y)
+print x.name
+print y.name
+
+y.name = "carambar"
+y["chromosome"] = "chocolat"
+print x, type(x)
+print y, type(y)
+print x.chromosome
+print y.chromosome
+
+l = [t() for i in xrange(10000000)]
+
+print "OK"
+
+for i in xrange(10000000):
+	for j in xrange(10000000):
+		pass
+
+sys.exit(0)
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
+print phylTree.listSpecies
+sys.exit(0)
+
+print sys.path
 
 #for x in loadTree3('/dev/stdin'):
 for x in utils.myProteinTree.loadTree3('/dev/stdin'):
@@ -1260,58 +1345,6 @@ for (k,v) in dic.iteritems():
 	print k, v
 
 sys.exit(0)
-
-
-def countAltern(lst):
-
-	# La liste des chromosomes de l'alternance
-	#lst = [x[eD] for (_,_,x) in lstDCS.__reversed__()]
-
-	# Compte le nombre d'occurrences de c dans la liste courante
-	def countChr(c):
-		nb = 0
-		for x in lst:
-			if c not in x:
-				break
-			nb += 1
-		return nb
-
-	# Le compte final
-	count = defaultdict(int)
-	# La derniere ligne lue
-	last = defaultdict(int)
-	# On parcourt la liste
-	while len(lst) > 0:
-		curr = lst.pop()
-		for x in curr:
-			# Les alternances sont mesurees entre deux positions consecutives
-			for y in last:
-				if y == x:
-					continue
-				count[(x,y)] += (countChr(x)+1) * last[y]
-				count[(y,x)] = count[(x,y)]
-			# Et aussi entre les paralogues
-			for y in curr:
-				if y >= x:
-					continue
-				count[(x,y)] += 1
-				count[(y,x)] = count[(x,y)]
-
-		# On met a jour last
-		for y in last:
-			if y not in curr:
-				last[y] = 0
-		for x in curr:
-			last[x] += 1
-
-	return count
-
-#print countAltern([[5],[13],[5],[5],[5,13],[5,13],[5],[13]])
-print countAltern([[5],[6],[5],[5],[5,13],[7,13],[13],[5],[1],[5],[5],[13],[13],[1,5]])
-
-
-sys.exit(0)
-
 
 # Arguments
 arguments = utils.myTools.checkArgs( \

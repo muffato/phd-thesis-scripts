@@ -13,8 +13,8 @@ import utils.myProteinTree
 # Arguments
 ############
 arguments = utils.myTools.checkArgs( \
-	[("phylTree.conf",file), ("proteinTree",file), ("orthologues",file)], \
-	[("newSpecies",str,""), ("genesFile",str,"")], \
+	[("phylTree.conf",file), ("proteinTree",file), ("orthologues",file), ("newSpecies",str)], \
+	[("genesFile",str,"")], \
 	__doc__ \
 )
 
@@ -32,19 +32,12 @@ for (r,d,i) in utils.myProteinTree.loadTree(arguments["proteinTree"]):
 	data.update(d)
 	info.update(i)
 
-
-# Indique s'il s'agit d'un noeud de duplication (les duplications 'dubious' ne sont pas valables
-#################################################################################################
-def isDuplicatedNode(inf):
-	return (inf['Duplication'] != 0) and ('dubious_duplication' not in inf)
-
-
 # Creation d'un nouveau noeud dans l'arbre
 ###########################################
 def mkNode(taxon_name, x, dup):
 	global maxNodeID
 	maxNodeID += 1
-	dup = int(dup)
+	dup = 3*int(dup)
 	if type(x) == str:
 		info[maxNodeID] = {'taxon_name':taxon_name, 'Duplication':dup, 'gene_name':x}
 	else:
@@ -62,10 +55,11 @@ def mkSpeciesNode(taxon_name, lst):
 			esp.append(mkNode(taxon_name, g, False))
 	if len(esp) == 0:
 		return None
+	return mkNode(taxon_name, [(x,0) for x in esp], True)
 	# Fusions pour que l'arbre soit binaire
-	while len(esp) >= 2:
-		esp.append(mkNode(taxon_name, [(esp.pop(),0), (esp.pop(),0)], True))
-	return esp[0]
+	#while len(esp) >= 2:
+	#	esp.append(mkNode(taxon_name, [(esp.pop(),0), (esp.pop(),0)], True))
+	#return esp[0]
 
 
 # Initialisation
@@ -113,10 +107,11 @@ for famille in orthologues:
 				lst = [(x,l+l0) for ((x,l),l0) in lst if x != None]
 				if len(lst) == 0:
 					return (None,0)
+				return (mkNode(node, lst, False), 0)
 				# Fusions pour que l'arbre soit binaire
-				while len(lst) >= 2:
-					lst.append( (mkNode(node, [lst.pop(), lst.pop()], False), 0) )
-				return lst[0]
+				#while len(lst) >= 2:
+				#	lst.append( (mkNode(node, [lst.pop(), lst.pop()], False), 0) )
+				#return lst[0]
 			else:
 				return (mkSpeciesNode(node, famille.names),0)
 
@@ -147,7 +142,7 @@ for famille in orthologues:
 		# Le nouveau noeud outgroup	
 		(e,n) = lst.pop()
 		par = phylTree.dicParents.get(n).get(newSpecies)
-		newNodeID = mkNode(par, [(e,1),(mkSpeciesNode(newSpecies, famille.names),1)], False)
+		newNodeID = mkNode(par, [(e,0),(mkSpeciesNode(newSpecies, famille.names),0)], False)
 
 		# Mise a jour des racines
 		for x in lstPar:
@@ -179,7 +174,7 @@ for famille in orthologues:
 			#print >> sys.stderr, "ON", node, ref
 
 			# Duplication
-			if isDuplicatedNode(info[node]):
+			if info[node]['Duplication'] >= 2:
 				# Le nombre de hits par branche
 				lst = [(descDic[f],f) for (f,_) in data[node]]
 				best = max(lst)
@@ -200,9 +195,12 @@ for famille in orthologues:
 					else:
 						break
 			
-			# On est au toujours au dessus
+			# On est toujours au dessus
 			if phylTree.isChildOf(newSpecies, ref):
-				nextInterm = phylTree.dicLinks.get(newSpecies).get(ref)[-2]
+				try:
+					nextInterm = phylTree.dicLinks.get(newSpecies).get(ref)[-2]
+				except IndexError:
+					print newSpecies, ref, phylTree.dicLinks.get(newSpecies).get(ref)
 				lst = [f for (f,_) in data[node] if phylTree.isChildOf(info[f]['taxon_name'], nextInterm)]
 				#print >> sys.stderr, "SPECIATION", lst
 				node = lst[0]
@@ -233,7 +231,6 @@ for famille in orthologues:
 			while phylTree.isChildOf(info[p]['taxon_name'], newName):
 				info[p]['taxon_name'] = newName
 				info[p]['Duplication'] = 3
-				info[p].pop('dubious_duplication', None)
 
 				if p not in dicPar:
 					break

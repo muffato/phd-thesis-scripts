@@ -18,26 +18,18 @@ arguments = utils.myTools.checkArgs( [("phylTree.conf",file), ("proteinTree",fil
 phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 
-####################################################################
-# On considere que les duplications 'dubious' ne sont pas valables #
-####################################################################
-def isDuplicatedNode(inf):
-	return (inf['Duplication'] != 0) and ('dubious_duplication' not in inf)
-
-
 ###########################################
 # Sauvegarde toutes les familles de genes #
 ###########################################
 def extractGeneFamilies(node, baseName, previousAnc, lastWrittenAnc):
 
 	newAnc = info[node]['taxon_name']
-	(toWrite,newLastWritten,isroot) = utils.myProteinTree.getIntermediateAnc(phylTree, previousAnc, lastWrittenAnc, newAnc, isDuplicatedNode(info[node]))
+	(toWrite,newLastWritten,isroot) = utils.myProteinTree.getIntermediateAnc(phylTree, previousAnc, lastWrittenAnc, newAnc, info[node]['Duplication'] >= 2)
 
 	if isroot:
 		trueRoots.append(node)
 		global nbA
 		nbA += 1
-		#baseName = "FAM%d" % nbA
 		return
 	else:
 		for (g,_) in data.get(node,[]):
@@ -50,7 +42,7 @@ def extractGeneFamilies(node, baseName, previousAnc, lastWrittenAnc):
 	if node in data:
 		allGenes = []
 		for (i,(g,d)) in enumerate(data[node]):
-			if isDuplicatedNode(info[node]):
+			if info[node]['Duplication'] >= 2:
 				newName = baseName + (".%d" % (i+1))
 			else:
 				newName = baseName

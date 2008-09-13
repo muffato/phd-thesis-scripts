@@ -4,13 +4,64 @@ import sys
 import bz2
 import gzip
 
-from collections import defaultdict
+from collections import *
+from itertools import *
 
 null = open('/dev/null', 'w')
-stdin = sys.stdin
-stdout = sys.stdout
-stderr = sys.stderr
 stdinInput = os.isatty(sys.stdin.fileno())
+
+###############################################
+# Cree un nouveau type enregistrement         #
+#   Le type se definit par des noms de champs #
+#   Les valeurs sont stockees dans une liste  #
+#   Acces via le nom du champ ou le numero    #
+###############################################
+def newCustomType(attributes):
+
+	# Correspondance nom -> id
+	dicAttrID = dict([(x,i) for (i,x) in enumerate(attributes)])
+	# La correspondance id -> nom est assuree par attributes
+
+	class tmpType:
+		
+		# Valeurs par defaut
+		_emptyVal = [None] * len(attributes)
+
+		# Initialisation
+		def __init__(self, values = _emptyVal):
+			if len(values) != len(tmpType._emptyVal):
+				print >> sys.stderr, "Error initialising %s with %s" % (attributes, values)
+				values = tmpType._emptyVal
+			self.__values = values
+
+		# Meme representation qu'un dictionnaire
+		def __repr__(self):
+			return "{" + ", ".join(["%s:%s" % (attributes[i],x) for (i,x) in enumerate(self.__values)]) + "}"
+		
+		# Acces comme attributs
+		def __getattr__(self, name):
+			if name in dicAttrID:
+				return self.__values[dicAttrID[name]]
+			raise AttributeError(name)
+		def __setattr__(self, name, value):
+			if name in dicAttrID:
+				self.__values[dicAttrID[name]] = value
+			else:
+				self.__dict__[name] = value
+
+		# Acces comme via une liste ou un dictionnaire
+		def __getitem__(self, i):
+			if i in dicAttrID:
+				return self.__values[dicAttrID[i]]
+			else:
+				return self.__values[i]
+		def __setitem__(self, i, value):
+			if i in dicAttrID:
+				self.__values[dicAttrID[i]] = value
+			else:
+				self.__values[i] = value
+	return tmpType
+
 
 #########################################################################################################################
 # Le but est de pouvoir acceder au fichier et lire la premiere ligne sans devoir le fermer pour le reouvrir juste apres #
@@ -26,6 +77,7 @@ class firstLineBuffer:
 	def __iter__(self):
 		yield self.firstLine
 		for l in self.f:
+			# Suppression des lignes avec commentaire
 			if not l.startswith("#"):
 				yield l
 
@@ -37,12 +89,24 @@ class firstLineBuffer:
 # Lit un fichier tabulaire, en convertissant les colonnes separees de delim selon type_list #
 #############################################################################################
 def readTabular(filename, type_list, delim = '\t'):
-	f = myOpenFile(filename, 'r')
+
+	# Ouverture du fichier si necessaire
+	if type(filename) == str:
+		f = myOpenFile(filename, 'r')
+	else:
+		f = filename
+	# Liste des types de chaque colonne
+	new_type_list = []
+	for x in type_list:
+		if type(x) == type:
+			new_type_list.append(x)
+		else:
+			new_type_list.extend([x[0]] * x[1])
+	# Parcours du fichier
 	for (i,line) in enumerate(f):
 		current_line = line.replace('\n','').split(delim)
-		if len(current_line) != len(type_list):
-			raise IndexError,"Erreur nombre de colonne. Ligne:%d" % (i+1)
-		yield [t(x) for (x,t) in zip(current_line,type_list)]
+		assert len(current_line) == len(new_type_list), "Erreur nombre de colonne. Ligne:%d" % (i+1)
+		yield tuple(t(x) for (x,t) in izip(current_line,new_type_list))
 	f.close()
 
 
@@ -65,17 +129,25 @@ def printLine(line, delim = "\t", func = str):
 #   Retourne l'objet FILE et le nom complet du fichier             #
 ####################################################################
 def myOpenFile(nom, mode):
+
+	# Fichier deja ouvert
 	if type(nom) != str:
 		return nom
+
+	# Resource Web
 	elif nom.startswith("http://") or nom.startswith("ftp://"):
 		comm = "wget %s -O -"
+		# Compression bzip2
 		if nom.endswith(".bz2"):
 			comm += " | bunzip2"
+		# Compression gzip
 		elif nom.endswith(".gz"):
 			comm += " | gunzip"
 		(stdin,f,stderr) = os.popen3( comm % nom )
 		stdin.close()
 		stderr.close()
+
+	# Fichier sur le disque
 	else:
 		if "w" in mode:
 			mkDir(nom)
@@ -86,8 +158,10 @@ def myOpenFile(nom, mode):
 			import cStringIO
 			f = zipfile.ZipFile(nom[:i+4], "r")
 			f = cStringIO.StringIO(f.read(nom[i+5:]))
+		# Compression bzip2
 		elif nom.endswith(".bz2"):
 			f = bz2.BZ2File(nom, mode)
+		# Compression gzip
 		elif nom.endswith(".gz"):
 			f = gzip.GzipFile(nom, mode)
 		else:
@@ -226,6 +300,51 @@ class myIterator:
 			return res
 		else:
 			return rec(0, s)
+				
+	# Listes de n elements, chacun pris parmi items, pas forcement distincts
+	#  = Tirages de n elements parmi items, avec remise
+	#########################################################################
+	@staticmethod
+	def xselections(items, n):
+		if n==0: yield []
+		else:
+			for (i,x) in enumerate(items):
+				for cc in myIterator.xselections(items, n-1):
+					yield [x]+cc
+
+	# Listes de n elements, chacun pris dans items et tous distincts, en tenant compte de l'ordre
+	#  = Tirages de n elements parmi items, sans remise, en tenant compte de l'ordre
+	#  = Arrangements de n parmi items
+	##############################################################################################
+	@staticmethod
+	def xcombinations(items, n):
+		if n==0: yield []
+		else:
+			for (i,x) in enumerate(items):
+				for cc in myIterator.xcombinations(items[:i]+items[i+1:],n-1):
+					yield [x]+cc
+
+	# Listes de n elements, chacun pris dans items et tous distincts, sans tenir compte de l'ordre
+	#  = Tirages de n elements parmi items, sans remise, sans tenir compte de l'ordre
+	#  = Combinaisons de n parmi items
+	#  = Sous-ensembles de taille n
+	###############################################################################################
+	@staticmethod
+	def xuniqueCombinations(items, n):
+		if n==0: yield []
+		else:
+			for (i,x) in enumerate(items):
+				for cc in myIterator.xuniqueCombinations(items[i+1:],n-1):
+					yield [x]+cc
+	
+	# Listes reordonnnees de items
+	#  = Permutations (bijections)
+	#  = Arrangements de items
+	###############################
+	@staticmethod
+	def xpermutations(items):
+		return myIterator.xcombinations(items, len(items))
+
 
 
 ##########################################################
@@ -354,15 +473,6 @@ class myCombinator:
 
 		
 
-#######################################################################################
-# Classe qui permet d'utiliser les cles d'un dictionnaire directement comme attributs #
-#######################################################################################
-class dicContainer(dict):
-
-	def __getattr__(self, name):
-		return dict.__getitem__(self, name)
-
-
 #################################################################################
 # Lit la ligne de commande et parse les arguments                               #
 #  1. des arguments obligatoires (nom,constructeur)                             #
@@ -410,8 +520,8 @@ def checkArgs(args, options, info):
 			error_usage("'%s' n'est pas parmi %s" % (res,printLine(val, '/')))
 		return res
 		
-	valOpt = dicContainer()
-	valArg = dicContainer()
+	valOpt = {}
+	valArg = {}
 	opt = {}
 	for (name,typ,val) in options:
 		opt[name] = (typ,val)

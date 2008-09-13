@@ -13,13 +13,15 @@ import utils.myPhylTree
 arguments = utils.myTools.checkArgs( \
 	[("phylTree.conf",file)], \
 	[("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-43/mart_43/data/mysql/ensembl_mart_43/%s_gene_ensembl__gene__main.txt.table.gz"), \
-	("OUT.genesFile",str,"genes.%s.list.bz2")], \
+	("OUT.genesFile",str,"genes.%s.list.bz2"), ("fields",str,"11,7,8,9,1,3")], \
 	__doc__ \
 )
 
+# 19,1,5,6,17,12 pour Ensembl50
 
 # L'arbre phylogenetique
 phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
+fields = [int(x) for x in arguments["fields"].split(",")]
 
 for esp in sorted(phylTree.listSpecies):
 
@@ -34,7 +36,7 @@ for esp in sorted(phylTree.listSpecies):
 	fi = utils.myTools.myOpenFile(arguments["IN.EnsemblURL"] % tmp,'r')
 	for ligne in utils.myTools.MySQLFileLoader(fi):
 		c = ligne.split('\t')
-		print >> fo, "\t".join( [c[11],c[7],c[8],c[9],c[1],c[3]] )
+		print >> fo, "\t".join( [c[x] for x in fields] )
 		nb += 1
 	fi.close()
 	fo.close()

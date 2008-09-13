@@ -127,7 +127,7 @@ gcN.close()
 dicGC2 = {}
 for (c,i) in dicGC:
 	tmp = [dicGC[(c,j)] for j in xrange(i-arguments["GCsmoothing"],i+1+arguments["GCsmoothing"]) if (c,j) in dicGC]
-	dicGC2[(c,i)] = utils.myMaths.mean(tmp)
+	dicGC2[(c,i)] = utils.myMaths.myStats.mean(tmp)
 
 
 count = 0.

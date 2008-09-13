@@ -6,19 +6,10 @@ import myTools
 ##############
 # Un gene :) #
 ##############
-class Gene:
 
-	def __init__(self, names, chromosome, beg, end, strand):
+Gene = myTools.newCustomType(['chromosome', 'beginning', 'end', 'strand', 'names'])
 
-		self.names = [intern(s) for s in names]
-		self.chromosome = commonChrName(chromosome)
-		self.beginning = beg
-		self.end = end
-		self.strand = strand
-
-	def __repr__(self):
-		return "Gene %s on chr %s from %d to %d on strand %d" % ("/".join(self.names), self.chromosome, self.beginning, self.end, self.strand)
-
+GenePosition = myTools.newCustomType(['chromosome', 'index'])
 
 ###########################################################
 # On convertit les noms de chromosomes en int si possible #
@@ -43,9 +34,11 @@ def loadFastaFile(name):
 		ligne = ligne.replace('\n', '').strip()
 		if len(ligne) == 0:
 			continue
+		# Les chevrons indiquent le debut d'une nouvelle sequence
 		if ligne[0] == ">":
 			name = ligne[1:].strip()
 			seq[name] = ""
+		# Les lignes doivent etre concatenees
 		elif name != None:
 			seq[name] += ligne
 	f.close()
@@ -58,9 +51,8 @@ def loadFastaFile(name):
 ##########################################
 class Genome:
 
-	#
 	# Constructeur
-	#
+	###############
 	def __init__(self, fichier, **args):
 
 		# le nom et l'instance de file
@@ -83,13 +75,13 @@ class Genome:
 		# Fichier de genome d'Ensembl: les trois champs du milieu sont des nombres
 		try:
 			x = int(c[1]) + int(c[2]) + int(c[3])
-			self.__loadFromEnsemblGenome__(**args)
+			mode = 1
 		except (ValueError, IndexError):
 				
 			# Fichier d'orthologues classique, 4 champs indiquent les scores de similarite
 			try:
 				x = int(c[7]) + int(c[8]) + int(c[9]) + int(c[10])
-				self.__loadFromEnsemblOrthologs__(**args)
+				mode = 2
 			except (ValueError, IndexError):
 				
 				# 1. Noms de chromosomes ?
@@ -115,22 +107,34 @@ class Genome:
 						conc = False
 				else:
 					conc = args.pop("concordeQualityFactor")
-					
-				self.__loadFromAncestralGenome__(withChr=withChr, concordeQualityFactor=conc, **args)
+				mode = 3	
+		if mode == 1:
+			self.__loadFromEnsemblGenome__(**args)
+		elif mode == 2:
+			self.__loadFromEnsemblOrthologs__(**args)
+		elif mode == 3:
+			self.__loadFromAncestralGenome__(withChr, conc, **args)
+		else:
+			assert (mode in [1,2,3])
 		self.f.close()
 		self.sortGenome()
 
 
-	#
 	# Rajoute un gene au genome
-	#
-	def addGene(self, gene):
-	
-		self.lstGenes[gene.chromosome].append(gene)
-	
-	#
+	############################
+	def addGene(self, names, chromosome, beg, end, strand):
+
+		assert 0 <= beg
+		assert beg < end
+		assert strand in [-1,0,1]
+		
+		names = [intern(s) for s in names]
+		chromosome = commonChrName(chromosome)
+		self.lstGenes[chromosome].append( Gene([chromosome, beg, end, strand, names]) )
+
+
 	# Trie les chromsomoses
-	#
+	########################
 	def sortGenome(self):
 		
 		import operator
@@ -147,10 +151,9 @@ class Genome:
 				for s in g.names:
 					self.dicGenes[s] = (c,i)
 		
-	#
 	# Renvoie les genes presents sur le chromosome donne a certaines positions
-	#	
-	def getGenesAt(self, chr, beg = 0, end = sys.maxint):
+	###########################################################################
+	def getGenesAt(self, chr, beg, end):
 		if chr not in self.lstGenes:
 			return
 		lst = self.lstGenes[chr]
@@ -180,42 +183,37 @@ class Genome:
 				break
 			yield g
 		
-	#
-	# Renvoie les noms des genes presents aux alentours d'un gene donne (fenetre l en nombre de genes)
-	#	
+	# Renvoie les genes presents aux alentours d'un gene donne (fenetre l en nombre de genes)
+	##########################################################################################
 	def getGenesNear(self, chr, index, l):
 		if chr not in self.lstGenes:
 			return []
 		
 		return self.lstGenes[chr][max(0, index-l):index+l+1]
 
-	#
 	# Renvoie tous les genes
-	#
+	#########################
 	def __iter__(self):
 		for t in self.lstGenes.itervalues():
 			for g in t:
 				yield g
 
-	#
 	# Cherche la position d'un gene donne par ses noms)
-	#
+	####################################################
 	def getPosition(self, names):
 		return set( (self.dicGenes[s] for s in names if s in self.dicGenes) )
 
-	#
 	# Renvoie les autres noms d'un gene
-	#
+	####################################
 	def getOtherNames(self, name):
 		if name not in self.dicGenes:
 			return []
 		(c,i) = self.dicGenes[name]
 		return [x for x in self.lstGenes[c][i].names if x != name]
 
-	#
 	# Fabrique la liste des orthologues entre les deux genomes
-	#
-	def buildOrthosTable(self, chr1, genome2, chr2, includeGaps, genesAnc = None):
+	###########################################################
+	def buildOrthosTable(self, chr1, genome2, chr2, includeGaps, genesAnc):
 
 		# Tous les orthologues entre pour les chromosomes OK du genome 1
 		res = {}
@@ -247,27 +245,33 @@ class Genome:
 		print >> sys.stderr, "Chargement du genome de", self.nom, "...",
 		
 		# On lit chaque ligne
-		for ligne in self.f:
-			champs = ligne.split()
-			self.addGene( Gene(champs[4:], champs[0], int(champs[1]), int(champs[2]), int(champs[3])) )
+		for l in self.f:
+			c = l.replace('\n', '').split('\t')
+			self.addGene(c[4].split(), c[0], int(c[1]), int(c[2]), int(c[3]))
 
-		dicConvRomain = {"I":1, "II":2, "III":3, "IV":4, "V":5, "VI":6, "VII":7, "VIII":8, "IX":9, "X":10, "XI":11, "XII":12, "XIII":13, "XIV":14, "XV":15, "XVI":16, "XVII":17, "XVIII":18, "XIX":19, "XX":20, "XXI":21, "XXII":22, "XXIII":23, "XXIV":24, "XXV":25}
-
-		# Les veritables chromosomes sont des entiers < 50 ou des entiers suivis de p/q/L/R/a/b ou W/X/Y/Z
-		# Les chromosomes '*random*' ou 'UNKN' sont des scaffold mis bout a bout -> pas d'ordre utilisable
-		# Le reste correspond aux scaffolds
-		for c in self.lstGenes:
-			if (type(c) == int) or (type(c) == long):
-				if c < 50:
-					self.lstChr.append(c)
+		# Classification en chromosomes/contigs/scaffolds
+		for chrom in self.lstGenes:
+			try:
+				x = int(chrom)
+				if x < 100:
+					self.lstChr.append(chrom)
 				else:
-					self.lstScaff.append(c)
-			elif ((c[-1] in "pqLRab") and (c != "c6_QBL")) or ((c[0] in "WXYZ") and len(c) <= 2) or (c in dicConvRomain) or (c[:5] == "group"):
-				self.lstChr.append(c)
-			elif ("andom" in c) or (c == "UNKN"):
-				self.lstRand.append(c)
-			else:
-				self.lstScaff.append(c)
+					self.lstScaff.append(chrom)
+			except:
+				c = chrom.lower()
+				if ("rand" in c) or ("un" in c):
+					self.lstRand.append(chrom)
+				else:
+					keys = ["cont", "scaff", "ultra", "reftig", "_"]
+					for x in keys:
+						if x.lower() in c:
+							self.lstScaff.append(chrom)
+							break
+					else:
+						if (chrom in ["U", "E64", "2-micron"]) or chrom.endswith("Het"):
+							self.lstScaff.append(chrom)
+						else:
+							self.lstChr.append(chrom)
 		self.sortGenome()
 		
 		print >> sys.stderr, "OK"
@@ -301,7 +305,7 @@ class Genome:
 			combin.addLink([champs[0], champs[3]])
 		
 		for (nb,g) in enumerate(combin):
-			self.addGene( Gene(g, None, nb, nb, 0) )
+			self.addGene(g, None, nb, nb, 0)
 
 		print >> sys.stderr, "OK"
 
@@ -310,7 +314,7 @@ class Genome:
 	# Cette fonction gere un fichier de genome ancestral                               #
 	# il s'agit d'une liste de lignes de la forme "CHROMOSOME GENE_ESP1 GENE_ESP2 ..." #
 	####################################################################################
-	def __loadFromAncestralGenome__(self, withChr=False, concordeQualityFactor=False):
+	def __loadFromAncestralGenome__(self, withChr, concordeQualityFactor):
 
 		if withChr:
 			print >> sys.stderr, "Chargement du genome ancestral de", self.nom, "...",
@@ -336,7 +340,7 @@ class Genome:
 				strand = int(champs.pop(0))
 				
 			# On ajoute le gene
-			self.addGene( Gene(champs, c, i, i, strand) )
+			self.addGene(champs, c, i, i, strand)
 			i += 1
 		
 		self.lstChr = self.lstGenes.keys()

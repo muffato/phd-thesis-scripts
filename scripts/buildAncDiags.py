@@ -7,11 +7,6 @@ Les diagonales apportent les genes qui etaient sur un meme chromosome
 """
 
 
-##################
-# INITIALISATION #
-##################
-
-# Librairies
 import sys
 import utils.myPhylTree
 import utils.myGenomes
@@ -19,10 +14,6 @@ import utils.myTools
 import utils.myMaths
 import utils.myDiags
 
-
-#############
-# FONCTIONS #
-#############
 
 
 def getLongestDiags(oldDiags):
@@ -120,9 +111,9 @@ def findNewSpecies(d, esp, anc):
 
 # Arguments
 arguments = utils.myTools.checkArgs( \
-	[("phylTree.conf",file)], \
+	[("phylTree.conf",file), ("target",str)], \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
-	("useOutgroups",bool,False), ("target",str,""), \
+	("useOutgroups",bool,False), \
 	("showProjected",bool,False), ("showAncestral",bool,True), ("searchUndetectedSpecies",bool,True), ("cutLongestPath",bool,True), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenomesFile",str,"~/work/ancestralGenomes/Genome.%s.bz2"), \
@@ -205,7 +196,7 @@ for anc in diagEntry:
 			res += [utils.myTools.printLine(da, " "),utils.myTools.printLine(ds, " ")]
 			print utils.myTools.printLine(res)
 
-		print >> sys.stderr, utils.myMaths.myStats(s), "OK"
+		print >> sys.stderr, utils.myMaths.myStats.txtSummary(s), "OK"
 
 
 	if arguments["showAncestral"]:
@@ -231,5 +222,5 @@ for anc in diagEntry:
 
 			print utils.myTools.printLine(res)
 	
-		print >> sys.stderr, utils.myMaths.myStats(s), "OK"
+		print >> sys.stderr, utils.myMaths.myStats.txtSummary(s), "OK"
 

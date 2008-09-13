@@ -56,34 +56,6 @@ def calcProba(comparedEsp, communEsp, espIncertitude, espCertitude, scoringMetho
 	return phylTree.calcWeightedValue(values, -1, None)[phylTree.indNames[anc]]
 
 
-####################################
-# Charge le fichier des diagonales #
-####################################
-def loadDiagsFile(nom):
-	
-	print >> sys.stderr, "Chargement du fichier de diagonales ...",
-	f = utils.myTools.myOpenFile(nom, 'r')
-	lst = []
-	for l in f:
-		# On enleve les "_random" et on extrait chaque colonne
-		ct = l.replace('\n', '').replace('_random', '').split('\t')
-		
-		# La diagonale
-		d = [int(x) for x in ct[2].split(' ')]
-		
-		# On joint les especes qui ont vu la diagonale et celles qui n'apportent que le chromosome
-		tmp = [y.split("/") for y in "|".join([x for x in ct[4:] if len(x) > 0]).split("|")]
-		# Les chromosomes de ces especes
-		espChr = frozenset( [(phylTree.officialName[e],c) for (e,c) in tmp if ('Un' not in c) and (e in phylTree.officialName)] )
-		esp = frozenset( [e for (e,_) in espChr] )
-		
-		lst.append( (d,espChr,esp,ct[2],ct[3]) )
-
-	f.close()
-	print >> sys.stderr, "OK (%d diagonales)" % len(lst)
-	return lst
-
-
 #############################################################################################################
 # Rajoute les genes non presents dans des diagonales, en les considerant comme des diagonales de longueur 1 #
 #############################################################################################################
@@ -162,7 +134,7 @@ if anc in phylTree.parent:
 	lstEspParNoeudsFils.append( phylTree.allDescendants[phylTree.root].difference(phylTree.allDescendants[anc]) )
 
 # Diagonales
-lstDiags = loadDiagsFile(arguments["diagsList"])
+lstDiags = loadDiagsFile(arguments["diagsList"], [arguments["ancestr"]], phylTree.officialName)[arguments["ancestr"]]
 
 # Genomes pour les genes singletons
 lengths = []
@@ -270,7 +242,7 @@ def doIter(niter):
 			# -> clusters contient la repartition des diagonales
 			print >> sys.stderr
 
-			print >> sys.stderr, ">>> %d chromosomes (score = %s)..." % (len(clusters),utils.myMaths.myStats(relev)),
+			print >> sys.stderr, ">>> %d chromosomes (score = %s)..." % (len(clusters),utils.myMaths.myStats.txtSummary(relev)),
 			d = {False:"-", True:"+"}
 			f = utils.myTools.myOpenFile(arguments["outputAncestralGenomes"] + "Iter%d.Length%d.Scoring%d.Genes%s.WeightM%s.WeightP%s"%(niter,randomWalksLength,scoringMethod,d[arguments["useLonelyGenes"]],d[weightM],d[weightP]), "w")
 			for (i,chrom) in enumerate(clusters):
@@ -298,7 +270,7 @@ def doIter(niter):
 		print >> f, "%d\t%s\t%s" % (x,d,s)
 	f.close()
 
-	print >> sys.stderr, "> Associations OK:", utils.myMaths.myStats([len(g) for g in groups.itervalues() if len(g) > 1])
+	print >> sys.stderr, "> Associations OK:", utils.myMaths.myStats.txtSummary([len(g) for g in groups.itervalues() if len(g) > 1])
 	tmp = set([frozenset(x) for x in groups.itervalues()])
 	if tmp == lastGrp:
 		print >> sys.stderr, "> Reconstruction stable"

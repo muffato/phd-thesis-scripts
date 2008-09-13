@@ -33,5 +33,5 @@ for treeID in utils.myTools.getRange(arguments["range"]):
 		res.append(tree.calcWeightedValue(values, -1, None))
 	for (ie,e) in enumerate(tree.allNames):
 		l = [r[ie] for r in res if r[ie] >= 0]
-		print utils.myTools.printLine([treeID, " ".join(tree.species[e]), len(l), utils.myMaths.mean(l)])
+		print utils.myTools.printLine([treeID, " ".join(tree.species[e]), len(l), utils.myMaths.myStats.myStats.mean(l)])
 

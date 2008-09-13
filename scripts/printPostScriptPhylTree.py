@@ -19,7 +19,7 @@ phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
 (largeur,hauteur) = utils.myPsOutput.printPsHeader(landscape=arguments["landscape"])
 
-if arguments["root"] in phylTree.ages:
+if arguments["root"] in phylTree.items:
 	root = arguments["root"]
 else:
 	root = phylTree.root
@@ -91,7 +91,7 @@ margeX2 = dy
 if arguments["printAncestors"]:
 	margeX2 += len(root) * 0.15
 
-dx = (largeur-margeX1-margeX2) / phylTree.ages[root]
+dx = (largeur-margeX1-margeX2) / maxAge
 
 
 def printSubTree(node):

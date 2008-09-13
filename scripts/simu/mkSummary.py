@@ -1,7 +1,6 @@
 #! /users/ldog/muffato/python -OO
 
 
-# Librairies
 import sys
 import utils.myMaths
 import utils.myTools
@@ -25,7 +24,7 @@ for (i,l) in enumerate(ref):
 			float(x)
 			if "." not in x:
 				0/0
-			lst = utils.myMaths.myStats( [float(data[i][j]) for data in alldata] )
+			lst = utils.myMaths.myStats.txtSummary( [float(data[i][j]) for data in alldata] )
 			res = "%.2f [%.2f]" % (lst.mean, lst.stddev)
 
 		except Exception:
