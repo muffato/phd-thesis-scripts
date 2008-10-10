@@ -1,5 +1,7 @@
 
 import sys
+import collections
+
 import myTools
 
 
@@ -7,9 +9,9 @@ import myTools
 # Un gene :) #
 ##############
 
-Gene = myTools.newCustomType(['chromosome', 'beginning', 'end', 'strand', 'names'])
+Gene = collections.namedtuple("gene", ['chromosome', 'beginning', 'end', 'strand', 'names'])
+GenePosition = collections.namedtuple("geneposition", ['chromosome', 'index'])
 
-GenePosition = myTools.newCustomType(['chromosome', 'index'])
 
 ###########################################################
 # On convertit les noms de chromosomes en int si possible #
@@ -61,7 +63,7 @@ class Genome:
 		self.f = myTools.firstLineBuffer(f)
 		
 		# la liste des genes par chromosome
-		self.lstGenes = myTools.defaultdict(list)
+		self.lstGenes = collections.defaultdict(list)
 		# Associer un nom de gene a sa position sur le genome
 		self.dicGenes = {}
 		# La liste triee des noms des chromosomes, des scaffolds et des randoms
@@ -130,7 +132,7 @@ class Genome:
 		
 		names = [intern(s) for s in names]
 		chromosome = commonChrName(chromosome)
-		self.lstGenes[chromosome].append( Gene([chromosome, beg, end, strand, names]) )
+		self.lstGenes[chromosome].append( Gene(chromosome, beg, end, strand, names) )
 
 
 	# Trie les chromsomoses
@@ -147,7 +149,8 @@ class Genome:
 		for c in self.lstGenes:
 			self.lstGenes[c].sort(key = operator.attrgetter('beginning'))
 			for (i,g) in enumerate(self.lstGenes[c]):
-				g.chromosome = c
+				assert g.chromosome == c
+				#g.chromosome = c
 				for s in g.names:
 					self.dicGenes[s] = (c,i)
 		
@@ -340,7 +343,7 @@ class Genome:
 				strand = int(champs.pop(0))
 				
 			# On ajoute le gene
-			self.addGene(champs, c, i, i, strand)
+			self.addGene(champs, c, i, i+1, strand)
 			i += 1
 		
 		self.lstChr = self.lstGenes.keys()

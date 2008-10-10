@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 Extrait toutes les diagonales entre chaque paire d'especes.
@@ -8,6 +8,8 @@ Les diagonales apportent les genes qui etaient sur un meme chromosome
 
 
 import sys
+import collections
+
 import utils.myPhylTree
 import utils.myGenomes
 import utils.myTools
@@ -20,7 +22,7 @@ def getLongestDiags(oldDiags):
 
 	# On construit la table "gene" -> "liste des diagonales qui le contiennent"
 	# On s'en sert pour avoir les listes de diagonales chevauchantes
-	dic = utils.myTools.defaultdict(list)
+	dic = collections.defaultdict(list)
 	diags = range(len(oldDiags))
 	combin = utils.myTools.myCombinator()
 	for (i,(_,_,da,ds)) in enumerate(oldDiags):
@@ -34,7 +36,7 @@ def getLongestDiags(oldDiags):
 		combin.addLink(dic[s])
 	
 	del combin.dic
-	newDiags = []
+
 	for g in combin:
 		# On casse les carrefours de diagonales les uns apres les autres
 		gr = utils.myDiags.WeightedDiagGraph([diags[i] for i in g])
@@ -59,8 +61,7 @@ def getLongestDiags(oldDiags):
 						ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
 						ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
 						break
-			newDiags.append( (res,strand,tuple(ok)) )
-	return newDiags
+			yield (res,strand,tuple(ok))
 	
 
 
@@ -105,9 +106,6 @@ def findNewSpecies(d, esp, anc):
 	return res
 
 
-########
-# MAIN #
-########
 
 # Arguments
 arguments = utils.myTools.checkArgs( \
@@ -115,6 +113,8 @@ arguments = utils.myTools.checkArgs( \
 	[("fusionThreshold",int,-1), ("minimalLength",int,2), ("sameStrand",bool,True), ("keepOnlyOrthos",bool,False),
 	("useOutgroups",bool,False), \
 	("showProjected",bool,False), ("showAncestral",bool,True), ("searchUndetectedSpecies",bool,True), ("cutLongestPath",bool,True), \
+	("OUT.projDiags",str,"proj/diags.%s.list.bz2"), \
+	("OUT.ancDiags",str,"anc/diags.%s.list.bz2"), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenomesFile",str,"~/work/ancestralGenomes/Genome.%s.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
@@ -164,10 +164,12 @@ for anc in tmp:
 
 # On compare toutes les especes entre elles
 for (e1,e2,toStudy) in dicLinks:
-	print >> sys.stderr, "Extraction des diagonales entre %s et %s " % (e1,e2),
+	statsDiags = []
+	print >> sys.stderr, "Extraction des diagonales entre %s et %s ..." % (e1,e2),
 	for ((c1,d1),(c2,d2),s) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], arguments["minimalLength"], \
 		arguments["fusionThreshold"], arguments["sameStrand"] and (e1 not in genesAnc) and (e2 not in genesAnc), arguments["keepOnlyOrthos"]):
-		
+
+		statsDiags.append(len(d1))
 		pack1 = (e1,c1,tuple(d1))
 		pack2 = (e2,c2,tuple(d2))
 		dic1 = dicGenomes[e1].lstGenes[c1]
@@ -179,22 +181,26 @@ for (e1,e2,toStudy) in dicLinks:
 			else:
 				tmp = tuple(tmp[dic2[i2].names[0]][1] for i2 in d2)
 			diagEntry[anc].append( (pack1,pack2,tmp,s) )
-	print >> sys.stderr, "OK"
+	
+	print >> sys.stderr, utils.myMaths.myStats.txtSummary(statsDiags), "OK"
+
 
 # Traitement final
-for anc in diagEntry:
+for (anc,lst) in diagEntry.iteritems():
 
 	if arguments["showProjected"]:
-		lst = diagEntry[anc]
-		print >> sys.stderr, "Impression des %d diagonales projetees de %s ..." % (len(lst),anc),
+		f = utils.myTools.myOpenFile(arguments["OUT.projDiags"] % phylTree.fileName[anc], 'w')
+		ft = utils.myTools.tsvWriter(f)
+		print >> sys.stderr, "Impression des diagonales projetees de %s ..." % anc,
 		s = []
 		for ((e1,c1,d1),(e2,c2,d2),da,ds) in lst:
 			s.append( len(d1) )
-			res = [anc,len(da)]
-			res += [e1,c1,utils.myTools.printLine( [dicGenomes[e1].lstGenes[c1][i1].names[0] for i1 in d1], " " )]
-			res += [e2,c2,utils.myTools.printLine( [dicGenomes[e2].lstGenes[c2][i2].names[0] for i2 in d2], " " )]
-			res += [utils.myTools.printLine(da, " "),utils.myTools.printLine(ds, " ")]
-			print utils.myTools.printLine(res)
+			res = [anc,len(da), \
+				e1,c1," ".join( [dicGenomes[e1].lstGenes[c1][i1].names[0] for i1 in d1] ), \
+				e2,c2," ".join( [dicGenomes[e2].lstGenes[c2][i2].names[0] for i2 in d2] ), \
+				utils.myTools.printLine(da, " "),utils.myTools.printLine(ds, " ")]
+			ft.writerow(res)
+		f.close()
 
 		print >> sys.stderr, utils.myMaths.myStats.txtSummary(s), "OK"
 
@@ -202,25 +208,25 @@ for anc in diagEntry:
 	if arguments["showAncestral"]:
 	
 		if arguments["cutLongestPath"]:
-			print >> sys.stderr, "Extraction des chevauchements les plus longs de %s ..." % anc,
-			lst = getLongestDiags(diagEntry[anc])
-			print >> sys.stderr, "OK (%d -> %d)" % (len(diagEntry[anc]), len(lst))
+			newlst = getLongestDiags(lst)
 		else:
-			lst = [ (da, ds, ((e1,c1),(e2,c2))) for ((e1,c1,_),(e2,c2,_),da,ds) in diagEntry[anc] ]
-
+			newlst = ( (da, ds, ((e1,c1),(e2,c2))) for ((e1,c1,_),(e2,c2,_),da,ds) in lst )
 		
-		print >> sys.stderr, "Impression des %d diagonales ancestrales de %s ..." % (len(lst),anc),
+		print >> sys.stderr, "Impression des diagonales ancestrales de %s ..." % anc,
+		f = utils.myTools.myOpenFile(arguments["OUT.ancDiags"] % phylTree.fileName[anc], 'w')
+		ft = utils.myTools.tsvWriter(f)
 		s = []
-		for (da,ds,esp) in lst:
+		for (da,ds,esp) in newlst:
 			s.append( len(da) )
 			res = [anc,len(da),utils.myTools.printLine(da, " "),utils.myTools.printLine(ds, " ")]
 			
-			res.append( utils.myTools.printLine(["%s/%s" % (e,c) for (e,c) in esp], "|") )
+			res.append( "|".join(["%s/%s" % x for x in esp]) )
 
 			if arguments["searchUndetectedSpecies"]:
-				res.append( utils.myTools.printLine(["%s/%s" % (e,c) for (e,c) in findNewSpecies(da, esp, anc)], "|") )
+				res.append( "|".join(["%s/%s" % x for x in findNewSpecies(da, esp, anc)]) )
+			
+			ft.writerow(res)
+		f.close()
 
-			print utils.myTools.printLine(res)
-	
 		print >> sys.stderr, utils.myMaths.myStats.txtSummary(s), "OK"
 

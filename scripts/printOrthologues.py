@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 	Compare deux genomes et renvoie la liste des couples de genes orthologues avec les details sur leurs positions

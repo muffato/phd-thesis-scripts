@@ -1,12 +1,14 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 import os
 import sys
 import math
 import time
+import itertools
 #import numpy
 import random
 import zipfile
+import fractions
 #import operator
 import utils.myGenomes
 import utils.myTools
@@ -18,13 +20,129 @@ import utils.myPhylTree
 #import utils.walktrap
 #from collections import defaultdict
 
-l = range(4)
+n = int(sys.argv[1])
+p = int(sys.argv[2])
 
-machin =  utils.myTools.myIterator()
-for x in machin.xselections(l, 3):
-:w
-for x in utils.myTools.myIterator.xselections(l, 3):
+gen = utils.myMaths.permutationGenerator(range(1,n+1))
+
+#fact = [1] * n
+#for i in xrange(n,1,-1):
+#	fact[i-2] = i * fact[i-1]
+
+#a = [None] * n
+for k in xrange(gen.getNbPerm(p)):
+
+	print gen.getPermutation(k, p)
+	continue
+
+	#k = random.randint(0, fact[n-p]-1)
+
+	for i in xrange(1,n):
+		(a[i],k) = divmod(k, fact[i])
+
+	b = range(1, n+1)
+	for i in xrange(1,n):
+		(b[i],b[a[i]]) = (b[a[i]],b[i])
+
+	print b[-p:]
+
+
+
+
+
+
+
+sys.exit(0)
+
+for s in sys.stdin:
+	l = [int(x) for x in s.split()]
+	l = sorted(l)
+	#l.sort()
+	print (l[0],l[-1])
+#for n in xrange(1,int(sys.argv[1])):
+	#l = [(i**i) % (i+1) for i in xrange(n)]
+	#print utils.myMaths.myStats.getMinMax(l)
+	#print (min(l),max(l))
+
+sys.exit(0)
+
+
+f = utils.myTools.tsvWriter(sys.stdout)
+t = [str,int,int,int,str]
+tr = utils.myTools.funcFilter(t)
+
+#for l in utils.myTools.readTabular(sys.stdin, t):
+for l in utils.myTools.tsvReader("/dev/stdin"):
+	#print utils.myTools.printLine(l)
+	#f.writerow(l)
+	print tuple(tr(l))
+
+
+sys.exit(0)
+
+x = .868
+nobs = 35781
+ntot = 41202
+print utils.myMaths.binom(x, nobs, ntot)
+print utils.myMaths.binomLog(x, nobs, ntot)
+print utils.myMaths.binomPvalue(x, nobs, ntot, True)
+x = fractions.Fraction(868,1000)
+print x
+y = utils.myMaths.binomF(x, nobs, ntot)
+#print y
+print math.log10(y.numerator) - math.log10(y.denominator)
+y = utils.myMaths.binomPvalueF(x, nobs, ntot, True)
+#print y
+print math.log10(y.numerator) - math.log10(y.denominator)
+
+
+sys.exit(0)
+print utils.myMaths.binom(.5, 150, 200)
+print utils.myMaths.binomLog(.5, 150, 200)
+print utils.myMaths.binomPvalue(.5, 150, 200, True)
+
+f = fractions.Fraction(1, 2)
+print utils.myMaths.binomF(f, 150, 200)
+print utils.myMaths.binomLogF(f, 150, 200)
+print utils.myMaths.binomPvalueF(f, 150, 200, True)
+
+print float(utils.myMaths.binomF(f, 150, 200))
+print float(utils.myMaths.binomPvalueF(f, 150, 200, True))
+
+
+
+
+sys.exit(0)
+
+
+
+
+l = [str(i) for i in xrange(int(sys.argv[1]))]
+
+#p = 1
+#for i in xrange(1, len(l)+1):
+#	p *= i
+
+#machin =  utils.myTools.myIterator()
+
+#for x in utils.myTools.myIterator.allPerm(l):
+#for x in utils.myTools.myIterator.tupleOnWholeList(l):
+#for x in utils.myTools.myIterator.xselections(l, int(sys.argv[2])):
+for x in itertools.product(l, repeat=int(sys.argv[2])):
+#for x in itertools.permutations(l):
+#for x in itertools.permutations(l, int(sys.argv[2])):
+#for x in utils.myTools.myIterator.allPerm(l):
 	print x
+
+#for i in xrange(len(l)+1):
+#	for x in utils.myTools.myIterator.xuniqueCombinations(l, i):
+#		print sorted(x)
+
+
+#for x in machin.xselections(l, 3):
+
+#for x in utils.myTools.myIterator.xselections(l, 3):
+#	print x
 
 #for x in xrange(10):
 	#list(utils.myTools.myIterator.buildSubsets(l, 10))
@@ -35,6 +153,57 @@ for x in utils.myTools.myIterator.xselections(l, 3):
 #	print x
 
 sys.exit(0)
+
+
+
+#from utils.myTools import newCustomType as testTypeGen
+from collections import namedtuple as testTypeGen
+
+t = testTypeGen
+print t, type(t)
+
+#t = testTypeGen(["name", "chromosome"])
+t = testTypeGen("gene", ["name", "chromosome"])
+print t, type(t), t._fields
+
+#x = t()
+#print x, type(x)
+
+y = t("TRE", 85)
+print y, type(y)
+x = y
+print x, type(x)
+
+print locals().keys()
+print globals().keys()
+
+#x["name"] = "testNom"
+x._replace(name="testNom")
+x.chromosome = "chr0m"
+print x, type(x)
+print y, type(y)
+print x.name
+print y.name
+
+y.name = "carambar"
+y["chromosome"] = "chocolat"
+print x, type(x)
+print y, type(y)
+print x.chromosome
+print y.chromosome
+
+l = [t() for i in xrange(10000000)]
+
+print "OK"
+
+for i in xrange(10000000):
+	for j in xrange(10000000):
+		pass
+
+sys.exit(0)
+
+
+
 
 
 
@@ -62,42 +231,8 @@ for _ in xrange(int(sys.argv[1])):
 
 
 sys.exit(0)
-t = utils.myTools.newCustomType
-print t, type(t)
 
-t = utils.myTools.newCustomType(["name", "chromosome"])
-print t, type(t)
-
-x = t()
-print x, type(x)
-y = t(["TRE", 85])
-print x, type(x)
-print y, type(y)
-
-x["name"] = "testNom"
-x.chromosome = "chr0m"
-print x, type(x)
-print y, type(y)
-print x.name
-print y.name
-
-y.name = "carambar"
-y["chromosome"] = "chocolat"
-print x, type(x)
-print y, type(y)
-print x.chromosome
-print y.chromosome
-
-l = [t() for i in xrange(10000000)]
-
-print "OK"
-
-for i in xrange(10000000):
-	for j in xrange(10000000):
-		pass
-
-sys.exit(0)
-phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
+hylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
 print phylTree.listSpecies
 sys.exit(0)
 

@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 # Librairies
 import sys

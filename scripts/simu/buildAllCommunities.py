@@ -1,15 +1,15 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 import os
 import sys
-import utils.myTools
+import itertools
 import utils.myPhylTree
 
 Executable = '/users/ldog/muffato/work/scripts/buildAncCommunities.py'
 
 phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
 
-for (anc,randomWalks,scoring,genes,weightM,weightP) in utils.myTools.myIterator.tupleOnManyLists([sys.argv[2]],[2,3,4,5,7,10,15,25],[0,1,2],"-+","-+","-+"):
+for (anc,randomWalks,scoring,genes,weightM,weightP) in itertools.product([sys.argv[2]],[2,3,4,5,7,10,15,25],[0,1,2],"-+","-+","-+"):
 
 
 	ancF = phylTree.fileName[anc]

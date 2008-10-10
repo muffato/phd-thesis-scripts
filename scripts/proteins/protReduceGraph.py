@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 	Lit un graphe (aretes + noms) et fusionne les noeuds relies par un score > seuil

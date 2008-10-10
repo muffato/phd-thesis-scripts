@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 	Lit les scores d'alignement d'Ensembl et affiche cree le graphe correspondant (+uniq) et imprime les composantes connexes

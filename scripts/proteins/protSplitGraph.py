@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 	Lit le graphe (aretes + noms) et les composantes connexes puis cree les sous-graphes (aretes + noms)

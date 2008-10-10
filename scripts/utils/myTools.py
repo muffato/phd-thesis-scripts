@@ -1,66 +1,30 @@
 
 import os
+import csv
 import sys
 import bz2
 import gzip
+import itertools
 
-from collections import *
-from itertools import *
 
 null = open('/dev/null', 'w')
 stdinInput = os.isatty(sys.stdin.fileno())
 
-###############################################
-# Cree un nouveau type enregistrement         #
-#   Le type se definit par des noms de champs #
-#   Les valeurs sont stockees dans une liste  #
-#   Acces via le nom du champ ou le numero    #
-###############################################
-def newCustomType(attributes):
+def tsvReader(fileName):
+	f = myOpenFile(fileName, 'r')
+	return csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE, lineterminator="\n")
 
-	# Correspondance nom -> id
-	dicAttrID = dict([(x,i) for (i,x) in enumerate(attributes)])
-	# La correspondance id -> nom est assuree par attributes
+def tsvWriter(fileName):
+	f = myOpenFile(fileName, 'w')
+	return csv.writer(f, delimiter="\t", quoting=csv.QUOTE_NONE, lineterminator="\n")
 
-	class tmpType:
-		
-		# Valeurs par defaut
-		_emptyVal = [None] * len(attributes)
+def applyFunctions(fun, data):
+	for (f,x) in itertools.izip(fun, data):
+		yield f(x)
 
-		# Initialisation
-		def __init__(self, values = _emptyVal):
-			if len(values) != len(tmpType._emptyVal):
-				print >> sys.stderr, "Error initialising %s with %s" % (attributes, values)
-				values = tmpType._emptyVal
-			self.__values = values
+def funcFilter(fun):
+	return lambda data: (f(x) for (f,x) in itertools.izip(fun, data))
 
-		# Meme representation qu'un dictionnaire
-		def __repr__(self):
-			return "{" + ", ".join(["%s:%s" % (attributes[i],x) for (i,x) in enumerate(self.__values)]) + "}"
-		
-		# Acces comme attributs
-		def __getattr__(self, name):
-			if name in dicAttrID:
-				return self.__values[dicAttrID[name]]
-			raise AttributeError(name)
-		def __setattr__(self, name, value):
-			if name in dicAttrID:
-				self.__values[dicAttrID[name]] = value
-			else:
-				self.__dict__[name] = value
-
-		# Acces comme via une liste ou un dictionnaire
-		def __getitem__(self, i):
-			if i in dicAttrID:
-				return self.__values[dicAttrID[i]]
-			else:
-				return self.__values[i]
-		def __setitem__(self, i, value):
-			if i in dicAttrID:
-				self.__values[dicAttrID[i]] = value
-			else:
-				self.__values[i] = value
-	return tmpType
 
 
 #########################################################################################################################
@@ -90,11 +54,7 @@ class firstLineBuffer:
 #############################################################################################
 def readTabular(filename, type_list, delim = '\t'):
 
-	# Ouverture du fichier si necessaire
-	if type(filename) == str:
-		f = myOpenFile(filename, 'r')
-	else:
-		f = filename
+	f = myOpenFile(filename, 'r')
 	# Liste des types de chaque colonne
 	new_type_list = []
 	for x in type_list:
@@ -106,7 +66,7 @@ def readTabular(filename, type_list, delim = '\t'):
 	for (i,line) in enumerate(f):
 		current_line = line.replace('\n','').split(delim)
 		assert len(current_line) == len(new_type_list), "Erreur nombre de colonne. Ligne:%d" % (i+1)
-		yield tuple(t(x) for (x,t) in izip(current_line,new_type_list))
+		yield tuple(t(x) for (x,t) in itertools.izip(current_line,new_type_list))
 	f.close()
 
 
@@ -151,7 +111,7 @@ def myOpenFile(nom, mode):
 	else:
 		if "w" in mode:
 			mkDir(nom)
-		nom = nom.replace("~", os.environ['HOME'])
+		nom = os.path.expanduser(nom)
 		i = nom.find(".zip/")
 		if (mode == "r") and (i >= 0):
 			import zipfile
@@ -202,14 +162,6 @@ def MySQLFileLoader(f):
 #####################################################################
 class myIterator:
 	
-	# Parcourt tous les (x,y)
-	##########################
-	@staticmethod
-	def tupleOnWholeList(lst):
-		for x in lst:
-			for y in lst:
-				yield (x,y)
-
 	# Parcourt les (xi,yj) pour j>=i
 	#################################
 	@staticmethod
@@ -228,31 +180,6 @@ class myIterator:
 			for y in lst[i+1:]:
 				yield (x,y)
 	
-	# Parcourt tous les (x,y)
-	##########################
-	@staticmethod
-	def tupleOnTwoLists(lstX, lstY):
-		for x in lstX:
-			for y in lstY:
-				yield (x,y)
-
-	# Fonction de Charles pour renvoyer toutes les combinaisons des elements des differentes listes passees en argument
-	####################################################################################################################
-	@staticmethod
-	def tupleOnManyLists(*args):
-		""" This generator combine all versus all sequences elements as follow:
-		>>> args = [['A','C'],['A','C'],['A','C']]
-		>>> [k for k in combination(args)]
-		['AAA', 'AAC', 'ACA', 'ACC', 'CAA', 'CAC', 'CCA', 'CCC']
-		"""
-		import operator
-		lengths = [len(seq) for seq in args]
-		_tmp = lengths + [1] # append multiplicative identity
-		range_len_args = range(len(args))
-		dividers = [reduce(operator.mul, _tmp[-x-1:]) for x in range_len_args][::-1]
-		for n in xrange(reduce(operator.mul, lengths)):
-			yield tuple( args[r][(n/dividers[r])%lengths[r]] for r in range_len_args )
-	
 	# Couple (x,y) glissant
 	########################
 	@staticmethod
@@ -263,88 +190,6 @@ class myIterator:
 			yield (x,y)
 			x = y
 	
-	# Consomme les elements d'un iterateur et renvoie la longueur de la liste
-	##########################################################################
-	@staticmethod
-	def leniter(it):
-		nb = 0
-		for _ in it:
-			nb += 1
-		return nb
-
-	
-	# Construit les sous-ensembles de taille n de la liste
-	#######################################################
-	@staticmethod
-	def buildSubsets(lst, s):
-		l = len(lst)
-
-		# Renvoie les sous-ensembles de taille n, avec des elements d'indices >= i
-		@memoize
-		def rec(i, n):
-			if i >= l-n:
-				return [lst[i:]]
-			elif n <= 1:
-				return [[x] for x in lst[i:]]
-			else:
-				ref = [lst[i]]
-				res = list(rec(i+1, n))
-				for x in rec(i+1, n-1):
-					res.append(ref + x)
-				return res
-
-		if s <= 0:
-			res = [lst]
-			for i in xrange(1, l):
-				res.extend(rec(0, i))
-			return res
-		else:
-			return rec(0, s)
-				
-	# Listes de n elements, chacun pris parmi items, pas forcement distincts
-	#  = Tirages de n elements parmi items, avec remise
-	#########################################################################
-	@staticmethod
-	def xselections(items, n):
-		if n==0: yield []
-		else:
-			for (i,x) in enumerate(items):
-				for cc in myIterator.xselections(items, n-1):
-					yield [x]+cc
-
-	# Listes de n elements, chacun pris dans items et tous distincts, en tenant compte de l'ordre
-	#  = Tirages de n elements parmi items, sans remise, en tenant compte de l'ordre
-	#  = Arrangements de n parmi items
-	##############################################################################################
-	@staticmethod
-	def xcombinations(items, n):
-		if n==0: yield []
-		else:
-			for (i,x) in enumerate(items):
-				for cc in myIterator.xcombinations(items[:i]+items[i+1:],n-1):
-					yield [x]+cc
-
-	# Listes de n elements, chacun pris dans items et tous distincts, sans tenir compte de l'ordre
-	#  = Tirages de n elements parmi items, sans remise, sans tenir compte de l'ordre
-	#  = Combinaisons de n parmi items
-	#  = Sous-ensembles de taille n
-	###############################################################################################
-	@staticmethod
-	def xuniqueCombinations(items, n):
-		if n==0: yield []
-		else:
-			for (i,x) in enumerate(items):
-				for cc in myIterator.xuniqueCombinations(items[i+1:],n-1):
-					yield [x]+cc
-	
-	# Listes reordonnnees de items
-	#  = Permutations (bijections)
-	#  = Arrangements de items
-	###############################
-	@staticmethod
-	def xpermutations(items):
-		return myIterator.xcombinations(items, len(items))
-
 
 
 ##########################################################

@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 	Telecharge depuis le site de l'UCSC le fichier avec les annotations xref et cree la liste des genes

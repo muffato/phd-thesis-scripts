@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 	Telecharge depuis le site d'Ensembl (>=42) les fichiers d'annotations xref

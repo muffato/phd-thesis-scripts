@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 	Lit les arbres de proteines et rajoute une nouvelle espece a partir d'orthologues

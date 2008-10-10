@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 	Dessine le karyotype d'un genome face a l'autre
@@ -99,7 +99,6 @@ else:
 	dy = (hauteur-4.) / float(max([len(x) for x in table12.values()]))
 y0 = 1.
 
-leniter = utils.myTools.myIterator.leniter
 drawBox = utils.myPsOutput.drawBox
 
 

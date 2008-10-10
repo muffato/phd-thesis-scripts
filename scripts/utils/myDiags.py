@@ -5,30 +5,13 @@
 
 import sys
 import operator
+import itertools
+import collections
+
 import myMaths
 import myTools
 
-defaultdict = myTools.defaultdict
 slidingTuple = myTools.myIterator.slidingTuple
-tupleOnTwoLists = myTools.myIterator.tupleOnTwoLists
-getMinMax = myMaths.myStats.getMinMax
-
-# Renvoie le minimum et le maximum d'une diagonale
-def getMinMaxDiag(lst):
-	a = lst[0]
-	b = lst[-1]
-	if abs(a-b) < len(lst)-1:
-		return getMinMax(lst)
-	elif a < b:
-		if (a,b) != getMinMax(lst):
-			print >> sys.stderr, "!",
-		return (a,b)
-	else:
-		if (b,a) != getMinMax(lst):
-			print >> sys.stderr, "!",
-		return (b,a)
-
-
 
 
 #
@@ -40,7 +23,7 @@ def getMinMaxDiag(lst):
 ########################################################################################
 def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 
-	diag = myTools.deque()
+	diag = collections.deque()
 	listI1 = []
 	listI2 = []
 	lastPos2 = []
@@ -55,7 +38,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 			presI2 = dic2[j1]
 		
 		# On regarde chaque orthologue du gene
-		for ((c2,i2,s2), (lastC2,lastI2,lastS2)) in tupleOnTwoLists(presI2, lastPos2):
+		for ((c2,i2,s2), (lastC2,lastI2,lastS2)) in itertools.product(presI2, lastPos2):
 			# Chromosomes differents -> indiscutable
 			if c2 != lastC2:
 				continue
@@ -83,7 +66,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 		else:
 			# On l'enregistre si elle n'est pas vide
 			if len(listI2) > 0:
-				diag.append( (listI1,listI2, lastPos2[0][0], listStrand, (deb1,fin1),getMinMaxDiag(listI2)) )
+				diag.append( (listI1,listI2, lastPos2[0][0], listStrand, (deb1,fin1), (min(listI2),max(listI2)) ) )
 			# On recommence a zero
 			deb1 = i1
 			lastPos2 = presI2
@@ -98,10 +81,10 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 		fin1 = i1
 	
 	if len(listI2) > 0:
-		diag.append( (listI1,listI2, lastC2, listStrand, (deb1,fin1),getMinMaxDiag(listI2)) )
+		diag.append( (listI1,listI2, lastC2, listStrand, (deb1,fin1), (min(listI2),max(listI2))) )
 
 	# On rassemble des diagonales separees par une espace pas trop large
-	tmp = myTools.deque()
+	tmp = collections.deque()
 	while len(diag) > 0:
 		(d1,d2,c2,s,(deb1,fin1),(deb2,fin2)) = diag.popleft()
 		while len(diag) > 0:
@@ -153,33 +136,25 @@ def calcDiags(g1, g2, orthos, minimalLength, fusionThreshold, sameStrand, keepOn
 
 	# Les dictionnaires pour accelerer la recherche de diagonales
 	(newGen,trans1) = translateGenome(g1, orthos.dicGenes, keepOnlyOrthos)
-	sys.stderr.write(".")
 	(tmp,trans2) = translateGenome(g2, orthos.dicGenes, keepOnlyOrthos)
-	sys.stderr.write(".")
 	
 	newLoc = [[] for x in xrange(len(orthos.lstGenes[None]))]
 	for c in g2.lstChr + g2.lstScaff:
 		for (i,(ianc,s)) in enumerate(tmp[c]):
 			if ianc != -1:
 				newLoc[ianc].append( (c,i,s) )
-	sys.stderr.write(". ")
 
-	statsDiags = []
 	for (c1,tmpGen1) in newGen.iteritems():
 		for (c2,d1,d2,s) in iterateDiags(tmpGen1, newLoc, fusionThreshold, sameStrand):
 
 			if len(d1) < minimalLength:
 				continue
 			
-			statsDiags.append(len(d1))
-
 			# Si on a garde uniquement les genes avec des orthologues, il faut revenir aux positions reelles dans le genome
 			if keepOnlyOrthos:
 				yield ((c1,[trans1[c1][i] for i in d1]), (c2,[trans2[c2][i] for i in d2]), s)
 			else:
 				yield ((c1,d1), (c2,d2), s)
-	
-	print >> sys.stderr, myMaths.myStats.txtSummary(statsDiags),
 
 
 #
@@ -199,16 +174,15 @@ class WeightedDiagGraph:
 			self.sommets.update([x for (x,_) in d])
 		
 		def newDicInt():
-			return defaultdict(int)
+			return collections.defaultdict(int)
 		def newDicList():
 			def newStrandCount():
-				return defaultdict(int)
-				#return { (-1,-1):0, (-1,1):0, (1,-1):0, (1,1):0}
-			return defaultdict(newStrandCount)
+				return collections.defaultdict(int)
+			return collections.defaultdict(newStrandCount)
 
 		# Les aretes du graphe et les orientations relatives des genes
-		self.aretes = defaultdict(newDicInt)
-		self.strand = defaultdict(newDicList)
+		self.aretes = collections.defaultdict(newDicInt)
+		self.strand = collections.defaultdict(newDicList)
 		for d in lstDiags:
 			for ((x,sx),(y,sy)) in slidingTuple(d):
 				if x != y:
@@ -315,7 +289,7 @@ class WeightedDiagGraph:
 def loadDiagsFile(nom, ancName, officialName):
 	
 	print >> sys.stderr, "Chargement des diagonales de %s ..." % nom,
-	lst = myTools.defaultdict(list)
+	lst = collections.defaultdict(list)
 	for (anc,_,diag,strands,e1,e2) in myTools.readTabular(nom, [str,int,str,str,str,str]):
 		if anc not in ancName:
 			continue

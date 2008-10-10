@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 	Dessine le karyotype d'un genome face a l'autre
@@ -97,7 +97,6 @@ else:
 	dy = (hauteur-4.) / float(max([len(x) for x in table12.values()]))
 y0 = 1.
 
-leniter = utils.myTools.myIterator.leniter
 drawBox = utils.myPsOutput.drawBox
 
 xx = 1
@@ -123,7 +122,7 @@ for c in chr1:
 	
 	y = y0 + 1
 	for (col,items) in itertools.groupby(table12[c], key=trans):
-		hauteur = leniter(items) * dy
+		hauteur = len(list((items)) * dy
 		drawBox(xx, y, dx, hauteur, col, col)
 		y += hauteur
 	

@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 	Affiche la matrice des p-values (d'existence/d'absence de paralogues) +/- en log

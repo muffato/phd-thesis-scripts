@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 __doc__ = """
 A partir de toutes les diagonales extraites entre les especes,
@@ -7,6 +7,8 @@ A partir de toutes les diagonales extraites entre les especes,
 
 import sys
 import numpy
+import itertools
+
 import utils.myTools
 import utils.myMaths
 import utils.myGenomes
@@ -179,7 +181,7 @@ def doIter(niter):
 	unused = 0
 	positions.fill(0)
 
-	for (scoringMethod,weightM,weightP) in utils.myTools.myIterator.tupleOnManyLists([0,1,2,3,4],[False,True],[False,True]):
+	for (scoringMethod,weightM,weightP) in itertools.product([0,1,2,3,4],[False,True],[False,True]):
 
 		print >> sys.stderr, ">> Parametres:", scoringMethod, weightM, weightP,
 

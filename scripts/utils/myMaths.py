@@ -1,17 +1,15 @@
 
-#
-# Fonctions communes de chargement et de traitement des donnees
-#
-
-import sys
 import math
 
 # Calcule la proba dans le cas d'une distribution binomiale
 #  On observe l parmi ll, alors qu'on attendait une proportion pi
 ############################################################################
 def binom(pi, l, ll):
+	#print pi, l, ll
 	p = pow(pi, l) * pow(1.-pi, ll-l)
+	#print pow(pi, l), 1.-pi, ll-l, pow(1.-pi, ll-l)
 	for i in xrange(l):
+		#print p
 		p *= float(ll-i)/float(i+1)
 	return p
 
@@ -23,7 +21,11 @@ def binomPvalue(pi, l, ll, above):
 	s = 0
 	lastS = 0
 	for i in xrange(l,ll):
-		s += binom(pi, i+1, ll)
+		x = binom(pi, i+1, ll)
+		s += x
+		#print pi, i+1, ll, "=", x
+		#print lastS, ">", s
+		#s += binom(pi, i+1, ll)
 		if s == lastS:
 			break
 		lastS = s
@@ -42,6 +44,57 @@ def binomLog(pi, l, ll):
 	for i in xrange(l):
 		p += math.log10(ll-i) - math.log10(i+1)
 	return p
+
+
+# Calcule la proba dans le cas d'une distribution binomiale
+#  On observe l parmi ll, alors qu'on attendait une proportion pi
+############################################################################
+def binomF(pi, l, ll):
+	#p = pow(pi, l) * pow(1-pi, ll-l)
+	num = pi.numerator**l * (pi.denominator-pi.numerator)**(ll-l)
+	den = pi.denominator**l
+	import fractions
+	for i in xrange(l):
+		#print i
+		num *= (ll-i)
+		den *= (i+1)
+		#p *= fractions.Fraction(ll-i, i+1)
+		#p *= (ll-i)
+		#p /= (i+1)
+	#print "frac", pi, l, ll
+	return fractions.Fraction(num, den)
+
+
+# Calcule la p-value de l'observation de l/ll (attendu: pi)
+############################################################
+def binomPvalueF(pi, l, ll, above):
+	# La p-value pour > l
+	ref = binomF(pi, l, ll)
+	tmp = pi * (1 - pi)
+	import fractions
+	s = ref
+	for i in xrange(l+1,ll):
+		print "add", i
+		ref *= (fractions.Fraction(ll-(i-1), i ) * tmp)
+		#ref *= ((ll-(i-1))*pi)
+		#ref /= (i*(1-pi))
+		s += ref
+		#s += binomF(pi, i+1, ll)
+	# Selon above, on renvoit ...
+	return s
+	if above:
+		# pvalue pour >= l
+		return binomF(pi, l, ll) + s
+	else:
+		# pvalue pour <= l
+		return 1 - s
+
+
+# Calcule le log de cette meme proba
+#################################################
+def binomLogF(pi, l, ll):
+	x = binomF(pi, l, ll)
+	return math.log10(x.numerator) - math.log10(x.denominator)
 
 
 ########################################################
@@ -120,22 +173,6 @@ class myStats:
 			return 0.
 		return sV/sP
 
-	# Min et max
-	#############
-	@staticmethod
-	def getMinMax(lst):
-		mn = mx = None
-		for x in lst:
-			if mn == None:
-				mn = x
-				mx = x
-			elif x > mx:
-				mx = x
-			elif x < mn:
-				mn = x
-		return (mn, mx)
-
-
 	# Renvoie la correlation entre les deux variables
 	##################################################
 	@staticmethod
@@ -165,6 +202,36 @@ class myStats:
 		cov_x_y = sum_coproduct / N
 		correlation = cov_x_y / (pop_sd_x * pop_sd_y)
 		return correlation
+
+
+class permutationGenerator:
+
+	def __init__(self, l):
+
+		self.l = l
+		self.n = len(l)
+		fact = [1] * self.n
+		for i in xrange(self.n,1,-1):
+			fact[i-2] = i * fact[i-1]
+		self.fact = fact
+		self.a = [None] * self.n
+
+	def getNbPerm(self, p):
+		return self.fact[self.n-p-1]
+
+	def getPermutation(self, k, p):
+
+		assert k >= 0
+		assert k < self.fact[self.n-p-1]
+
+		for i in xrange(1,self.n):
+			(self.a[i],k) = divmod(k, self.fact[i])
+
+		b = self.l[:]
+		for i in xrange(1,self.n):
+			(b[i],b[self.a[i]]) = (b[self.a[i]],b[i])
+
+		return b[-p:]
 
 
 
@@ -295,70 +362,6 @@ def gcd(a, b):
 	while b != 0:
 		(a, b) = (b, a%b)
 	return a
-
-class Rational:
-
-	'''rational.py:  Module to do rational arithmetic.
-
-	  For full documentation, see http://www.nmt.edu/tcc/help/lang/python/examples/rational/.
-	  Exports:
-		Rational ( a, b ):
-		  [ (a is a nonnegative integer) and (b is a positive integer)
-			-> return a new Rational instance with numerator a and denominator b ]
-		.n:    [ the numerator ]
-		.d:    [ the denominator ]   
-	'''
-
-	def __init__ ( self, a, b ):
-		"""Constructor for Rational.
-		"""
-		if  b == 0:
-			raise ZeroDivisionError, ( "Denominator of a rational may not be zero." )
-		else:
-			g  =  gcd ( a, b )
-			self.n  =  a / g
-			self.d  =  b / g
-	def __add__ ( self, other ):
-		"""Add two rational numbers.
-		"""
-		return Rational ( self.n * other.d + other.n * self.d, self.d * other.d )
-	def __sub__ ( self, other ):
-		"""Return self minus other.
-		"""
-		return Rational ( self.n * other.d - other.n * self.d, self.d * other.d )
-	def __mul__ ( self, other ):
-		"""Implement multiplication.
-		"""
-		return  Rational ( self.n * other.n, self.d * other.d )
-	def __div__ ( self, other ):
-		"""Implement division.
-		"""
-		return  Rational ( self.n * other.d, self.d * other.n )
-
-	def __str__ ( self ):
-		''' Return a string representation of self '''
-		return "%d/%d" % ( self.n, self.d )
-	def __repr__ ( self ):
-		''' Return a string representation of self '''
-		return "%d/%d" % ( self.n, self.d )
-	def mixed ( self ):
-		""" Render self as a mixed fraction in string form. """
-		whole, n2  =  divmod ( self.n, self.d )
-		if  whole == 0:
-			if  n2 == 0:  return "0"
-			else:         return ("%s/%s" % (n2, self.d) )
-		else:
-			if  n2 == 0:  return str(whole)
-			else:         return ("%s and %s/%s" % (whole, n2, self.d) )
-
-	def __hash__ ( self):
-		return hash( (self.n,self.d) )
-	def __eq__ ( self, other):
-		return (self.n == other.n) and (self.d == other.d)
-
-	def __float__ ( self ):
-		""" Implement the float() conversion function. """
-		return  float ( self.n ) / float ( self.d )
 
 
 def sqrti(n, part, nbdec):

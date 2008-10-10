@@ -1,7 +1,7 @@
-#! /users/ldog/muffato/python -OO
+#! /users/ldog/muffato/python
 
 import os
-import utils.myTools
+import itertools
 
 print "Executable = /users/ldog/muffato/work/scripts/buildSortedGenome.py"
 print "Universe = vanilla"
@@ -12,7 +12,7 @@ print "should_transfer_files = NO"
 print "Requirements = (target.Machine != \"heimdall.ens.fr\")"
 print
 
-for (seuilMaxDistInterGenes,useOutgroups) in utils.myTools.myIterator.tupleOnManyLists([-1,3,5,10,20,50],[0,1,2]):
+for (seuilMaxDistInterGenes,useOutgroups) in itertools.product([-1,3,5,10,20,50],[0,1,2]):
 	print "Output = %d/concorde/%d.%d.res" % (seuilMaxDistInterGenes,useOutgroups)
 	print "Error = %d/concorde/%d.%d.log" % (seuilMaxDistInterGenes,useOutgroups)
 	#print "Arguments = +psyco /users/ldog/muffato/work/phylTree.vertebrates.45.conf -fusionThreshold=%d -minimalLength=%d " % (fusionThreshold,minimalLength) + keepOnlyOrthos + "keepOnlyOrthos " + sameStrand + "sameStrand +useOutgroups -target=Euteleostomi +cutLongestPath -searchUndetectedSpecies -genesFile=%d/genes" % indSimu + "/genes.%s.list.bz2" + " -ancGenesFile=%d/ancGenes" % indSimu + "/ancGenes.%s.list.bz2"

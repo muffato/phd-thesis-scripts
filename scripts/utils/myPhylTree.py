@@ -1,10 +1,12 @@
 
 import sys
+import collections
+
 import myTools
 
 dsi = dict.__setitem__
 dgi = dict.__getitem__
-GeneSpeciesPosition = myTools.newCustomType(['species', 'chromosome', 'index'])
+GeneSpeciesPosition = collections.namedtuple("genespeciesposition", ['species', 'chromosome', 'index'])
 
 
 ##########################################
@@ -116,7 +118,7 @@ class PhylogeneticTree:
 		for (e,(par,l)) in self.parent.iteritems():
 			self.numParent[self.indNames.get(e)] = (self.indNames.get(par),l)
 		# Les noms officiels / courants
-		tmp = myTools.defaultdict(list)
+		tmp = collections.defaultdict(list)
 		for (curr,off) in self.officialName.iteritems():
 			tmp[off].append(curr)
 		self.commonNames = self.newCommonNamesMapperInstance()
