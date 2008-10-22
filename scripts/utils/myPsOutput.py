@@ -99,13 +99,35 @@ def initColor(silent = False):
 		colorTransl[c] = craniateColors[i]
 
 
-#######################
-# Fonctions de dessin #
-#######################
+########################
+# Gestion des couleurs #
+########################
+
+def getLinearGradient(colors, nelem):
+	l = []
+	nc = (nelem-1.) / (len(colors)-1.)
+	for i in xrange(nelem-1):
+		ip = int(i/nc)
+		l.append( alphaColor(colors[ip], colors[ip+1], i/nc-ip) )
+	l.append(colors[-1])
+	return l
+
+
+def getCubicGradient(colors, nelem):
+	import myMaths
+	l = len(colors)
+	tmp = (l-1.)/(nelem-1.)
+	interpol = myMaths.myInterpolator.getMultDim(myMaths.myInterpolator.oneDimCubic, range(l), colors)
+	return [interpol(i*tmp) for i in xrange(nelem)]
 
 
 def alphaColor((r1,g1,b1), (r2,g2,b2), alpha):
 	return (int(r1*(1.-alpha)+r2*alpha), int(g1*(1.-alpha)+g2*alpha), int(b1*(1.-alpha)+b2*alpha))
+
+
+#######################
+# Fonctions de dessin #
+#######################
 
 
 # Les coordonnes sont en cm (portrait/paysage)

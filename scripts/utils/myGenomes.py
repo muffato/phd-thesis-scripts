@@ -152,7 +152,7 @@ class Genome:
 				assert g.chromosome == c
 				#g.chromosome = c
 				for s in g.names:
-					self.dicGenes[s] = (c,i)
+					self.dicGenes[s] = GenePosition(c,i)
 		
 	# Renvoie les genes presents sur le chromosome donne a certaines positions
 	###########################################################################

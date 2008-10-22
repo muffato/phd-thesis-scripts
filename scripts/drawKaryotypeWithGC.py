@@ -60,9 +60,7 @@ if len(genome2.dicGenes) == 0:
 else:
 	genome1 = utils.myGenomes.Genome(arguments["studiedGenome"])
 	if arguments["reverse"]:
-		x = genome1
-		genome1 = genome2
-		genome2 = x
+		(genome1,genome2) = (genome2,genome1)
 
 	if arguments["orthologuesList"] != "":
 		genesAnc = utils.myGenomes.Genome(arguments["orthologuesList"])
@@ -144,7 +142,7 @@ for c in chr1:
 	if arguments["roundedChr"]:
 		print "initclip"
 		printBorder()
-		print "clip",
+		print "clip"
 
 	def trans( (_,val) ):
 		if len(val) == 0:

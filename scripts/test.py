@@ -5,20 +5,61 @@ import sys
 import math
 import time
 import itertools
+import collections
 #import numpy
 import random
 import zipfile
 import fractions
-#import operator
+import operator
+
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
-#import utils.myDiags
-#import utils.myPsOutput
+import utils.myDiags
+import utils.myPsOutput
 import utils.myProteinTree
 import utils.myPhylTree
-#import utils.walktrap
-#from collections import defaultdict
+#import walktrap
+
+
+for i in xrange(int(sys.argv[1])):
+	#utils.myMaths.gcd(random.randint(1,1000000000), random.randint(1,1000000000))
+	fractions.gcd(random.randint(1,1000000000), random.randint(1,1000000000))
+
+sys.exit(0)
+
+def newflatten(l):
+	if isinstance(l, list):
+		return sum(map(newflatten,l))
+	else:
+		return l
+
+def tmp(l):
+	return sum(l)
+
+for i in xrange(int(sys.argv[1])):
+	l = [range(int(sys.argv[2])) for _ in xrange(int(sys.argv[3]))]
+	m = utils.myMaths.flatten(l)
+	#m = list(itertools.chain(*l))
+	assert len(m) == int(sys.argv[2])*int(sys.argv[3])
+
+
+
+sys.exit(0)
+
+import multiprocessing
+
+def f(w):
+	return w*w+toto
+
+
+pool = multiprocessing.Pool(processes=int(sys.argv[1]))
+
+toto = 3
+
+print pool.apply(f, [4])
+
+sys.exit(0)
 
 n = int(sys.argv[1])
 p = int(sys.argv[2])

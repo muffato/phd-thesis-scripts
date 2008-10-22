@@ -5,18 +5,111 @@ import sys
 import bz2
 import gzip
 import itertools
-
+import collections
 
 null = open('/dev/null', 'w')
 stdinInput = os.isatty(sys.stdin.fileno())
 
+
+###################################
+# Gestion des fichiers tabulaires #
+###################################
+class myTSV:
+
+	import csv
+
+	csvProxy = collections.namedtuple("csvproxy", ['file','csvobject'])
+
+	# Lecture en utilisant le module csv
+	#####################################
+	@staticmethod
+	def fileReader(fileName, **keywords):
+		f = myOpenFile(fileName, 'r')
+		return csvProxy(f,csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE, lineterminator="\n", **keywords))
+
+	# Ecriture en utilisant le module csv
+	######################################
+	@staticmethod
+	def fileWriter(fileName):
+		f = myOpenFile(fileName, 'w')
+		return csvProxy(f,csv.writer(f, delimiter="\t", quoting=csv.QUOTE_NONE, lineterminator="\n"))
+
+	###############################################
+	# Renvoie la ligne preparee pour l'impression "
+	###############################################
+	@staticmethod
+	def printLine(line, delim = "\t", func = str):
+		return delim.join([func(x) for x in line])
+
+
+	#############################################################################################
+	# Lit un fichier tabulaire, en convertissant les colonnes separees de delim selon type_list #
+	#############################################################################################
+	@staticmethod
+	def readTabular(filename, type_list, delim = '\t'):
+
+		f = myOpenFile(filename, 'r')
+		# Liste des types de chaque colonne
+		new_type_list = []
+		for x in type_list:
+			if type(x) == type:
+				new_type_list.append(x)
+			else:
+				new_type_list.extend([x[0]] * x[1])
+		# Parcours du fichier
+		for (i,line) in enumerate(f):
+			current_line = line.replace('\n','').split(delim)
+			assert len(current_line) == len(new_type_list), "Erreur nombre de colonne. Ligne:%d" % (i+1)
+			yield tuple(t(x) for (x,t) in itertools.izip(current_line,new_type_list))
+		f.close()
+
+
+
+csvProxy = collections.namedtuple("csvproxy", ['file','csvobject'])
+
 def tsvReader(fileName):
+	print >> sys.stderr, "tsvReader DEPRECATED !!!"
 	f = myOpenFile(fileName, 'r')
-	return csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE, lineterminator="\n")
+	return csvProxy(f,csv.reader(f, delimiter="\t", quoting=csv.QUOTE_NONE, lineterminator="\n"))
 
 def tsvWriter(fileName):
+	print >> sys.stderr, "tsvWriter DEPRECATED !!!"
 	f = myOpenFile(fileName, 'w')
-	return csv.writer(f, delimiter="\t", quoting=csv.QUOTE_NONE, lineterminator="\n")
+	return csvProxy(f,csv.writer(f, delimiter="\t", quoting=csv.QUOTE_NONE, lineterminator="\n"))
+
+###############################################
+# Renvoie la ligne preparee pour l'impression "
+###############################################
+def printLine(line, delim = "\t", func = str):
+	print >> sys.stderr, "printLine DEPRECATED !!!"
+	return delim.join([func(x) for x in line])
+
+
+#############################################################################################
+# Lit un fichier tabulaire, en convertissant les colonnes separees de delim selon type_list #
+#############################################################################################
+def readTabular(filename, type_list, delim = '\t'):
+
+	print "readTabular DEPRECATED !!!"
+
+	f = myOpenFile(filename, 'r')
+	# Liste des types de chaque colonne
+	new_type_list = []
+	for x in type_list:
+		if type(x) == type:
+			new_type_list.append(x)
+		else:
+			new_type_list.extend([x[0]] * x[1])
+	# Parcours du fichier
+	for (i,line) in enumerate(f):
+		current_line = line.replace('\n','').split(delim)
+		assert len(current_line) == len(new_type_list), "Erreur nombre de colonne. Ligne:%d" % (i+1)
+		yield tuple(t(x) for (x,t) in itertools.izip(current_line,new_type_list))
+	f.close()
+
+
+
+
 
 def applyFunctions(fun, data):
 	for (f,x) in itertools.izip(fun, data):
@@ -48,40 +141,11 @@ class firstLineBuffer:
 	def close(self):
 		return self.f.close()
 
-
-#############################################################################################
-# Lit un fichier tabulaire, en convertissant les colonnes separees de delim selon type_list #
-#############################################################################################
-def readTabular(filename, type_list, delim = '\t'):
-
-	f = myOpenFile(filename, 'r')
-	# Liste des types de chaque colonne
-	new_type_list = []
-	for x in type_list:
-		if type(x) == type:
-			new_type_list.append(x)
-		else:
-			new_type_list.extend([x[0]] * x[1])
-	# Parcours du fichier
-	for (i,line) in enumerate(f):
-		current_line = line.replace('\n','').split(delim)
-		assert len(current_line) == len(new_type_list), "Erreur nombre de colonne. Ligne:%d" % (i+1)
-		yield tuple(t(x) for (x,t) in itertools.izip(current_line,new_type_list))
-	f.close()
-
-
 ####################
 # Fichier existant #
 ####################
 def fileAccess(s):
 	return os.access(s, os.R_OK)
-
-
-###############################################
-# Renvoie la ligne preparee pour l'impression "
-###############################################
-def printLine(line, delim = "\t", func = str):
-	return delim.join([func(x) for x in line])
 
 
 ####################################################################
@@ -109,9 +173,13 @@ def myOpenFile(nom, mode):
 
 	# Fichier sur le disque
 	else:
-		if "w" in mode:
-			mkDir(nom)
 		nom = os.path.expanduser(nom)
+		if "w" in mode:
+			# Cree le repertoire pour les sorties dans fichiers #
+			try:
+				os.makedirs(os.path.dirname(nom))
+			except OSError:
+				pass
 		i = nom.find(".zip/")
 		if (mode == "r") and (i >= 0):
 			import zipfile
@@ -128,15 +196,6 @@ def myOpenFile(nom, mode):
 			f = open(nom, mode)
 	return f
 
-
-#####################################################
-# Cree le repertoire pour les sorties dans fichiers #
-#####################################################
-def mkDir(fichier):
-	try:
-		os.makedirs(os.path.dirname(fichier))
-	except OSError:
-		pass
 
 ########################################
 # Permet de charger les dumps de MySQL #
@@ -215,6 +274,12 @@ class hashabledict(dict):
 	def __hash__(self):
 		return hash(tuple(sorted(self.items())))
 
+########################
+# Classe list hashable #
+########################
+class hashablelist(list):
+	def __hash__(self):
+		return hash(tuple(self))
 
 ################################################################################
 # Enregistre les resultats d'une fonction pour chaque valeur de ses parametres #
@@ -233,7 +298,7 @@ class memoize:
 		return "[%s: %d values cached, %d calls]" % (self.func.__name__, len(self.cache), self.nbcall)
 
 	def __call__(self, *args):
-		self.nbcall += 1
+		#self.nbcall += 1
 		try:
 			return self.cache[args]
 		except KeyError:
@@ -247,7 +312,6 @@ class memoize:
 	def __repr__(self):
 		"""Return the function's docstring."""
 		return self.func.__doc__
-
 
 
 ########################################################################
@@ -317,6 +381,13 @@ class myCombinator:
 		self.__init__(self)
 
 		
+#####################################################
+# Rajoute des options pour un module en particulier #
+#####################################################
+__moduleoptions = []
+def addModuleOptions(namespace, options):
+	for (name,typ,val) in options:
+		__moduleoptions.append( (namespace+":"+name,typ,val) )
 
 #################################################################################
 # Lit la ligne de commande et parse les arguments                               #
@@ -326,6 +397,7 @@ class myCombinator:
 #################################################################################
 def checkArgs(args, options, info):
 
+	options = options + __moduleoptions
 	#
 	# Affiche le message d'erreur de mauvais arguments
 	#
@@ -370,10 +442,7 @@ def checkArgs(args, options, info):
 	opt = {}
 	for (name,typ,val) in options:
 		opt[name] = (typ,val)
-		if type(val) == list:
-			valOpt[name] = val[0]
-		else:
-			valOpt[name] = val
+		valOpt[name] = val[0] if type(val) == list else val
 	
 	# On scanne les arguments pour les compter et recuperer les valeurs
 	for tt in sys.argv[1:]:

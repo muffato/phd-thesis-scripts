@@ -1,18 +1,19 @@
 #! /users/ldog/muffato/python
 
 __doc__ = """
-	Lit des donnees dans un fichier et les regroupe
+	Lit des donnees (float) dans un fichier et affiche les stats
 """
 
 import sys
 import utils.myTools
+import utils.myMaths
 
 # Les fichiers a regrouper (par defaut, on lit l'entree standard)
 files = sys.argv[1:]
 if len(files) == 0:
 	files.append("-")
 
-comb = utils.myTools.myCombinator()
+lst = []
 for f in files:
 	# Ouverture du fichier
 	if f == "-":
@@ -21,13 +22,13 @@ for f in files:
 		f = utils.myTools.myOpenFile(f, 'r')
 	# Lecture & regroupement
 	for l in f:
-		comb.addLink(l.split())
+		c = l.split()
+		lst.extend(float(x) for x in c)
 	# Fermeture
 	f.close()
 
 # On affiche le resultat
-for x in comb:
-	print " ".join(x)
+print utils.myMaths.myStats.txtSummary(lst)
 
 f.close()
 

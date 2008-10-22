@@ -204,6 +204,21 @@ class myStats:
 		return correlation
 
 
+	# Renvoie la quantite de chaque valeur dans la liste
+	#####################################################
+	@staticmethod
+	def count(l):
+		import collections
+		d = collections.defaultdict(int)
+		for x in l:
+			d[x] += 1
+		return d
+
+
+######################################################
+# Genere les permutations de [1..n]                  #
+# Chaque permutation est referee par un index unique #
+######################################################
 class permutationGenerator:
 
 	def __init__(self, l):
@@ -234,8 +249,80 @@ class permutationGenerator:
 		return b[-p:]
 
 
+#############################
+# Fonctions d'interpolation #
+#############################
+class myInterpolator:
+
+	########################################
+	# Interpolation lineaire (1 dimension) #
+	########################################
+	@staticmethod
+	def oneDimLinear(points, val):
+		
+		intervals = []
+		tmp = zip(points, val)
+		for ((u,FU), (v,FV)) in zip(tmp[:-1], tmp[1:]):
+			A = (FU - FV) / (u - v)
+			B = FU - A * u
+			intervals.append((A, B))
+		
+		import bisect
+		def tmp(x):
+			i = bisect.bisect_right(points, x)
+			if i >= len(points):
+				i = len(points)-1
+			(A, B) = intervals[i-1]
+			return (A * x + B)
+		
+		return tmp
 
 
+	#######################################
+	# Interpolation cubique (1 dimension) #
+	#######################################
+	@staticmethod
+	def oneDimCubic(points, val):
+		
+		intervals = []
+		tmp = zip(points, val)
+		# Generate a cubic spline for each interpolation interval.
+		for ((u,FU), (v,FV)) in zip(tmp[:-1], tmp[1:]):
+			denom = (u - v)**3
+			A = (2 * FV - 2 * FU) / denom
+			B = -(u * (3 * FV - 3 * FU) + 3 * FV * v - 3 * FU * v) / denom
+			C = (u * (6 * FV * v - 6 * FU * v)) / denom
+			D = -(u *(-3 * FU * v**2) + FU * v**3 + u**2 * (3 * FV * v)) / denom
+			D = -(u *(-3 * FU * v**2) + FU * v**3 + u**2 * (3 * FV * v) - u**3 * FV) / denom
+			intervals.append((A, B, C, D))
+
+		import bisect
+		def tmp(x):
+			i = bisect.bisect_right(points, x)
+			if i >= len(points):
+				i = len(points)-1
+			(A, B, C, D) = intervals[i-1]
+			return ((A * x + B) * x + C) * x + D
+
+		def c_code():
+			def codeChoice(intervalList):
+				n = len(intervalList)
+				if n < 2:
+					return ("A=%.10e;B=%.10e;C=%.10e;D=%.10e;" % intervalList[0])
+				n2 = n / 2
+				return ("if (x < %.10e) {%s} else {%s}" % (points[n2], codeChoice(intervalList[:n2]), codeChoice(intervalList[n2:])))
+			return ("double interpolator(double x) {double A,B,C,D;" + codeChoice(intervals) + "return ((A * x + B) * x + C) * x + D;}")
+		
+		return tmp
+
+	
+	###############################################
+	# Cree un interpolateur pour chaque dimension #
+	###############################################
+	@staticmethod
+	def getMultDim(interpolator, points, val):
+		linter = [interpolator(points, [x[i] for x in val]) for i in xrange(len(val[0]))]
+		return lambda x: tuple(inter(x) for inter in linter)
 
 
 ####################################
@@ -283,87 +370,9 @@ def flatten(lst):
 	return res
 
 
-# Eneleve les elements redondants d'une liste
-##############################################
-def unique(s):
-	"""Return a list of the elements in s, but without duplicates.
-
-	For example, unique([1,2,3,1,2,3]) is some permutation of [1,2,3],
-	unique("abcabc") some permutation of ["a", "b", "c"], and
-	unique(([1, 2], [2, 3], [1, 2])) some permutation of
-	[[2, 3], [1, 2]].
-
-	For best speed, all sequence elements should be hashable.  Then
-	unique() will usually work in linear time.
-
-	If not possible, the sequence elements should enjoy a total
-	ordering, and if list(s).sort() doesn't raise TypeError it's
-	assumed that they do enjoy a total ordering.  Then unique() will
-	usually work in O(N*log2(N)) time.
-
-	If that's not possible either, the sequence elements must support
-	equality-testing.  Then unique() will usually work in quadratic
-	time.
-	"""
-
-	n = len(s)
-	if n == 0:
-		return []
-
-	# Try using a dict first, as that's the fastest and will usually
-	# work.  If it doesn't work, it will usually fail quickly, so it
-	# usually doesn't cost much to *try* it.  It requires that all the
-	# sequence elements be hashable, and support equality comparison.
-	u = {}
-	try:
-		for x in s:
-			u[x] = 1
-	except TypeError:
-		del u  # move on to the next method
-	else:
-		return u.keys()
-
-	# We can't hash all the elements.  Second fastest is to sort,
-	# which brings the equal elements together; then duplicates are
-	# easy to weed out in a single pass.
-	# NOTE:  Python's list.sort() was designed to be efficient in the
-	# presence of many duplicate elements.  This isn't true of all
-	# sort functions in all languages or libraries, so this approach
-	# is more effective in Python than it may be elsewhere.
-	try:
-		t = list(s)
-		t.sort()
-	except TypeError:
-		del t  # move on to the next method
-	else:
-		assert n > 0
-		last = t[0]
-		lasti = i = 1
-		while i < n:
-			if t[i] != last:
-				t[lasti] = last = t[i]
-				lasti += 1
-			i += 1
-		return t[:lasti]
-
-	# Brute force is all that's left.
-	u = []
-	for x in s:
-		if x not in u:
-			u.append(x)
-	return u
-
-
-def gcd(a, b):
-	'''Greatest common divisor function; Euclid's algorithm.
-		[ a and b are integers ->
-		return the greatest common divisor of a and b ]
-	'''
-	while b != 0:
-		(a, b) = (b, a%b)
-	return a
-
-
+##########################################################################
+# Renvoie la racine carre d'un entier, sous forme de chaine de caractere #
+##########################################################################
 def sqrti(n, part, nbdec):
 	if (len(n) % 2) == 1:
 		n = "0" + n

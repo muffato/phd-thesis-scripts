@@ -14,7 +14,7 @@ import utils.myPhylTree
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
-import utils.myDiags
+import utils.myDiags2
 
 
 
@@ -39,7 +39,7 @@ def getLongestDiags(oldDiags):
 
 	for g in combin:
 		# On casse les carrefours de diagonales les uns apres les autres
-		gr = utils.myDiags.WeightedDiagGraph([diags[i] for i in g])
+		gr = utils.myDiags2.WeightedDiagGraph([diags[i] for i in g])
 		# Les diagonales resultat
 		for (res,strand) in gr.getBestDiags():
 			# Filtre de taille
@@ -49,10 +49,11 @@ def getLongestDiags(oldDiags):
 			ok = set()
 			# Test de chaque diagonale
 			for i in g:
-				for ((g1,_),(g2,_)) in utils.myTools.myIterator.slidingTuple(diags[i]):
+				d = [x for (x,_) in diags[i]]
+				for j in xrange(len(d)-1):
 					try:
-						i1 = res.index(g1)
-						i2 = res.index(g2)
+						i1 = res.index(d[j])
+						i2 = res.index(d[j+1])
 					except ValueError:
 						continue
 					# Si la diagonale 'i' soutient la diagonale ancestrale, on rajoute les especes dont elle est tiree
@@ -165,7 +166,7 @@ for anc in tmp:
 for (e1,e2,toStudy) in dicLinks:
 	statsDiags = []
 	print >> sys.stderr, "Extraction des diagonales entre %s et %s ..." % (e1,e2),
-	for ((c1,d1),(c2,d2),s) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], arguments["minimalLength"], \
+	for ((c1,d1),(c2,d2),s) in utils.myDiags2.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], arguments["minimalLength"], \
 		arguments["fusionThreshold"], arguments["sameStrand"] and (e1 not in genesAnc) and (e2 not in genesAnc), arguments["keepOnlyOrthos"]):
 
 		statsDiags.append(len(d1))
@@ -211,7 +212,7 @@ for (anc,lst) in diagEntry.iteritems():
 			newlst = ( (da, ds, ((e1,c1),(e2,c2))) for ((e1,c1,_),(e2,c2,_),da,ds) in lst )
 		
 		print >> sys.stderr, "Impression des diagonales ancestrales de %s ..." % anc,
-		f = utils.myTools.tsvWriter(arguments["OUT.ancDiags"] % phylTree.fileName[anc])
+		ft = utils.myTools.tsvWriter(arguments["OUT.ancDiags"] % phylTree.fileName[anc])
 		s = []
 		for (da,ds,esp) in newlst:
 			s.append( len(da) )

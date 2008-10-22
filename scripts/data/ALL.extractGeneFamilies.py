@@ -8,6 +8,8 @@ __doc__ = """
 # Librairies
 import os
 import sys
+import collections
+
 import utils.myTools
 import utils.myPhylTree
 import utils.myProteinTree
@@ -48,7 +50,7 @@ def extractGeneFamilies(node, baseName, previousAnc, lastWrittenAnc):
 
 print >> sys.stderr, "Mise en forme des arbres ...",
 nb = 0
-geneFamilies = utils.myTools.defaultdict(list)
+geneFamilies = collections.defaultdict(list)
 for (r,data,info) in utils.myProteinTree.loadTree(arguments["proteinTree"]):
 	nb += 1
 	extractGeneFamilies(r, "FAM%d" % nb, None, None)

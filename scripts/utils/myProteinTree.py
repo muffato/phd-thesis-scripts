@@ -47,7 +47,6 @@ def printTree(f, data, info, root):
 			rec(f, n+1, g)
 
 	rec(f, 0, root)
-	f.flush()
 
 
 # Imprime l'arbre au format Newick

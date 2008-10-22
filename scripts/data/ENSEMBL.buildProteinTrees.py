@@ -4,18 +4,18 @@ __doc__ = """
 	Telecharge depuis le site d'Ensembl les fichiers des arbres de proteines
 """
 
-
-# Librairies
 import os
 import sys
+import collections
+
 import utils.myTools
 import utils.myPhylTree
 import utils.myProteinTree
 
-# Arguments
 arguments = utils.myTools.checkArgs( \
 	[("phylTree.conf",file)], \
-	[("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mysql/ensembl_compara_XXX"), \
+	[("minDuplicationScore",float,0), \
+	("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mysql/ensembl_compara_XXX"), \
 	("IN.member",str,"member.txt.gz"), \
 	("IN.genome_db",str,"genome_db.txt.gz"), \
 	("IN.protein_tree_node",str,"protein_tree_node.txt.gz"), \
@@ -66,7 +66,7 @@ print >> sys.stderr, len(tmpLinks), "membres OK"
 ###########################################
 print >> sys.stderr, "Chargement des liens node_id -> member_id ...",
 x = 0
-info = utils.myTools.defaultdict(dict)
+info = collections.defaultdict(dict)
 f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_member"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
 	t = ligne.split("\t")
@@ -105,7 +105,7 @@ print >> sys.stderr, len(info), "infos OK"
 # On charge les liens node_id_father -> node_id_son
 ####################################################
 print >> sys.stderr, "Chargement des arbres (node_id_father -> node_id_son) ...",
-data = utils.myTools.defaultdict(list)
+data = collections.defaultdict(list)
 nextNodeID = max(info)
 f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_node"]), "r")
 for ligne in utils.myTools.MySQLFileLoader(f):
@@ -126,7 +126,10 @@ for (node,inf) in info.iteritems():
 		del inf['dubious_duplication']
 		inf['Duplication'] = 1
 	elif inf['Duplication'] != 0:
-		inf['Duplication'] = 2
+		if inf.get('duplication_confidence_score', -1) >= arguments["minDuplicationScore"]:
+			inf['Duplication'] = 2
+		else:
+			inf['Duplication'] = 1
 	# Pour passer des '/' et ' ' a '-' et '_'
 	inf['taxon_name'] = phylTree.officialName[inf['taxon_name']]
 
@@ -200,11 +203,12 @@ def rebuildTree(node):
 	if info[node]['Duplication'] < 2:
 
 		# On redefinit les fils pour -notre- arbre phylogenetique en triant les enfants en paquets
-		fils = utils.myTools.defaultdict(list)
+		fils = collections.defaultdict(list)
 		anc = info[node]['taxon_name']
+		lfils = phylTree.items.get(anc, [])
 		for (g,d) in data[node]:
 			gname = info[g]['taxon_name']
-			for (a,_) in phylTree.items.get(anc):
+			for (a,_) in lfils:
 				if phylTree.isChildOf(gname, a):
 					fils[a].append( (g,d) )
 					break
@@ -219,7 +223,7 @@ def rebuildTree(node):
 		#  1 -> uniquement anc
 		#  2 ou 3 parmi F1/F2/anc
 		assert (len(fils) != 1) or (anc in fils), "ERREUR: 1=anc [%s / %s]" % (node, fils)
-		assert (len(fils) <= (1+len(phylTree.items.get(anc)))), "ERREUR: len>(1+nbFils) [%s / %s]" % (node, fils)
+		assert (len(fils) <= (1+len(lfils))), "ERREUR: len>(1+nbFils) [%s / %s]" % (node, fils)
 
 		if len(fils) > 1:
 			if anc in fils:
