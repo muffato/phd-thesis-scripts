@@ -188,7 +188,7 @@ for i1 in xrange(len(lstDiags)):
 		#x = [len(l.intersection(communEsp)) for l in lstEspParNoeudsFils]
 		#x = [len(l.intersection(comparedEsp)) for l in lstEspParNoeudsFils]
 		#x = [int(chromAssocDiag[i1] == chromAssocDiag[i2]), len(x)-x.count(0)] + x
-		#print utils.myTools.printLine(x, ' ')
+		#print utils.myFile.myTSV.printLine(x, ' ')
 		#continue
 		#x = [int(e in comparedEsp) for e in phylTree.listSpecies] + [int(e in communEsp) for e in phylTree.listSpecies]
 
@@ -229,7 +229,7 @@ def transform((communEsp,comparedEsp), e):
 
 tr = "- +"
 for (x,n) in results.iteritems():
-	print utils.myTools.printLine( ["".join([tr[transform(x,e)+1] for e in phylTree.listSpecies]), n[1]] )
+	print utils.myFile.myTSV.printLine( ["".join([tr[transform(x,e)+1] for e in phylTree.listSpecies]), n[1]] )
 	#print "".join([tr[transform(x,e)+1] for e in phylTree.listSpecies])
 
 sys.exit(0)

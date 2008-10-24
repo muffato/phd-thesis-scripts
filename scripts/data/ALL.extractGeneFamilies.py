@@ -58,7 +58,6 @@ for (r,data,info) in utils.myProteinTree.loadTree(arguments["proteinTree"]):
 print >> sys.stderr, "%d arbres OK" % nb
 
 
-utils.myTools.mkDir(arguments["OUT.ancGenesFile"])
 for (anc,lst) in geneFamilies.iteritems():
 	print >> sys.stderr, "Ecriture des familles de %s ..." % anc,
 	f = utils.myTools.myOpenFile(arguments["OUT.ancGenesFile"] % phylTree.fileName[anc], "w")

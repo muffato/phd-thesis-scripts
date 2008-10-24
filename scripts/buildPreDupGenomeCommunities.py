@@ -190,7 +190,7 @@ def doSynthese(combin, eND, orthos):
 	print >> sys.stderr, len(lstBlocs), "blocs pour", sum([len(x) for x in lstBlocs]), "orthologues",
 
 	if arguments["showDCS"]:
-		print utils.myTools.printLine( [eND, "", "", ""] + especesDup )
+		print utils.myFile.myTSV.printLine( [eND, "", "", ""] + especesDup )
 	
 	res = []
 	DCSlen = 0
@@ -205,7 +205,7 @@ def doSynthese(combin, eND, orthos):
 		if arguments["showDCS"]:
 			for ((c,i),g,a) in gr:
 				fishContent = ["/".join(["%s|%s" % (phylTree.dicGenomes[eD].lstGenes[cT][iT].names[0],cT) for (cT,iT) in orthos[eD].get(g,[])]) for eD in especesDup]
-				print utils.myTools.printLine( [c, i, g, ""] + fishContent)
+				print utils.myFile.myTSV.printLine( [c, i, g, ""] + fishContent)
 			print "---"
 
 	print >> sys.stderr, "/", len(res), "DCS pour", DCSlen, "orthologues"
@@ -314,14 +314,14 @@ def printColorAncestr(genesAnc, chrAncGenes):
 	chrNames = sorted(chrAncGenes)
 	
 	if arguments["showQuality"]:
-		print utils.myTools.printLine( [""] + chrNames)
+		print utils.myFile.myTSV.printLine( [""] + chrNames)
 
 	for c in chrNames:
 		nb = 0
 		for i in chrAncGenes[c]:
 			nb += 1
 			if arguments["showQuality"]:
-				print utils.myTools.printLine( [c, nb, utils.myTools.printLine(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][c-1][0]] )
+				print utils.myFile.myTSV.printLine( [c, nb, utils.myTools.printLine(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][c-1][0]] )
 			if arguments["showAncestralGenome"]:
 				print c, " ".join(genesAnc[i].names)
 		

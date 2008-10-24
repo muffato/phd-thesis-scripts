@@ -49,7 +49,7 @@ if arguments["log"]:
 else:
 	transform = lambda x: arguments["format"] % x
 
-print utils.myTools.printLine(["+"] + lstChr)
+print utils.myFile.myTSV.printLine(["+"] + lstChr)
 for c1 in lstChr:
-	print utils.myTools.printLine([c1] + [transform(pvalues[c1][c2]) for c2 in lstChr])
+	print utils.myFile.myTSV.printLine([c1] + [transform(pvalues[c1][c2]) for c2 in lstChr])
 

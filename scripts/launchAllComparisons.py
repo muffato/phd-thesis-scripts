@@ -37,7 +37,7 @@ def selectOutput(command, init):
 			res[7] = t[4]
 			break
 	stderr.close()
-	print utils.myTools.printLine(init + res)
+	print utils.myFile.myTSV.printLine(init + res)
 	print >> sys.stderr, "OK"
 
 

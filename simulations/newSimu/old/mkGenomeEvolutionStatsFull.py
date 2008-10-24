@@ -134,7 +134,7 @@ def do(node):
 	for (e,l) in phylTree.items.get(node, []):
 		print >> sys.stderr, "%s -> %s ..." % (node,e),
 		(resume,statsGenes,statsChr) = compare(node, e)
-		print utils.myTools.printLine((node,e) + statsGenes)
+		print utils.myFile.myTSV.printLine((node,e) + statsGenes)
 		print >> sys.stderr, "OK"
 		do(e)
 do(phylTree.root)
@@ -144,6 +144,6 @@ do(phylTree.root)
 for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(phylTree.listSpecies):
 	print >> sys.stderr, "%s -> %s ..." % (e1,e2),
 	(resume,statsGenes,statsChr) = compare(e1, e2)
-	print utils.myTools.printLine((e1,e2) + statsChr)
+	print utils.myFile.myTSV.printLine((e1,e2) + statsChr)
 	print >> sys.stderr, "OK"
 

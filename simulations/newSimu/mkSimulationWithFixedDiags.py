@@ -81,7 +81,7 @@ def buildGenomes(node, genome):
 		for i in lst:
 			dicDiags[i] = c
 			d = lstDiags[node][i]
-			print >> f, utils.myTools.printLine( (c+1,utils.myTools.printLine(d," "),utils.myTools.printLine([0]*len(d)," ")) )
+			print >> f, utils.myFile.myTSV.printLine( (c+1,utils.myTools.printLine(d," "),utils.myTools.printLine([0]*len(d)," ")) )
 	f.close()
 	print >> sys.stderr, "OK"
 

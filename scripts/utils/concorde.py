@@ -72,7 +72,7 @@ def doConcorde(self, n, func, repeat=1, verbose=False):
 	for i in xrange(repeat):
 		comm = '/users/ldog/muffato/bin/concorde -x %s >%s' % (filename,dest)
 		os.system(comm)
-		if utils.myTools.fileAccess(filename + ".sol"):
+		if utils.myFile.hasAccess(filename + ".sol"):
 			lstTot.append(ConcordeFile(filename + ".sol"))
 		os.system('rm -f 0%s* %s*' % (filename,filename) )
 		sys.stderr.write(".")

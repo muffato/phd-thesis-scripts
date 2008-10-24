@@ -21,10 +21,13 @@ import utils.myProteinTree
 import utils.myPhylTree
 #import walktrap
 
-
+l = []
 for i in xrange(int(sys.argv[1])):
 	#utils.myMaths.gcd(random.randint(1,1000000000), random.randint(1,1000000000))
 	fractions.gcd(random.randint(1,1000000000), random.randint(1,1000000000))
+	l.append(i)
+
+print utils.myFile.myTSV.printLine(l, delim="EEE")
 
 sys.exit(0)
 
@@ -108,13 +111,13 @@ for s in sys.stdin:
 sys.exit(0)
 
 
-f = utils.myTools.tsvWriter(sys.stdout)
+f = utils.myFile.myTSV.fileWriter(sys.stdout)
 t = [str,int,int,int,str]
 tr = utils.myTools.funcFilter(t)
 
-#for l in utils.myTools.readTabular(sys.stdin, t):
-for l in utils.myTools.tsvReader("/dev/stdin"):
-	#print utils.myTools.printLine(l)
+#for l in utils.myFile.myTSV.readTabular(sys.stdin, t):
+for l in utils.myFile.myTSV.fileReader("/dev/stdin"):
+	#print utils.myFile.myTSV.printLine(l)
 	#f.writerow(l)
 	print tuple(tr(l))
 

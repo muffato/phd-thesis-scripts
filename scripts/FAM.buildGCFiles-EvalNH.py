@@ -94,6 +94,6 @@ f.close()
 
 for (esp,tab) in dicGC.iteritems():
 	f = utils.myTools.myOpenFile(arguments["outputGCFile"] % phylTree.fileName[esp], "w")
-	print >> f, utils.myTools.printLine(tab, "\n")
+	print >> f, utils.myFile.myTSV.printLine(tab, "\n")
 	f.close()
 

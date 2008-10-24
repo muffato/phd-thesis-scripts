@@ -12,6 +12,7 @@ import collections
 
 import utils.myPhylTree
 import utils.myGenomes
+import utils.myFile
 import utils.myTools
 import utils.myMaths
 import utils.myDiags
@@ -188,7 +189,7 @@ for (e1,e2,toStudy) in dicLinks:
 for (anc,lst) in diagEntry.iteritems():
 
 	if arguments["showProjected"]:
-		f = utils.myTools.tsvWriter(arguments["OUT.projDiags"] % phylTree.fileName[anc])
+		f = utils.myFile.myTSV.writer(arguments["OUT.projDiags"] % phylTree.fileName[anc])
 		print >> sys.stderr, "Impression des diagonales projetees de %s ..." % anc,
 		s = []
 		for ((e1,c1,d1),(e2,c2,d2),da,ds) in lst:
@@ -196,7 +197,7 @@ for (anc,lst) in diagEntry.iteritems():
 			res = [anc,len(da), \
 				e1,c1," ".join( [dicGenomes[e1].lstGenes[c1][i1].names[0] for i1 in d1] ), \
 				e2,c2," ".join( [dicGenomes[e2].lstGenes[c2][i2].names[0] for i2 in d2] ), \
-				utils.myTools.printLine(da, " "),utils.myTools.printLine(ds, " ")]
+				utils.myFile.myTSV.printLine(da, " "),utils.myFile.myTSV.printLine(ds, " ")]
 			f.csvobject.writerow(res)
 		f.file.close()
 
@@ -211,11 +212,11 @@ for (anc,lst) in diagEntry.iteritems():
 			newlst = ( (da, ds, ((e1,c1),(e2,c2))) for ((e1,c1,_),(e2,c2,_),da,ds) in lst )
 		
 		print >> sys.stderr, "Impression des diagonales ancestrales de %s ..." % anc,
-		f = utils.myTools.tsvWriter(arguments["OUT.ancDiags"] % phylTree.fileName[anc])
+		f = utils.myFile.myTSV.writer(arguments["OUT.ancDiags"] % phylTree.fileName[anc])
 		s = []
 		for (da,ds,esp) in newlst:
 			s.append( len(da) )
-			res = [anc,len(da),utils.myTools.printLine(da, " "),utils.myTools.printLine(ds, " ")]
+			res = [anc,len(da),utils.myFile.myTSV.printLine(da, " "),utils.myFile.myTSV.printLine(ds, " ")]
 			
 			res.append( "|".join(["%s/%s" % x for x in esp]) )
 

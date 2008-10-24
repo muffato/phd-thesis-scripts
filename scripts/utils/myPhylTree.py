@@ -2,6 +2,7 @@
 import sys
 import collections
 
+import myFile
 import myTools
 
 dsi = dict.__setitem__
@@ -31,7 +32,7 @@ class PhylogeneticTree:
 			except AttributeError:
 				self.nom = fichier
 			
-			f = myTools.firstLineBuffer(f)
+			f = myFile.firstLineBuffer(f)
 			if ';' in f.firstLine:
 				self.__loadFromNewick__(f.firstLine)
 			else:

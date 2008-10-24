@@ -116,7 +116,7 @@ def checkAlreadyBuildAnc():
 	for f in lstNoeudsFils:
 		s = arguments["alreadyBuiltAnc"] % phylTree.fileName[f]
 		print >> sys.stderr, "Checking %s ..." % f,
-		if utils.myTools.fileAccess(s):
+		if utils.myFile.hasAccess(s):
 			genAlready[f] = utils.myGenomes.Genome(s)
 			s = len(genAlready[f].lstChr)
 			if arguments["weightNbChr+"] and (s > 0):
@@ -228,7 +228,7 @@ for i1 in xrange(len(lstDiags)):
 		x = calcProba( e1.intersection(e2), frozenset([e for (e,_) in ec1.intersection(ec2)]) )
 		if x > arguments["scoreThreshold"]:
 			if arguments["onlyPrintScores"]:
-				print utils.myTools.printLine((i1,i2,x))
+				print utils.myFile.myTSV.printLine((i1,i2,x))
 			else:
 				edges[i1][i2] = edges[i2][i1] = x
 print >> sys.stderr, "OK"

@@ -88,7 +88,7 @@ def buildGenomes(genome, node, dupPairs):
 		for (i,(gene,strand)) in enumerate(lst):
 			nom = "%s.%s" % (s,gene)
 			familles[gene] = [nom]
-			print >> f, utils.myTools.printLine( (c+1,i,i,strand,nom) )
+			print >> f, utils.myFile.myTSV.printLine( (c+1,i,i,strand,nom) )
 	f.close()
 	print >> sys.stderr, "OK"
 

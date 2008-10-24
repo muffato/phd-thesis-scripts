@@ -134,7 +134,7 @@ def do(node):
 	for (e,l) in phylTree.items.get(node, []):
 		print >> sys.stderr, "%s -> %s ..." % (node,e),
 		(resume,statsGenes,statsChr) = compare(node, e)
-		print utils.myTools.printLine((node,e) + statsGenes)
+		print utils.myFile.myTSV.printLine((node,e) + statsGenes)
 		print >> sys.stderr, "OK"
 		do(e)
 do(phylTree.root)

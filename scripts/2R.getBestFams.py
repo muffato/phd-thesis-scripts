@@ -43,5 +43,5 @@ for n in arguments["clustersSizes"].split(","):
 print >> sys.stderr, len(res)
 
 for x in res:
-	print utils.myTools.printLine(x)
+	print utils.myFile.myTSV.printLine(x)
 

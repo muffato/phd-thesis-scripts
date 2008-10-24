@@ -28,6 +28,6 @@ for l in f:
 			diag.reverse()
 			strand = [-x for x in strand.__reversed__()]
 	for (i,g) in enumerate(diag):
-		print utils.myTools.printLine([lastC, nbC+i, nbC+i, strand[i], " ".join(genes[g].names)])
+		print utils.myFile.myTSV.printLine([lastC, nbC+i, nbC+i+1, strand[i], " ".join(genes[g].names)])
 	nbC += len(diag)
 

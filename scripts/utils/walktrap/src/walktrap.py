@@ -1,4 +1,3 @@
-#! /users/ldog/muffato/python
 
 #
 # Fonctions communes de traitement des communautes
@@ -149,7 +148,8 @@ def askPartitionChoice(dend, cuts):
 		# Si on peut, on propose a l'utilisateur de choisir
 		for x in res:
 			print >> sys.stderr, "> " + mystr(x)
-		if utils.myTools.stdinInput:
+		import os
+		if os.isatty(sys.stdin.fileno()):
 			print >> sys.stderr, "Aucune entree utilisateur"
 			x = 0
 		else:

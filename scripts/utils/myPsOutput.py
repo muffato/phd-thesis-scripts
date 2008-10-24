@@ -149,7 +149,7 @@ def setColor(C, txt):
 	else:
 		try:
 			if len(C) == 3:
-				(r,g,b) = C
+				(r,g,b) = map(int,C)
 			elif C[0] == '#':
 				try:
 					(r,g,b) = [int(x) for x in C[1:].split(':')]
@@ -178,8 +178,7 @@ def drawLine(X, Y, L, H, C):
 def drawBox(X, Y, L, H, Cb, Cr):
 	print "%.5f %.5f %.5f %.5f mybox" % (L,H, X,Y)
 	setColor(Cr, "myfill")
-	setColor(Cb, "color")
-	print "stroke"
+	setColor(Cb, "color stroke")
 
 
 def drawCross(X, Y, L, H, C):

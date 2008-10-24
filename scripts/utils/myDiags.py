@@ -21,7 +21,7 @@ slidingTuple = myTools.myIterator.slidingTuple
 #     la liste des numeros des genes ancestraux sur ce chromosome
 #   dic2 qui associe a un numero de gene ancestral ses positions sur le genome 2
 ########################################################################################
-def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
+def iterateDiags(genome1, dic2, sameStrand):
 
 	diag = collections.deque()
 	listI1 = []
@@ -66,7 +66,7 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 		else:
 			# On l'enregistre si elle n'est pas vide
 			if len(listI2) > 0:
-				diag.append( (listI1,listI2, lastPos2[0][0], listStrand, (deb1,fin1), (min(listI2),max(listI2)) ) )
+				yield (listI1,listI2, lastPos2[0][0], listStrand, (deb1,fin1), (min(listI2),max(listI2)) )
 			# On recommence a zero
 			deb1 = i1
 			lastPos2 = presI2
@@ -81,18 +81,42 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 		fin1 = i1
 	
 	if len(listI2) > 0:
-		diag.append( (listI1,listI2, lastC2, listStrand, (deb1,fin1), (min(listI2),max(listI2))) )
+		yield (listI1,listI2, lastC2, listStrand, (deb1,fin1), (min(listI2),max(listI2)))
 
+
+class queueWithBackup:
+
+	def __init__(self, gen):
+		self.gen = gen
+		self.backup = collections.deque()
+		self.todofirst = collections.deque()
+	
+	def __iter__(self):
+		return self
+	
+	def next(self):
+		if len(self.todofirst) > 0:
+			return self.todofirst.popleft()
+		return self.gen.next()
+	
+	def putBack(self, x):
+		self.backup.append(x)
+	
+	def rewind(self):
+		self.todofirst = self.backup
+		self.backup = collections.deque()
+
+
+
+def diagMerger(diagGen, largeurTrou):
 	# On rassemble des diagonales separees par une espace pas trop large
-	tmp = collections.deque()
-	while len(diag) > 0:
-		(d1,d2,c2,s,(deb1,fin1),(deb2,fin2)) = diag.popleft()
-		while len(diag) > 0:
-			(dd1,dd2,cc2,ss,(debb1,finn1),(debb2,finn2)) = curr = diag.popleft()
+	for (d1,d2,c2,s,(deb1,fin1),(deb2,fin2)) in diagGen:
+		for curr in diagGen:
+			(dd1,dd2,cc2,ss,(debb1,finn1),(debb2,finn2)) = curr
 
 			# Aucune chance de poursuivre la diagonale
 			if debb1 > (fin1+largeurTrou+1):
-				tmp.appendleft(curr)
+				diagGen.putBack(curr)
 				break
 			elif (min(abs(deb2-finn2), abs(debb2-fin2)) <= (largeurTrou+1)) and (c2 == cc2):
 				d1.extend(dd1)
@@ -102,11 +126,10 @@ def iterateDiags(genome1, dic2, largeurTrou, sameStrand):
 				deb2 = min(deb2,debb2)
 				fin2 = max(fin2,finn2)
 			else:
-				tmp.appendleft(curr)
+				diagGen.putBack(curr)
 
 		yield (c2,d1,d2,s)
-		diag.extendleft(tmp)
-		tmp.clear()
+		diagGen.rewind()
 
 #
 # Procedure complete de calculs des diagonales a partir de 2 genomes, des orthologues et de certains parametres
@@ -145,7 +168,7 @@ def calcDiags(g1, g2, orthos, minimalLength, fusionThreshold, sameStrand, keepOn
 				newLoc[ianc].append( (c,i,s) )
 
 	for (c1,tmpGen1) in newGen.iteritems():
-		for (c2,d1,d2,s) in iterateDiags(tmpGen1, newLoc, fusionThreshold, sameStrand):
+		for (c2,d1,d2,s) in diagMerger(queueWithBackup(iterateDiags(tmpGen1, newLoc, sameStrand)), fusionThreshold):
 
 			if len(d1) < minimalLength:
 				continue
@@ -167,11 +190,6 @@ class WeightedDiagGraph:
 	# On construit la liste des genes voisins
 	################################################################
 	def __init__(self, lstDiags):
-		
-		# La liste des sommets
-		self.sommets = set()
-		for d in lstDiags:
-			self.sommets.update([x for (x,_) in d])
 		
 		def newDicInt():
 			return collections.defaultdict(int)
@@ -290,7 +308,7 @@ def loadDiagsFile(nom, ancName, officialName):
 	
 	print >> sys.stderr, "Chargement des diagonales de %s ..." % nom,
 	lst = collections.defaultdict(list)
-	for (anc,_,diag,strands,e1,e2) in myTools.readTabular(nom, [str,int,str,str,str,str]):
+	for (anc,_,diag,strands,e1,e2) in myFile.myTSV.readTabular(nom, [str,int,str,str,str,str]):
 		if anc not in ancName:
 			continue
 		

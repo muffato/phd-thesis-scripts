@@ -35,11 +35,11 @@ for esp in sorted(phylTree.listSpecies):
 	fi = utils.myTools.myOpenFile(arguments["IN.EnsemblURL"] + (arguments["transcriptList"] % tmp), 'r')
 	fo = utils.myTools.myOpenFile(arguments["OUT.transcriptFile"] % phylTree.fileName[esp], 'w')
 	n = 0
-	for ligne in utils.myTools.MySQLFileLoader(fi):
+	for ligne in utils.myFile.MySQLFileLoader(fi):
 		c = ligne.split('\t')
 		print c
 		print len(c)
-		print >> fo, utils.myTools.printLine([c[x-1] for x in [137,66,72,143,84,22,9]])
+		print >> fo, utils.myFile.myTSV.printLine([c[x-1] for x in [137,66,72,143,84,22,9]])
 		n += 1
 	fi.close()
 	fo.close()

@@ -108,5 +108,5 @@ for j in xrange(arguments["nbSamples"]):
 			count[i][c] += x
 
 for i in xrange(arguments["nbIter"]):
-	print utils.myTools.printLine(count[i], " ")
+	print utils.myFile.myTSV.printLine(count[i], " ")
 

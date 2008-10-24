@@ -35,5 +35,5 @@ for l in sys.stdin:
 	comb.addLink([a,b])
 
 for g in comb:
-	print >> sys.stderr, utils.myTools.printLine(g, " ")
+	print >> sys.stderr, utils.myFile.myTSV.printLine(g, " ")
 

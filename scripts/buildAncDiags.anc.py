@@ -16,10 +16,10 @@ import utils.myPhylTree
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
-import utils.myDiags2
+import utils.myDiags
 
 def projDiagsReader(filename):
-	f = utils.myTools.tsvReader(filename)
+	f = utils.myFile.myTSV.fileReader(filename)
 	for (_,_,esp1,chr1,_,esp2,chr2,_,da,ds) in f.csvobject:
 		yield ([int(x) for x in da.split()],[int(x) for x in ds.split()],((esp1,chr1),(esp2,chr2)))
 	f.file.close()
@@ -45,7 +45,7 @@ def getLongestDiags(oldDiags):
 
 	for g in combin:
 		# On casse les carrefours de diagonales les uns apres les autres
-		gr = utils.myDiags2.WeightedDiagGraph([zip(diags[i][0],diags[i][1]) for i in g])
+		gr = utils.myDiags.WeightedDiagGraph([zip(diags[i][0],diags[i][1]) for i in g])
 		# Les diagonales resultat
 		for (res,strand) in gr.getBestDiags():
 			# Filtre de taille
@@ -161,11 +161,11 @@ def processAncestr(anc):
 	if arguments["cutLongestPath"]:
 		lst = getLongestDiags(lst)
 
-	f = utils.myTools.tsvWriter(arguments["OUT.ancDiags"] % phylTree.fileName[anc])
+	f = utils.myFile.myTSV.fileWriter(arguments["OUT.ancDiags"] % phylTree.fileName[anc])
 	s = []
 	for (da,ds,esp) in lst:
 		s.append( len(da) )
-		res = [anc,len(da),utils.myTools.printLine(da, " "),utils.myTools.printLine(ds, " ")]
+		res = [anc,len(da),utils.myFile.myTSV.printLine(da, " "),utils.myTools.printLine(ds, " ")]
 		
 		res.append( "|".join(["%s/%s" % x for x in esp]) )
 
@@ -177,7 +177,7 @@ def processAncestr(anc):
 
 	return ("Statistiques de %s : %s" % (anc, utils.myMaths.myStats.txtSummary(s)))
 
-goodAnc = [anc for anc in phylTree.listAncestr if utils.myTools.fileAccess(arguments["IN.projDiags"] % phylTree.fileName[anc])]
+goodAnc = [anc for anc in phylTree.listAncestr if utils.myFile.hasAccess(arguments["IN.projDiags"] % phylTree.fileName[anc])]
 pool = multiprocessing.Pool(processes=arguments["MP.poolSize"])
 for res in pool.imap_unordered(processAncestr, goodAnc, chunksize=arguments["MP.chunkSize"]):
 	print >> sys.stderr, res

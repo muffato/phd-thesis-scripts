@@ -1,6 +1,7 @@
 
 import math
 
+
 # Calcule la proba dans le cas d'une distribution binomiale
 #  On observe l parmi ll, alors qu'on attendait une proportion pi
 ############################################################################
@@ -284,16 +285,30 @@ class myInterpolator:
 	@staticmethod
 	def oneDimCubic(points, val):
 		
+		import myTools
+		
 		intervals = []
-		tmp = zip(points, val)
+		
+		deriv = [0] + [(FV-FU) / (2*(v-u)) for ((u,FU), (v,FV)) in myTools.myIterator.slidingTuple(zip(points, val))] + [0]
+		tangeantes = [d1+d2 for (d1,d2) in myTools.myIterator.slidingTuple(deriv)]
+		
 		# Generate a cubic spline for each interpolation interval.
-		for ((u,FU), (v,FV)) in zip(tmp[:-1], tmp[1:]):
-			denom = (u - v)**3
-			A = (2 * FV - 2 * FU) / denom
-			B = -(u * (3 * FV - 3 * FU) + 3 * FV * v - 3 * FU * v) / denom
-			C = (u * (6 * FV * v - 6 * FU * v)) / denom
-			D = -(u *(-3 * FU * v**2) + FU * v**3 + u**2 * (3 * FV * v)) / denom
-			D = -(u *(-3 * FU * v**2) + FU * v**3 + u**2 * (3 * FV * v) - u**3 * FV) / denom
+		for ((u,FU,DU), (v,FV,DV)) in myTools.myIterator.slidingTuple(zip(points,val,tangeantes)):
+			
+			denom = float((u - v)**3)
+
+			#DU = DV = 0
+
+			A = ((-DV - DU) * v + (DV + DU) * u + 2 * FV - 2 * FU) / denom
+			B = -((-DV - 2 * DU) * v**2  + u * ((DU - DV) * v + 3 * FV - 3 * FU) + 3 * FV * v - 3 * FU * v + (2 * DV + DU) * u**2) / denom
+			C = (- DU * v**3  + u * ((- 2 * DV - DU) * v**2  + 6 * FV * v - 6 * FU * v) + (DV + 2 * DU) * u**2 * v + DV * u**3) / denom
+			D = -(u *(-DU * v**3  - 3 * FU * v**2) + FU * v**3 + u**2 * ((DU - DV) * v**2 + 3 * FV * v) + u**3 * (DV * v - FV)) / denom
+
+			
+			#A = (2 * FV - 2 * FU) / denom
+			#B = -(u * (3 * FV - 3 * FU) + 3 * FV * v - 3 * FU * v) / denom
+			#C = (u * (6 * FV * v - 6 * FU * v)) / denom
+			#D = -(u *(-3 * FU * v**2) + FU * v**3 + u**2 * (3 * FV * v) - u**3 * FV) / denom
 			intervals.append((A, B, C, D))
 
 		import bisect

@@ -11,10 +11,10 @@ import utils.myPhylTree
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
-import utils.myDiags2
+import utils.myDiags
 
 def do(e1, e2, toStudy):
-	for ((c1,d1),(c2,d2),s) in utils.myDiags2.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], arguments["minimalLength"], \
+	for ((c1,d1),(c2,d2),s) in utils.myDiags.calcDiags(dicGenomes[e1], dicGenomes[e2], genesAnc[phylTree.dicParents[e1][e2]], arguments["minimalLength"], \
 		arguments["fusionThreshold"], arguments["sameStrand"] and (e1 not in genesAnc) and (e2 not in genesAnc), arguments["keepOnlyOrthos"]):
 
 		statsDiags.append(len(d1))
@@ -23,7 +23,7 @@ def do(e1, e2, toStudy):
 		dic2 = dicGenomes[e2].lstGenes[c2]
 		d1 = tuple(dic1[i1].names[0] for i1 in d1)
 		d2 = tuple(dic2[i2].names[0] for i2 in d2)
-		s = utils.myTools.printLine(s, " ")
+		s = utils.myFile.myTSV.printLine(s, " ")
 		sd1 = " ".join(d1)
 		sd2 = " ".join(d2)
 
@@ -79,7 +79,7 @@ fout = {}
 stats = {}
 for anc in tmp:
 	genesAnc[anc] = utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[anc])
-	fout[anc] = utils.myTools.tsvWriter(arguments["OUT.projDiags"] % phylTree.fileName[anc])
+	fout[anc] = utils.myFile.myTSV.fileWriter(arguments["OUT.projDiags"] % phylTree.fileName[anc])
 	stats[anc] = []
 
 # On compare toutes les especes entre elles

@@ -34,7 +34,7 @@ for esp in sorted(phylTree.listSpecies):
 	fo = utils.myTools.myOpenFile(arguments["OUT.genesFile"] % phylTree.fileName[esp], 'w')
 	nb = 0
 	fi = utils.myTools.myOpenFile(arguments["IN.EnsemblURL"] % tmp,'r')
-	for ligne in utils.myTools.MySQLFileLoader(fi):
+	for ligne in utils.myFile.MySQLFileLoader(fi):
 		c = ligne.split('\t')
 		print >> fo, "\t".join( [c[x] for x in fields] )
 		nb += 1

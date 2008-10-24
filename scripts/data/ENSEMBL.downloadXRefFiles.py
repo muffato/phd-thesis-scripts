@@ -31,7 +31,7 @@ for esp in sorted(phylTree.listSpecies):
 	print >> sys.stderr, "Telechargement des annotations xref de %s ..." % esp,
 	dic = utils.myTools.defaultdict(set)
 	fi = utils.myTools.myOpenFile(arguments["IN.EnsemblURL"] % tmp,'r')
-	for ligne in utils.myTools.MySQLFileLoader(fi):
+	for ligne in utils.myFile.MySQLFileLoader(fi):
 		c = ligne.split('\t')
 		dic[(c[1],c[3],c[5])].update( [x for x in c[6:] if (x != "\\N") and (len(x) > 0)] )
 	fi.close()
@@ -40,7 +40,7 @@ for esp in sorted(phylTree.listSpecies):
 	for ((gg,gt,gp),xref) in dic.iteritems():
 		l = [gg,gt,gp]
 		l.extend(xref)
-		print >> fo, utils.myTools.printLine(l)
+		print >> fo, utils.myFile.myTSV.printLine(l)
 	fo.close()
 	print >> sys.stderr, "%d annotations xref" % len(dic)
 

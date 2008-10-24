@@ -228,7 +228,7 @@ def printData(node):
 		for (i,(gene,strand)) in enumerate(lst):
 			nom = "%s.%d" % (s,gene)
 			familles[gene] = nom + " "
-			print >> f, utils.myTools.printLine( (c+1,i,i,strand,nom) )
+			print >> f, utils.myFile.myTSV.printLine( (c+1,i,i,strand,nom) )
 	f.close()
 	print >> sys.stderr, "OK"
 

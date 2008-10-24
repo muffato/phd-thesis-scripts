@@ -45,7 +45,7 @@ print >> sys.stderr, "Chargement des annotations xref de reference ",
 for esp in phylTree.listSpecies:
 	if phylTree.officialName[arguments["species"]] == esp:
 		continue
-	if not utils.myTools.fileAccess(OUTxrefFile % phylTree.fileName[esp]):
+	if not utils.myFile.hasAccess(OUTxrefFile % phylTree.fileName[esp]):
 		continue
 	for ligne in utils.myTools.myOpenFile(OUTxrefFile % phylTree.fileName[esp], 'r'):
 		lstXref.update( ligne.replace('\n', '').split('\t')[3:] )

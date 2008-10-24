@@ -169,7 +169,7 @@ for (c,tab) in newGenome.iteritems():
 	
 	if nbConcorde > 1:
 		for sol in solUniq:
-			print "# .", c, utils.myTools.printLine(sol)
+			print "# .", c, utils.myFile.myTSV.printLine(sol)
 	print >> sys.stderr, len(solUniq), "solutions"
 
 	if arguments["searchAllSol"]:

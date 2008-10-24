@@ -94,7 +94,7 @@ for e in dicPoidsEspeces:
 
 maxS = [3,3,1,3,3]
 
-for (s,_,_) in utils.myTools.readTabular(arguments["signatures"], (str,int,int)):
+for (s,_,_) in utils.myFile.myTSV.readTabular(arguments["signatures"], (str,int,int)):
 	comparedEsp = set()
 	communEsp = set()
 	for (c,e) in zip(s, phylTree.listSpecies):

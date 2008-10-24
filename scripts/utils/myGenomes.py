@@ -2,6 +2,7 @@
 import sys
 import collections
 
+import myFile
 import myTools
 
 
@@ -60,7 +61,7 @@ class Genome:
 		# le nom et l'instance de file
 		f = myTools.myOpenFile(fichier, 'r')
 		self.nom = f.name
-		self.f = myTools.firstLineBuffer(f)
+		self.f = myFile.firstLineBuffer(f)
 		
 		# la liste des genes par chromosome
 		self.lstGenes = collections.defaultdict(list)

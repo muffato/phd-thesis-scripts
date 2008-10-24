@@ -40,7 +40,7 @@ phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 print >> sys.stderr, "Chargement des liens taxon_id -> species_name ...",
 taxonName = {}
 f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.genome_db"]), "r")
-for ligne in utils.myTools.MySQLFileLoader(f):
+for ligne in utils.myFile.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	taxonName[t[1]] = t[2]
 f.close()
@@ -52,7 +52,7 @@ print >> sys.stderr, len(taxonName), "especes OK"
 print >> sys.stderr, "Chargement des liens member_id -> protein_name ...",
 tmpLinks = {}
 f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.member"]), "r")
-for ligne in utils.myTools.MySQLFileLoader(f):
+for ligne in utils.myFile.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	# A un numero member_id, on associe les noms (gene/transcrit/proteine) et l'espece
 	if t[7] != "\\N":
@@ -68,7 +68,7 @@ print >> sys.stderr, "Chargement des liens node_id -> member_id ...",
 x = 0
 info = collections.defaultdict(dict)
 f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_member"]), "r")
-for ligne in utils.myTools.MySQLFileLoader(f):
+for ligne in utils.myFile.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	data = tmpLinks[t[1]]
 	info[int(t[0])] = {'gene_name': data[0][0], 'transcript_name': data[0][1], 'protein_name': data[0][2], 'taxon_name': data[1]}
@@ -83,7 +83,7 @@ del taxonName
 #######################################
 print >> sys.stderr, "Chargement des liens node_id -> infos ...",
 f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_tag"]), "r")
-for ligne in utils.myTools.MySQLFileLoader(f):
+for ligne in utils.myFile.MySQLFileLoader(f):
 	t = ligne.split("\t")
 
 	# On extrait l'info sous forme numerique si possible
@@ -108,7 +108,7 @@ print >> sys.stderr, "Chargement des arbres (node_id_father -> node_id_son) ..."
 data = collections.defaultdict(list)
 nextNodeID = max(info)
 f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_node"]), "r")
-for ligne in utils.myTools.MySQLFileLoader(f):
+for ligne in utils.myFile.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	# On rajoute le fils de son pere (avec une distance)
 	node = int(t[1])
@@ -126,7 +126,7 @@ for (node,inf) in info.iteritems():
 		del inf['dubious_duplication']
 		inf['Duplication'] = 1
 	elif inf['Duplication'] != 0:
-		if inf.get('duplication_confidence_score', -1) >= arguments["minDuplicationScore"]:
+		if (inf.get('duplication_confidence_score', -1) >= arguments["minDuplicationScore"]) or phylTree.isChildOf(inf['taxon_name'], "Clupeocephala"):
 			inf['Duplication'] = 2
 		else:
 			inf['Duplication'] = 1

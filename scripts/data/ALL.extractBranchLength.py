@@ -27,7 +27,7 @@ def do(node):
 				# Les deux noeuds doivent etre strictement consecutifs
 				if (phylTree.parent[t2][0] == t1) and (d != 0):
 					lengths[(t1,t2)].append(d)
-					print utils.myTools.printLine([t1,t2,d])
+					print utils.myFile.myTSV.printLine([t1,t2,d])
 			do(g)
 
 for (r,data,info) in utils.myProteinTree.loadTree(arguments["proteinTree"]):

@@ -202,7 +202,7 @@ for (c,tab) in newGenome.iteritems():
 		if i1/2 != i2/2:
 			print >> sys.stderr, "!"
 		
-		print utils.myTools.printLine([c, 1-2*int(i1>i2), utils.myTools.printLine(diag, " "), utils.myTools.printLine(strand, " ")])
+		print utils.myFile.myTSV.printLine([c, 1-2*int(i1>i2), utils.myTools.printLine(diag, " "), utils.myTools.printLine(strand, " ")])
 		continue
 
 		if i1 > i2:
