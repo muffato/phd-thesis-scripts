@@ -282,12 +282,9 @@ def checkArgs(args, options, info):
 					if s.startswith("psyco"):
 						if t[0] == '+':
 							try:
-								import utils.psyco
-								from utils.psyco.classes import __metaclass__
-								if s.startswith("psycoL"):
-									utils.psyco.log()
-								else:
-									utils.psyco.full()
+								import psyco
+								from psyco.classes import __metaclass__
+								psyco.full()
 							except ImportError:
 								print >> sys.stderr, "Unable to load psyco !"
 					elif s == "bz2":

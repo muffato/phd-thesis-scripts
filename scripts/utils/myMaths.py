@@ -1,106 +1,9 @@
 
 import math
 
-
-# Calcule la proba dans le cas d'une distribution binomiale
-#  On observe l parmi ll, alors qu'on attendait une proportion pi
-############################################################################
-def binom(pi, l, ll):
-	#print pi, l, ll
-	p = pow(pi, l) * pow(1.-pi, ll-l)
-	#print pow(pi, l), 1.-pi, ll-l, pow(1.-pi, ll-l)
-	for i in xrange(l):
-		#print p
-		p *= float(ll-i)/float(i+1)
-	return p
-
-
-# Calcule la p-value de l'observation de l/ll (attendu: pi)
-############################################################
-def binomPvalue(pi, l, ll, above):
-	# La p-value pour > l
-	s = 0
-	lastS = 0
-	for i in xrange(l,ll):
-		x = binom(pi, i+1, ll)
-		s += x
-		#print pi, i+1, ll, "=", x
-		#print lastS, ">", s
-		#s += binom(pi, i+1, ll)
-		if s == lastS:
-			break
-		lastS = s
-	# Selon above, on renvoit ...
-	if above:
-		# pvalue pour >= l
-		return binom(pi, l, ll) + s
-	else:
-		# pvalue pour <= l
-		return 1. - s
-
-# Calcule le log de cette meme proba
-#################################################
-def binomLog(pi, l, ll):
-	p = l*math.log10(pi) + (ll-l)*math.log10(1-pi)
-	for i in xrange(l):
-		p += math.log10(ll-i) - math.log10(i+1)
-	return p
-
-
-# Calcule la proba dans le cas d'une distribution binomiale
-#  On observe l parmi ll, alors qu'on attendait une proportion pi
-############################################################################
-def binomF(pi, l, ll):
-	#p = pow(pi, l) * pow(1-pi, ll-l)
-	num = pi.numerator**l * (pi.denominator-pi.numerator)**(ll-l)
-	den = pi.denominator**l
-	import fractions
-	for i in xrange(l):
-		#print i
-		num *= (ll-i)
-		den *= (i+1)
-		#p *= fractions.Fraction(ll-i, i+1)
-		#p *= (ll-i)
-		#p /= (i+1)
-	#print "frac", pi, l, ll
-	return fractions.Fraction(num, den)
-
-
-# Calcule la p-value de l'observation de l/ll (attendu: pi)
-############################################################
-def binomPvalueF(pi, l, ll, above):
-	# La p-value pour > l
-	ref = binomF(pi, l, ll)
-	tmp = pi * (1 - pi)
-	import fractions
-	s = ref
-	for i in xrange(l+1,ll):
-		print "add", i
-		ref *= (fractions.Fraction(ll-(i-1), i ) * tmp)
-		#ref *= ((ll-(i-1))*pi)
-		#ref /= (i*(1-pi))
-		s += ref
-		#s += binomF(pi, i+1, ll)
-	# Selon above, on renvoit ...
-	return s
-	if above:
-		# pvalue pour >= l
-		return binomF(pi, l, ll) + s
-	else:
-		# pvalue pour <= l
-		return 1 - s
-
-
-# Calcule le log de cette meme proba
-#################################################
-def binomLogF(pi, l, ll):
-	x = binomF(pi, l, ll)
-	return math.log10(x.numerator) - math.log10(x.denominator)
-
-
-########################################################
-# Contient les stats classiques d'une serie de nombres #
-########################################################
+#############################
+# Fonctions de statistiques #
+#############################
 class myStats:
 
 
@@ -120,9 +23,7 @@ class myStats:
 			return 0.
 		if m == None:
 			m = myStats.mean(lst)
-		s = 0
-		for x in lst:
-			s += (x-m) ** 2
+		s = sum((x-m) ** 2 for x in lst)
 		return math.sqrt(float(s) / float(len(lst)))
 
 	# Renvoie la valeur comprise a x% des donnees (x=50 -> mediane)
@@ -215,6 +116,54 @@ class myStats:
 			d[x] += 1
 		return d
 
+	
+	# Calcule la proba dans le cas d'une distribution binomiale
+	#  On observe l parmi ll, alors qu'on attendait une proportion pi
+	##################################################################
+	@staticmethod
+	def binom(pi, l, ll):
+		p = (pi ** l) * ((1-pi) ** (ll-l))
+		for i in xrange(l):
+			p *= ll-i
+			p /= i+1
+		return p
+
+	# Calcule la p-value de l'observation de l/ll (attendu: pi)
+	############################################################
+	@staticmethod
+	def binomPvalue(pi, l, ll, above):
+
+		# Optimiser quelle partie de la distribution il faut sommer
+		if l < math.sqrt((ll*ll+ll)/2):
+			a = 0
+			b = l-1
+			above = not above
+		else:
+			a = l+1
+			b = ll
+
+		# L'integrale
+		s = sum(myStats.binom(pi, i, ll) for i in xrange(a,b+1))
+		
+		# Selon above, on renvoit ...
+		if above:
+			# pvalue pour >= l
+			return myStats.binom(pi, l, ll) + s
+		else:
+			# pvalue pour <= l
+			return 1 - s
+
+
+	# Calcule le log de cette meme proba
+	#################################################
+	@staticmethod
+	def binomLog(pi, l, ll):
+		p = l*math.log10(pi) + (ll-l)*math.log10(1-pi)
+		for i in xrange(l):
+			p += math.log10(ll-i) - math.log10(i+1)
+		return p
+
+
 
 ######################################################
 # Genere les permutations de [1..n]                  #
@@ -255,32 +204,31 @@ class permutationGenerator:
 #############################
 class myInterpolator:
 
-	########################################
-	# Interpolation lineaire (1 dimension) #
+	# Interpolation lineaire (1 dimension)
 	########################################
 	@staticmethod
 	def oneDimLinear(points, val):
 		
 		intervals = []
 		tmp = zip(points, val)
-		for ((u,FU), (v,FV)) in zip(tmp[:-1], tmp[1:]):
+		for ((u,FU), (v,FV)) in myTools.myIterator.slidingTuple(zip(points, val)):
 			A = (FU - FV) / (u - v)
 			B = FU - A * u
 			intervals.append((A, B))
+		intervals.append(intervals[-1])
 		
 		import bisect
 		def tmp(x):
 			i = bisect.bisect_right(points, x)
-			if i >= len(points):
-				i = len(points)-1
+			#if i >= len(points):
+			#	i = len(points)-1
 			(A, B) = intervals[i-1]
 			return (A * x + B)
 		
 		return tmp
 
 
-	#######################################
-	# Interpolation cubique (1 dimension) #
+	# Interpolation cubique (1 dimension)
 	#######################################
 	@staticmethod
 	def oneDimCubic(points, val):
@@ -297,25 +245,19 @@ class myInterpolator:
 			
 			denom = float((u - v)**3)
 
-			#DU = DV = 0
-
 			A = ((-DV - DU) * v + (DV + DU) * u + 2 * FV - 2 * FU) / denom
 			B = -((-DV - 2 * DU) * v**2  + u * ((DU - DV) * v + 3 * FV - 3 * FU) + 3 * FV * v - 3 * FU * v + (2 * DV + DU) * u**2) / denom
 			C = (- DU * v**3  + u * ((- 2 * DV - DU) * v**2  + 6 * FV * v - 6 * FU * v) + (DV + 2 * DU) * u**2 * v + DV * u**3) / denom
 			D = -(u *(-DU * v**3  - 3 * FU * v**2) + FU * v**3 + u**2 * ((DU - DV) * v**2 + 3 * FV * v) + u**3 * (DV * v - FV)) / denom
-
 			
-			#A = (2 * FV - 2 * FU) / denom
-			#B = -(u * (3 * FV - 3 * FU) + 3 * FV * v - 3 * FU * v) / denom
-			#C = (u * (6 * FV * v - 6 * FU * v)) / denom
-			#D = -(u *(-3 * FU * v**2) + FU * v**3 + u**2 * (3 * FV * v) - u**3 * FV) / denom
 			intervals.append((A, B, C, D))
+		intervals.append(intervals[-1])
 
 		import bisect
 		def tmp(x):
 			i = bisect.bisect_right(points, x)
-			if i >= len(points):
-				i = len(points)-1
+			#if i >= len(points):
+			#	i = len(points)-1
 			(A, B, C, D) = intervals[i-1]
 			return ((A * x + B) * x + C) * x + D
 
@@ -331,8 +273,7 @@ class myInterpolator:
 		return tmp
 
 	
-	###############################################
-	# Cree un interpolateur pour chaque dimension #
+	# Cree un interpolateur pour chaque dimension
 	###############################################
 	@staticmethod
 	def getMultDim(interpolator, points, val):
@@ -375,9 +316,16 @@ class randomValue:
 			return (1 - abs(-x0 + r*(1+x0)))
 
 
+	# Tirage aleatoire selon une densite issue d'une loi geometrique
+	##################################################################
+	@staticmethod
+	def geometric(p):
+		return int(math.ceil(math.log(1.0 - randomValue.random.random(), 1.0 - p)))
 
-# Applatit une liste
-#####################
+
+######################
+# Applatit une liste #
+######################
 def flatten(lst):
 	res = []
 	for x in lst:

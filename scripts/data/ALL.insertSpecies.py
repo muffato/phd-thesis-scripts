@@ -48,18 +48,19 @@ def mkNode(taxon_name, x, dup):
 # Creation d'un arbre pour une liste de genes d'une meme espece
 ################################################################
 def mkSpeciesNode(taxon_name, lst):
-	# Creer les feuilles de la nouvelle espece
-	esp = []
-	for g in lst:
-		if (g in phylTree.dicGenes) and (phylTree.dicGenes[g][0] == taxon_name):
-			esp.append(mkNode(taxon_name, g, False))
+	# Selection des genes de l'espece
+	esp = [g for g in lst if (g in phylTree.dicGenes) and (phylTree.dicGenes[g][0] == taxon_name)]
+	
 	if len(esp) == 0:
 		return None
-	return mkNode(taxon_name, [(x,0) for x in esp], True)
-	# Fusions pour que l'arbre soit binaire
-	#while len(esp) >= 2:
-	#	esp.append(mkNode(taxon_name, [(esp.pop(),0), (esp.pop(),0)], True))
-	#return esp[0]
+	
+	# Creer les feuilles de la nouvelle espece
+	esp = [mkNode(taxon_name, g, False) for g in esp]
+
+	if len(esp) == 1:
+		return esp[0]
+	else:
+		return mkNode(taxon_name, [(x,0) for x in esp], True)
 
 
 # Initialisation
@@ -108,10 +109,6 @@ for famille in orthologues:
 				if len(lst) == 0:
 					return (None,0)
 				return (mkNode(node, lst, False), 0)
-				# Fusions pour que l'arbre soit binaire
-				#while len(lst) >= 2:
-				#	lst.append( (mkNode(node, [lst.pop(), lst.pop()], False), 0) )
-				#return lst[0]
 			else:
 				return (mkSpeciesNode(node, famille.names),0)
 

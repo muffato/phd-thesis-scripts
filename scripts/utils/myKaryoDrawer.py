@@ -73,6 +73,9 @@ def drawKaryo(data, arguments):
 		if arguments["karyo:drawBorder"]:
 			myPsOutput.setColor(arguments["karyo:penColor"], "color")
 			printBorder()
+			for i in xrange(1,len(all)):
+				print "%.5f %.5f 2cm moveto" % (xx+i*dx/nbl,y0)
+				print "%.5f %.5f 2cm rlineto" % (0,size*dy)
 			print "stroke"
 		
 		if arguments["karyo:roundedChr"]:

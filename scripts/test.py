@@ -21,6 +21,33 @@ import utils.myProteinTree
 import utils.myPhylTree
 #import walktrap
 
+
+
+sys.exit(0)
+
+f = fractions.Fraction(1, 2)
+for i in xrange(201):
+	print float(utils.myMaths.myStats.binomPvalue(f, i, 200, True))
+
+sys.exit(0)
+
+print utils.myMaths.binom(.5, 150, 200)
+print utils.myMaths.binomLog(.5, 150, 200)
+print utils.myMaths.binomPvalue(.5, 150, 200, True)
+
+f = fractions.Fraction(1, 2)
+print utils.myMaths.binom(f, 150, 200)
+print float(utils.myMaths.binom(f, 150, 200))
+#print utils.myMaths.binomLog(f, 150, 200)
+print utils.myMaths.binomPvalue(f, 150, 200, True)
+print float(utils.myMaths.binomPvalue(f, 150, 200, True))
+
+#print float(utils.myMaths.binomF(f, 150, 200))
+#print float(utils.myMaths.binomPvalueF(f, 150, 200, True))
+
+
+sys.exit(0)
+
 l = []
 for i in xrange(int(sys.argv[1])):
 	#utils.myMaths.gcd(random.randint(1,1000000000), random.randint(1,1000000000))
@@ -141,25 +168,6 @@ print math.log10(y.numerator) - math.log10(y.denominator)
 
 
 sys.exit(0)
-print utils.myMaths.binom(.5, 150, 200)
-print utils.myMaths.binomLog(.5, 150, 200)
-print utils.myMaths.binomPvalue(.5, 150, 200, True)
-
-f = fractions.Fraction(1, 2)
-print utils.myMaths.binomF(f, 150, 200)
-print utils.myMaths.binomLogF(f, 150, 200)
-print utils.myMaths.binomPvalueF(f, 150, 200, True)
-
-print float(utils.myMaths.binomF(f, 150, 200))
-print float(utils.myMaths.binomPvalueF(f, 150, 200, True))
-
-
-
-
-sys.exit(0)
-
-
-
 
 l = [str(i) for i in xrange(int(sys.argv[1]))]
 

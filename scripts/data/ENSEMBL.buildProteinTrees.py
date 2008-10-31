@@ -121,17 +121,20 @@ print >> sys.stderr, len(data), "branches OK"
 # On regle les parametres de info
 ##################################
 for (node,inf) in info.iteritems():
+	#if node == 433:
+	#	print >> sys.stderr, inf, inf.get('duplication_confidence_score', -1), arguments["minDuplicationScore"]
 	# On considere que les duplications 'dubious' ne sont pas valables pour une duplication
-	if 'dubious_duplication' in inf:
-		del inf['dubious_duplication']
-		inf['Duplication'] = 1
-	elif inf['Duplication'] != 0:
-		if (inf.get('duplication_confidence_score', -1) >= arguments["minDuplicationScore"]) or phylTree.isChildOf(inf['taxon_name'], "Clupeocephala"):
-			inf['Duplication'] = 2
-		else:
+	assert (inf['Duplication'] in [0,1,2])
+	#if 'dubious_duplication' in inf:
+	#	del inf['dubious_duplication']
+	#	inf['Duplication'] = 1
+	if inf['Duplication'] == 2:
+		if (inf.get('duplication_confidence_score', -1) < arguments["minDuplicationScore"]): # and not phylTree.isChildOf(inf['taxon_name'], "Clupeocephala"):
 			inf['Duplication'] = 1
 	# Pour passer des '/' et ' ' a '-' et '_'
 	inf['taxon_name'] = phylTree.officialName[inf['taxon_name']]
+	#if node == 433:
+	#	print >> sys.stderr, inf
 
 
 ###################################################################################################################
@@ -261,7 +264,7 @@ def rebuildTree(node):
 def getRoots(node, previousAnc, lastWrittenAnc):
 
 	newAnc = info[node]['taxon_name']
-	(toWrite,newLastWritten,isroot) = utils.myProteinTree.getIntermediateAnc(phylTree, previousAnc, lastWrittenAnc, newAnc, info[node]['Duplication'] >=2)
+	(_,newLastWritten,isroot) = utils.myProteinTree.getIntermediateAnc(phylTree, previousAnc, lastWrittenAnc, newAnc, info[node]['Duplication'] >=2)
 
 	if isroot:
 		return [node]
