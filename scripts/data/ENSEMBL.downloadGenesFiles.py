@@ -6,6 +6,8 @@ __doc__ = """
 
 import os
 import sys
+
+import utils.myFile
 import utils.myTools
 import utils.myPhylTree
 
@@ -31,9 +33,9 @@ for esp in sorted(phylTree.listSpecies):
 
 	# Les fichiers de genes
 	print >> sys.stderr, "Telechargement de la liste des genes de %s ..." % esp,
-	fo = utils.myTools.myOpenFile(arguments["OUT.genesFile"] % phylTree.fileName[esp], 'w')
+	fo = utils.myFile.openFile(arguments["OUT.genesFile"] % phylTree.fileName[esp], 'w')
 	nb = 0
-	fi = utils.myTools.myOpenFile(arguments["IN.EnsemblURL"] % tmp,'r')
+	fi = utils.myFile.openFile(arguments["IN.EnsemblURL"] % tmp,'r')
 	for ligne in utils.myFile.MySQLFileLoader(fi):
 		c = ligne.split('\t')
 		print >> fo, "\t".join( [c[x] for x in fields] )

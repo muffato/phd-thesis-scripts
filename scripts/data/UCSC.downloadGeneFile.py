@@ -32,7 +32,7 @@ OUTfullGenesFile = os.path.join(arguments["OUT.directory"], arguments["OUT.fullG
 OUTxrefFile = os.path.join(arguments["OUT.directory"], arguments["OUT.xrefFile"])
 
 # On telecharge le fichier de l'UCSC
-combGenes = utils.myTools.defaultdict(list)
+combGenes = collections.defaultdict(list)
 print >> sys.stderr, "Telechargement du fichier ...",
 for ligne in utils.myTools.myOpenFile(arguments["xenoFile"], 'r'):
 	t = ligne.replace('\n', '').split('\t')

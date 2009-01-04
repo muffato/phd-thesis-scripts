@@ -7,7 +7,7 @@ __doc__ = """
 import sys
 import utils.myTools
 
-count = utils.myTools.defaultdict(int)
+count = collections.defaultdict(int)
 for l in sys.stdin:
 	t = l.replace('\n','').split('\t')
 	signatures = tuple([x!="\N" for x in t])

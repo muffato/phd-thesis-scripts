@@ -122,7 +122,7 @@ def getCubicGradient(colors, nelem):
 
 
 def alphaColor((r1,g1,b1), (r2,g2,b2), alpha):
-	return (int(r1*(1.-alpha)+r2*alpha), int(g1*(1.-alpha)+g2*alpha), int(b1*(1.-alpha)+b2*alpha))
+	return (int(round(r1*(1.-alpha)+r2*alpha)), int(round(g1*(1.-alpha)+g2*alpha)), int(round(b1*(1.-alpha)+b2*alpha)))
 
 
 #######################

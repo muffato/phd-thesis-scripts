@@ -31,7 +31,7 @@ print >> sys.stderr, "Ecriture des liens ...",
 (fd,fname) = tempfile.mkstemp()
 nb = 0
 nbPara = 0
-para = utils.myTools.defaultdict(lambda : utils.myTools.defaultdict(int))
+para = collections.defaultdict(lambda : collections.defaultdict(int))
 allLinks = []
 for g in paralogues:
 	tg = genome.getPosition(g.names)

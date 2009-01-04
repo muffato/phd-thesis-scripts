@@ -1,5 +1,6 @@
 CC = g++
-PYTHON_INCLUDEDIR = /usr/include/python2.5
+#PYTHON_INCLUDEDIR = /usr/include/python2.5
+PYTHON_INCLUDEDIR = /users/ldog/muffato/bin/Python2.6/include/python2.6
 CFLAGS = -W -Wall -O2 -march=pentium4 -static
 LDFLAGS = -shared -fPIC
 

@@ -1,6 +1,8 @@
 #! /users/ldog/muffato/python
 
 import sys
+
+import utils.myFile
 import utils.myTools
 import utils.myMaths
 
@@ -9,7 +11,7 @@ arguments = utils.myTools.checkArgs([("dataFile",file)], [("column1",int,0), ("c
 lx1 = []
 lx2 = []
 
-f = utils.myTools.myOpenFile(arguments["dataFile"], 'r')
+f = utils.myFile.openFile(arguments["dataFile"], 'r')
 for l in f:
 	t = l.replace('\n', '').split("\t")
 	try:

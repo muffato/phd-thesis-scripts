@@ -8,133 +8,18 @@ import os
 import sys
 import collections
 
+import utils.myFile
 import utils.myTools
 import utils.myPhylTree
 import utils.myProteinTree
 
 arguments = utils.myTools.checkArgs( \
-	[("phylTree.conf",file)], \
+	[("phylTree.conf",file), ("ensemblTree",file)], \
 	[("minDuplicationScore",float,0), \
-	("IN.EnsemblURL",str,"ftp://ftp.ensembl.org/pub/release-XXX/mysql/ensembl_compara_XXX"), \
-	("IN.member",str,"member.txt.gz"), \
-	("IN.genome_db",str,"genome_db.txt.gz"), \
-	("IN.protein_tree_node",str,"protein_tree_node.txt.gz"), \
-	("IN.protein_tree_member",str,"protein_tree_member.txt.gz"), \
-	("IN.protein_tree_tag",str,"protein_tree_tag.txt.gz"), \
 	("OUT.tree",str,"tree.%s.bz2"), \
 	], \
 	__doc__ \
 )
-
-
-phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
-
-
-##############################################
-# Chargement de la base de donnees d'Ensembl #
-##############################################
-
-
-# On charge les liens taxon_id -> species name
-###############################################
-print >> sys.stderr, "Chargement des liens taxon_id -> species_name ...",
-taxonName = {}
-f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.genome_db"]), "r")
-for ligne in utils.myFile.MySQLFileLoader(f):
-	t = ligne.split("\t")
-	taxonName[t[1]] = t[2]
-f.close()
-print >> sys.stderr, len(taxonName), "especes OK"
-
-
-# On charge les liens member_id -> protein name
-################################################
-print >> sys.stderr, "Chargement des liens member_id -> protein_name ...",
-tmpLinks = {}
-f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.member"]), "r")
-for ligne in utils.myFile.MySQLFileLoader(f):
-	t = ligne.split("\t")
-	# A un numero member_id, on associe les noms (gene/transcrit/proteine) et l'espece
-	if t[7] != "\\N":
-		x = t[8].split()
-		tmpLinks[t[0]] = ((x[1].split(':')[1], x[0].split(':')[1], t[1]), taxonName[t[4]])
-f.close()
-print >> sys.stderr, len(tmpLinks), "membres OK"
-
-
-# On charge les liens node_id -> member_id
-###########################################
-print >> sys.stderr, "Chargement des liens node_id -> member_id ...",
-x = 0
-info = collections.defaultdict(dict)
-f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_member"]), "r")
-for ligne in utils.myFile.MySQLFileLoader(f):
-	t = ligne.split("\t")
-	data = tmpLinks[t[1]]
-	info[int(t[0])] = {'gene_name': data[0][0], 'transcript_name': data[0][1], 'protein_name': data[0][2], 'taxon_name': data[1]}
-	x += 1
-f.close()
-print >> sys.stderr, x, "proteines OK"
-del tmpLinks
-del taxonName
-
-
-# On charge les liens node_id -> infos 
-#######################################
-print >> sys.stderr, "Chargement des liens node_id -> infos ...",
-f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_tag"]), "r")
-for ligne in utils.myFile.MySQLFileLoader(f):
-	t = ligne.split("\t")
-
-	# On extrait l'info sous forme numerique si possible
-	try:
-		t[2] = int(t[2])
-	except ValueError:
-		try:
-			t[2] = float(t[2])
-		except ValueError:
-			pass
-	
-	# Le dictionnaire
-	if (t[1] not in ['lost_taxon_id', 'taxon_id', 'taxon_alias', 'original_cluster_id', 'Sitewise_dNdS_subroot_id']) and ('SIS' not in t[1]):
-		info[ int(t[0]) ][t[1]] = t[2]
-
-f.close()
-print >> sys.stderr, len(info), "infos OK"
-
-# On charge les liens node_id_father -> node_id_son
-####################################################
-print >> sys.stderr, "Chargement des arbres (node_id_father -> node_id_son) ...",
-data = collections.defaultdict(list)
-nextNodeID = max(info)
-f = utils.myTools.myOpenFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_node"]), "r")
-for ligne in utils.myFile.MySQLFileLoader(f):
-	t = ligne.split("\t")
-	# On rajoute le fils de son pere (avec une distance)
-	node = int(t[1])
-	nextNodeID = max(nextNodeID, node)
-	data[ node ].append( (int(t[0]), float(t[5])) )
-f.close()
-print >> sys.stderr, len(data), "branches OK"
-
-
-# On regle les parametres de info
-##################################
-for (node,inf) in info.iteritems():
-	#if node == 433:
-	#	print >> sys.stderr, inf, inf.get('duplication_confidence_score', -1), arguments["minDuplicationScore"]
-	# On considere que les duplications 'dubious' ne sont pas valables pour une duplication
-	assert (inf['Duplication'] in [0,1,2])
-	#if 'dubious_duplication' in inf:
-	#	del inf['dubious_duplication']
-	#	inf['Duplication'] = 1
-	if inf['Duplication'] == 2:
-		if (inf.get('duplication_confidence_score', -1) < arguments["minDuplicationScore"]): # and not phylTree.isChildOf(inf['taxon_name'], "Clupeocephala"):
-			inf['Duplication'] = 1
-	# Pour passer des '/' et ' ' a '-' et '_'
-	inf['taxon_name'] = phylTree.officialName[inf['taxon_name']]
-	#if node == 433:
-	#	print >> sys.stderr, inf
 
 
 ###################################################################################################################
@@ -276,29 +161,47 @@ def getRoots(node, previousAnc, lastWrittenAnc):
 	return subRoots
 
 
-# On a besoin des genomes modernes pour reconnaitre les genes
-ft1 = utils.myTools.myOpenFile(arguments["OUT.tree"] % "1.ensembl", "w")
-ft2 = utils.myTools.myOpenFile(arguments["OUT.tree"] % "2.flatten", "w")
-ft3 = utils.myTools.myOpenFile(arguments["OUT.tree"] % "3.rebuilt", "w")
-ft4 = utils.myTools.myOpenFile(arguments["OUT.tree"] % "4.cut", "w")
 
-print >> sys.stderr, "Mise en forme des arbres ...",
+phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
+
+nextNodeID = 10000000
+ft2 = utils.myFile.openFile(arguments["OUT.tree"] % "2.flatten", "w")
+ft3 = utils.myFile.openFile(arguments["OUT.tree"] % "3.rebuilt", "w")
+ft4 = utils.myFile.openFile(arguments["OUT.tree"] % "4.cut", "w")
+
 nb = 0
 nbA = 0
-for (root,_) in data[1]:
-	# Permet d'eviter quelques noeuds artefacts
-	if 'taxon_name' in info[root]:
-		utils.myProteinTree.printTree(ft1, data, info, root)
-		flattenTree(root, True)
-		utils.myProteinTree.printTree(ft2, data, info, root)
-		rebuildTree(root)
-		utils.myProteinTree.printTree(ft3, data, info, root)
-		for x in getRoots(root, None, None):
-			utils.myProteinTree.printTree(ft4, data, info, x)
-			nbA += 1
-		nb += 1
-print >> sys.stderr, "%d (%d) arbres OK" % (nbA,nb)
-ft1.close()
+for (root,data,info) in utils.myProteinTree.loadTree(arguments["ensemblTree"]):
+
+	# On regle les parametres de info
+	##################################
+	for inf in info.itervalues():
+		for tagname in ['lost_taxon_id', 'taxon_id', 'taxon_alias', 'original_cluster_id', 'Sitewise_dNdS_subroot_id', 'SIS1', 'SIS2', 'SISi', 'SISu']:
+			inf.pop(tagname, None)
+
+		if 'Duplication' in inf:
+			# On considere que les duplications 'dubious' ne sont pas valables pour une duplication
+			assert (inf['Duplication'] in [0,1,2])
+			if 'dubious_duplication' in inf:
+				assert inf['Duplication'] == 1
+				del inf['dubious_duplication']
+			elif inf['Duplication'] != 0:
+				if (inf.get('duplication_confidence_score', -1) < arguments["minDuplicationScore"]):
+					inf['Duplication'] = 1
+				else:
+					inf['Duplication'] = 2
+
+	flattenTree(root, True)
+	utils.myProteinTree.printTree(ft2, data, info, root)
+	rebuildTree(root)
+	utils.myProteinTree.printTree(ft3, data, info, root)
+	for x in getRoots(root, None, None):
+		utils.myProteinTree.printTree(ft4, data, info, x)
+		nbA += 1
+	nb += 1
+
+print >> sys.stderr, "Mise en forme des arbres : %d (%d) arbres OK" % (nbA,nb)
+
 ft2.close()
 ft3.close()
 ft4.close()

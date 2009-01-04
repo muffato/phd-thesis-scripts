@@ -5,6 +5,8 @@ Convertit un genome (suite de diagonales) en genome (suite de genes)
 """
 
 import sys
+
+import utils.myFile
 import utils.myTools
 import utils.myGenomes
 
@@ -15,8 +17,10 @@ arguments = utils.myTools.checkArgs( [("communitiesFile",file), ("ancGenesFile",
 genes = [g for g in utils.myGenomes.Genome(arguments["ancGenesFile"])]
 
 lastC = None
-f = utils.myTools.myOpenFile(arguments["communitiesFile"], 'r')
+f = utils.myFile.openFile(arguments["communitiesFile"], 'r')
 for l in f:
+	if l.startswith("#"):
+		continue
 	t = l.replace('\n', '').split('\t')
 	if t[0] != lastC:
 		lastC = t[0]

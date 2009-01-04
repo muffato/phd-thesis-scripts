@@ -5,7 +5,7 @@ __doc__ = """
 """
 
 import sys
-import utils.myTools
+import utils.myFile
 import utils.myMaths
 
 # Les fichiers a regrouper (par defaut, on lit l'entree standard)
@@ -19,7 +19,7 @@ for f in files:
 	if f == "-":
 		f = sys.stdin
 	else:
-		f = utils.myTools.myOpenFile(f, 'r')
+		f = utils.myFile.openFile(f, 'r')
 	# Lecture & regroupement
 	for l in f:
 		c = l.split()

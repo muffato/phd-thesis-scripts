@@ -61,7 +61,7 @@ def distInterGenes(tg1, tg2):
 def rewriteGenome():
 
 	# On etend la liste des genes ancestraux pour utiliser les outgroup en remontant l'arbre jusqu'a la racine
-	dicOutgroupGenes = utils.myTools.defaultdict(set)
+	dicOutgroupGenes = collections.defaultdict(set)
 	if useOutgroups != "no":
 		anc = arguments["ancestr"]
 		while anc in phylTree.parent:

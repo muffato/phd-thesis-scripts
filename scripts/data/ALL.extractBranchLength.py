@@ -5,6 +5,8 @@ __doc__ = """
 """
 
 import sys
+import collections
+
 import utils.myTools
 import utils.myPhylTree
 import utils.myProteinTree
@@ -13,7 +15,7 @@ arguments = utils.myTools.checkArgs( [("phylTree.conf",file), ("proteinTree",fil
 
 phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
-lengths = utils.myTools.defaultdict(list)
+lengths = collections.defaultdict(list)
 
 # Parcours recursif de la famille de genes
 def do(node):

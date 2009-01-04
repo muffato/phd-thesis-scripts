@@ -21,7 +21,38 @@ import utils.myProteinTree
 import utils.myPhylTree
 #import walktrap
 
+def getLinearGradient(colors, nelem):
+	l = []
+	nc = (nelem-1.) / (len(colors)-1.)
+	for i in xrange(nelem-1):
+		ip = int(i/nc)
+		l.append( alphaColor(colors[ip], colors[ip+1], i/nc-ip) )
+	l.append(colors[-1])
+	return l
 
+
+def alphaColor((r1,g1,b1), (r2,g2,b2), alpha):
+	return (int(r1*(1.-alpha)+r2*alpha), int(g1*(1.-alpha)+g2*alpha), int(b1*(1.-alpha)+b2*alpha))
+
+
+print getLinearGradient([(255,0,0), (255,255,255), (0,0,255)], 15)
+
+sys.exit(0)
+
+for _ in xrange(int(sys.argv[1])):
+	l = random.randint(2, 500)
+	l1 = [random.random() for _ in xrange(l)]
+	l2 = [random.random() for _ in xrange(l)]
+	#d = zip(l1, l2)
+	d = [(x,l2[j]) for (j,x) in enumerate(l1)]
+	x = max(d)
+
+
+sys.exit(0)
+l = [7, 10, 12, 2, 4, 13, 8]
+
+print utils.myMaths.myStats.mean(l)
+print utils.myMaths.myStats.stddev(l)
 
 sys.exit(0)
 
@@ -885,7 +916,7 @@ sys.exit(0)
 
 seq = sys.stdin.readline()[:-1]
 for l in [1,2,3,4,5,6,7]:
-	count = utils.myTools.defaultdict(int)
+	count = collections.defaultdict(int)
 	for x in xrange(len(seq)-l+1):
 		count[seq[x:x+l]] += 1
 	print utils.myMaths.myStats(count.values()), 1000000 / (4**l)

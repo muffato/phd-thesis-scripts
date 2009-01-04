@@ -31,7 +31,7 @@ def commonChrName(x):
 ##############################
 def loadFastaFile(name):
 	seq = {}
-	f = myTools.myOpenFile(name, "r")
+	f = myFile.openFile(name, "r")
 	name = None
 	for ligne in f:
 		ligne = ligne.replace('\n', '').strip()
@@ -59,7 +59,7 @@ class Genome:
 	def __init__(self, fichier, **args):
 
 		# le nom et l'instance de file
-		f = myTools.myOpenFile(fichier, 'r')
+		f = myFile.openFile(fichier, 'r')
 		self.nom = f.name
 		self.f = myFile.firstLineBuffer(f)
 		
@@ -67,10 +67,6 @@ class Genome:
 		self.lstGenes = collections.defaultdict(list)
 		# Associer un nom de gene a sa position sur le genome
 		self.dicGenes = {}
-		# La liste triee des noms des chromosomes, des scaffolds et des randoms
-		self.lstChr = []
-		self.lstScaff = []
-		self.lstRand = []
 
 		# Le choix de la fonction de chargement
 		c = self.f.firstLine.split()
@@ -117,44 +113,70 @@ class Genome:
 			self.__loadFromEnsemblOrthologs__(**args)
 		elif mode == 3:
 			self.__loadFromAncestralGenome__(withChr, conc, **args)
-		else:
-			assert (mode in [1,2,3])
 		self.f.close()
-		self.sortGenome()
 
+		# Classification en chromosomes/contigs/scaffolds
+		self.lstChr = []
+		self.lstScaff = []
+		self.lstRand = []
+		self.lstNone = []
+		for chrom in self.lstGenes.keys():
+			if chrom in [None, "Un_random", "UNKN", "Un"]:
+				self.lstNone.append(chrom)
+				continue
+			try:
+				x = int(chrom)
+				if x < 100:
+					self.lstChr.append(chrom)
+				else:
+					self.lstScaff.append(chrom)
+			except:
+				c = chrom.lower()
+				if "rand" in c:
+					self.lstRand.append(chrom)
+				else:
+					keys = ["cont", "scaff", "ultra", "reftig", "_", "un", "mt"]
+					for x in keys:
+						if x in c:
+							self.lstScaff.append(chrom)
+							break
+					else:
+						if (chrom in ["U", "E64", "2-micron"]) or chrom.endswith("Het"):
+							self.lstScaff.append(chrom)
+						else:
+							self.lstChr.append(chrom)
+
+		# Trie les chromsomoses et cree l'index
+		self.lstChr.sort()
+		self.lstChrS = frozenset(self.lstChr)
+		self.lstScaff.sort()
+		self.lstScaffS = frozenset(self.lstScaff)
+		self.lstRand.sort()
+		self.lstRandS = frozenset(self.lstRand)
+		self.lstNone.sort()
+		self.lstNoneS = frozenset(self.lstNone)
+		
+		self.dicGenes = {}
+		for c in self.lstGenes:
+			self.lstGenes[c].sort()
+			for (i,g) in enumerate(self.lstGenes[c]):
+				assert g.chromosome == c
+				for s in g.names:
+					self.dicGenes[s] = GenePosition(c,i)
+		
 
 	# Rajoute un gene au genome
 	############################
 	def addGene(self, names, chromosome, beg, end, strand):
 
-		assert 0 <= beg
-		assert beg < end
+		assert 0 <= beg <= end
 		assert strand in [-1,0,1]
 		
 		names = [intern(s) for s in names]
 		chromosome = commonChrName(chromosome)
 		self.lstGenes[chromosome].append( Gene(chromosome, beg, end, strand, names) )
 
-
-	# Trie les chromsomoses
-	########################
-	def sortGenome(self):
-		
-		import operator
-
-		self.lstChr.sort()
-		self.lstScaff.sort()
-		self.lstRand.sort()
-		
-		self.dicGenes = {}
-		for c in self.lstGenes:
-			self.lstGenes[c].sort(key = operator.attrgetter('beginning'))
-			for (i,g) in enumerate(self.lstGenes[c]):
-				assert g.chromosome == c
-				#g.chromosome = c
-				for s in g.names:
-					self.dicGenes[s] = GenePosition(c,i)
-		
+	
 	# Renvoie les genes presents sur le chromosome donne a certaines positions
 	###########################################################################
 	def getGenesAt(self, chr, beg, end):
@@ -186,6 +208,7 @@ class Genome:
 			if g.end < beg:
 				break
 			yield g
+
 		
 	# Renvoie les genes presents aux alentours d'un gene donne (fenetre l en nombre de genes)
 	##########################################################################################
@@ -195,6 +218,7 @@ class Genome:
 		
 		return self.lstGenes[chr][max(0, index-l):index+l+1]
 
+
 	# Renvoie tous les genes
 	#########################
 	def __iter__(self):
@@ -202,10 +226,12 @@ class Genome:
 			for g in t:
 				yield g
 
+
 	# Cherche la position d'un gene donne par ses noms)
 	####################################################
 	def getPosition(self, names):
 		return set( (self.dicGenes[s] for s in names if s in self.dicGenes) )
+
 
 	# Renvoie les autres noms d'un gene
 	####################################
@@ -214,6 +240,7 @@ class Genome:
 			return []
 		(c,i) = self.dicGenes[name]
 		return [x for x in self.lstGenes[c][i].names if x != name]
+
 
 	# Fabrique la liste des orthologues entre les deux genomes
 	###########################################################
@@ -239,7 +266,6 @@ class Genome:
 		return res
 
 
-
 	################################################################
 	# Cette fonction gere un fichier de liste de genes d'Ensembl   #
 	#   "Chr Debut Fin Brin ENSFAMxxxx Nom"                        #
@@ -247,37 +273,10 @@ class Genome:
 	def __loadFromEnsemblGenome__(self):
 		
 		print >> sys.stderr, "Chargement du genome de", self.nom, "...",
-		
 		# On lit chaque ligne
 		for l in self.f:
 			c = l.replace('\n', '').split('\t')
 			self.addGene(c[4].split(), c[0], int(c[1]), int(c[2]), int(c[3]))
-
-		# Classification en chromosomes/contigs/scaffolds
-		for chrom in self.lstGenes:
-			try:
-				x = int(chrom)
-				if x < 100:
-					self.lstChr.append(chrom)
-				else:
-					self.lstScaff.append(chrom)
-			except:
-				c = chrom.lower()
-				if ("rand" in c) or ("un" in c):
-					self.lstRand.append(chrom)
-				else:
-					keys = ["cont", "scaff", "ultra", "reftig", "_"]
-					for x in keys:
-						if x.lower() in c:
-							self.lstScaff.append(chrom)
-							break
-					else:
-						if (chrom in ["U", "E64", "2-micron"]) or chrom.endswith("Het"):
-							self.lstScaff.append(chrom)
-						else:
-							self.lstChr.append(chrom)
-		self.sortGenome()
-		
 		print >> sys.stderr, "OK"
 
 
@@ -346,8 +345,6 @@ class Genome:
 			# On ajoute le gene
 			self.addGene(champs, c, i, i+1, strand)
 			i += 1
-		
-		self.lstChr = self.lstGenes.keys()
 		
 		print >> sys.stderr, "OK"
 

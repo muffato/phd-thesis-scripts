@@ -14,7 +14,7 @@ import utils.myTools
 import utils.myMaths
 import utils.walktrap
 
-defaultdict = utils.myTools.defaultdict
+defaultdict = collections.defaultdict
 
 
 #
@@ -61,7 +61,7 @@ def buildParaOrtho():
 		outgroups =  frozenset([phylTree.officialName[e] for e in outgroups])
 		for g in utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[anc]):
 			# On trie les genes ancestraux
-			dicGenes = utils.myTools.defaultdict(list)
+			dicGenes = collections.defaultdict(list)
 			newPos = None
 			for x in g.names:
 				# La position dans le genome que l'on reconstruit
@@ -394,7 +394,7 @@ else:
 	dicCoeff = dict.fromkeys(especesDup, 1./len(especesDup))
 
 
-edges = utils.myTools.defaultdict(dict)
+edges = collections.defaultdict(dict)
 for i1 in xrange(len(allDCS)):
 	(_,alt1) = allDCS[i1]
 	esp1 = allDCSe2[i1]

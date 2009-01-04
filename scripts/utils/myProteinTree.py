@@ -1,6 +1,6 @@
 
 import sys
-import myTools
+import myFile
 
 
 ##########################################################
@@ -105,7 +105,7 @@ def loadTree(name):
 		return currID
 
 	print >> sys.stderr, "Chargement du fichier d'arbres %s ..." % name,
-	f = myTools.myOpenFile(name, "r")
+	f = myFile.openFile(name, "r")
 	curr = None
 	nextLine()
 	n = (0,0,0)

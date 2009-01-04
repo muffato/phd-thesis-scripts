@@ -12,7 +12,7 @@ class myStats:
 	@staticmethod
 	def mean(lst):
 		if len(lst) == 0:
-			return 0.
+			return None
 		return float(sum(lst))/float(len(lst))
 
 	# Renvoie l'ecart type
@@ -20,7 +20,7 @@ class myStats:
 	@staticmethod
 	def stddev(lst, m = None):
 		if len(lst) == 0:
-			return 0.
+			return None
 		if m == None:
 			m = myStats.mean(lst)
 		s = sum((x-m) ** 2 for x in lst)
@@ -59,6 +59,8 @@ class myStats:
 
 	@staticmethod
 	def txtSummary(lst):
+		if len(lst) == 0:
+			return "%s [%s/%s/%s] [%s/%s/%s] %s [%s/%s-0]" % tuple([None]*10)
 		return "%s [%s/%s/%s] [%s/%s/%s] %s [%.2f/%.2f-%d]" % myStats.valSummary(lst)
 
 
@@ -164,6 +166,24 @@ class myStats:
 		return p
 
 
+	@staticmethod
+	def khi2(countsOK, countsNO):
+		nbBins = len(countsOK)
+		assert nbBins == len(countsNO)
+
+		sumOK = float(sum(countsOK))
+		sumNO = float(sum(countsNO))
+		sumAll = [countsOK[i] + countsNO[i] for i in xrange(nbBins)]
+		sumTOT = sumOK + sumNO
+
+		newOK = [sumOK*sumAll[i]/sumTOT for i in xrange(nbBins)]
+		newNO = [sumNO*sumAll[i]/sumTOT for i in xrange(nbBins)]
+		assert abs(sum(newOK)+sum(newNO)-sumTOT) < 1e-5
+
+		khiOK = [((countsOK[i]-newOK[i])**2)/newOK[i] if newOK[i] > 0 else 0 for i in xrange(nbBins)]
+		khiNO = [((countsNO[i]-newNO[i])**2)/newNO[i] if newNO[i] > 0 else 0 for i in xrange(nbBins)]
+		return sum(khiOK)+sum(khiNO)
+
 
 ######################################################
 # Genere les permutations de [1..n]                  #
@@ -210,7 +230,6 @@ class myInterpolator:
 	def oneDimLinear(points, val):
 		
 		intervals = []
-		tmp = zip(points, val)
 		for ((u,FU), (v,FV)) in myTools.myIterator.slidingTuple(zip(points, val)):
 			A = (FU - FV) / (u - v)
 			B = FU - A * u
@@ -220,8 +239,6 @@ class myInterpolator:
 		import bisect
 		def tmp(x):
 			i = bisect.bisect_right(points, x)
-			#if i >= len(points):
-			#	i = len(points)-1
 			(A, B) = intervals[i-1]
 			return (A * x + B)
 		
@@ -256,8 +273,6 @@ class myInterpolator:
 		import bisect
 		def tmp(x):
 			i = bisect.bisect_right(points, x)
-			#if i >= len(points):
-			#	i = len(points)-1
 			(A, B, C, D) = intervals[i-1]
 			return ((A * x + B) * x + C) * x + D
 

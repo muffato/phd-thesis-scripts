@@ -18,7 +18,7 @@ def funcFilter(fun):
 
 def mkDeprecatedFunc(f):
 	def tmp(*args, **keywords):
-		print >> sys.stderr, "deprecated use of", f
+		print >> sys.stderr, "deprecated use of", f,
 		return f(*args, **keywords)
 	return tmp
 

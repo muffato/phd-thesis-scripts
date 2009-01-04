@@ -56,7 +56,7 @@ def distInterGenes(tg1, tg2):
 
 def loadDiagsFile(name):
 	f = utils.myTools.myOpenFile(name, 'r')
-	diags = utils.myTools.defaultdict(list)
+	diags = collections.defaultdict(list)
 	for l in f:
 		t = l.split('\t')
 		diags[t[0]].append( ([int(x) for x in t[1].split()],[int(x) for x in t[2].split()]) )
@@ -69,7 +69,7 @@ def loadDiagsFile(name):
 def rewriteGenome():
 
 	# On etend la liste des genes ancestraux pour utiliser les outgroup en remontant l'arbre jusqu'a la racine
-	dicOutgroupGenes = utils.myTools.defaultdict(set)
+	dicOutgroupGenes = collections.defaultdict(set)
 	if useOutgroups != "no":
 		anc = arguments["ancestr"]
 		while anc in phylTree.parent:

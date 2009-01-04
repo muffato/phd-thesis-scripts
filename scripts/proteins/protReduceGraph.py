@@ -44,7 +44,7 @@ def revert(ind):
 		return ind
 
 # Le nouveau graphe
-todo = utils.myTools.defaultdict(float)
+todo = collections.defaultdict(float)
 fg = utils.myTools.myOpenFile(arguments["grapheInit"], 'r')
 for l in fg:
 	

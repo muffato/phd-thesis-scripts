@@ -26,7 +26,7 @@ class PhylogeneticTree:
 			self.items = self.newCommonNamesMapperInstance()
 
 			# le nom et l'instance de file
-			f = myTools.myOpenFile(fichier, 'r')
+			f = myFile.openFile(fichier, 'r')
 			try:
 				self.nom = f.name
 			except AttributeError:
@@ -322,7 +322,7 @@ class PhylogeneticTree:
 	#
 	# Lance le calcul de la moyenne etant donne les valeurs stockees dans values
 	#
-	def calcDist(self, values, init=0):
+	def calcDist(self, values, init):
 		
 		it = self.tmpItems
 		# La partie recursive
@@ -338,7 +338,6 @@ class PhylogeneticTree:
 			nb = 0
 
 			# Moyenne sur tous les fils du noeud
-			#for (e,p) in self.tmpItems.get(anc, []):
 			for (e,p) in it[anc]:
 				
 				(val,x) = recCalc(e)

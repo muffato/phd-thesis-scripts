@@ -6,56 +6,43 @@ A partir de toutes les diagonales extraites entre les especes,
 """
 
 import sys
-import collections
-
 import utils.myTools
 import utils.myDiags
 import utils.myMaths
 import utils.myGenomes
 import utils.myPhylTree
 import utils.walktrap
+import utils.svm
 
 it = utils.myTools.myIterator.tupleOnStrictUpperList
 
-###############################################################################
-# La fonction de calcul du score de presence sur le meme chromosome ancestral #
-###############################################################################
+
+##############################
+# L'appel au classifieur SVM #
+##############################
 #@utils.myTools.memoize
 def calcProba(comparedEsp, communEsp):
+
+	def transform(e):
+		if e in communEsp:
+			return 1
+		elif e in comparedEsp:
+			return -1
+		else:
+			return 0
 	
-	# On renvoie une valeur non nulle uniquement si au moins deux branches sont couvertes par des especes OK
-	if len([l for l in lstEspParNoeudsFils if len(l.intersection(communEsp)) > 0]) < 2:
-		return 0
+	data = [transform(e) for e in phylTree.listSpecies]
 
-	# Table des valeurs
-	values = {}
-	for e in comparedEsp:
-		values[e] = espIncertitude[e]
-	for e in communEsp:
-		values[e] = espCertitude[e]
-	
-	if arguments["scoringMethod"] == 0:
-		# Methode initiale: poids pre-calcules de chaque espece et bi-produits
-		prop = [sum([x*dicPoidsEspeces[f] for (f,x) in values.iteritems() if f in l]) for l in lstEspParNoeudsFils]
-		return sum( [f1 * f2 for (f1,f2) in it(prop)] )
-
-	if arguments["scoringMethod"] == 3:
-		# Methode initiale modifiee: poids pre-calcules de chaque espece et somme
-		prop = [sum([x*dicPoidsEspeces[f] for (f,x) in values.iteritems() if f in l]) for l in lstEspParNoeudsFils]
-		return sum( prop )
-
-	if arguments["scoringMethod"] == 1:
-		# Methode intermediaire: interpolation sur les sous arbres et bi-produits
-		prop = [phylTree.calcDist(values, f) for f in lstNoeudsFils]
-		return sum( [f1 * f2 for (f1,f2) in it([x for x in prop if x != None])] )
-
-	if arguments["scoringMethod"] == 4:
-		# Methode intermediaire modifiee: interpolation sur les sous arbres et somme
-		prop = [phylTree.calcDist(values, f) for f in lstNoeudsFils]
-		return sum( [x for x in prop if x != None] )
-
-	# Nouvelle methode: interpolation sur l'arbre entier
-	return phylTree.calcWeightedValue(values, -1, None)[phylTree.indNames[anc]]
+	#return svm_model.predict(data)
+	x = float(svm_model.predict_probability(data)[1][1])
+	return x
+	if x > 0.5:
+		return 1.
+		#return 0.75 + (x-0.5)/2.
+	else:
+		return 0.
+		#return x
+	#return float(svm_model.predict_probability(data)[1][1])
 
 
 #############################################################################################################
@@ -86,7 +73,7 @@ def checkLonelyGenes():
 		for e in phylTree.listSpecies:
 			if e in phylTree.outgroupSpecies[anc]:
 				a = phylTree.dicParents[anc][e]
-				names = genesAnc[a].getOtherNames(lstGenesAnc[i][0])
+				names = genesAnc[a].getOtherNames(lstGenesAnc[i])
 			else:
 				names = lstGenesAnc[i]
 			tmp = [dicGenes[x] for x in names if x in dicGenes]
@@ -109,41 +96,11 @@ def checkLonelyGenes():
 	return new
 
 
-################################################################################
-# Charge les ancetres deja construits et rajoute les infos dans les diagonales #
-################################################################################
-def checkAlreadyBuildAnc():
-	genAlready = {}
-	for f in lstNoeudsFils:
-		s = arguments["alreadyBuiltAnc"] % phylTree.fileName[f]
-		print >> sys.stderr, "Checking %s ..." % f,
-		if utils.myFile.hasAccess(s):
-			genAlready[f] = utils.myGenomes.Genome(s)
-			s = len(genAlready[f].lstChr)
-			if arguments["weightNbChr+"] and (s > 0):
-				espCertitude[f] = 1. - 1. / float(s)
-			if arguments["weightNbChr-"]:
-				espIncertitude[f] = s * alphaIncertitude
-		else:
-			print >> sys.stderr, "Not found"
-
-	print >> sys.stderr, "Mise a jour des chromosomes des diagonales ...",
-	for (d,espC,esp,_,_) in lstDiags:
-		g = utils.myMaths.flatten([lstGenesAnc[i] for i in d])
-		for f in genAlready:
-			espC.update([(f,genAlready[f].dicGenes[s][0]) for s in g if s in genAlready[f].dicGenes])
-			esp.update([f for s in g if s in genAlready[f].dicGenes])
-	print >> sys.stderr, "OK"
-
-
-
 
 
 arguments = utils.myTools.checkArgs( \
-	[("phylTree.conf",file), ("diagsList",file),("ancestr",str)], \
-	[("onlyPrintScores",bool,False), ("scoringMethod",int,[0,1,2,3,4]), ("scoreThresholdMin",float,-1.), ("scoreThresholdMax",float,10.),\
-	("useOutgroups",bool,True), ("alreadyBuiltAnc",str,""), \
-	("useLonelyGenes",bool,False), ("weightNbChr+",bool,False), ("weightNbChr-",bool,False), ("walktrapLength",int,5), \
+	[("phylTree.conf",file), ("diagsList",file), ("ancestr",str), ("svm.model",file)], \
+	[("useOutgroups",bool,True), ("useLonelyGenes",bool,False), ("walktrapLength",int,5), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -165,7 +122,7 @@ if (anc in phylTree.parent) and arguments["useOutgroups"]:
 #######################################
 lengths = []
 dicGenes = {}
-if arguments["weightNbChr+"] or arguments["weightNbChr-"] or arguments["useLonelyGenes"]:
+if arguments["useLonelyGenes"]:
 	for e in phylTree.listSpecies:
 		genome = utils.myGenomes.Genome(arguments["genesFile"] % phylTree.fileName[e])
 		lengths.append(len(genome.lstChr))
@@ -173,33 +130,6 @@ if arguments["weightNbChr+"] or arguments["weightNbChr-"] or arguments["useLonel
 			for (g,(c,_)) in genome.dicGenes.iteritems():
 				dicGenes[g] = (e,c)
 
-
-# Les poids et taux de precisions de chaque espece
-###################################################
-
-# L'apport en terme de couverture de l'arbre phylogenetique
-def calcPoidsFils(node, calc):
-	dicPoidsEspeces[node] = calc
-	if len(phylTree.tmpItems[node]) > 0:
-		poids = calc / float(len(phylTree.tmpItems[node]))
-		for (f,_) in phylTree.tmpItems[node]:
-			calcPoidsFils(f, poids)
-dicPoidsEspeces = dict.fromkeys(phylTree.listSpecies, 0.)
-phylTree.initCalcDist(anc, arguments["useOutgroups"])
-calcPoidsFils(anc, float(len(phylTree.tmpItems[0])))
-
-espCertitude = dict.fromkeys(phylTree.commonNames, 1.)
-espIncertitude = dict.fromkeys(phylTree.commonNames, 0.)
-# Poids de certitude
-if arguments["weightNbChr+"]:
-	for (i,e) in enumerate(phylTree.listSpecies):
-		if lengths[i] > 1:
-			espCertitude[e] = 1. - 1. / float(lengths[i])
-# Poids d'incertitude
-if arguments["weightNbChr-"]:
-	alphaIncertitude = 1. / float(min([x for x in lengths if x > 0]) * max(lengths))
-	for (i,e) in enumerate(phylTree.listSpecies):
-		espIncertitude[e] = lengths[i] * alphaIncertitude
 
 # Les diagonales et les scores possibles
 #########################################
@@ -209,39 +139,21 @@ lstDiags = utils.myDiags.loadDiagsFile(arguments["diagsList"], [anc], phylTree.o
 if arguments["useLonelyGenes"]:
 	lstDiags.extend(checkLonelyGenes())
 
-# On doit noter les chromosomes des diagonales sur ces ancetres deja construits
-if arguments["alreadyBuiltAnc"] != "":
-	checkAlreadyBuildAnc()
-
 dicGenes.clear()
 
-print >> sys.stderr, "%-25s\t%s\t%s\t%s" % ("Ancetre", "Poids", "Cert", "Incert")
-for e in dicPoidsEspeces:
-	print >> sys.stderr, "%-25s\t%.3f\t%.3f\t%.3f" % (e, dicPoidsEspeces[e], espCertitude[e], espIncertitude[e])
+svm_model = utils.svm.svm_model(arguments["svm.model"])
 
 # On calcule les scores
 print >> sys.stderr, "Calcul de la matrice ...",
 edges = collections.defaultdict(dict)
-# Les scores maxima
-x = float(len(lstEspParNoeudsFils))
-maxS = [x*(x-1)/2,x*(x-1)/2,1.,x,x][arguments["scoringMethod"]]
 for i1 in xrange(len(lstDiags)):
 	(d1,ec1,e1,_,_) = lstDiags[i1]
 	for i2 in xrange(i1):
 		(d2,ec2,e2,_,_) = lstDiags[i2]
 		x = calcProba( e1.intersection(e2), frozenset([e for (e,_) in ec1.intersection(ec2)]) )
-		if x < arguments["scoreThresholdMin"]:
-			continue
-		if x >= arguments["scoreThresholdMax"]:
-			x = maxS
-		if arguments["onlyPrintScores"]:
-			print utils.myFile.myTSV.printLine((i1,i2,x))
-		else:
+		if x > 0: #arguments["scoreThreshold"]:
 			edges[i1][i2] = edges[i2][i1] = x
 print >> sys.stderr, "OK"
-
-if arguments["onlyPrintScores"]:
-	sys.exit(0)
 
 res = utils.walktrap.doWalktrap(edges, showProgress=True, randomWalksLength=arguments["walktrapLength"])
 
@@ -259,7 +171,8 @@ for (nodes,cuts,_,dend) in res:
 		clusters.append(nodes)
 		relev.append(0)
 	else:
-		(alpha,score,clust,lonely) = interessant[-1]
+		#(alpha,score,clust,lonely) = interessant[-1]
+		(alpha,score,clust,lonely) = interessant[0]
 		# Au choix, on prend la version la moins fusionnee
 		print >> sys.stderr, "+%d/%d/%f/%f" % (len(clust), len(lonely), alpha, score)
 		clusters.extend(clust)

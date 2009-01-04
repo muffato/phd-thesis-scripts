@@ -8,6 +8,7 @@ import operator
 import itertools
 import collections
 
+import myFile
 import myMaths
 import myTools
 
@@ -203,6 +204,8 @@ class WeightedDiagGraph:
 		self.strand = collections.defaultdict(newDicList)
 		for d in lstDiags:
 			for ((x,sx),(y,sy)) in slidingTuple(d):
+				self.aretes[x]
+				self.aretes[y]
 				if x != y:
 					# On compte pour chaque arete le nombre de fois qu'on l'a vue
 					self.aretes[x][y] += 1
@@ -255,40 +258,64 @@ class WeightedDiagGraph:
 					strand.append( iniStrand[-1][1][1] )
 					return (res,strand)
 
+		nr = len(self.aretes)
+		no = 0
 		# 1. On supprime les bifurcations
 		todo = []
 		for (x,sx) in self.aretes.iteritems():
 			# Pour les noeuds qui ont plus de 2 voisins ...
-			if len(sx) <= 2:
-				continue
-			vois = sx.items()
-			# On trie selon la certitude de chaque lien
-			vois.sort(key = operator.itemgetter(1))
-			# On ne garde que les deux premiers et les autres seront supprimes
-			todo.append( (vois[-3][1]-vois[-2][1], x, tuple(i for (i,_) in vois[:-2])) )
+			if len(sx) > 2:
+				vois = sx.items()
+				# On trie selon la certitude de chaque lien
+				vois.sort(key = operator.itemgetter(1))
+				# On ne garde que les deux premiers et les autres seront supprimes
+				todo.append( (vois[-3][1]-vois[-2][1], x, tuple(i for (i,_) in vois[:-2])) )
 		
 		# Les liens a supprimer en premier sont ceux qui ont un plus fort differentiel par rapport aux liens gardes
 		todo.sort()
 		for (_,x,s) in todo:
 			# Au cours du processus, on a peut-etre rendu inutile la coupe
+			# On verifie qu'il s'agit toujours d'une bifurcation pour x
 			if len(self.aretes[x]) <= 2:
 				continue
 			for y in s:
+				# Que y est toujours lie a x
 				if y not in self.aretes[x]:
 					continue
 				del self.aretes[x][y]
 				del self.aretes[y][x]
-		todo = []
+
 		
+		# On a isole quelques noeuds
 		for (x,sx) in self.aretes.iteritems():
-			if (len(sx) == 1):
-				yield followSommet(x)
+			if len(sx) == 0:
+				yield ([x], [1])
+				no += 1
+
+		# Maintenant, on n'a plus de bifurcations
+		for (x,sx) in self.aretes.iteritems():
+			if len(sx) == 0:
+				pass
+			elif len(sx) == 1:
+				# On peut suivre les chemins non cycliques	
+				t = followSommet(x)
+				yield t
+				no += len(t[0])
+				#yield followSommet(x)
+				assert len(sx) == 0
+			else:
+				# Les autres attendent
+				assert len(sx) == 2
 
 		# 2. On coupe les boucles en chemins
+		todo = []
 		for (x,sx) in self.aretes.iteritems():
-			if (len(sx) == 2):
+			if len(sx) == 2:
 				for (y,val) in sx.iteritems():
 					todo.append( (val,x,y) )
+			else:
+				# Ici, on est deja passe par le noeud
+				assert len(sx) == 0
 		
 		# Les liens a supprimer en premier sont les plus faibles
 		todo.sort()
@@ -296,9 +323,15 @@ class WeightedDiagGraph:
 			try:
 				del self.aretes[x][y]
 				del self.aretes[y][x]
-				yield followSommet(x)
+				#yield followSommet(x)
+				t = followSommet(x)
+				yield t
+				no += len(t[0])
 			except KeyError:
 				pass
+	
+		assert no == nr
+		assert (len(self.aretes) == 0) or (max(len(sx) for sx in self.aretes.itervalues()) == 0)
 
 
 ####################################
@@ -316,7 +349,7 @@ def loadDiagsFile(nom, ancName, officialName):
 		d = [int(x) for x in diag.split(' ')]
 		
 		# On joint les especes qui ont vu la diagonale et celles qui n'apportent que le chromosome
-		tmp = [y.split("/") for y in (e1+'|'+e2).split("|") if len(y) > 0]
+		tmp = [y.split("/")[:2] for y in (e1+'|'+e2).split("|") if len(y) > 0]
 		# Les chromosomes de ces especes
 		espChr = frozenset( [(officialName[e],c) for (e,c) in tmp if ('Un' not in c) and (e in officialName)] )
 		esp = frozenset( [e for (e,_) in espChr] )

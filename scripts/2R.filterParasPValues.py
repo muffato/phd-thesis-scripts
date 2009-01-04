@@ -17,7 +17,7 @@ arguments = utils.myTools.checkArgs( \
 )
 
 f = utils.myTools.myOpenFile(arguments["pvalueFile"], "r")
-pvalues = utils.myTools.defaultdict(dict)
+pvalues = collections.defaultdict(dict)
 for ligne in f:
 	t = ligne.split()
 	if t[0] == '+':

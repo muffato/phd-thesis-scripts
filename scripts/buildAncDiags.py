@@ -39,6 +39,13 @@ def getLongestDiags(oldDiags):
 	del combin.dic
 
 	for g in combin:
+		# Les paires de gene synteniques
+		synt = collections.defaultdict(set)
+		for i in g:
+			for ((g1,_),(g2,_)) in utils.myTools.myIterator.slidingTuple(diags[i]):
+				synt[(g1,g2)].add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
+				synt[(g1,g2)].add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
+				synt[(g2,g1)] = synt[(g1,g2)]
 		# On casse les carrefours de diagonales les uns apres les autres
 		gr = utils.myDiags.WeightedDiagGraph([diags[i] for i in g])
 		# Les diagonales resultat
@@ -48,21 +55,9 @@ def getLongestDiags(oldDiags):
 				continue
 			# On rajoute la liste des especes qui soutiennent la diagonale
 			ok = set()
-			# Test de chaque diagonale
-			for i in g:
-				for ((g1,_),(g2,_)) in utils.myTools.myIterator.slidingTuple(diags[i]):
-					try:
-						i1 = res.index(g1)
-						i2 = res.index(g2)
-					except ValueError:
-						continue
-					# Si la diagonale 'i' soutient la diagonale ancestrale, on rajoute les especes dont elle est tiree
-					if abs(i1-i2) == 1:
-						ok.add( (oldDiags[i][0][0],oldDiags[i][0][1]) )
-						ok.add( (oldDiags[i][1][0],oldDiags[i][1][1]) )
-						break
+			for x in utils.myTools.myIterator.slidingTuple(res):
+				ok.update(synt[x])
 			yield (res,strand,tuple(ok))
-	
 
 
 

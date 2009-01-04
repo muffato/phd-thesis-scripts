@@ -29,7 +29,7 @@ for esp in sorted(phylTree.listSpecies):
 
 	# Les references dans xref
 	print >> sys.stderr, "Telechargement des annotations xref de %s ..." % esp,
-	dic = utils.myTools.defaultdict(set)
+	dic = collections.defaultdict(set)
 	fi = utils.myTools.myOpenFile(arguments["IN.EnsemblURL"] % tmp,'r')
 	for ligne in utils.myFile.MySQLFileLoader(fi):
 		c = ligne.split('\t')

@@ -198,7 +198,7 @@ def doIter(niter):
 			for (i,e) in enumerate(phylTree.listSpecies):
 				espIncertitude[e] = lengths[i] * alphaIncertitude
 
-		edges = utils.myTools.defaultdict(dict)
+		edges = collections.defaultdict(dict)
 
 		# On les stocke directement dans l'instance de walktrap
 		nbedges = 0
@@ -264,7 +264,7 @@ def doIter(niter):
 			nsol += 1
 
 	f = utils.myTools.myOpenFile(arguments["outputAncestralGenomes"] + "Common%d"%niter, "w")
-	groups = utils.myTools.defaultdict(set)
+	groups = collections.defaultdict(set)
 	for d in xrange(len(lstDiags)):
 		lastPos[d] = x = hash(tuple(positions[d]))
 		groups[x].add(d)

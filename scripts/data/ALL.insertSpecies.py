@@ -108,6 +108,8 @@ for famille in orthologues:
 				lst = [(x,l+l0) for ((x,l),l0) in lst if x != None]
 				if len(lst) == 0:
 					return (None,0)
+				if len(lst) == 1:
+					return lst[0]
 				return (mkNode(node, lst, False), 0)
 			else:
 				return (mkSpeciesNode(node, famille.names),0)

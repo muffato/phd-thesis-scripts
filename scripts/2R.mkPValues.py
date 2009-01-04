@@ -20,7 +20,7 @@ genome = utils.myGenomes.Genome(arguments["studiedGenome"])
 paralogues = utils.myGenomes.Genome(arguments["paralogsList"])
 
 print >> sys.stderr, "Computing paralogs ...",
-para = utils.myTools.defaultdict(lambda : utils.myTools.defaultdict(int))
+para = collections.defaultdict(lambda : collections.defaultdict(int))
 nbPara = 0
 for g in paralogues:
 	tg = [c for (c,_) in genome.getPosition(g.names) if type(c) == int]
@@ -32,7 +32,7 @@ print >> sys.stderr, nbPara/2, "OK"
 
 print >> sys.stderr, "Computing p-values ...",
 lstChr = [x for x in para if len(para[x]) > 1]
-pvalues = utils.myTools.defaultdict(dict)
+pvalues = collections.defaultdict(dict)
 for (c1,c2) in utils.myTools.myIterator.tupleOnWholeList(lstChr):
 	p = float(sum(para[c1].values()))
 	if c1 == c2:
