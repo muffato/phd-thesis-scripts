@@ -2,6 +2,8 @@
 
 import os
 import sys
+
+import utils.myFile
 import utils.myTools
 import utils.myPhylTree
 
@@ -51,7 +53,7 @@ def do(node):
 			eE = arguments["genesFile"] % phylTree.fileName[e]
 		else:
 			eE = arguments["ancGenomesFile"] % phylTree.fileName[e]
-		command = "/users/ldog/muffato/work/scripts/printOrthologousChr.py %s %s -orthologuesList=%s +includeScaffolds" % (nodeA,eE,nodeG)
+		command = "/users/ldog/muffato/workspace/scripts/printOrthologousChr.py %s %s -orthologuesList=%s +includeScaffolds" % (nodeA,eE,nodeG)
 		selectOutput(command, [node,e,l])
 		do(e)
 
@@ -62,7 +64,7 @@ if arguments["mode"] == "species":
 		fE1 = arguments["genesFile"] % phylTree.fileName[e1]
 		fE2 = arguments["genesFile"] % phylTree.fileName[e2]
 		fA = arguments["ancGenesFile"] % phylTree.fileName[par]
-		command = "/users/ldog/muffato/work/scripts/printOrthologousChr.py %s %s -orthologuesList=%s +includeScaffolds" % (fE1,fE2,fA)
+		command = "/users/ldog/muffato/workspace/scripts/printOrthologousChr.py %s %s -orthologuesList=%s +includeScaffolds" % (fE1,fE2,fA)
 		selectOutput(command, [e1,e2,2*phylTree.ages.get(par)])
 
 else:

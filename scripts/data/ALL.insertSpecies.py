@@ -5,6 +5,8 @@ __doc__ = """
 """
 
 import sys
+
+import utils.myFile
 import utils.myTools
 import utils.myGenomes
 import utils.myPhylTree
@@ -13,7 +15,7 @@ import utils.myProteinTree
 # Arguments
 ############
 arguments = utils.myTools.checkArgs( \
-	[("phylTree.conf",file), ("proteinTree",file), ("orthologues",file), ("newSpecies",str)], \
+	[("phylTree.conf",file), ("proteinTree",file), ("orthologues",file), ("newSpecies",str), ("gene2prot2transc",file)], \
 	[("genesFile",str,"")], \
 	__doc__ \
 )
@@ -23,6 +25,13 @@ arguments = utils.myTools.checkArgs( \
 phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 phylTree.loadAllSpeciesSince(None, arguments["genesFile"], storeGenomes = False)
 orthologues = utils.myGenomes.Genome(arguments["orthologues"])
+
+f = utils.myFile.openFile(arguments["gene2prot2transc"], "r")
+dicProtTransc = {}
+for l in f:
+	t = l.split()
+	dicProtTransc[t[0]] = (t[1],t[2])
+f.close()
 
 roots = []
 data = {}
@@ -39,7 +48,7 @@ def mkNode(taxon_name, x, dup):
 	maxNodeID += 1
 	dup = 3*int(dup)
 	if type(x) == str:
-		info[maxNodeID] = {'taxon_name':taxon_name, 'Duplication':dup, 'gene_name':x}
+		info[maxNodeID] = {'taxon_name':taxon_name, 'Duplication':dup, 'gene_name':x, 'protein_name':dicProtTransc[x][0], 'transcript_name':dicProtTransc[x][1]}
 	else:
 		info[maxNodeID] = {'taxon_name':taxon_name, 'Duplication':dup, 'Bootstrap':-1}
 		data[maxNodeID] = x

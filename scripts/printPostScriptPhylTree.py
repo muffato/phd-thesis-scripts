@@ -3,6 +3,9 @@
 # Librairies
 import sys
 import math
+
+import utils.myFile
+import utils.myMaths
 import utils.myTools
 import utils.myPhylTree
 import utils.myPsOutput
@@ -33,7 +36,7 @@ else:
 
 colors = {}
 if arguments["colorFile"] != "":
-	f = utils.myTools.myOpenFile(arguments["colorFile"], "r")
+	f = utils.myFile.openFile(arguments["colorFile"], "r")
 	for l in f:
 		t = l.replace('\n','').split("\t")
 		s1 = intern(t[0])
@@ -57,9 +60,14 @@ if arguments["max"] != None:
 	maxV = arguments["max"]
 
 
+refcolors = [(0,0,127), (0,192,192), (0,192,0), (255,255,0), (242,148,0), (224,0,0)]
+inter = utils.myMaths.myInterpolator.getMultDim(utils.myMaths.myInterpolator.oneDimCubic, range(len(refcolors)), refcolors)
+
 # Le degrade 
 def getColor(value):
 	value = (value-minV) / (maxV-minV)
+	return inter(value * len(refcolors))
+
 	if value < 0.1:
 		# bleu fonce -> bleu
 		return utils.myPsOutput.alphaColor( (0,0,127), (0,0,255), 10.*value)

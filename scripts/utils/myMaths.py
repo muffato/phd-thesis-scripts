@@ -229,7 +229,10 @@ class myInterpolator:
 	@staticmethod
 	def oneDimLinear(points, val):
 		
+		import myTools
+
 		intervals = []
+
 		for ((u,FU), (v,FV)) in myTools.myIterator.slidingTuple(zip(points, val)):
 			A = (FU - FV) / (u - v)
 			B = FU - A * u

@@ -9,10 +9,12 @@
 import os
 import sys
 import random
+
+import utils.myFile
 import utils.myTools
 
 
-def doConcorde(self, n, func, repeat=1, verbose=False):
+def doConcorde(n, func, repeat=1, verbose=False):
 
 	# Pour gerer un resultat de concorde et coorienter plusieurs solutions
 	class ConcordeFile:
@@ -20,7 +22,7 @@ def doConcorde(self, n, func, repeat=1, verbose=False):
 		# Chargement
 		def __init__(self, nom):
 			tmp = []
-			f = utils.myTools.myOpenFile(nom, 'r')
+			f = utils.myFile.openFile(nom, 'r')
 			for ligne in f:
 				for x in ligne.split():
 					tmp.append(int(x)-1)

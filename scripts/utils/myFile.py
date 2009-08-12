@@ -11,7 +11,7 @@ null = open('/dev/null', 'w')
 class myTSV:
 
 	import collections
-	csvProxy = collections.namedtuple("csvproxy", ['file','csvobject'])
+	csvProxy = collections.namedtuple("csvProxy", ['file','csvobject'])
 
 	# Lecture en utilisant le module csv
 	######################################
@@ -127,10 +127,15 @@ def openFile(nom, mode):
 		stdin.close()
 		stderr.close()
 
+	# Entree standard
+	elif nom == "-":
+		import sys
+		return sys.stdin
+
 	# Fichier sur le disque
 	else:
 		nom = os.path.expanduser(nom)
-		if "w" in mode:
+		if ("w" in mode) or ("a" in mode):
 			# Cree le repertoire pour les sorties dans fichiers #
 			try:
 				os.makedirs(os.path.dirname(nom))

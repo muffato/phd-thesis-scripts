@@ -5,12 +5,14 @@ __doc__ = """
 """
 
 import random
+
+import utils.myFile
 import utils.myTools
 
 
 arguments = utils.myTools.checkArgs([("fichier",file)], [("nbShuffle",int,10)], __doc__)
 
-lst = utils.myTools.myOpenFile(arguments["fichier"], 'r').readlines()
+lst = utils.myFile.openFile(arguments["fichier"], 'r').readlines()
 for _ in xrange(arguments["nbShuffle"]):
 	random.shuffle(lst)
 

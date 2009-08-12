@@ -7,14 +7,14 @@ import utils.myFile
 import utils.myMaths
 import utils.myTools
 
-arguments = utils.myTools.checkArgs( [], [], "Lit une liste de noms de fichiers sur l'entree standard et affiche le fichier des moyennes" )
+arguments = utils.myTools.checkArgs( [], [("withStddev",bool,True)], "Lit une liste de noms de fichiers sur l'entree standard et affiche le fichier des moyennes" )
 
 alldata = []
 for l in sys.stdin:
 	data = []
 	f = utils.myFile.openFile(l.replace('\n', ''), "r")
 	for s in f:
-		data.append(s.replace('\n', '').split("\t"))
+		data.append(s.replace('\n', '').split(" "))
 	f.close()
 	alldata.append( data )
 
@@ -37,8 +37,11 @@ for (i,l) in enumerate(ref):
 			res = x
 		else:
 			lst = utils.myMaths.myStats.valSummary( [y(data[i][j]) for data in alldata] )
-			res = "%.2f [%.2f]" % (lst[8], lst[9])
+			if arguments["withStddev"]:
+				res = "%.2f [%.2f]" % (lst[8], lst[9])
+			else:
+				res = "%.2f" % lst[8]
 
-		s += "\t" + res
+		s += " " + res
 	print s[1:]
 

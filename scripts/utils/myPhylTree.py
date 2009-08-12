@@ -5,9 +5,7 @@ import collections
 import myFile
 import myTools
 
-dsi = dict.__setitem__
-dgi = dict.__getitem__
-GeneSpeciesPosition = collections.namedtuple("genespeciesposition", ['species', 'chromosome', 'index'])
+GeneSpeciesPosition = collections.namedtuple("GeneSpeciesPosition", ['species', 'chromosome', 'index'])
 
 
 ##########################################
@@ -33,8 +31,8 @@ class PhylogeneticTree:
 				self.nom = fichier
 			
 			f = myFile.firstLineBuffer(f)
-			if ';' in f.firstLine:
-				self.__loadFromNewick__(f.firstLine)
+			if (';' in f.firstLine) or ('(' in f.firstLine):
+				self.__loadFromNewick__(f.firstLine.replace('\n','') + " ;")
 			else:
 				self.__loadFromMyFormat__(f)
 			f.close()
@@ -104,7 +102,7 @@ class PhylogeneticTree:
 		self.listAncestr = frozenset(self.items)
 
 		# Structures post-analyse
-		self.allNames = list(self.species)
+		#self.allNames = list(self.species)
 		self.allNames = self.tmpA + self.tmpS
 		self.outgroupSpecies = self.newCommonNamesMapperInstance()
 		self.indNames = self.newCommonNamesMapperInstance()
@@ -196,11 +194,12 @@ class PhylogeneticTree:
 		rootNode = self.indNames[self.lastCommonAncestor(values.keys())]
 		recBuild(rootNode, None, 0)
 		# Resolution de l'equation
-		try:
-			res = numpy.linalg.solve(matriceA, matriceB)
-		except numpy.linalg.linalg.LinAlgError:
-			# Ne se produit jamais
-			return None
+		res = numpy.linalg.solve(matriceA, matriceB)
+		#try:
+		#	res = numpy.linalg.solve(matriceA, matriceB)
+		#except numpy.linalg.linalg.LinAlgError:
+		#	# Ne se produit jamais
+		#	return None
 
 
 		# Cherche la valeur la plus proche de node sachant que notre parcours nous fait venir de origin
@@ -237,11 +236,72 @@ class PhylogeneticTree:
 		best = searchBestValue(resultNode, None, 0)
 		return (best[0],self.allNames[best[1]],best[2])
 
+	# Calcule les valeurs sur les noeuds de l'arbre
+	#  - values represente des valeurs definies (noeuds ou feuilles)
+	#  - notdefined est la valeur a renvoyer si pas de resultat
+	#  - resultNode indique de quel ancetre on veut le resultat
+	#########################################################################
+	def calcWeightedValue2(self, values, notdefined, resultNode):
+		
+		import numpy
+		
+		n = len(self.allNames)
+		# Par defaut, les resultats seront "notdefined"
+		matriceA = numpy.identity(n)
+		matriceB = numpy.empty((n,))
+		matriceB.fill(notdefined)
+
+		# Construit recursivement la matrice
+		def recBuild(ianc, father, length):
+			anc = self.allNames[ianc]
+
+			# Appels recursifs: on selectionne les fils OK (en supposant qu'on le soit nous meme)
+			items = [(e,p) for (e,p) in self.numItems[ianc] if recBuild(e, ianc, p)]
+			# Le pere si disponible
+			if father != None:
+				items.append( (father,length) )
+
+			if anc in values:
+				# Si on a une valeur, on met "x = val"
+				matriceB[ianc] = values.get(anc)
+				return True
+
+			elif len(items) >= 2:
+				# S'il a suffisament de voisins, on ecrit l'equation
+				s = 0.
+				for (e,p) in items:
+					p = 1./max(p,0.00001)
+					matriceA[ianc][e] = p
+					s += p
+				matriceA[ianc][ianc] = -s
+				matriceB[ianc] = 0
+				return True
+			else:
+				return False
+		
+		# Construction de la matrice
+		if len(values) == 0:
+			return matriceB
+			
+		rootNode = self.indNames[self.lastCommonAncestor(values.keys())]
+		recBuild(rootNode, None, 0)
+		# Resolution de l'equation
+		res = numpy.linalg.solve(matriceA, matriceB)
+		
+		if resultNode == None:
+			return res
+		return res[self.indNames[resultNode]]
+
+
 
 	# Renvoie un dictionnaire qui utilise en interne les noms officiels des taxons
 	#  mais que l'on peut utiliser avec les noms communs
 	# #############################################################################
 	def newCommonNamesMapperInstance(self):
+		
+		dsi = dict.__setitem__
+		dgi = dict.__getitem__
+		
 		class commonNamesMapper(dict):
 
 			def __getitem__(d, name):
@@ -285,7 +345,8 @@ class PhylogeneticTree:
 			if storeGenomes:
 				self.dicGenomes[esp] = g
 			for (x,(c,i)) in g.dicGenes.iteritems():
-				self.dicGenes[x] = (esp, c, i)
+				#self.dicGenes[x] = (esp, c, i)
+				self.dicGenes[x] = GeneSpeciesPosition(esp, c, i)
 	
 	# Renvoie le nombre de genes dans chaque espece pour une famille donnee
 	def findFamilyComposition(self, fam):
@@ -312,11 +373,11 @@ class PhylogeneticTree:
 			anc = node
 			while anc in self.parent:
 				(par,l) = self.parent[anc]
-				self.tmpItems[anc].append( (par,l) )
-				self.tmpItems[par].remove( (anc,l) )
+				self.tmpItems[anc] = self.tmpItems[anc] + [(par,l)]
+				self.tmpItems[par] = [x for x in self.tmpItems[par] if x[0] != anc]
 				anc = par
-		for esp in self.allNames:
-			self.tmpItems.setdefault(esp, [])
+		#for esp in self.allNames:
+		#	self.tmpItems.setdefault(esp, [])
 		self.tmpItems[0] = self.tmpItems[node]
 
 	#
@@ -452,8 +513,6 @@ class PhylogeneticTree:
 	# Arbre au format Newick (parentheses)
 	#######################################
 	def __loadFromNewick__(self, s):
-
-		import string
 
 		# Lit les nb prochains caracteres de l'arbre
 		def readStr(nb):

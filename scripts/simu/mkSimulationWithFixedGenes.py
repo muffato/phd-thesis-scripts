@@ -96,9 +96,9 @@ def buildGenomes(genome, node, dupPairs):
 			print >> sys.stderr, "OK (%d chromosomes)" % len(genome)
 		
 		else:
-			assert node in phylTree.lstEspFull
+			assert node in phylTree.lstEspFull, (node,phylTree.lstEspFull)
 	else:
-		assert node in phylTree.listAncestr
+		assert node in phylTree.listAncestr, (node,phylTree.listAncestr)
 
 	# On ecrit le veritable genome ancestral et on prepare les familles
 	# Initialement les familles de genes contiennent les genes eux-memes
@@ -134,8 +134,9 @@ def buildGenomes(genome, node, dupPairs):
 				else:
 					# Un peu de duplications
 					nbDup += len(x)-1
-					if not arguments["tandemDuplications"]:
-						newGenes.update(x[1:])
+					for y in x[1:]:
+						if random.random() > arguments["tandemDuplications"]:
+							newGenes.add(y)
 			# On ecrit donc le nouveau genome
 			newGenome = []
 			for chrom in genome:
@@ -145,9 +146,9 @@ def buildGenomes(genome, node, dupPairs):
 					if g not in todelete:
 						# En les renommant
 						tmp.append( (correspondances[g][0],strand) )
-						if arguments["tandemDuplications"]:
-							# Et en les dupliquant
-							for x in correspondances[g][1:]:
+						# Et en les dupliquant
+						for x in correspondances[g][1:]:
+							if x not in newGenes:
 								tmp.append( (x,randomStrand()) )
 				newGenome.append(tmp)
 			# Et on ajoute les nouveaux
@@ -172,8 +173,9 @@ def buildGenomes(genome, node, dupPairs):
 				nbEvents[3] /= 2
 			elif fils == "Gallus gallus":
 				# Le poulet a un genome proche de la version ancestrale, avec une preference pour les micro-chromosomes
-				for i in xrange(3):
-					nbEvents[i] /= 2
+				nbEvents[0] /= 2
+				nbEvents[1] /= 2
+				nbEvents[2] /= 2
 				nbEvents[3] *= 2
 			elif phylTree.dicParents[fils]["Rodentia"] == "Rodentia":
 				# Les rongeurs ont diverge tres vite
@@ -261,7 +263,7 @@ arguments = utils.myTools.checkArgs( \
 	# Rearrangements de chromosomes
 	("chrInvertRate",float,1.), ("chrTranslocRate",float,0.3), ("chrFusionRate",float,0.1), ("chrBreakRate",float,0.1), \
 	# Divers
-	("duplicationGeneSwap",float,.02), ("tandemDuplications",bool,False), \
+	("duplicationGeneSwap",float,.02), ("tandemDuplications",float,0.), \
 	# Fichiers
 	("genomeFile",str,"simu/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"simu/ancGenes/ancGenes.%s.list.bz2")], \
@@ -285,13 +287,13 @@ random.shuffle(genes)
 tmp = [random.random() for _ in xrange(arguments["iniChrNumber"])]
 facteur = nbGenes / sum(tmp)
 chrlen = [int(x*facteur) for x in tmp]
+# Pour les erreurs d'arrondis ...
+chrlen[-1] += nbGenes - sum(chrlen)
 # On place les genes dans les chromosomes
 genome = []
 for nb in chrlen:
 	genome.append(genes[:nb])
 	genes = genes[nb:]
-# Pour les erreurs d'arrondis ...
-genome[-1].extend(genes)
 
 # On construit le scenario evolutif
 buildGenomes(genome, root, [[i] for i in xrange(nbGenes)])

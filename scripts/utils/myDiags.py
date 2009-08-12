@@ -3,16 +3,39 @@
 # Fonctions communes de traitement des diagonales #
 ###################################################
 
-import sys
 import operator
 import itertools
 import collections
 
-import myFile
-import myMaths
-import myTools
+import enum
 
-slidingTuple = myTools.myIterator.slidingTuple
+import utils.myTools
+import utils.myGenomes
+
+
+OrthosFilterType = enum.Enum('None', 'InCommonAncestor', 'InBothSpecies')
+
+
+#
+# Forme la liste des especes a comparer
+# Les ancetres doivent etre prefixes d'un '.' pour etre pris en tant que genomes
+#   sinon, ce sont leurs especes descendantes qui sont utilisees
+##################################################################################
+def getTargets(phylTree, s):
+	listSpecies = []
+	for x in s.split(','):
+		if x[0] != '.':
+			listSpecies.extend(phylTree.species[x])
+		else:
+			listSpecies.append(x[1:])
+
+	# La liste des ancetres edites
+	dicLinks = [(e1,e2,set(phylTree.dicLinks[e1][e2][1:-1] + [phylTree.dicParents[e1][e2]])) for (e1,e2) in utils.myTools.myIterator.tupleOnStrictUpperList(listSpecies)]
+	tmp = set()
+	for (_,_,s) in dicLinks:
+		tmp.update(s)
+	
+	return (listSpecies, tmp)
 
 
 #
@@ -24,19 +47,15 @@ slidingTuple = myTools.myIterator.slidingTuple
 ########################################################################################
 def iterateDiags(genome1, dic2, sameStrand):
 
-	diag = collections.deque()
-	listI1 = []
-	listI2 = []
+	l1 = []
+	l2 = []
+	la = []
 	lastPos2 = []
-	listStrand = []
 	lastS1 = 0
 	
 	# Parcours du genome 1
 	for (i1,(j1,s1)) in enumerate(genome1):
-		if j1 < 0:
-			presI2 = []
-		else:
-			presI2 = dic2[j1]
+		presI2 = dic2[j1] if j1 >= 0 else []
 		
 		# On regarde chaque orthologue du gene
 		for ((c2,i2,s2), (lastC2,lastI2,lastS2)) in itertools.product(presI2, lastPos2):
@@ -52,133 +71,165 @@ def iterateDiags(genome1, dic2, sameStrand):
 				if lastS1*s1 != lastS2*s2:
 					continue
 			else:
-				# On demande juste a ce que les deux genes soient cote a cote
+				# On demande juste que les deux genes soient cote a cote
 				if abs(i2-lastI2) != 1:
 					continue
 			
-			# On a passe les test, c'est OK
-			# On ecrit l'orthologue que l'on a choisi pour le coup d'avant (aucun effet si one2one)
-			listI2[-1] = lastI2
-			listI2.append(i2)
+			# On a passe tous les tests, c'est OK
+			# On ecrit l'orthologue que l'on a choisi pour le coup d'avant (utile en cas de one2many, aucun effet si one2one)
+			l2[-1] = (lastI2,lastS2)
+			l2.append((i2,s2))
 			lastPos2 = [(c2,i2,s2)]
 			break
 
 		# On n'a pas trouve de i2 satisfaisant, c'est la fin de la diagonale
 		else:
 			# On l'enregistre si elle n'est pas vide
-			if len(listI2) > 0:
-				yield (listI1,listI2, lastPos2[0][0], listStrand, (deb1,fin1), (min(listI2),max(listI2)) )
+			if len(l2) > 0:
+				yield (l1,l2,la, lastPos2[0][0])
 			# On recommence a zero
-			deb1 = i1
 			lastPos2 = presI2
-			listI1 = []
-			listStrand = []
+			l1 = []
+			la = []
 			# Pour que les diagonales de longueur 1 soient correctes
-			listI2 = [i2 for (lastC2,i2,_) in presI2[:1]]
+			l2 = [presI2[0][1:]] if len(presI2) > 0 else []
 		
-		listI1.append(i1)
-		listStrand.append(s1)
+		l1.append((i1,s1))
+		la.append(j1)
 		lastS1 = s1
-		fin1 = i1
 	
-	if len(listI2) > 0:
-		yield (listI1,listI2, lastC2, listStrand, (deb1,fin1), (min(listI2),max(listI2)))
+	if len(l2) > 0:
+		yield (l1,l2,la, lastPos2[0][0])
 
 
+#
+# Proxy de generateur gerant la remise differee d'elements
+############################################################
 class queueWithBackup:
 
 	def __init__(self, gen):
 		self.gen = gen
 		self.backup = collections.deque()
-		self.todofirst = collections.deque()
+		self.todofirst = []
 	
 	def __iter__(self):
 		return self
 	
+	# Le prochain element renvoye vient soit du buffer, soit du generateur principal
 	def next(self):
 		if len(self.todofirst) > 0:
-			return self.todofirst.popleft()
+			return self.todofirst.pop()
 		return self.gen.next()
 	
+	# L'element reinsere est mis en attente
 	def putBack(self, x):
-		self.backup.append(x)
+		self.backup.appendleft(x)
 	
+	# Les elements sauvegardes sont mis dans un buffer de sortie et deviennent prioritaires
 	def rewind(self):
-		self.todofirst = self.backup
+		self.todofirst.extend(self.backup)
 		self.backup = collections.deque()
 
 
+#
+# Lit les diagonales et les fusionne si elles sont separees par un trou pas trop grand
+########################################################################################
+def diagMerger(diagGen, sameStrand, largeurTrou):
+	
+	diagGen = queueWithBackup( (l1, l2, la, c2, l1[0][1]/l2[0][1], (min(l1)[0],max(l1)[0]), (min(l2)[0],max(l2)[0])) for (l1,l2,la,c2) in diagGen )
 
-def diagMerger(diagGen, largeurTrou):
 	# On rassemble des diagonales separees par une espace pas trop large
-	for (d1,d2,c2,s,(deb1,fin1),(deb2,fin2)) in diagGen:
+	for (la1,la2,laa,ca2,sa,(_,fina1),(deba2,fina2)) in diagGen:
 		for curr in diagGen:
-			(dd1,dd2,cc2,ss,(debb1,finn1),(debb2,finn2)) = curr
-
-			# Aucune chance de poursuivre la diagonale
-			if debb1 > (fin1+largeurTrou+1):
+			(lb1,lb2,lba,cb2,sb,(debb1,finb1),(debb2,finb2)) = curr
+			
+			# Trou trop grand sur l'espece 1, aucune chance de le continuer
+			if debb1 > (fina1+largeurTrou+1):
 				diagGen.putBack(curr)
 				break
-			elif (min(abs(deb2-finn2), abs(debb2-fin2)) <= (largeurTrou+1)) and (c2 == cc2):
-				d1.extend(dd1)
-				d2.extend(dd2)
-				s.extend(ss)
-				fin1 = finn1
-				deb2 = min(deb2,debb2)
-				fin2 = max(fin2,finn2)
+			
+			# Chromosomes differents de l'espece 2
+			if ca2 != cb2:
+				ok = False
+			elif sameStrand:
+				if sa != sb:
+					ok = False
+				elif sa > 0:
+					ok = (fina2 < debb2 <= (fina2+largeurTrou+1))
+				else:
+					ok = (finb2 < deba2 <= (finb2+largeurTrou+1))
+			else:
+				ok = (min(abs(deba2-finb2), abs(debb2-fina2)) <= (largeurTrou+1))
+			
+			if ok:
+				la1.extend(lb1)
+				la2.extend(lb2)
+				laa.extend(lba)
+				fina1 = finb1
+				deba2 = min(deba2,debb2)
+				fina2 = max(fina2,finb2)
 			else:
 				diagGen.putBack(curr)
 
-		yield (c2,d1,d2,s)
+		yield (ca2,la1,la2,laa)
 		diagGen.rewind()
 
 #
 # Procedure complete de calculs des diagonales a partir de 2 genomes, des orthologues et de certains parametres
 ################################################################################################################
-def calcDiags(g1, g2, orthos, minimalLength, fusionThreshold, sameStrand, keepOnlyOrthos):
+def calcDiags(g1, g2, orthos, fusionThreshold, sameStrand, orthosFilter):
 
-
-	# Ecrire un genome en suite de genes ancestraux
-	def translateGenome(genome, dicOrthos, onlyOrthos):
+	# Ecrit les genomes comme suites de numeros de genes ancestraux
+	def translateGenome(genome):
 		newGenome = {}
-		transNewOld = {}
-		for c in genome.lstChr + genome.lstScaff:
-			newGenome[c] = [(dicOrthos.get(g.names[0], (None,-1))[1],g.strand) for g in genome.lstGenes[c]]
-			# Si on a garde uniquement les genes avec des orthologues
-			# On doit construire un dictionnaire pour revenir aux positions originales
-			if onlyOrthos:
-				tmp = [x for x in newGenome[c] if x[0] != -1]
-				tmpD = {}
-				last = -1
-				for (i,obj) in enumerate(tmp):
-					last = newGenome[c].index(obj, last + 1)
-					tmpD[i] = last
-				newGenome[c] = tmp
-				transNewOld[c] = tmpD
-					
-		return (newGenome,transNewOld)
+		for c in genome.chrList[utils.myGenomes.ContigType.Chromosome] + genome.chrList[utils.myGenomes.ContigType.Scaffold]:
+			newGenome[c] = [(orthos.dicGenes[g.names[-1]].index if g.names[-1] in orthos.dicGenes else -1, g.strand) for g in genome.lstGenes[c]]
+		return newGenome
+	newg1 = translateGenome(g1)
+	newg2 = translateGenome(g2)
 
-	# Les dictionnaires pour accelerer la recherche de diagonales
-	(newGen,trans1) = translateGenome(g1, orthos.dicGenes, keepOnlyOrthos)
-	(tmp,trans2) = translateGenome(g2, orthos.dicGenes, keepOnlyOrthos)
-	
+	# Ne conserve que les genes presents dans les deux genomes
+	if orthosFilter == OrthosFilterType.InBothSpecies:
+		def usedValues(genome):
+			val = set()
+			for x in genome.itervalues():
+				val.update(i for (i,_) in x)
+			return val
+		def rewrite(genome, inters):
+			for c in genome:
+				genome[c] = [(i,s) if i in inters else (-1,s) for (i,s) in genome[c]]
+		val1 = usedValues(newg1)
+		val2 = usedValues(newg2)
+		inters = val1.intersection(val2)
+		rewrite(newg1, inters)
+		rewrite(newg2, inters)
+
+	# Enleve les genes sans lien
+	if orthosFilter != OrthosFilterType.None:
+		def filterGenome(genome):
+			trans = {}
+			for c in genome:
+				tmp = [(i,x) for (i,x) in enumerate(genome[c]) if x[0] != -1]
+				genome[c] = [x for (_,x) in tmp]
+				trans[c] = dict((newi,oldi) for (newi,(oldi,_)) in enumerate(tmp))
+			return trans
+		trans1 = filterGenome(newg1)
+		trans2 = filterGenome(newg2)
+
+	# Pour chaque gene ancestral, ses positions dans le genome 2
 	newLoc = [[] for x in xrange(len(orthos.lstGenes[None]))]
-	for c in g2.lstChr + g2.lstScaff:
-		for (i,(ianc,s)) in enumerate(tmp[c]):
+	for c in newg2:
+		for (i,(ianc,s)) in enumerate(newg2[c]):
 			if ianc != -1:
 				newLoc[ianc].append( (c,i,s) )
 
-	for (c1,tmpGen1) in newGen.iteritems():
-		for (c2,d1,d2,s) in diagMerger(queueWithBackup(iterateDiags(tmpGen1, newLoc, sameStrand)), fusionThreshold):
-
-			if len(d1) < minimalLength:
-				continue
-			
+	for c1 in newg1:
+		for (c2,d1,d2,da) in diagMerger(iterateDiags(newg1[c1], newLoc, sameStrand), sameStrand, fusionThreshold):
 			# Si on a garde uniquement les genes avec des orthologues, il faut revenir aux positions reelles dans le genome
-			if keepOnlyOrthos:
-				yield ((c1,[trans1[c1][i] for i in d1]), (c2,[trans2[c2][i] for i in d2]), s)
+			if orthosFilter != OrthosFilterType.None:
+				yield ((c1,[(trans1[c1][i1],s1) for (i1,s1) in d1]), (c2,[(trans2[c2][i2],s2) for (i2,s2) in d2]), da)
 			else:
-				yield ((c1,d1), (c2,d2), s)
+				yield ((c1,d1), (c2,d2), da)
 
 
 #
@@ -187,151 +238,165 @@ def calcDiags(g1, g2, orthos, minimalLength, fusionThreshold, sameStrand, keepOn
 class WeightedDiagGraph:
 
 	#
-	# Initialisation du graphe a partir de la liste des diagonales
-	# On construit la liste des genes voisins
-	################################################################
-	def __init__(self, lstDiags):
-		
+	# Constructeur
+	################
+	def __init__(self):
+		# Les aretes du graphe et les orientations relatives des genes
 		def newDicInt():
 			return collections.defaultdict(int)
-		def newDicList():
-			def newStrandCount():
-				return collections.defaultdict(int)
-			return collections.defaultdict(newStrandCount)
-
-		# Les aretes du graphe et les orientations relatives des genes
 		self.aretes = collections.defaultdict(newDicInt)
-		self.strand = collections.defaultdict(newDicList)
-		for d in lstDiags:
-			for ((x,sx),(y,sy)) in slidingTuple(d):
-				self.aretes[x]
-				self.aretes[y]
-				if x != y:
-					# On compte pour chaque arete le nombre de fois qu'on l'a vue
-					self.aretes[x][y] += 1
-					self.aretes[y][x] += 1
-					# On enregistre l'orientation
-					self.strand[x][y][(sx,sy)] += 1
-					self.strand[y][x][(-sy,-sx)] += 1
+	
+	
+	#
+	# Insere une diagonale avec un certain poids
+	################################################################
+	def addDiag(self, diag, weight=1):
 		
-		# Pour "normaliser"
-		for (x,sx) in self.strand.iteritems():
-			for (y,l) in sx.iteritems():
-				sx[y] = max( [(v,strand) for (strand,v) in l.iteritems()] )
+		for ((x,sx),(y,sy)) in utils.myTools.myIterator.slidingTuple(diag):
+			self.aretes[(x,sx)]
+			self.aretes[(x,-sx)]
+			self.aretes[(y,sy)]
+			self.aretes[(y,-sy)]
+			if x != y:
+				# On compte pour chaque arete le nombre de fois qu'on l'a vue
+				self.aretes[(x,sx)][(y,sy)] += weight
+				self.aretes[(y,-sy)][(x,-sx)] += weight
+		
+	#
+	# Affiche le graphe initial
+	#############################
+	def printIniGraph(self, ):
+		print "INIGRAPH %d {" % len(self.aretes)
+		for x in self.aretes:
+			print "\t", x, "> {%d}" % len(self.aretes[x])
+			for y in self.aretes[x]:
+				print "\t\t", y, "[%d]" % self.aretes[x][y]
+		print "}"
+
+
+	#
+	# Garde successivement les aretes de meilleur poids tant qu'elles n'introduisent pas de carrefour ou de cycle
+	##############################################################################################################
+	def cleanGraphTopDown(self, minimalWeight):
+		allEdges = []
+		res = {}
+		allSucc = {}
+		allPred = {}
+		allNodes = set(self.aretes)
+		
+		for (xsx,l) in self.aretes.iteritems():
+			allSucc[xsx] = []
+			allPred[xsx] = []
+			for (ysy,c) in l.iteritems():
+				if c >= minimalWeight:
+				#if (c >= minimalWeight) and (xsx < ysy):
+					allEdges.append( (c,xsx,ysy) )
+		
+		def addEdge(c, xsx, ysy):
+			# On ecrit l'arete
+			res[xsx] = (ysy, c)
+			# Tables de detection de cycles
+			allSucc[xsx] = [ysy] + allSucc[ysy]
+			for t in allPred[xsx]:
+				allSucc[t].extend(allSucc[xsx])
+			allPred[ysy] = [xsx] + allPred[xsx]
+			for t in allSucc[ysy]:
+				allPred[t].extend(allPred[ysy])
+
+		allEdges.sort(reverse = True)
+		for (c,(x,sx),(y,sy)) in allEdges:
+			# 3 cas ambigus
+			if (x,sx) in res:
+				# > 1 successeur
+				print "not used /successor", (x,sx), (y,sy), c
+				continue
+			if (y,-sy) in res:
+				# > 1 predecesseur
+				print "not used /predecessor", (x,sx), (y,sy), c
+				continue
+			if (x,sx) in allSucc[(y,sy)]:
+				# Cycle
+				print "not used /cycle", (x,sx), (y,sy), c
+				continue
+			assert (y,-sy) not in allSucc[(x,-sx)]
+
+			addEdge(c, (x,sx), (y,sy))
+			addEdge(c, (y,-sy), (x,-sx))
+			
+	
+		allNodes.difference_update(res)
+		allNodes.difference_update(ysy for (ysy,_) in res.itervalues())
+
+		self.aretes = res
+		self.singletons = allNodes
+
+
 
 	#
 	# Construit un graphe dans lequel les suites d'aretes sans carrefours ont ete reduites
 	#
 	def getBestDiags(self):
-	
-		# Renvoie le chemin qui part de src en parcourant les aretes ar
-		def followSommet(src):
+
+		# Renvoie le chemin qui part de src en parcourant les aretes
+		def followSommet(x, sx):
+		
+			# Affichage du graphe
+			print "GRAPH %d {" % len(self.aretes)
+			for (tx,(ty,c)) in self.aretes.iteritems():
+				print "\t", tx, ">", ty, "[%d]" % c
+			print "}"
+
 			res = []
-			pred = None
-			curr = src
+			scores = []
+			print "begin", (x,sx)
+			
 			# On part de src et on prend les successeurs jusqu'a la fin du chemin
-			while True:
+			while (x,sx) in self.aretes:
 				# On marque notre passage
-				res.append( curr )
-				try:
-					# Le prochain noeud a visiter
-					(next,_) = self.aretes[curr].popitem()
-					# On supprime l'arete inverse pour ne pas revenir en arriere
-					del self.aretes[next][curr]
-					# L'orientation relative des deux genes
-					pred = curr
-					curr = next
-				# Jusqu'a ce qu'il n'y ait plus de successeur
-				except KeyError:
-					# On reconstruit l'orientation
-					# La liste des co-orientations
-					iniStrand = [self.strand[x][y] for (x,y) in slidingTuple(res)]
-					# La premiere orientation
-					strand = [iniStrand[0][1][0]]
-					# On scanne les paires de co-orientations pour voir si elles sont consistantes
-					for ((v1,(_,sy1)),(v2,(sx2,_))) in slidingTuple(iniStrand):
-						if (sy1 == sx2) or (v1 > v2):
-							strand.append( sy1 )
-						else:
-							strand.append( sx2 )
-					# La derniere orientation
-					strand.append( iniStrand[-1][1][1] )
-					return (res,strand)
+				res.append( (x,sx) )
+				
+				# Le prochain noeud a visiter
+				((y,sy),c) = self.aretes.pop( (x,sx) )
+				print "pop edge", (x,sx), (y,sy), c
+				scores.append(c)
 
-		nr = len(self.aretes)
-		no = 0
-		# 1. On supprime les bifurcations
-		todo = []
-		for (x,sx) in self.aretes.iteritems():
-			# Pour les noeuds qui ont plus de 2 voisins ...
-			if len(sx) > 2:
-				vois = sx.items()
-				# On trie selon la certitude de chaque lien
-				vois.sort(key = operator.itemgetter(1))
-				# On ne garde que les deux premiers et les autres seront supprimes
-				todo.append( (vois[-3][1]-vois[-2][1], x, tuple(i for (i,_) in vois[:-2])) )
-		
-		# Les liens a supprimer en premier sont ceux qui ont un plus fort differentiel par rapport aux liens gardes
-		todo.sort()
-		for (_,x,s) in todo:
-			# Au cours du processus, on a peut-etre rendu inutile la coupe
-			# On verifie qu'il s'agit toujours d'une bifurcation pour x
-			if len(self.aretes[x]) <= 2:
-				continue
-			for y in s:
-				# Que y est toujours lie a x
-				if y not in self.aretes[x]:
-					continue
-				del self.aretes[x][y]
-				del self.aretes[y][x]
+				# Traitement de l'arete inverse
+				assert self.aretes.pop( (y,-sy) ) == ((x,-sx),c)
+
+				# Passage au suivant
+				(x,sx) = (y,sy)
+
+			res.append( (x,sx) )
+			assert (x,-sx) not in self.aretes
+			assert len(res) >= 2
+
+			print "end", len(res), res
+
+			return (res,scores)
 
 		
+		# On cherche les extremites pour lancer les blocs integres
+		todo = [(x,sx) for (x,sx) in self.aretes if (x,-sx) not in self.aretes]
+		for (x,sx) in todo:
+			if (x,sx) in self.aretes:
+				yield followSommet(x, sx)
+			
+		assert len(self.aretes) == 0
+
 		# On a isole quelques noeuds
-		for (x,sx) in self.aretes.iteritems():
-			if len(sx) == 0:
-				yield ([x], [1])
-				no += 1
+		print self.singletons
+		r = set()
+		for (x,sx) in self.singletons:
+			if (x,sx) not in r:
+				r.add( (x,-sx) )
 
-		# Maintenant, on n'a plus de bifurcations
-		for (x,sx) in self.aretes.iteritems():
-			if len(sx) == 0:
-				pass
-			elif len(sx) == 1:
-				# On peut suivre les chemins non cycliques	
-				t = followSommet(x)
-				yield t
-				no += len(t[0])
-				#yield followSommet(x)
-				assert len(sx) == 0
-			else:
-				# Les autres attendent
-				assert len(sx) == 2
+		for (x,sx) in r:
+			print "singleton", x
+			yield ([(x,1)],[])
+			self.singletons.remove( (x,sx) )
+			self.singletons.remove( (x,-sx) )
 
-		# 2. On coupe les boucles en chemins
-		todo = []
-		for (x,sx) in self.aretes.iteritems():
-			if len(sx) == 2:
-				for (y,val) in sx.iteritems():
-					todo.append( (val,x,y) )
-			else:
-				# Ici, on est deja passe par le noeud
-				assert len(sx) == 0
-		
-		# Les liens a supprimer en premier sont les plus faibles
-		todo.sort()
-		for (_,x,y) in todo:
-			try:
-				del self.aretes[x][y]
-				del self.aretes[y][x]
-				#yield followSommet(x)
-				t = followSommet(x)
-				yield t
-				no += len(t[0])
-			except KeyError:
-				pass
-	
-		assert no == nr
-		assert (len(self.aretes) == 0) or (max(len(sx) for sx in self.aretes.itervalues()) == 0)
+		assert len(self.singletons) == 0
 
 
 ####################################
@@ -339,6 +404,9 @@ class WeightedDiagGraph:
 ####################################
 def loadDiagsFile(nom, ancName, officialName):
 	
+	import sys
+	import myFile
+
 	print >> sys.stderr, "Chargement des diagonales de %s ..." % nom,
 	lst = collections.defaultdict(list)
 	for (anc,_,diag,strands,e1,e2) in myFile.myTSV.readTabular(nom, [str,int,str,str,str,str]):

@@ -124,6 +124,18 @@ def getCubicGradient(colors, nelem):
 def alphaColor((r1,g1,b1), (r2,g2,b2), alpha):
 	return (int(round(r1*(1.-alpha)+r2*alpha)), int(round(g1*(1.-alpha)+g2*alpha)), int(round(b1*(1.-alpha)+b2*alpha)))
 
+def YUV2RGB((Y,U,V)):
+	R = Y + 1.140*V
+	G = Y - 0.395*U - 0.581*V
+	B = Y + 2.032*U
+	
+	R = int(R*255)
+	G = int(G*255)
+	B = int(B*255)
+
+	return (R,G,B)
+
+
 
 #######################
 # Fonctions de dessin #
@@ -166,7 +178,7 @@ def setColor(C, txt):
 			s = "tmp%d" % len(colorTableUNIX2RGB)
 			colorTableRGB2UNIX[(r,g,b)] = s
 			colorTableUNIX2RGB[s] = (r,g,b)
-			print "/%s [%f %f %f] def" % (s, float(r)/255., float(g)/255., float(b)/255.)
+			print "/%s [%.3f %.3f %.3f] def" % (s, float(r)/255., float(g)/255., float(b)/255.)
 	print s, txt
 
 

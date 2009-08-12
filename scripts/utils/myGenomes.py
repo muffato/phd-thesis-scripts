@@ -1,17 +1,16 @@
 
 import sys
+import itertools
 import collections
+
+import enum
 
 import myFile
 import myTools
 
 
-##############
-# Un gene :) #
-##############
-
-Gene = collections.namedtuple("gene", ['chromosome', 'beginning', 'end', 'strand', 'names'])
-GenePosition = collections.namedtuple("geneposition", ['chromosome', 'index'])
+Gene = collections.namedtuple("Gene", ['chromosome', 'beginning', 'end', 'strand', 'names'])
+GenePosition = collections.namedtuple("GenePosition", ['chromosome', 'index'])
 
 
 ###########################################################
@@ -26,26 +25,120 @@ def commonChrName(x):
 		return intern(x)
 
 
-##############################
-# Charge un alignement FASTA #
-##############################
-def loadFastaFile(name):
-	seq = {}
-	f = myFile.openFile(name, "r")
-	name = None
-	for ligne in f:
-		ligne = ligne.replace('\n', '').strip()
-		if len(ligne) == 0:
+############################################
+# Le type de contig en fonction de son nom #
+############################################
+ContigType = enum.Enum('None', 'Random', 'Scaffold', 'Chromosome')
+def contigType(chrom):
+	if chrom in [None, "Un_random", "UNKN", "Un"]:
+		return ContigType.None
+	try:
+		x = int(chrom)
+		if x < 100:
+			return ContigType.Chromosome
+		else:
+			return ContigType.Scaffold
+	except:
+		c = chrom.lower()
+		if "rand" in c:
+			return ContigType.Random
+		keys = ["cont", "scaff", "ultra", "reftig", "_", "un", "mt"]
+		for x in keys:
+			if x in c:
+				return ContigType.Scaffold
+		if (chrom in ["U", "E64", "2-micron"]) or chrom.endswith("Het"):
+			return ContigType.Scaffold
+		else:
+			return ContigType.Chromosome
+
+
+class myFASTA:
+
+	# Charge un fichier FASTA une sequence a la fois
+	#################################################
+	@staticmethod
+	def iterFile(name):
+		f = myFile.openFile(name, "r")
+		name = None
+		for ligne in f:
+			ligne = ligne.replace('\n', '').strip()
+			# Les chevrons indiquent le debut d'une nouvelle sequence
+			if ligne.startswith('>'):
+				if name != None:
+					yield (name, "".join(tmp))
+				name = ligne[1:].strip()
+				tmp = []
+			# Les lignes doivent etre concatenees
+			elif name != None:
+				tmp.append(ligne.upper())
+		if name != None:
+			yield (name, "".join(tmp))
+		f.close()
+
+	# Charge un fichier FASTA en entier
+	####################################
+	@staticmethod
+	def loadFile(name):
+		return dict(myFASTA.iterFile(name))
+
+	# Ecrit une sequence au format FASTA
+	#####################################
+	@staticmethod
+	def printSeq(f, name, seq, length=60):
+		print >> f, ">" + name
+		while len(seq) != 0:
+			print >> f, seq[:length]
+			seq = seq[length:]
+		print >> f
+
+
+
+# Comptage de nucleotides
+##########################
+def getMonoNuc(seq, x1, x2, sel):
+	n = 0
+	gc = 0
+	for x in xrange(x1, x2+1):
+		if seq[x] == "N":
 			continue
-		# Les chevrons indiquent le debut d'une nouvelle sequence
-		if ligne[0] == ">":
-			name = ligne[1:].strip()
-			seq[name] = ""
-		# Les lignes doivent etre concatenees
-		elif name != None:
-			seq[name] += ligne
-	f.close()
-	return seq
+		n += 1
+		if seq[x] in sel:
+			gc += 1
+	return (n,gc)
+
+# Comptage de dinucleotides
+############################
+def getDiNuc(seq, x1, x2, sel):
+	n = 0
+	gc = 0
+	for x in xrange(x1, x2):
+		s = seq[x:x+2]
+		if "N" in s:
+			continue
+		n += 1
+		if s in sel:
+			gc += 1
+	return (n,gc)
+
+
+codon2aa = {
+     'TTT': 'F', 'TTC': 'F', 'TTA': 'L', 'TTG': 'L', 'TCT': 'S',
+     'TCC': 'S', 'TCA': 'S', 'TCG': 'S', 'TAT': 'Y', 'TAC': 'Y',
+     'TGT': 'C', 'TGC': 'C', 'TGG': 'W', 'CTT': 'L', 'CTC': 'L',
+     'CTA': 'L', 'CTG': 'L', 'CCT': 'P', 'CCC': 'P', 'CCA': 'P',
+     'CCG': 'P', 'CAT': 'H', 'CAC': 'H', 'CAA': 'Q', 'CAG': 'Q',
+     'CGT': 'R', 'CGC': 'R', 'CGA': 'R', 'CGG': 'R', 'ATT': 'I',
+     'ATC': 'I', 'ATA': 'I', 'ATG': 'M', 'ACT': 'T', 'ACC': 'T',
+     'ACA': 'T', 'ACG': 'T', 'AAT': 'N', 'AAC': 'N', 'AAA': 'K',
+     'AAG': 'K', 'AGT': 'S', 'AGC': 'S', 'AGA': 'R', 'AGG': 'R',
+     'GTT': 'V', 'GTC': 'V', 'GTA': 'V', 'GTG': 'V', 'GCT': 'A',
+     'GCC': 'A', 'GCA': 'A', 'GCG': 'A', 'GAT': 'D', 'GAC': 'D',
+     'GAA': 'E', 'GAG': 'E', 'GGT': 'G', 'GGC': 'G', 'GGA': 'G',
+     'GGG': 'G', 'TAA': '*', 'TAG': '*', 'TGA': '*' }
+
+aa2codon = collections.defaultdict(list)
+for (c,p) in codon2aa.iteritems():
+	aa2codon[p].append(c)
 
 
 
@@ -56,114 +149,116 @@ class Genome:
 
 	# Constructeur
 	###############
-	def __init__(self, fichier, **args):
+	def __init__(self, fichier, **kwargs):
+		
+		print >> sys.stderr, "Chargement du genome de", fichier, "...",
 
-		# le nom et l'instance de file
-		f = myFile.openFile(fichier, 'r')
-		self.nom = f.name
-		self.f = myFile.firstLineBuffer(f)
+		f = myFile.firstLineBuffer(myFile.openFile(fichier, 'r'))
 		
 		# la liste des genes par chromosome
 		self.lstGenes = collections.defaultdict(list)
-		# Associer un nom de gene a sa position sur le genome
-		self.dicGenes = {}
 
 		# Le choix de la fonction de chargement
-		c = self.f.firstLine.split()
+		c = f.firstLine[:-1].split("\t")
+		if len(c) == 1:
+			
+			# Genes ancestraux: "NAMES"
+			#############################
+			for (i,l) in enumerate(f):
+				self.addGene(l.split(), None, i, i+1, 0)
+			print >> sys.stderr, "(genes ancestraux)",
+
+		elif (len(c) == 2) and not set(c[1]).issubset("01-"):
+
+			# Genome ancestral: "CHR NAMES"
+			#################################
+			lastC = None
+			for (i,l) in enumerate(f):
+				c = l[:-1].split("\t")
+				if lastC != c[0]:
+					lastC = c[0]
+					dec = i
+				self.addGene(c[1].split(), c[0], i-dec, i-dec+1, 0)
+			print >> sys.stderr, "(genome ancestral: chrom+noms)",
+
+		elif (len(c) >= 5) and (" " not in c[3]) and (len(c[4]) > 0):
+
+			# Ensembl: "CHR BEG END STRAND NAMES"
+			#################################################
+			for l in f:
+				c = l.replace('\n', '').split('\t')
+				self.addGene(c[4].split(), c[0], int(c[1]), int(c[2]), int(c[3]))
+			print >> sys.stderr, "(Ensembl)",
+
+		elif (len(c) == 4) and int(c[1]) < 2:
 		
-		# Fichier de genome d'Ensembl: les trois champs du milieu sont des nombres
-		try:
-			x = int(c[1]) + int(c[2]) + int(c[3])
-			mode = 1
-		except (ValueError, IndexError):
-				
-			# Fichier d'orthologues classique, 4 champs indiquent les scores de similarite
-			try:
-				x = int(c[7]) + int(c[8]) + int(c[9]) + int(c[10])
-				mode = 2
-			except (ValueError, IndexError):
-				
-				# 1. Noms de chromosomes ?
-				if "withChr" not in args:
-					firstElt = ""
-					try:
-						firstElt = c[0]
-						int(firstElt[0])
-						withChr = True
-					except (ValueError, IndexError):
-						withChr = (len(firstElt) < 4)    # Les noms de genes font au minimum 4 caracteres
-						# Les quelques exceptions
-						withChr |= firstElt.upper().strip() in ["ALPHA", "BETA", "DELTA", "EPSILON", "GAMMA", "PHI"]
-				else:
-					withChr = args.pop("withChr")
-
-				# 2. Facteur de qualite de concorde
-				if "concordeQualityFactor" not in args:
-					try:
-						x = int(c[1])
-						conc = True
-					except (ValueError, IndexError):
-						conc = False
-				else:
-					conc = args.pop("concordeQualityFactor")
-				mode = 3	
-		if mode == 1:
-			self.__loadFromEnsemblGenome__(**args)
-		elif mode == 2:
-			self.__loadFromEnsemblOrthologs__(**args)
-		elif mode == 3:
-			self.__loadFromAncestralGenome__(withChr, conc, **args)
-		self.f.close()
-
-		# Classification en chromosomes/contigs/scaffolds
-		self.lstChr = []
-		self.lstScaff = []
-		self.lstRand = []
-		self.lstNone = []
-		for chrom in self.lstGenes.keys():
-			if chrom in [None, "Un_random", "UNKN", "Un"]:
-				self.lstNone.append(chrom)
-				continue
-			try:
-				x = int(chrom)
-				if x < 100:
-					self.lstChr.append(chrom)
-				else:
-					self.lstScaff.append(chrom)
-			except:
-				c = chrom.lower()
-				if "rand" in c:
-					self.lstRand.append(chrom)
-				else:
-					keys = ["cont", "scaff", "ultra", "reftig", "_", "un", "mt"]
-					for x in keys:
-						if x in c:
-							self.lstScaff.append(chrom)
-							break
+			# Genome ancestral: "CHR STRAND LST-INDEX LST-STRANDS"
+			########################################################
+			lastC = None
+			for l in f:
+				c = l[:-1].split("\t")
+				if lastC != c[0]:
+					lastC = c[0]
+					pos = 0
+				data = zip([int(x) for x in c[2].split()], [int(x) for x in c[3].split()])
+				if int(c[1]) < 0:
+					data = [(i,-s) for (i,s) in data.__reversed__()]
+				for (index,strand) in data:
+					if 'ancGenes' in kwargs:
+						self.addGene(kwargs["ancGenes"].lstGenes[None][index].names, c[0], pos, pos+1, strand)
 					else:
-						if (chrom in ["U", "E64", "2-micron"]) or chrom.endswith("Het"):
-							self.lstScaff.append(chrom)
-						else:
-							self.lstChr.append(chrom)
+						self.addGene([index], c[0], pos, pos+1, strand)
+					pos += 1
+			print >> sys.stderr, "(genome ancestral: chrom+diags)",
 
-		# Trie les chromsomoses et cree l'index
-		self.lstChr.sort()
-		self.lstChrS = frozenset(self.lstChr)
-		self.lstScaff.sort()
-		self.lstScaffS = frozenset(self.lstScaff)
-		self.lstRand.sort()
-		self.lstRandS = frozenset(self.lstRand)
-		self.lstNone.sort()
-		self.lstNoneS = frozenset(self.lstNone)
-		
+		else:
+			if len(c) == 2:
+				(ili,ils) = (0,1)
+			else:
+				assert len(c) >= 4
+				(ili,ils) = (2,3)
+
+			# Genome ancestral: "LST-INDEX LST-STRANDS"
+			#############################################
+			for (chrom,l) in enumerate(f):
+				c = l[:-1].split("\t")
+				for (pos,(index,strand)) in enumerate(itertools.izip(c[ili].split(), c[ils].split())):
+					if 'ancGenes' in kwargs:
+						self.addGene(kwargs["ancGenes"].lstGenes[None][int(index)].names, chrom+1, pos, pos+1, int(strand))
+					else:
+						self.addGene([int(index)], chrom+1, pos, pos+1, int(strand))
+			print >> sys.stderr, "(genome ancestral: diags)",
+
+		f.close()
+		self.init()
+		print >> sys.stderr, "OK"
+
+	
+	# Initialise le dictionnaire et la liste des chromosomes
+	##########################################################
+	def init(self):
+
 		self.dicGenes = {}
-		for c in self.lstGenes:
-			self.lstGenes[c].sort()
-			for (i,g) in enumerate(self.lstGenes[c]):
-				assert g.chromosome == c
-				for s in g.names:
-					self.dicGenes[s] = GenePosition(c,i)
+		self.chrList = collections.defaultdict(list)
+		self.chrSet = collections.defaultdict(set)
 		
+		for chrom in self.lstGenes:
+			
+			# Associer un nom de gene a sa position sur le genome
+			self.lstGenes[chrom].sort()
+			for (i,gene) in enumerate(self.lstGenes[chrom]):
+				for s in gene.names:
+					self.dicGenes[s] = GenePosition(chrom,i)
+			
+			# Classification en chromosomes/contigs/scaffolds
+			t = contigType(chrom)
+			self.chrList[t].append(chrom)
+			self.chrSet[t].add(chrom)
+
+		# Trie les noms des chromosomes
+		for t in self.chrList:
+			self.chrList[t].sort()
+
 
 	# Rajoute un gene au genome
 	############################
@@ -174,7 +269,7 @@ class Genome:
 		
 		names = [intern(s) for s in names]
 		chromosome = commonChrName(chromosome)
-		self.lstGenes[chromosome].append( Gene(chromosome, beg, end, strand, names) )
+		self.lstGenes[chromosome].append( Gene(chromosome, beg, end, strand, tuple(names)) )
 
 	
 	# Renvoie les genes presents sur le chromosome donne a certaines positions
@@ -266,86 +361,10 @@ class Genome:
 		return res
 
 
-	################################################################
-	# Cette fonction gere un fichier de liste de genes d'Ensembl   #
-	#   "Chr Debut Fin Brin ENSFAMxxxx Nom"                        #
-	################################################################
-	def __loadFromEnsemblGenome__(self):
-		
-		print >> sys.stderr, "Chargement du genome de", self.nom, "...",
-		# On lit chaque ligne
-		for l in self.f:
-			c = l.replace('\n', '').split('\t')
-			self.addGene(c[4].split(), c[0], int(c[1]), int(c[2]), int(c[3]))
-		print >> sys.stderr, "OK"
-
-
-	##################################################################################
-	# Cette fonction gere un fichier d'orthologues a partir duquel on cree un genome #
-	# Les noms des genes sont en positions 1 et 4                                    #
-	##################################################################################
-	def __loadFromEnsemblOrthologs__(self, homologyFilter=[], ancFilter=[]):
-		
-		print >> sys.stderr, "Chargement des orthologues de", self.nom, "...",
-		
-		combin = myTools.myCombinator([])
-		fH = (len(homologyFilter) != 0)
-		fA = (len(ancFilter) != 0)
-		
-		# On lit chaque ligne
-		for ligne in self.f:
-			champs = ligne.replace('\n', '').split('\t')
-			if len(champs) == 12:
-				# Nouvelle version des fichiers
-				if (champs[-1] not in homologyFilter) and fH:
-					continue
-				if (champs[6] not in ancFilter) and fA:
-					continue
-			else:
-				# Ancienne version des fichiers
-				if (champs[6] not in homologyFilter) and fH:
-					continue
-			combin.addLink([champs[0], champs[3]])
-		
-		for (nb,g) in enumerate(combin):
-			self.addGene(g, None, nb, nb, 0)
-
-		print >> sys.stderr, "OK"
-
-
-	####################################################################################
-	# Cette fonction gere un fichier de genome ancestral                               #
-	# il s'agit d'une liste de lignes de la forme "CHROMOSOME GENE_ESP1 GENE_ESP2 ..." #
-	####################################################################################
-	def __loadFromAncestralGenome__(self, withChr, concordeQualityFactor):
-
-		if withChr:
-			print >> sys.stderr, "Chargement du genome ancestral de", self.nom, "...",
-		else:
-			print >> sys.stderr, "Chargement des genes ancestraux de", self.nom, "...",
-		
-		# On initialise tout
-		strand = 0
-		c = None
-		i = 0
-		for ligne in self.f:
-			champs = ligne.split()
-
-			if len(champs) == 0:
-				continue
-
-			# Le chromosome du gene lu
-			if withChr:
-				c = champs.pop(0)
-			
-			if concordeQualityFactor:
-				# Fichiers de genomes ancestraux avec score de Concorde
-				strand = int(champs.pop(0))
-				
-			# On ajoute le gene
-			self.addGene(champs, c, i, i+1, strand)
-			i += 1
-		
-		print >> sys.stderr, "OK"
-
+	# Imprime le genome (au format Ensembl)
+	########################################
+	def printEnsembl(self, f):
+		for chrom in self.lstGenes:
+			for gene in self.lstGenes[chrom]:
+				print >> f, myFile.myTSV.printLine([chrom, gene.beginning, gene.end, gene.strand, " ".join(gene.names)])
 

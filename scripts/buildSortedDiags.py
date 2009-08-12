@@ -5,6 +5,9 @@ Trie les gens selon l'ordre consensus issu des especes de l'arbre phylogenetique
 """
 
 import sys
+import collections
+
+import utils.myFile
 import utils.myGenomes
 import utils.myTools
 import utils.myMaths
@@ -55,7 +58,7 @@ def distInterGenes(tg1, tg2):
 	return calcDist(distEsp)
 
 def loadDiagsFile(name):
-	f = utils.myTools.myOpenFile(name, 'r')
+	f = utils.myFile.openFile(name, 'r')
 	diags = collections.defaultdict(list)
 	for l in f:
 		t = l.split('\t')
@@ -108,7 +111,7 @@ def rewriteGenome():
 
 # Initialisation & Chargement des fichiers
 arguments = utils.myTools.checkArgs( \
-	[("genomeAncestralDiags",file), ("phylTree.conf",file), ("ancestr",str,"")], \
+	[("genomeAncestralDiags",file), ("phylTree.conf",file), ("ancestr",str)], \
 	[("seuilMaxDistInterGenes",int,1000000), ("nbDecimales",int,2), ("infiniteDist",int,1000000), ("notConstraintPenalty",float,0), \
 	("useOutgroups",str,["no","always","onlyIfBetter"]), ("newParsimonyScoring",bool,False), \
 	("nbConcorde",int,1), ("withConcordeOutput",bool,False), \
@@ -144,7 +147,7 @@ phylTree.initCalcDist(anc, useOutgroups != "no")
 if arguments["newParsimonyScoring"]:
 	calcDist = lambda distEsp: phylTree.calcWeightedValue(distEsp, -1, anc)[2]
 else:
-	calcDist = phylTree.calcDist
+	calcDist = lambda distEsp: phylTree.calcDist(distEsp, 0)
 newGenome = rewriteGenome()
 
 # 2. On cree les blocs ancestraux tries et on extrait les diagonales
@@ -163,10 +166,10 @@ for (c,tab) in newGenome.iteritems():
 		
 		diag1 = tab[d1]
 		if i1 != 2*d1:
-			diag1 = reversed(diag1)
+			diag1 = list(reversed(diag1))
 		diag2 = tab[d2]
 		if i2 != 2*d2:
-			diag2 = reversed(diag2)
+			diag2 = list(reversed(diag2))
 
 		dist = []
 		for (i1,g1) in enumerate(diag1):
@@ -180,9 +183,25 @@ for (c,tab) in newGenome.iteritems():
 						dist.append(y)
 
 		if len(dist) == 0:
+			print len(diag1)
+			print diag1[0]
+			print diag1[-1]
+			print len(diag2)
+			print diag2[0]
+			print diag2[-1]
+			print pen
+			print
 			return pen
 		else:
 			y = min(dist)
+			print len(diag1)
+			print diag1[0]
+			print diag1[-1]
+			print len(diag2)
+			print diag2[0]
+			print diag2[-1]
+			print int(mult*y+add)
+			print
 			return int(mult*y+add)
 
 	lstTot = utils.concorde.doConcorde(2*n, f, nbConcorde, arguments["withConcordeOutput"])

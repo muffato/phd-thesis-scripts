@@ -83,7 +83,8 @@ def buildGenomes(genome, node):
 		# On rajoute les couvertures des sequencages
 		if node in phylTree.lstEsp2X:
 			print >> sys.stderr, "Applying 2x coverage on %s ..." % node,
-			for _ in xrange(random.randint(9000,11000)):
+			cov = random.uniform(1.1, 2.9)
+			for _ in xrange(int(sum(len(c) for c in genome)/cov)):
 				doChrBreak(genome)
 			# On n'a que 2/3 du genome
 			random.shuffle(genome)
@@ -97,19 +98,23 @@ def buildGenomes(genome, node):
 			print >> sys.stderr, "OK (%d chromosomes)" % len(genome)
 		
 		else:
-			assert node in phylTree.lstEspFull
+			assert node in phylTree.lstEspFull, (node,phylTree.lstEspFull)
 	else:
-		assert node in phylTree.listAncestr
+		assert node in phylTree.listAncestr, (node,phylTree.listAncestr)
 
 	# On ecrit le veritable genome ancestral et on prepare les familles
 	# Initialement les familles de genes contiennent les genes eux-memes
 	familles = {}
 	print >> sys.stderr, "Writing %s genome ..." % node,
 	s = phylTree.fileName[node]
+	if node in phylTree.listSpecies:
+		s = node[0] + s.split()[1][:3]
+	else:
+		s = node[:5]
 	f = utils.myFile.openFile(arguments["genomeFile"] % s, 'w')
 	for (c,lst) in enumerate(genome):
 		for (i,(gene,strand)) in enumerate(lst):
-			nom = "%s.%d" % (s,gene)
+			nom = "%s.%s" % (s,gene)
 			familles[gene] = nom + " "
 			print >> f, utils.myFile.myTSV.printLine( (c+1,i,i,strand,nom) )
 	f.close()
@@ -138,7 +143,11 @@ def buildGenomes(genome, node):
 				nbEvents[3] /= 2
 			elif fils == "Gallus gallus":
 				# Le poulet a un genome proche de la version ancestrale, avec une preference pour les micro-chromosomes
-				for i in xrange(7):
+				nbEvents[0] /= 2
+				nbEvents[1] /= 2
+				nbEvents[2] /= 2
+				nbEvents[3] *= 2
+				for i in xrange(4,7):
 					nbEvents[i] /= 2
 			elif phylTree.dicParents[fils]["Rodentia"] == "Rodentia":
 				# Les rongeurs ont diverge tres vite
@@ -201,7 +210,10 @@ def buildGenomes(genome, node):
 						if (i < maxGeneID) and (i not in dup):
 							break
 					# Insertion de la nouvelle copie
-					(c2,x2) = randomPlace(newGenome, 1)
+					if random.random() > arguments["tandemDuplications"]:
+						(c2,x2) = randomPlace(newGenome, 1)
+					else:
+						(c2,x2) = (c1,x1+1)
 					newGenome[c2].insert(x2, (nbTotalGenes,randomStrand()))
 					# Mise a jour des listes de genes dupliques
 					dup[i].append(nbTotalGenes)
@@ -261,8 +273,8 @@ arguments = utils.myTools.checkArgs( \
 	("geneLossRate",float,6.), ("geneGainRate",float,6.), ("geneDuplicationRate",float,3.), \
 	# Rearrangements de chromosomes
 	("chrInvertRate",float,1.), ("chrTranslocRate",float,0.3), ("chrFusionRate",float,0.1), ("chrBreakRate",float,0.1), \
-	# Qualite d'Ensembl
-	("duplicationGeneSwap",float,.02), \
+	# Divers
+	("duplicationGeneSwap",float,.02), ("tandemDuplications",float,0.), \
 	# Fichiers
 	("genomeFile",str,"simu/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"simu/ancGenes/ancGenes.%s.list.bz2")], \
@@ -271,7 +283,6 @@ arguments = utils.myTools.checkArgs( \
 
 # L'arbre phylogenetique
 phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
-assert arguments["root"] in phylTree.listAncestr, "Unknown root"
 
 utils.myMaths.randomValue.vonmisesmean = arguments["vonMisesMean"]
 utils.myMaths.randomValue.vonmiseskappa = arguments["vonMisesKappa"]
@@ -280,15 +291,18 @@ allDup = utils.myTools.myCombinator()
 
 # Le genome original
 tmp = [random.random() for _ in xrange(arguments["iniChrNumber"])]
-facteur = arguments["iniGeneNumber"]/sum(tmp)
+facteur = arguments["iniGeneNumber"] / sum(tmp)
 chrlen = [int(x*facteur) for x in tmp]
+# Pour les erreurs d'arrondis ...
 chrlen[-1] += arguments["iniGeneNumber"] - sum(chrlen)
-nbTotalGenes = 0
+# On place les genes dans les chromosomes
 genome = []
+nbTotalGenes = 0
 for nb in chrlen:
 	genome.append( [(x+nbTotalGenes,randomStrand()) for x in xrange(nb)] )
 	nbTotalGenes += nb
 
 # On construit le scenario evolutif
+assert nbTotalGenes == arguments["iniGeneNumber"]
 buildGenomes(genome, arguments["root"])
 

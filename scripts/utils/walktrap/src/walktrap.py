@@ -42,7 +42,15 @@ def doWalktrap(edges, **args):
 			indNodes[node] = i
 	
 		# On lance le walktrap
+		#print "NEW", len(nodes)
+		#for x in nodes:
+		#	print x, len(edges[x]), edges[x]
+		#print "LAUNCH"
+		#sys.stdout.flush()
+
 		(relevantCuts,dend) = _walktrap.doWalktrap(indNodes, edges, **args)
+		#print "OK"
+		#print
 
 		# On doit revenir aux noms de noeuds originels
 		def translate(x):

@@ -1,5 +1,7 @@
 #! /users/ldog/muffato/python
 
+
+
 import os
 import sys
 import math
@@ -20,6 +22,232 @@ import utils.myPsOutput
 import utils.myProteinTree
 import utils.myPhylTree
 #import walktrap
+
+if len(sys.argv) > 2:
+	genome = utils.myGenomes.Genome(sys.argv[1], ancGenes=utils.myGenomes.Genome(sys.argv[2]))
+else:
+	genome = utils.myGenomes.Genome(sys.argv[1])
+for g in genome:
+	print g
+sys.exit(0)
+
+#def drawLine(X, Y, Largeur, Hauteur, Coul):
+#def drawBox(X, Y, Largeur, Hauteur, CoulBordure, CoulRempli):
+#def drawCross(X, Y, Largeur, Hauteur, Coul):
+#def drawCircle(X, Y, Rayon, angle1, angle2, CoulBordure, CoulRempli):
+#def drawArrowR(X, Y, Largeur, Hauteur, taillePointe, CoulBordure, CoulRempli):
+#def drawArrowL(X, Y, Largeur, Hauteur, taillePointe, CoulBordure, CoulRempli):
+#def drawText(X, Y, Texte, Coul):
+
+
+utils.myPsOutput.printPsHeader(landscape=True)
+utils.myPsOutput.initColor()
+
+utils.myPsOutput.drawCircle(10, 10, 3, 0, 360, "black", "blue")
+
+utils.myPsOutput.drawCircle(9, 11, 0.5, 180, 360, "black", "white")
+utils.myPsOutput.drawCircle(11, 11, 0.5, 180, 360, "black", "white")
+
+utils.myPsOutput.drawCross(9.8, 9.8, .4, .4, "black")
+
+utils.myPsOutput.drawArrowR(10, 8.5, 1, .5, .5, "black", "purple")
+utils.myPsOutput.drawArrowL(8.5, 8.5, 1, .5, .5, "black", "pink")
+
+utils.myPsOutput.drawBox(8.5, 13, 3, 4, "black", "grey")
+utils.myPsOutput.drawBox(8.5, 14, 3, 3, "black", "red")
+utils.myPsOutput.drawLine(8, 13, 4, 0, "black")
+utils.myPsOutput.drawText(9.3, 13.5, "Chapeau", "red")
+
+
+utils.myPsOutput.printPsFooter()
+
+
+sys.exit(0)
+
+
+
+
+
+
+
+
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
+
+values = {}
+#values["Tetraodon nigroviridis"] = 1
+values["Gallus gallus"] = 1
+values["Homo sapiens"] = 1
+values["Rattus norvegicus"] = 0
+values["Mus musculus"] = 0
+values["Bos taurus"] = 1
+
+print >> sys.stderr, phylTree.allNames
+print >> sys.stderr, phylTree.calcWeightedValue(values, -5, "Amniota")
+print >> sys.stderr, phylTree.calcWeightedValue(values, -5, "Mammalia")
+print >> sys.stderr, phylTree.calcWeightedValue(values, -5, "Boreoeutheria")
+print >> sys.stderr, phylTree.calcWeightedValue(values, -5, "Euarchontoglires")
+print >> sys.stderr, phylTree.calcWeightedValue(values, -5, "Rodentia")
+print >> sys.stderr, phylTree.calcWeightedValue(values, -5, "Murinae")
+print >> sys.stderr, phylTree.calcWeightedValue(values, -5, "Catarrhini")
+print >> sys.stderr, phylTree.calcWeightedValue(values, -5, "HomoPan")
+
+sys.exit(0)
+
+
+
+utils.myPsOutput.printPsHeader(landscape=True)
+
+refcolors = [(0,0,0), (255,0,0), (255,255,0), (127,127,0), (0,255,0), (0,63,0), (0,127,127), (0,255,255), (255,255,255), (255,127,255), (0,0,127)]
+refcolors = [(0,0,0), (255,0,0), (255,255,0), (127,127,0), (0,255,0), (0,63,0), (0,255,255), (191,0,127), (0,0,127)]
+#inter = utils.myMaths.myInterpolator.getMultDim(utils.myMaths.myInterpolator.oneDimCubic, range(len(refcolors)), refcolors)
+#inter = utils.myMaths.myInterpolator.getMultDim(utils.myMaths.myInterpolator.oneDimLinear, range(len(refcolors)), refcolors)
+n = 50
+y = 1
+size = 0.5
+
+def add(col):
+	global y
+	for i in xrange(n):
+		utils.myPsOutput.drawBox(i*size, y, size, size, (0,0,0), col[i])
+		print >> sys.stderr, '"#%s",' % "".join(hex(int(x))[2:3] for x in col[i]),
+	print >> sys.stderr
+	y += size
+
+col = utils.myPsOutput.getCubicGradient(refcolors, n)
+add(col)
+
+col = utils.myPsOutput.getCubicGradient(refcolors, n)
+col = [tuple(max(min(17*int(round(x/17)),255),0) for x in t) for t in col]
+add(col)
+
+col = utils.myPsOutput.getCubicGradient(refcolors, n)
+col = [tuple(max(min(17*int(x/17),255),0) for x in t) for t in col]
+add(col)
+
+col = utils.myPsOutput.getLinearGradient(refcolors, n)
+add(col)
+
+col = utils.myPsOutput.getLinearGradient(refcolors, n)
+col = [tuple(max(min(17*int(round(x/17)),255),0) for x in t) for t in col]
+add(col)
+
+col = utils.myPsOutput.getLinearGradient(refcolors, n)
+col = [tuple(max(min(17*int(x/17),255),0) for x in t) for t in col]
+add(col)
+
+
+
+utils.myPsOutput.printPsFooter()
+
+
+
+sys.exit(0)
+
+
+
+
+phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
+
+
+def getSumOfBranchLength(node):
+	
+	s = 0
+	for (f,x) in phylTree.items.get(node,[]):
+		if f in phylTree.lstEsp2X:
+			x = x/2
+		s += x
+		s += getSumOfBranchLength(f)
+	return s
+		
+
+for anc in phylTree.listAncestr:
+
+	#phylTree.initCalcDist(anc, True)
+	#nbEspEq = [float(age+getSumOfBranchLength(x))/phylTree.ages[anc] for (x,age) in phylTree.tmpItems[anc]]
+	#print anc, sum([x*y for (x,y) in utils.myTools.myIterator.tupleOnStrictUpperList(nbEspEq)])
+	#continue
+
+	out = []
+	tmp = anc
+	l = 0
+	while tmp in phylTree.parent:
+		(par,lpar) = phylTree.parent[tmp]
+		l += lpar
+		out.extend([(e,l+le) for (e,le) in phylTree.items[par] if e != tmp])
+		tmp = par
+	#print anc, out
+
+	#nbEsp = [len(phylTree.species[x]) for (x,age) in phylTree.items[anc]]
+	nbEspEq = [float(age+getSumOfBranchLength(x))/phylTree.ages[anc] for (x,age) in phylTree.items[anc]]
+	nbOutEq = [float(getSumOfBranchLength(x))/phylTree.ages[x] for (x,lx) in out if x in phylTree.listAncestr] + [1. for (x,lx) in out if x in phylTree.listSpecies]
+	#nbOutEq = [float(getSumOfBranchLength(x)+lx)/(lx+phylTree.ages[x]) for (x,lx) in out]
+	#nbOutEq = [phylTree.ages[anc]*float(getSumOfBranchLength(x)+lx)/((lx+phylTree.ages[x])**2) for (x,lx) in out]
+	nbEspEq.append(sum(nbOutEq))
+	nbEspEq = [len(phylTree.species[x]) for (x,_) in phylTree.items[anc]] + [len(phylTree.outgroupSpecies[x])]
+	print anc, nbEspEq
+	print anc, out, nbOutEq
+	s = sum([x*y for (x,y) in utils.myTools.myIterator.tupleOnStrictUpperList(nbEspEq)])
+	print anc, s, s/float(phylTree.ages[anc])
+	#print math.sqrt(sum([(x-sum(nbEspEq)/len(nbEspEq))**2 for x in nbEspEq])/len(nbEspEq)), utils.myMaths.myStats.stddev(nbEspEq)
+
+sys.exit(0)
+
+
+def f():
+	for _ in xrange(1000000):
+		print random.random()
+	#return [random.random() for _ in xrange(1000000)]
+
+#l = [7, 10, 12, 2, 4, 13, 8]
+#l = [7,10]
+#l = [3, 7, 7, 19]
+
+#import psyco
+#psyco.full()
+#from psyco.classes import __metaclass__
+#sys.argv = ["+psyco"]
+utils.myTools.checkArgs( [], [], "")
+
+
+#print l
+for _ in xrange(100):
+	f()
+	#print utils.myMaths.myStats.mean(f())
+#print utils.myMaths.myStats.stddev(l)
+
+#print utils.myMaths.myStats.txtSummary(l)
+
+sys.exit(0)
+
+
+def lookup(gene):
+	(c,i) = genome.dicGenes[gene]
+	print gene
+	print (c,i)
+	print genome.lstGenes[c][i]
+
+genome = utils.myGenomes.Genome("/workspace/muffato/data51/genes/genes.Gallus.gallus.list.bz2")
+lookup("ENSGALG00000014883")
+lookup("ENSGALG00000014887")
+print
+
+genome = utils.myGenomes.Genome("/workspace/muffato/data51/genes/genes.Homo.sapiens.list.bz2")
+lookup("ENSG00000111877")
+lookup("ENSG00000111875")
+print
+
+genome = utils.myGenomes.Genome("/workspace/muffato/data51/genes/genes.Mus.musculus.list.bz2")
+lookup("ENSMUSG00000058298")
+lookup("ENSMUSG00000019857")
+print
+
+genome = utils.myGenomes.Genome("/workspace/muffato/data51/genes/genes.Xenopus.tropicalis.list.bz2")
+lookup("ENSXETG00000012868")
+lookup("ENSXETG00000025074")
+print
+
+
+sys.exit(0)
 
 def getLinearGradient(colors, nelem):
 	l = []
@@ -49,13 +277,6 @@ for _ in xrange(int(sys.argv[1])):
 
 
 sys.exit(0)
-l = [7, 10, 12, 2, 4, 13, 8]
-
-print utils.myMaths.myStats.mean(l)
-print utils.myMaths.myStats.stddev(l)
-
-sys.exit(0)
-
 f = fractions.Fraction(1, 2)
 for i in xrange(201):
 	print float(utils.myMaths.myStats.binomPvalue(f, i, 200, True))
@@ -536,16 +757,6 @@ for _ in xrange(1000000):
 
 for (i,v) in enumerate(nb):
 	print (i/length)+.5, v
-
-sys.exit(0)
-
-values = {}
-#values["Tetraodon nigroviridis"] = 1
-values["Gallus gallus"] = 1
-values["Homo sapiens"] = 1
-
-print >> sys.stderr, phylTree.allNames
-print >> sys.stderr, phylTree.calcWeightedValue(values, -5, "Amniota", None)
 
 sys.exit(0)
 
@@ -1257,38 +1468,6 @@ print utils.myMaths.myStats(lst)
 
 #time.sleep(100)
 sys.exit(0)
-
-phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
-
-
-def getSumOfBranchLength(node):
-	
-	s = 0
-	for (f,x) in phylTree.items.get(node,[]):
-		s += x
-		s += getSumOfBranchLength(f)
-	return s
-		
-
-for anc in phylTree.listAncestr:
-
-	out = []
-	tmp = anc
-	while tmp in phylTree.parent:
-		par = phylTree.parent[tmp]
-		out.extend([e for e in phylTree.branches[par] if e != tmp])
-		tmp = par
-
-	#nbEsp = [len(phylTree.species[x]) for (x,age) in phylTree.items[anc]]
-	nbEspEq = [float(age+getSumOfBranchLength(x))/phylTree.ages[anc] for (x,age) in phylTree.items[anc]]
-	nbOutEq = [float(getSumOfBranchLength(x))/phylTree.ages[x] for x in out if x in phylTree.listAncestr] + [1. for x in out if x in phylTree.listSpecies]
-	nbEspEq.append(sum(nbOutEq))
-	print anc, nbEspEq
-	print anc, sum([x*y for (x,y) in utils.myTools.myMatrixIterator(nbEspEq, None, utils.myTools.myMatrixIterator.StrictUpperMatrix)]),
-	print math.sqrt(sum([(x-sum(nbEspEq)/len(nbEspEq))**2 for x in nbEspEq]))/len(nbEspEq)
-
-sys.exit(0)
-
 def linear(a, b, ratio):
 	return int(a + ratio*(b-a))
 

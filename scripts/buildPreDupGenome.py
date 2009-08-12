@@ -8,11 +8,14 @@ Chaque gene ancestral recoit son chromosome ancestral par un vote a la majorite 
 """
 
 import sys
-import utils.myPhylTree
-import utils.myGenomes
+import itertools
+import collections
+
+import utils.myFile
 import utils.myTools
 import utils.myMaths
-defaultdict = collections.defaultdict
+import utils.myGenomes
+import utils.myPhylTree
 
 
 
@@ -27,7 +30,7 @@ def loadChrAncIni(nom, especesDup):
 	print >> sys.stderr, "Chargement des alternances predefinies ...",
 	
 	chrAnc = {}
-	f = utils.myTools.myOpenFile(nom, 'r')
+	f = utils.myFile.openFile(nom, 'r')
 	for ligne in f:
 
 		c = ligne.replace('\n', '').split('\t')
@@ -54,12 +57,14 @@ def buildParaOrtho():
 	para = dict([(e,{}) for e in especesDup])
 	ortho = dict([(e,{}) for e in especesDup])
 	
+	lstChrOK = dic([(e,phylTree.dicGenomes[e].chrSet[utils.myGenomes.ContigType.Chromosome] | phylTree.dicGenomes[e].chrSet[utils.myGenomes.ContigType.Scaffold]) for e in especesDup])
+
 	# On parcourt les genes ancestraux pour les especes en dessous de l'ancetre
 	for g in lstGenesAnc:
 		for e in especesDup:
 			genomeDup = phylTree.dicGenomes[e]
 			# Les genes de l'espece dupliquee
-			gT = [x for x in g.names if x in genomeDup.dicGenes and genomeDup.dicGenes[x][0] not in genomeDup.lstRand]
+			gT = [x for x in g.names if x in genomeDup.dicGenes and genomeDup.dicGenes[x].chromosome in lstChrOK[e]]
 			if len(gT) == 0:
 				continue
 			# On construit les paralogues
@@ -76,7 +81,7 @@ def buildParaOrtho():
 	# On rajoute les outgroup
 	
 	# Les ancetres correspondant a chaque outgroup
-	toLoad = defaultdict(list)
+	toLoad = collections.defaultdict(list)
 	for e in especesNonDup:
 		par = phylTree.dicParents[e][arguments["target"]]
 		toLoad[par].append(e)
@@ -130,17 +135,19 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 	orthosDup = orthos[eD]
 	parasDup = para[eD]
 	lstBlocs = []
+	usedGenesDup = set()
 
 	# On parcourt les chromosomes de l'espece
-	for c in genome.lstChr + genome.lstScaff:
+	for c in genome.chrList[utils.myGenomes.ContigType.Chromosome] + genome.chrList[utils.myGenomes.ContigType.Scaffold]
 		
 		# Eviter d'essayer de creer des DCS sur des scaffolds trop petits
 		if len(genome.lstGenes[c]) < arguments["minChrLen"]:
 			continue
 		
 		bloc = None
-		lastCT = []
+		lastCT = {}
 		lastGT = set()
+		lastGTd = collections.defaultdict(list)
 	
 		# On parcourt les genes du chromosomes
 		for tg in genome.lstGenes[c]:
@@ -151,33 +158,55 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 				continue
 			nbOrthos += 1
 
+			# La region environnante (chez l'espece dupliquee)
+			orthWithNames = [(cT,i,[gT.names[0] for gT in genomeDup.getGenesNear(cT, i, arguments["windowSize"])]) for (cT,i) in orthosDup[g]]
+			found = False
+
 			# On parcourt les orthologues
-			for (cT,i) in orthosDup[g]:
-				# La region environnante (chez l'espece dupliquee)
-				gTn = [gT.names[0] for gT in genomeDup.getGenesNear(cT, i, arguments["windowSize"])]
+			for (cT,i,gTn) in orthWithNames:
 				
 				# Si on reste sur le meme chromosome, on continue le DCS
 				if cT in lastCT:
-					break
+					usedGenesDup.add( (cT,i) )
+					usedGenesDup.update( [(cT,j) for j in lastCT[cT]] )
+					found = True
+				
 				# Autre solution, on revient dans le voisinage d'une region deja visitee
-				elif len(lastGT.intersection(gTn)) > 0:
-					break
+				int1 = lastGT.intersection(gTn)
+				if len(int1) > 0:
+					usedGenesDup.add( (cT,i) )
+					for x in int1:
+						usedGenesDup.update( lastGTd[x] )
+					found = True
+				
 				# Sinon, il faut qu'il y ait un paralogue qui justifie le saut de chromosome
-				elif len(lastGT.intersection(utils.myMaths.flatten([parasDup.get(s,[]) for s in gTn]))) > 0:
-					break
+				sT = genomeDup.lstGenes[cT][i].names[0]
+				int2 = lastGT.intersection(utils.myMaths.flatten([parasDup.get(s,[]) for s in gTn if s != sT]))
+				if len(int2) > 0:
+					usedGenesDup.add( (cT,i) )
+					for x in int2:
+						usedGenesDup.update( lastGTd[x] )
+					found = True
 				
 			# Si on n'a pas fait de break, c'est qu'aucun orthologue ne convient, il faut arreter le DCS
-			else:
+			if not found:
 				# On l'enregistre et on repart de zero
 				if bloc != None:
 					lstBlocs.append(bloc)
 				bloc = []
 				lastGT = set()
+				lastGTd = collections.defaultdict(list)
 				
 			# On rajoute les infos du gene qu'on vient de lire
 			bloc.append( g )
-			lastCT = [cT for (cT,i) in orthosDup[g]]
+		
+			lastCT = collections.defaultdict(list)
 			lastGT.update(gTn)
+			for (cT,i,gTn) in orthWithNames:
+				lastGT.update(gTn)
+				for x in gTn:
+					lastGTd[x].append( (cT,i) )
+				lastCT[cT].append(i)
 		
 		# Ne pas oublier le bloc courant
 		if bloc != None:
@@ -186,14 +215,14 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 	
 	print >> sys.stderr, "", len(lstBlocs), "blocs, pour", nbOrthos, "genes orthologues"
 
-	return lstBlocs
+	return (lstBlocs,usedGenesDup)
 
 
 
 #
 # Pour une espece non dupliquee donnee, fait la synthese de tous les DCS chevauchants
 #
-def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
+def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc, allUsed):
 	
 	print >> sys.stderr, "Synthese des decoupages de", eND, "...",
 	
@@ -225,8 +254,8 @@ def doSynthese(combin, eND, orthos, col, dicGenesAnc, chrAnc):
 			DCSlen += len(gr)
 		if arguments["showDCS"]:
 			for ((c,i),g,a) in gr:
-				fishContent = ["/".join(["%s|%s" % (phylTree.dicGenomes[eD].lstGenes[cT][iT].names[0],cT) for (cT,iT) in orthos[eD].get(g,[])]) for eD in especesDup]
-				print utils.myFile.myTSV.printLine( [c, i, g, ""] + fishContent + [cc] )
+				fishContent = ["/".join(["%s%s|%s" % ("*" if (cT,iT) in allUsed[eD] else "",phylTree.dicGenomes[eD].lstGenes[cT][iT].names[0],cT) for (cT,iT) in orthos[eD].get(g,[])]) for eD in especesDup]
+				print utils.myFile.myTSV.printLine( [c, i, g, lstGenesAnc[genesAnc.dicGenes[g][1]].names[0]] + fishContent + [cc] )
 			print "---"
 
 	print >> sys.stderr, "/", nbDCS, "DCS pour", DCSlen, "orthologues"
@@ -245,7 +274,7 @@ def addDCS(bloc, col, dicGenesAnc, chrAnc, eNonDup):
 		for (_,_,a) in bloc:
 			(flag1,flag2) = (False,False)
 			# On parcourt les especes
-			for ((expected1,expected2),observed) in utils.myTools.izip(chrAnc[c],a):
+			for ((expected1,expected2),observed) in itertools.izip(chrAnc[c],a):
 				flag1 |= len(expected1.intersection(observed)) > 0
 				flag2 |= len(expected2.intersection(observed)) > 0
 			# On met a jour nb1 et nb2: le nombre de genes vus a gauche / a droite
@@ -329,7 +358,7 @@ def printColorAncestr(genesAnc, chrAncGenes):
 		for i in chrAncGenes[c]:
 			nb += 1
 			if arguments["showQuality"]:
-				print utils.myFile.myTSV.printLine( [c, nb, utils.myTools.printLine(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][j][0]] )
+				print utils.myFile.myTSV.printLine( [c, nb, utils.myFile.myTSV.printLine(["%.2f" % (100*x) for (x,_) in col[i]]), 100*col[i][j][0]] )
 			if arguments["showAncestralGenome"]:
 				print c, " ".join(genesAnc[i].names)
 		
@@ -376,13 +405,15 @@ col = [[] for i in xrange(len(lstGenesAnc))]
 # Decoupage de chaque tetrapode
 for eND in especesNonDup:
 	combin = utils.myTools.myCombinator([])
+	allUsed = {}
 	# Avec chaque poisson
 	for eD in especesDup:
-		lstBlocs = colorAncestr(eND, eD, phylTree, para, orthos)
+		(lstBlocs,usedD) = colorAncestr(eND, eD, phylTree, para, orthos)
+		allUsed[eD] = usedD
 		for bloc in lstBlocs:
 			combin.addLink(bloc)
 	
-	doSynthese(combin, eND, orthos, col, genesAnc.dicGenes, chrAnc)
+	doSynthese(combin, eND, orthos, col, genesAnc.dicGenes, chrAnc, allUsed)
 
 
 # On construit les chromosomes ancestraux

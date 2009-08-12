@@ -70,7 +70,7 @@ f = utils.myFile.openFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN
 for ligne in utils.myFile.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	data = tmpLinks[t[1]]
-	info[int(t[0])] = {'gene_name': data[0][0], 'transcript_name': data[0][1], 'protein_name': data[0][2], 'taxon_name': data[1]}
+	info[int(t[0])] = {'gene_name': data[0][0], 'transcript_name': data[0][1], 'protein_name': data[0][2], 'taxon_name': data[1], 'protein_alignment': t[3]}
 	x += 1
 f.close()
 print >> sys.stderr, x, "proteines OK"
@@ -124,6 +124,7 @@ for inf in info.itervalues():
 # On a besoin des genomes modernes pour reconnaitre les genes
 print >> sys.stderr, "Mise en forme des arbres ...",
 for (root,_) in data[1]:
-	utils.myProteinTree.printTree(sys.stdout, data, info, root)
+	if 'taxon_name' in info[root]:
+		utils.myProteinTree.printTree(sys.stdout, data, info, root)
 print >> sys.stderr, len(data[1]), "arbres OK"
 

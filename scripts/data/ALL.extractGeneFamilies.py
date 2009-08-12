@@ -10,6 +10,7 @@ import os
 import sys
 import collections
 
+import utils.myFile
 import utils.myTools
 import utils.myPhylTree
 import utils.myProteinTree
@@ -60,7 +61,7 @@ print >> sys.stderr, "%d arbres OK" % nb
 
 for (anc,lst) in geneFamilies.iteritems():
 	print >> sys.stderr, "Ecriture des familles de %s ..." % anc,
-	f = utils.myTools.myOpenFile(arguments["OUT.ancGenesFile"] % phylTree.fileName[anc], "w")
+	f = utils.myFile.openFile(arguments["OUT.ancGenesFile"] % phylTree.fileName[anc], "w")
 	for gg in lst:
 		print >> f, " ".join(gg)
 	f.close()

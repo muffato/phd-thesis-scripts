@@ -5,31 +5,62 @@ __doc__ = """
 """
 
 import sys
-import math
-import utils.myTools
-import utils.myMaths
 
-# Arguments
-arguments = utils.myTools.checkArgs([("fichier",file)], [("type",str,"float"), ("nbBins",int,1000)], __doc__)
+import utils.myFile
 
-# Lit un flot de nombres et affiche les stats
+# Les fichiers a regrouper (par defaut, on lit l'entree standard)
+files = set(sys.argv[1:])
+
+nbBins = 100
+withFreq = False
+for f in list(files):
+	if f.startswith("-nbBins="):
+		nbBins = int(f[8:])
+		files.discard(f)
+	elif f.startswith("-freq"):
+		withFreq = True
+		files.discard(f)
+
+if len(files) == 0:
+	files.add("-")
+
 lst = []
-t = eval(arguments["type"])
-f = utils.myTools.myOpenFile(arguments["fichier"], 'r')
-for l in f:
-	c = l.split()
-	lst.extend(t(x) for x in c)
-f.close()
+for f in files:
+	# Ouverture du fichier
+	if f == "-":
+		f = sys.stdin
+	else:
+		f = utils.myFile.openFile(f, 'r')
+	# Lecture & regroupement
+	for l in f:
+		c = l.split()
+		for x in c:
+			try:
+				x = int(x)
+			except ValueError:
+				x = float(x)
+			lst.append(x)
+	# Fermeture
+	f.close()
 
-nb = arguments["nbBins"]
-mn = min(lst)
-mx = max(lst)
-res = [0] * nb
-for x in lst:
-	i = int(nb * (float(x-mn)/(mx-mn)))
-	if i == nb:
-		i = nb-1
-	res[i] += 1
-for (i,x) in enumerate(res):
-	print float(i*(mx-mn))/nb+mn, x
+c = float(len(lst)) if withFreq else 1.
+
+if nbBins < 0:
+	import collections
+	d = collections.defaultdict(int)
+	for x in lst:
+		d[x] += 1
+	for x in sorted(d):
+		print x, d[x]/c
+else:
+	mn = min(lst)
+	mx = max(lst)
+	res = [0] * nbBins
+	for x in lst:
+		i = int(nbBins * (float(x-mn)/(mx-mn)))
+		if i == nbBins:
+			i = nbBins-1
+		res[i] += 1
+	for (i,x) in enumerate(res):
+		print float(i*(mx-mn))/nbBins+mn, x/c
 

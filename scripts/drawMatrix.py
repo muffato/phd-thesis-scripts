@@ -12,7 +12,7 @@ import utils.myPsOutput
 # Arguments
 arguments = utils.myTools.checkArgs( \
 	[("studiedGenome",file), ("referenceGenome",file)], \
-	[("orthologuesList",str,""), ("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), \
+	[("orthologuesList",str,""), ("includeGaps",bool,False), ("includeScaffolds",bool,False), ("includeRandoms",bool,False), ("includeNones",bool,False), \
 	("reverse",bool,False), ("scaleY",bool,False),\
 	("pointSize",float,-1), ("colorFile",str,""), ("defaultColor",str,"black"), ("penColor",str,"black"), ("backgroundColor",str,"")], \
 	__doc__
@@ -35,15 +35,19 @@ if arguments["colorFile"] != "":
 else:
 	colors = None
 
-# Les chromosomes a etudier
-chr1 = genome1.lstChr
-chr2 = genome2.lstChr
+chr1 = []
+chr2 = []
+chr1.extend(genome1.chrList[utils.myGenomes.ContigType.Chromosome])
+chr2.extend(genome2.chrList[utils.myGenomes.ContigType.Chromosome])
 if arguments["includeScaffolds"]:
-	chr1.extend(genome1.lstScaff)
-	chr2.extend(genome2.lstScaff)
+	chr1.extend(genome1.chrList[utils.myGenomes.ContigType.Scaffold])
+	chr2.extend(genome2.chrList[utils.myGenomes.ContigType.Scaffold])
 if arguments["includeRandoms"]:
-	chr1.extend(genome1.lstRand)
-	chr2.extend(genome2.lstRand)
+	chr1.extend(genome1.chrList[utils.myGenomes.ContigType.Random])
+	chr2.extend(genome2.chrList[utils.myGenomes.ContigType.Random])
+if arguments["includeNones"]:
+	chr1.extend(genome1.chrList[utils.myGenomes.ContigType.None])
+	chr2.extend(genome2.chrList[utils.myGenomes.ContigType.None])
 
 
 table12 = genome1.buildOrthosTable(chr1, genome2, chr2, arguments["includeGaps"], genesAnc)

@@ -176,7 +176,7 @@ for (root,data,info) in utils.myProteinTree.loadTree(arguments["ensemblTree"]):
 	# On regle les parametres de info
 	##################################
 	for inf in info.itervalues():
-		for tagname in ['lost_taxon_id', 'taxon_id', 'taxon_alias', 'original_cluster_id', 'Sitewise_dNdS_subroot_id', 'SIS1', 'SIS2', 'SISi', 'SISu']:
+		for tagname in ['lost_taxon_id', 'taxon_id', 'taxon_alias', 'original_cluster_id', 'Sitewise_dNdS_subroot_id', 'SIS1', 'SIS2', 'SISi', 'SISu', 'Gblocks_flanks']:
 			inf.pop(tagname, None)
 
 		if 'Duplication' in inf:
@@ -185,12 +185,18 @@ for (root,data,info) in utils.myProteinTree.loadTree(arguments["ensemblTree"]):
 			if 'dubious_duplication' in inf:
 				assert inf['Duplication'] == 1
 				del inf['dubious_duplication']
+				print "dubious", inf['taxon_name'], inf.get('duplication_confidence_score', -1)
 			elif inf['Duplication'] != 0:
 				if (inf.get('duplication_confidence_score', -1) < arguments["minDuplicationScore"]):
 					inf['Duplication'] = 1
+					print  "toolow", inf['taxon_name'], inf.get('duplication_confidence_score', -1)
 				else:
 					inf['Duplication'] = 2
+					print "good", inf['taxon_name'], inf.get('duplication_confidence_score', -1)
 
+	if 'taxon_name' not in info[root]:
+		continue
+	
 	flattenTree(root, True)
 	utils.myProteinTree.printTree(ft2, data, info, root)
 	rebuildTree(root)

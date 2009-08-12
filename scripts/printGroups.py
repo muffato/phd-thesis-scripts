@@ -4,21 +4,21 @@ __doc__ = """
 	Lit des donnees dans un fichier et les regroupe
 """
 
-import sys
+import utils.myFile
 import utils.myTools
 
+
+arguments = utils.myTools.checkArgs([("files",utils.myTools.FileList(0))], [], __doc__)
+
 # Les fichiers a regrouper (par defaut, on lit l'entree standard)
-files = sys.argv[1:]
+files = arguments["files"]
 if len(files) == 0:
 	files.append("-")
 
 comb = utils.myTools.myCombinator()
 for f in files:
 	# Ouverture du fichier
-	if f == "-":
-		f = sys.stdin
-	else:
-		f = utils.myTools.myOpenFile(f, 'r')
+	f = utils.myFile.openFile(f, 'r')
 	# Lecture & regroupement
 	for l in f:
 		comb.addLink(l.split())
@@ -29,5 +29,4 @@ for f in files:
 for x in comb:
 	print " ".join(x)
 
-f.close()
 

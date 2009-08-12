@@ -6,6 +6,10 @@ Renvoie le pourcentage de qualite des diagonales.
 """
 
 import sys
+import enum
+import itertools
+
+import utils.myFile
 import utils.myDiags
 import utils.myTools
 import utils.myGenomes
@@ -15,78 +19,107 @@ import utils.myPhylTree
 # Arguments
 arguments = utils.myTools.checkArgs( \
 	[("phylTree.conf",file)], \
-	[("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
+	[("diagsFile",str,""), ("range",str,""), \
+	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
 
-#  Chargement et initialisation
 phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
+cat = enum.Enum('Nb', 'Parfaites', 'Voisines', 'MemeChr', 'DiffChr')
 
-genomes = {}
-ancGenes = {}
 
-for l in sys.stdin:
-	l = l.replace('\n', '')
-	lstDiags = utils.myDiags.loadDiagsFile(l, phylTree.listAncestr, phylTree.officialName)
+def do(genome, ancGenes, lstDiags):
+	for l in lstDiags:
+		t = l.split("\t")
+		diag = [int(x) for x in t[2].split()]
+		strand = [int(x) for x in t[3].split()]
+		score = [int(x) for x in t[4].split()]
 
-	allOK = 0.
-	allPerfect = 0.
-	allPerfectPairs = 0.
-	allDiags = 0.
-	allPairs = 0.
-	allShift = 0.
-	allCov = 0.
-
-	for anc in lstDiags:
-		if len(lstDiags[anc]) == 0:
+		if len(diag) == 1:
 			continue
-		if anc not in genomes:
-			genomes[anc] = utils.myGenomes.Genome(arguments["genesFile"] % phylTree.fileName[anc])
-			ancGenes[anc] = utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[anc])
-		nbOK = 0.
-		nbPerfect = 0.
-		nbPerfectPairs = 0.
-		nbTotPairs = 0.
-		averageShift = 0.
-		allPos = set()
-		for (d,_,_,_,_) in lstDiags[anc]:
-			lstPos = [genomes[anc].getPosition(ancGenes[anc].lstGenes[None][i].names) for i in d]
-			tmp = list(set([len(x) for x in lstPos]))
-			if tmp != [1]:
-				print >> sys.stderr, "PB1 !!", d, lstPos, tmp
-				
-			lstPos = [x.pop() for x in lstPos]
-			allPos.update(lstPos)
-			if len(set([c for (c,_) in lstPos])) == 1:
-				nbOK += 1.
-				lstPos.sort()
-				(_,x1) = lstPos[0]
-				(_,x2) = lstPos[-1]
-				if abs(x2-x1) == (len(d)-1):
-					nbPerfect += 1.
-			for i in xrange(len(lstPos)-1):
-				(c1,x1) = lstPos[i]
-				(c2,x2) = lstPos[i+1]
-				if c1 != c2:
-					continue
-				if abs(x1-x2) == 1:
-					nbPerfectPairs += 1.
-				averageShift += abs(x1-x2)
-				nbTotPairs += 1.
 
-	
-		# Fichier, ancetre, anciennete, %memeChr, %parfaite, ecart moyen, couverture
-		print "%s\t%s\t%d\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (l,anc, phylTree.ages[anc],100.*nbOK/len(lstDiags[anc]),100.*nbPerfect/len(lstDiags[anc]),averageShift/nbTotPairs,100.*nbPerfectPairs/nbTotPairs,100. * float(len(allPos)) / float(sum([len(x) for x in genomes[anc].lstGenes.itervalues()])))
+		scoreDiag = dict.fromkeys(cat, 0)
+		for (((g1,s1),(g2,s2)),s) in itertools.izip(utils.myTools.myIterator.slidingTuple(zip(diag,strand)),score):
+			
+			l1 = genome.getPosition(ancGenes.lstGenes[None][g1].names)
+			assert len(l1) == 1
+			(c1,i1) = l1.pop()
+			t1 = genome.lstGenes[c1][i1].strand
+			
+			l2 = genome.getPosition(ancGenes.lstGenes[None][g2].names)
+			assert len(l2) == 1
+			(c2,i2) = l2.pop()
+			t2 = genome.lstGenes[c2][i2].strand
+
+			scoreDiag[cat.Nb] += 1
+			if c1 != c2:
+				res = cat.DiffChr
+			elif abs(i1-i2) == 1:
+				if (t1*t2 == s1*s2) and (i2 == i1+s1*t1):
+					res = cat.Parfaites
+				else:
+					res = cat.Voisines
+			else:
+				print "GAP", anc, abs(i1-i2), s
+				res = cat.MemeChr
+			scoreDiag[res] += 1
+			print "PAIR", anc, res.index, s
+
+		for x in xrange(4, 0, -1):
+			if scoreDiag[cat[x]] != 0:
+				res = cat[x]
+				break
+		for x in cat:
+			scoresPaires[x] += scoreDiag[x]
 		
-		allOK += nbOK
-		allPerfect += nbPerfect
-		allPerfectPairs += nbPerfectPairs
-		allDiags += len(lstDiags[anc])
-		allPairs += nbTotPairs
-		allShift += averageShift
-		allCov += float(len(allPos)) / float(sum([len(x) for x in genomes[anc].lstGenes.itervalues()]))
+		scoresDiags[cat.Nb] += 1
+		scoresDiags[res] += 1
+
+		print "DIAG", anc, " ".join([str(scoreDiag[cat[x]]) for x in xrange(5)])
 
 
-	print  "%s\t%s\t%.4f\t%.4f\t%.4f\t%.4f\t%.4f" % (l,"----",100.*allOK/allDiags, 100.*allPerfect/allDiags, allShift/allPairs, 100.*allPerfectPairs/allPairs, 100.*allCov/len(lstDiags))
+
+
+if len(arguments["range"]) == 0:
+	for anc in phylTree.listAncestr:
+		scoresPaires = dict.fromkeys(cat, 0)
+		scoresDiags = dict.fromkeys(cat, 0)
+		refPairs = 0
+
+		genome = utils.myGenomes.Genome(arguments["genesFile"] % phylTree.fileName[anc])
+		ancGenes = utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[anc])
+		lstDiags = utils.myFile.openFile(arguments["diagsFile"] % phylTree.fileName[anc], "r")
+
+		refPairs += sum(len(x)-1 for x in genome.lstGenes.itervalues())
+		do(genome, ancGenes, lstDiags)
+
+		lstDiags.close()
+
+		print "ALLDIAGS", anc, " ".join([str(scoresDiags[cat[x]]) for x in xrange(5)])
+		print "ALLPAIRS", anc, " ".join([str(scoresPaires[cat[x]]) for x in xrange(5)])
+		print "REFPAIRS", anc, refPairs
+
+else:
+	todo = utils.myTools.getRange(arguments["range"])
+	for anc in phylTree.listAncestr:
+		scoresPaires = dict.fromkeys(cat, 0)
+		scoresDiags = dict.fromkeys(cat, 0)
+		refPairs = 0
+
+		for i in todo:
+
+			genome = utils.myGenomes.Genome(arguments["genesFile"] % (i,phylTree.fileName[anc]))
+			ancGenes = utils.myGenomes.Genome(arguments["ancGenesFile"] % (i,phylTree.fileName[anc]))
+			lstDiags = utils.myFile.openFile(arguments["diagsFile"] % (i,phylTree.fileName[anc]), "r")
+
+			refPairs += sum(len(x)-1 for x in genome.lstGenes.itervalues())
+			do(genome, ancGenes, lstDiags)
+
+			lstDiags.close()
+
+		print "ALLDIAGS", anc, " ".join([str(scoresDiags[cat[x]]) for x in xrange(5)])
+		print "ALLPAIRS", anc, " ".join([str(scoresPaires[cat[x]]) for x in xrange(5)])
+		print "REFPAIRS", refPairs
+
 

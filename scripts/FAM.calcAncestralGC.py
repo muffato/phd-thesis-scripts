@@ -14,7 +14,7 @@ for treeID in utils.myTools.getRange(arguments["range"]):
 	tree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree"] % treeID)
 
 	# Chargement des CDS
-	seq = utils.myGenomes.loadFastaFile(arguments["alignment-FASTA"] % treeID)
+	seq = utils.myGenomes.myFASTA.loadFile(arguments["alignment-FASTA"] % treeID)
 
 	res = []
 	n = len(seq.values()[0])

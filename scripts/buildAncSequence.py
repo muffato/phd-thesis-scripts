@@ -5,24 +5,14 @@ import utils.myTools
 import utils.myGenomes
 import utils.myPhylTree
 
-arguments = utils.myTools.checkArgs( \
-	[], \
-	[("range",str,""), ("alphabet",str,"ACGTN"), ("phylTree",str,""), ("alignment-FASTA",str,"")], \
-	"Reconstruit la sequence ancestrale" \
-)
+arguments = utils.myTools.checkArgs( [("phylTree",str), ("alignment-FASTA",str)], [("batch",str,""), ("alphabet",str,"ACGTN")], "Reconstruit la sequence ancestrale")
 
 allBases = arguments["alphabet"][:-1]
 allBasesS = set(arguments["alphabet"])
 unknownBase = arguments["alphabet"][-1]
 unknownBaseCost = 1. / len(allBases)
 
-for treeID in utils.myTools.getRange(arguments["range"]):
-	
-	print >> sys.stderr, treeID, "...",
-
-	tree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree"] % treeID)
-
-	seq = utils.myGenomes.loadFastaFile(arguments["alignment-FASTA"] % treeID)
+def doWork(tree, seq):
 
 	res = []
 	n = len(seq.values()[0])
@@ -41,7 +31,8 @@ for treeID in utils.myTools.getRange(arguments["range"]):
 			proba.append(tree.calcWeightedValue(values, -1, None))
 		res.append(proba)
 
-	for (ie,e) in enumerate(tree.allNames):
+	for e in tree.listAncestr:
+		ie = tree.indNames[e]
 		seq = ""
 		nbM = 0
 		nbN = 0
@@ -67,8 +58,7 @@ for treeID in utils.myTools.getRange(arguments["range"]):
 			else:
 				# Une seule possibilite
 				seq += l[0][1]
-	
-		print "ID\t%d" % treeID
+
 		print "NAME\t%s" % e
 		print "SPECIES\t%s" % " ".join(tree.species[e])
 		print "LENGTH\t%d\t%d\t%d" % (n,n-nbM,n-nbM-nbN)
@@ -77,4 +67,17 @@ for treeID in utils.myTools.getRange(arguments["range"]):
 			print "PROBA-%s\t%s" % (b,proba[ib][1:])
 		print
 
+if len(arguments["batch"]) == 0:
+	tree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree"])
+	seq = utils.myGenomes.myFASTA.loadFile(arguments["alignment-FASTA"])
+	doWork(tree, seq)
 	print >> sys.stderr, "OK"
+else:
+	for treeID in utils.myTools.getRange(arguments["batch"]):
+		print >> sys.stderr, treeID, "...",
+		tree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree"] % treeID)
+		seq = utils.myGenomes.myFASTA.loadFile(arguments["alignment-FASTA"] % treeID)
+		print "ID\t%d" % treeID
+		doWork(tree, seq)
+	print >> sys.stderr, "OK"
+

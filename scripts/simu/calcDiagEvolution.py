@@ -41,12 +41,11 @@ for a in phylTree.listAncestr:
 	tmp = utils.myDiags.loadDiagsFile(arguments["IN.diagsFile"] % phylTree.fileName[a], [a], phylTree.officialName)[a]
 	# On en profite pour lister les diagonales et les genes seuls
 	notseen = set(xrange(len(genes[a].lstGenes[None])))
-	res = []
+	diags[a] = []
 	for (d,_,_,_,_) in tmp:
 		notseen.difference_update(d)
-		res.append(d)
-	res.extend( [g] for g in notseen)
-	diags[a] = res
+		diags[a].append(d)
+	diags[a].extend( [g] for g in notseen)
 
 # Creation des dictionnaires genes -> diags
 for (esp,lst) in diags.iteritems():

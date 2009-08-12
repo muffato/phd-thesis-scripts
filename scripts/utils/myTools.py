@@ -16,13 +16,18 @@ def funcFilter(fun):
 	return lambda data: (f(x) for (f,x) in itertools.izip(fun, data))
 
 
-def mkDeprecatedFunc(f):
-	def tmp(*args, **keywords):
-		print >> sys.stderr, "deprecated use of", f,
-		return f(*args, **keywords)
-	return tmp
-
-myOpenFile = mkDeprecatedFunc(myFile.openFile)
+def deprecated(func):
+	"""This is a decorator which can be used to mark functions
+	as deprecated. It will result in a warning being emmitted
+	when the function is used."""
+	import warnings
+	def newFunc(*args, **kwargs):
+		warnings.warn("Call to deprecated function %s." % func.__name__, category=DeprecationWarning, stacklevel=2)
+		return func(*args, **kwargs)
+	newFunc.__name__ = func.__name__
+	newFunc.__doc__ = func.__doc__
+	newFunc.__dict__.update(func.__dict__)
+	return newFunc
 
 
 #####################################################################
@@ -52,11 +57,12 @@ class myIterator:
 	########################
 	@staticmethod
 	def slidingTuple(lst):
-		x = lst[0]
-		for i in xrange(1, len(lst)):
-			y = lst[i]
-			yield (x,y)
-			x = y
+		if len(lst) > 0:
+			x = lst[0]
+			for i in xrange(1, len(lst)):
+				y = lst[i]
+				yield (x,y)
+				x = y
 	
 
 
@@ -65,7 +71,7 @@ class myIterator:
 ##########################################################
 def getRange(s):
 	if myFile.hasAccess(s):
-		f = myOpenFile(s, "r")
+		f = myFile.openFile(s, "r")
 		lst = []
 		for l in f:
 			lst.extend( [int(x) for x in l.replace('\n', '').split()] )
@@ -198,6 +204,18 @@ def addModuleOptions(namespace, options):
 	for (name,typ,val) in options:
 		__moduleoptions.append( (namespace+":"+name,typ,val) )
 
+
+########################################################
+# Permet de demander une liste de fichiers en argument #
+########################################################
+class FileList:
+	def __init__(self, value):
+		self.minNbFiles = value
+
+	def __repr__(self):
+		return '<FileList(%d)>' % self.minNbFiles
+
+
 #################################################################################
 # Lit la ligne de commande et parse les arguments                               #
 #  1. des arguments obligatoires (nom,constructeur)                             #
@@ -214,7 +232,7 @@ def checkArgs(args, options, info):
 		print >> sys.stderr, "- ERREUR -", reason
 		print >> sys.stderr, " Usage :", sys.argv[0]
 		for (i,t) in enumerate(args):
-			print >> sys.stderr, "\t", "%d:" % (i+1), "%s %s" % t
+			print >> sys.stderr, "\t", "%d:" % (i+1), t[0], t[1]
 		for t in options:
 			if t[1] == bool:
 				invite = "+/-"
@@ -303,9 +321,22 @@ def checkArgs(args, options, info):
 		else:
 			if len(valArg) < len(args):
 				(s,typ) = args[len(valArg)]
-				valArg[s] = putValue(typ, None, t)
+				if isinstance(typ, FileList):
+					valArg[s] = list()
+					assert len(valArg) == len(args)
+					valArg[s].append(putValue(file, None, t))
+				else:
+					valArg[s] = putValue(typ, None, t)
+			elif isinstance(args[-1][1], FileList):
+				valArg[args[-1][0]].append(putValue(file, None, t))
 			else:
 				error_usage("Trop d'arguments sur '%s'" % t)
+
+	if isinstance(args[-1][1], FileList):
+		if args[-1][0] not in valArg:
+			valArg[args[-1][0]] = []
+		if len(valArg[args[-1][0]]) < args[-1][1].minNbFiles:
+			error_usage("Pas assez de fichiers pour '%s'" % args[-1][0])
 
 	# Il n'y a pas le nombre d'arguments minimal
 	if len(valArg) < len(args):

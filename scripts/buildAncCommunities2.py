@@ -77,7 +77,7 @@ for (anc,_,diag,strands,e1,e2) in utils.myFile.myTSV.readTabular(arguments["diag
 	if len(d) < arguments["minDiagLength"]:
 		continue
 	
-	# Les chromosomes en syntenie
+	# Les chromosomes en syntenie avec leurs scores
 	tmp1 = {}
 	for (e,c,n) in [y.split("/") for y in e1.split("|") if len(y) > 0]:
 		tmp1[(e,c)] = n
@@ -86,12 +86,16 @@ for (anc,_,diag,strands,e1,e2) in utils.myFile.myTSV.readTabular(arguments["diag
 	esp = {}
 	for (e,c,n) in [y.split("/") for y in e2.split("|") if len(y) > 0]:
 		if e in phylTree.listSpecies:
+			n = 0
+			# Le resultat sera pour chaque espece le chromosome d'appartenance majoritaire, departage par la syntenie en cas d'egalite
 			esp[e] = max(esp.get(e, (0,None,None)), (n, tmp1.get((e,c),0), c) )
 	espChr = frozenset((e,esp[e][2]) for e in esp)
-	
+	#print [c for (e,c) in espChr if e == "Homo sapiens"], [c for (e,c) in espChr if e == "Pan troglodytes"], [c for (e,c) in espChr if e == "Pongo pygmaeus"]
 	lstDiags.append( (d,espChr,frozenset(esp),diag,strands) )
 
 print >> sys.stderr, "OK (%d diagonales)" % len(lstDiags)
+
+#sys.exit(0)
 
 #  Chargement et initialisation
 ################################
@@ -158,7 +162,7 @@ for i1 in xrange(len(lstDiags)):
 		x = calcProba( e1.intersection(e2), frozenset(e for (e,_) in ec1.intersection(ec2)) )
 		if x is None:
 			continue
-		assert x > 0
+		assert 0 < x <= maxS
 		if x < arguments["scoreThresholdMin"]:
 			continue
 		if x >= arguments["scoreThresholdMax"]:
