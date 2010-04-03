@@ -1,7 +1,7 @@
 #! /users/ldog/muffato/python
 
 __doc__ = """
-	Telecharge depuis le site d'Ensembl les fichiers des arbres de proteines
+	Met en forme les arbres de proteines (en les telechargeant / utilisant les fichiers locaux)
 """
 
 import os
@@ -21,6 +21,7 @@ arguments = utils.myTools.checkArgs( \
 	("IN.protein_tree_node",str,"protein_tree_node.txt.gz"), \
 	("IN.protein_tree_member",str,"protein_tree_member.txt.gz"), \
 	("IN.protein_tree_tag",str,"protein_tree_tag.txt.gz"), \
+	("IN.protein_tree_stable_id",str,"protein_tree_stable_id.txt.gz"), \
 	], \
 	__doc__ \
 )
@@ -69,13 +70,26 @@ info = collections.defaultdict(dict)
 f = utils.myFile.openFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_member"]), "r")
 for ligne in utils.myFile.MySQLFileLoader(f):
 	t = ligne.split("\t")
-	data = tmpLinks[t[1]]
-	info[int(t[0])] = {'gene_name': data[0][0], 'transcript_name': data[0][1], 'protein_name': data[0][2], 'taxon_name': data[1], 'protein_alignment': t[3]}
+	data = tmpLinks[t[2]]
+	info[int(t[0])] = {'gene_name': data[0][0], 'transcript_name': data[0][1], 'protein_name': data[0][2], 'taxon_name': data[1], 'protein_alignment': t[4]}
 	x += 1
 f.close()
 print >> sys.stderr, x, "proteines OK"
 del tmpLinks
 del taxonName
+
+
+# On charge les liens node_id -> tree_name
+###########################################
+print >> sys.stderr, "Chargement des node_id -> tree_name ...",
+x = 0
+f = utils.myFile.openFile(os.path.join(arguments["IN.EnsemblURL"], arguments["IN.protein_tree_stable_id"]), "r")
+for ligne in utils.myFile.MySQLFileLoader(f):
+	t = ligne.split("\t")
+	info[int(t[0])]["tree_name"] = t[1]
+	x += 1
+f.close()
+print >> sys.stderr, x, "noms OK"
 
 
 # On charge les liens node_id -> infos 
@@ -108,7 +122,7 @@ for ligne in utils.myFile.MySQLFileLoader(f):
 	t = ligne.split("\t")
 	# On rajoute le fils a son pere (avec une distance)
 	node = int(t[1])
-	data[ node ].append( (int(t[0]), float(t[5])) )
+	data[ node ].append( (int(t[0]), float(t[6])) )
 f.close()
 print >> sys.stderr, len(data), "branches OK"
 
@@ -120,6 +134,8 @@ for inf in info.itervalues():
 		# Pour passer des '/' et ' ' a '-' et '_', et enlever le 'Silurana'
 		inf['taxon_name'] = phylTree.officialName[inf['taxon_name']]
 
+for dat in data.itervalues():
+	dat.sort()
 
 # On a besoin des genomes modernes pour reconnaitre les genes
 print >> sys.stderr, "Mise en forme des arbres ...",

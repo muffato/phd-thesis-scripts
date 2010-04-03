@@ -30,7 +30,7 @@ def buildParaOrtho():
 	para = dict([(e,{}) for e in especesDup])
 	ortho = dict([(e,{}) for e in especesDup])
 	
-	lstChrOK = dic([(e,phylTree.dicGenomes[e].chrSet[utils.myGenomes.ContigType.Chromosome] | phylTree.dicGenomes[e].chrSet[utils.myGenomes.ContigType.Scaffold]) for e in especesDup])
+	lstChrOK = dict([(e,phylTree.dicGenomes[e].chrSet[utils.myGenomes.ContigType.Chromosome] | phylTree.dicGenomes[e].chrSet[utils.myGenomes.ContigType.Scaffold]) for e in especesDup])
 
 	# On parcourt les genes ancestraux pour les especes en dessous de l'ancetre
 	for g in lstGenesAnc:
@@ -111,7 +111,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 	usedGenesDup = set()
 
 	# On parcourt les chromosomes de l'espece
-	for c in genome.chrList[utils.myGenomes.ContigType.Chromosome] + genome.chrList[utils.myGenomes.ContigType.Scaffold]
+	for c in genome.chrList[utils.myGenomes.ContigType.Chromosome] + genome.chrList[utils.myGenomes.ContigType.Scaffold]:
 		
 		# Eviter d'essayer de creer des DCS sur des scaffolds trop petits
 		if len(genome.lstGenes[c]) < arguments["minChrLen"]:
@@ -446,7 +446,7 @@ print >> sys.stderr, "Lancement de walktrap ...",
 res = utils.walktrap.doWalktrap(edges)
 
 # A partir d'ici, on a une association DCS <-> chromosomes, on retombe sur la regle de base, le vote a la majorite
-
+alldcsid = set(xrange(len(allDCS)))
 chrInd = 0
 for (nodes,cuts,_,dend) in res:
 	print >> sys.stderr, "Communaute de %d noeuds:" % len(nodes)
@@ -457,12 +457,21 @@ for (nodes,cuts,_,dend) in res:
 	for cl in clusters:
 		chrInd += 1
 		for g in cl:
+			alldcsid.remove(g)
 			for (_,s,_) in allDCS[g][0]:
 				(_,anc) = genesAnc.dicGenes[s]
 				(e,_,_) = phylTree.dicGenes[s]
 				col[anc].append( (None, chrInd, e) )
 
-print >> sys.stderr, "%d chromosomes ancestraux" % chrInd
+print >> sys.stderr, "%d chromosomes ancestraux et %d blocs sans chromosome" % (chrInd,len(alldcsid))
+
+# Ajout de chromosomes factices
+for g in alldcsid:
+	chrInd += 1
+	for (_,s,_) in allDCS[g][0]:
+		(_,anc) = genesAnc.dicGenes[s]
+		(e,_,_) = phylTree.dicGenes[s]
+		col[anc].append( (None, chrInd, e) )
 
 # On construit les chromosomes ancestraux
 print >> sys.stderr, "Synthese des genes ancestraux ...",

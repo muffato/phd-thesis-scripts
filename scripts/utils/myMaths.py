@@ -58,10 +58,18 @@ class myStats:
 			myStats.getValueNX(l, 75),myStats.getValueNX(l, 50),myStats.getValueNX(l, 25), myStats.getValue(l, 100), m, myStats.stddev(l, m), len(l))
 
 	@staticmethod
-	def txtSummary(lst):
-		if len(lst) == 0:
-			return "%s [%s/%s/%s] [%s/%s/%s] %s [%s/%s-0]" % tuple([None]*10)
-		return "%s [%s/%s/%s] [%s/%s/%s] %s [%.2f/%.2f-%d]" % myStats.valSummary(lst)
+	def txtSummary(lst, withN50=True):
+		pattern = ["%s [%s/%s/%s] "]
+		if withN50:
+			pattern.append("[%s/%s/%s] ")
+		pattern.append("%s [")
+		pattern.append("%.2f/%.2f" if len(lst) > 0 else "%s/%s")
+		pattern.append("-%d]")
+		if len(lst) > 0:
+			data = myStats.valSummary(lst)
+			return ''.join(pattern) % (data if withN50 else data[:4] + data[-4:])
+		else:
+			return ''.join(pattern) % ((None,)*(10 if withN50 else 7) + (0,) )
 
 
 	# Renvoie la moyenne ponderee d'une liste
@@ -304,30 +312,32 @@ class myInterpolator:
 ####################################
 class randomValue:
 	
-	vonmisesmean = 0.5
-	vonmiseskappa = 2.
 	import random
 	import bisect
 
 	# Renvoie un indice au hasard dans l, compte tenu des valeurs de l, qui indiquent une frequence d'apparition
 	#############################################################################################################
-	def initBisect(self, l):
-		self.l = [0] * (len(l)+1)
+	@staticmethod
+	def bisectChooser(l):
+		newl = [0] * (len(l)+1)
+		x = 0
 		for i in xrange(len(l)):
-			self.l[i+1] = self.l[i] + l[i]
-		self.max = self.l[-1]
-
-	def getRandomBisectPos(self):
-		return self.bisect.bisect_left(self.l, self.random.random() * self.max) - 1
+			x += l[i]
+			newl[i+1] = newl[i] + l[i]
+			assert newl[i+1] == x
+		m = newl[-1]
+		assert m == x
+		return lambda : randomValue.bisect.bisect_left(newl, randomValue.random.random() * m) - 1
 
 
 	# Distribution VonMises restreinte a [0,1] et centree sur une moyenne
 	######################################################################
-	def myVonMises(self):
+	@staticmethod
+	def myVonMises(mean, kappa):
 		# Un nombre entre 0 et 1
-		r = self.random.vonmisesvariate(0, self.vonmiseskappa) / (2*math.pi) + .5
+		r = randomValue.random.vonmisesvariate(0, kappa) / (2*math.pi) + .5
 		# On decale la distribution vers la moyenne voulue
-		x0 = 2*self.vonmisesmean - 1
+		x0 = 2 * mean - 1
 		if x0 < 0:
 			return abs(x0 + r*(1-x0))
 		else:
@@ -340,6 +350,33 @@ class randomValue:
 	def geometric(p):
 		return int(math.ceil(math.log(1.0 - randomValue.random.random(), 1.0 - p)))
 
+	
+	import myTools
+	@staticmethod
+	@myTools.memoize
+	def intParetoMean(alpha, precision, niter):
+		s = 0.
+		n = 0
+		lastm = 0
+		while True:
+			for _ in xrange(niter):
+				s += int(randomValue.random.paretovariate(alpha))
+				n += 1
+			newm = s/n
+			if abs(lastm-newm) < precision:
+				return newm
+			lastm = newm
+	
+	@staticmethod
+	def paretoAlphaFromMean(m, step=0.01, precision=0.01, niter=100000):
+		alpha = int((1. + 1./(m-1.)) / step) * step
+		tries = {}
+		while alpha not in tries:
+			res = randomValue.intParetoMean(alpha, precision, niter)
+			tries[alpha] = res
+			alpha += -step if res < m else step
+		return min((abs(y-m),x) for (x,y) in tries.iteritems())[1]
+		
 
 ######################
 # Applatit une liste #

@@ -1,10 +1,9 @@
 #! /users/ldog/muffato/python
 
 __doc__ = """
-	Telecharge depuis le site d'Ensembl les fichiers des arbres de proteines
+	Corrige les arbres d'Ensembl en fonction du seuil minimal de duplication_score et de l'arbre des especes desire
 """
 
-import os
 import sys
 import collections
 
@@ -15,9 +14,7 @@ import utils.myProteinTree
 
 arguments = utils.myTools.checkArgs( \
 	[("phylTree.conf",file), ("ensemblTree",file)], \
-	[("minDuplicationScore",float,0), \
-	("OUT.tree",str,"tree.%s.bz2"), \
-	], \
+	[("minDuplicationScore",float,-1), ("OUT.tree",str,"tree.%s.bz2"), ("defaultName", str, "FAM%d")], \
 	__doc__ \
 )
 
@@ -132,7 +129,7 @@ def rebuildTree(node):
 					nextNodeID += 1
 					length = min([d for (_,d) in lst]) / 2
 					data[nextNodeID] = [(g,d-length) for (g,d) in lst]
-					info[nextNodeID] = {'taxon_name':anc, 'Duplication':0, 'Bootstrap':-1}
+					info[nextNodeID] = {'taxon_name':anc, 'Duplication':0}
 					newData.append( (nextNodeID,length) )
 			data[node] = newData
 
@@ -164,6 +161,22 @@ def getRoots(node, previousAnc, lastWrittenAnc):
 
 phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
+if arguments["minDuplicationScore"] < 0:
+	# Limites automatiques de score de duplication
+	minDuplicationScore = {}
+	for anc in phylTree.listAncestr:
+		nesp = len(phylTree.species[anc])
+		n2X = len(phylTree.lstEsp2X.intersection(phylTree.species[anc]))
+		# La moitie des especes non 2X a vu la duplication (au minimum 1 espece)
+		minDuplicationScore[anc] = round(max(1., .5*(nesp-n2X)) / nesp, 3) - 2e-3
+	print >> sys.stderr, minDuplicationScore
+else:
+	# Une limite pour tout le monde
+	minDuplicationScore = dict.fromkeys(phylTree.listAncestr, arguments["minDuplicationScore"])
+# Les scores dans l'abre pour les especes modernes valent toujours 1, on doit toujours les accepter
+for esp in phylTree.listSpecies:
+	minDuplicationScore[esp] = 0
+
 nextNodeID = 10000000
 ft2 = utils.myFile.openFile(arguments["OUT.tree"] % "2.flatten", "w")
 ft3 = utils.myFile.openFile(arguments["OUT.tree"] % "3.rebuilt", "w")
@@ -173,35 +186,42 @@ nb = 0
 nbA = 0
 for (root,data,info) in utils.myProteinTree.loadTree(arguments["ensemblTree"]):
 
-	# On regle les parametres de info
-	##################################
-	for inf in info.itervalues():
-		for tagname in ['lost_taxon_id', 'taxon_id', 'taxon_alias', 'original_cluster_id', 'Sitewise_dNdS_subroot_id', 'SIS1', 'SIS2', 'SISi', 'SISu', 'Gblocks_flanks']:
-			inf.pop(tagname, None)
-
-		if 'Duplication' in inf:
-			# On considere que les duplications 'dubious' ne sont pas valables pour une duplication
-			assert (inf['Duplication'] in [0,1,2])
-			if 'dubious_duplication' in inf:
-				assert inf['Duplication'] == 1
-				del inf['dubious_duplication']
-				print "dubious", inf['taxon_name'], inf.get('duplication_confidence_score', -1)
-			elif inf['Duplication'] != 0:
-				if (inf.get('duplication_confidence_score', -1) < arguments["minDuplicationScore"]):
-					inf['Duplication'] = 1
-					print  "toolow", inf['taxon_name'], inf.get('duplication_confidence_score', -1)
-				else:
-					inf['Duplication'] = 2
-					print "good", inf['taxon_name'], inf.get('duplication_confidence_score', -1)
-
+	# Les arbres qui ne sont pas des arbres
 	if 'taxon_name' not in info[root]:
 		continue
+
+	# On regle les parametres de info
+	##################################
+	for (node,inf) in info.iteritems():
+
+		if 'Duplication' in inf:
+			if 'dubious_duplication' in inf:
+				# On considere que les duplications 'dubious' ne sont pas valables pour une duplication
+				assert inf['Duplication'] == 1
+				print "dubious\t%s\t0" % inf["taxon_name"]
+			elif inf['Duplication'] != 0:
+				# Attention: pour les arbres d'Ensembl dont la racine est une duplication,  celle-ci n'ayant pas d'outgroup vaut 1
+				#   Il faut la passer a 2 si le score est suffisant
+				if inf['duplication_confidence_score'] < minDuplicationScore[inf["taxon_name"]]:
+					inf['Duplication'] = 1
+					print "toolow\t%s\t%f" % (inf["taxon_name"], inf['duplication_confidence_score'])
+				else:
+					inf['Duplication'] = 2
+					print "good\t%s\t%f" % (inf["taxon_name"], inf['duplication_confidence_score'])
+
+		for tagname in inf.keys():
+			if ("name" not in tagname) and (tagname not in ["Bootstrap", "Duplication", "protein_alignment"]):
+				del inf[tagname]
 	
 	flattenTree(root, True)
 	utils.myProteinTree.printTree(ft2, data, info, root)
 	rebuildTree(root)
 	utils.myProteinTree.printTree(ft3, data, info, root)
-	for x in getRoots(root, None, None):
+	for (i,x) in enumerate(getRoots(root, None, None)):
+		if x != root:
+			info[x]["tree_name"] = info[root].get("tree_name", arguments["defaultName"] % nb) + utils.myProteinTree.getDupSuffix(i+1, True)
+		elif "tree_name" not in info[x]:
+			info[x]["tree_name"] = arguments["defaultName"] % nb
 		utils.myProteinTree.printTree(ft4, data, info, x)
 		nbA += 1
 	nb += 1

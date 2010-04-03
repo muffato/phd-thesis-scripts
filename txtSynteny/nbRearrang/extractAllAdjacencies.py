@@ -19,7 +19,7 @@ import utils.myPhylTree
 # Arguments
 arguments = utils.myTools.checkArgs( \
 	[("genomes",utils.myTools.FileList(2))], \
-	[("minLength",int,1), ("eliminateDup",bool,False), ("removeNestedGenes",bool,False)], \
+	[("minLength",int,1), ("eliminateDup",bool,False)], \
 	__doc__ \
 )
 
@@ -36,12 +36,13 @@ for gene in genome[listEsp[0]]:
 	res = {}
 	for esp in listEsp:
 		pos = [(c,i) for (c,i) in genome[esp].getPosition(gene.names) if (c in genome[esp].chrSet[utils.myGenomes.ContigType.Chromosome]) or (c in genome[esp].chrSet[utils.myGenomes.ContigType.Scaffold])]
-		if arguments["eliminateDup"] and (len(pos) != 1):
+		if arguments["eliminateDup"] and (len(pos) > 1):
 			break
 		if len(pos) == 0:
 			break
 		res[esp] = pos
 	else:
+		assert len(res) == len(listEsp)
 		orthos.append(res)
 
 # Nombre de genes par chromosome
@@ -69,12 +70,10 @@ def rebuildOrthos():
 	return (neworthos,modif)
 
 
-# Boucle de filtrage des genes
+# Iteration tant que tous les scaffolds filtres contiennent toujours assez de genes
 modif = True
 while modif:
-
 	print >> sys.stderr, len(orthos), "genes"
-
 	counts = {}
 	for esp in listEsp:
 		counts[esp] = doCount(esp)
@@ -128,6 +127,6 @@ def status(esp, ((i1,s1), (i2,s2))):
 for x in allAdj:
 	def names(i, esp):
 		return "/".join(genome[esp].lstGenes[c][x].names[0] for (c,x) in orthos[i][esp])
-	r = [status(esp, x) for esp in listEsp] + ["%d/%d" % (x[0][1],x[1][1])] + [names(x[0][0], esp) for esp in listEsp]+ [names(x[1][0], esp) for esp in listEsp]
+	r = [status(esp, x) for esp in listEsp] + ["%d/%d" % (x[0][1],x[1][1])] + [names(x[0][0], esp) for esp in listEsp] + [names(x[1][0], esp) for esp in listEsp]
 	print "\t".join(r)
 

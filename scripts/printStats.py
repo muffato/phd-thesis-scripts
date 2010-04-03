@@ -8,7 +8,7 @@ import utils.myFile
 import utils.myMaths
 import utils.myTools
 
-arguments = utils.myTools.checkArgs([("files",utils.myTools.FileList(0))], [("txt",bool,True)], __doc__)
+arguments = utils.myTools.checkArgs([("files",utils.myTools.FileList(0))], [("txt",bool,True)], __doc__, showArgs=False)
 
 # Les fichiers a regrouper (par defaut, on lit l'entree standard)
 files = arguments["files"]

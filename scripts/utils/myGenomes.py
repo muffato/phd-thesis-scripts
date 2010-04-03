@@ -150,86 +150,124 @@ class Genome:
 	# Constructeur
 	###############
 	def __init__(self, fichier, **kwargs):
-		
-		print >> sys.stderr, "Chargement du genome de", fichier, "...",
+	
+		if isinstance(fichier, str):
+			print >> sys.stderr, "Chargement du genome de", fichier, "...",
 
-		f = myFile.firstLineBuffer(myFile.openFile(fichier, 'r'))
-		
-		# la liste des genes par chromosome
-		self.lstGenes = collections.defaultdict(list)
-
-		# Le choix de la fonction de chargement
-		c = f.firstLine[:-1].split("\t")
-		if len(c) == 1:
+			f = myFile.firstLineBuffer(myFile.openFile(fichier, 'r'))
 			
-			# Genes ancestraux: "NAMES"
-			#############################
-			for (i,l) in enumerate(f):
-				self.addGene(l.split(), None, i, i+1, 0)
-			print >> sys.stderr, "(genes ancestraux)",
+			# la liste des genes par chromosome
+			self.lstGenes = collections.defaultdict(list)
 
-		elif (len(c) == 2) and not set(c[1]).issubset("01-"):
+			# Le choix de la fonction de chargement
+			c = f.firstLine.split("\t")
+			if f.firstLine.startswith(">") or f.firstLine.endswith("$"):
+				# Format GRIMM Synteny
+				#######################
+				if f.firstLine.startswith(">"):
+					self.name = f.firstLine[1:].strip()
+				chrom = 1
+				for l in f:
+					if l.endswith("$"):
+						for (i,x) in enumerate(l.replace("$","").split()):
+							strand = -1 if x.startswith("-") else 1
+							self.addGene([x[1:] if x[0] in "-+" else x], chrom, i, i+1, strand)
+						chrom += 1
+				print >> sys.stderr, "(GRIMM)",
 
-			# Genome ancestral: "CHR NAMES"
-			#################################
-			lastC = None
-			for (i,l) in enumerate(f):
-				c = l[:-1].split("\t")
-				if lastC != c[0]:
-					lastC = c[0]
-					dec = i
-				self.addGene(c[1].split(), c[0], i-dec, i-dec+1, 0)
-			print >> sys.stderr, "(genome ancestral: chrom+noms)",
+			elif len(c) == 1:
+				
+				# Genes ancestraux: "NAMES"
+				#############################
+				for (i,l) in enumerate(f):
+					self.addGene(l.split(), None, i, i+1, 0)
+				print >> sys.stderr, "(genes ancestraux)",
 
-		elif (len(c) >= 5) and (" " not in c[3]) and (len(c[4]) > 0):
+			elif (len(c) == 2) and not set(c[1]).issubset("01-"):
 
-			# Ensembl: "CHR BEG END STRAND NAMES"
-			#################################################
-			for l in f:
-				c = l.replace('\n', '').split('\t')
-				self.addGene(c[4].split(), c[0], int(c[1]), int(c[2]), int(c[3]))
-			print >> sys.stderr, "(Ensembl)",
+				# Genome ancestral: "CHR NAMES"
+				#################################
+				lastC = None
+				for (i,l) in enumerate(f):
+					c = l[:-1].split("\t")
+					if lastC != c[0]:
+						lastC = c[0]
+						dec = i
+					self.addGene(c[1].split(), c[0], i-dec, i-dec+1, 0)
+				print >> sys.stderr, "(genome ancestral: chrom+noms)",
 
-		elif (len(c) == 4) and int(c[1]) < 2:
-		
-			# Genome ancestral: "CHR STRAND LST-INDEX LST-STRANDS"
-			########################################################
-			lastC = None
-			for l in f:
-				c = l[:-1].split("\t")
-				if lastC != c[0]:
-					lastC = c[0]
-					pos = 0
-				data = zip([int(x) for x in c[2].split()], [int(x) for x in c[3].split()])
-				if int(c[1]) < 0:
-					data = [(i,-s) for (i,s) in data.__reversed__()]
-				for (index,strand) in data:
-					if 'ancGenes' in kwargs:
-						self.addGene(kwargs["ancGenes"].lstGenes[None][index].names, c[0], pos, pos+1, strand)
-					else:
-						self.addGene([index], c[0], pos, pos+1, strand)
-					pos += 1
-			print >> sys.stderr, "(genome ancestral: chrom+diags)",
+			elif (len(c) >= 5) and (" " not in c[3]) and (len(c[4]) > 0):
+
+				# Ensembl: "CHR BEG END STRAND NAMES"
+				#################################################
+				for l in f:
+					c = l.replace('\n', '').split('\t')
+					self.addGene(c[4].split(), c[0], int(c[1]), int(c[2]), int(c[3]))
+				print >> sys.stderr, "(Ensembl)",
+
+			elif (len(c) == 4) and int(c[1]) < 2:
+			
+				# Genome ancestral: "CHR STRAND LST-INDEX LST-STRANDS"
+				########################################################
+				lastC = None
+				for l in f:
+					c = l[:-1].split("\t")
+					if lastC != c[0]:
+						lastC = c[0]
+						pos = 0
+					data = zip([int(x) for x in c[2].split()], [int(x) for x in c[3].split()])
+					if int(c[1]) < 0:
+						data = [(i,-s) for (i,s) in data.__reversed__()]
+					for (index,strand) in data:
+						if 'ancGenes' in kwargs:
+							self.addGene(kwargs["ancGenes"].lstGenes[None][index].names, c[0], pos, pos+1, strand)
+						else:
+							self.addGene([index], c[0], pos, pos+1, strand)
+						pos += 1
+				print >> sys.stderr, "(genome ancestral: chrom+diags)",
+
+			else:
+				if len(c) == 2:
+					(ili,ils) = (0,1)
+				else:
+					assert len(c) >= 4
+					(ili,ils) = (2,3)
+
+				# Genome ancestral: "LST-INDEX LST-STRANDS"
+				#############################################
+				for (chrom,l) in enumerate(f):
+					c = l[:-1].split("\t")
+					for (pos,(index,strand)) in enumerate(itertools.izip(c[ili].split(), c[ils].split())):
+						if 'ancGenes' in kwargs:
+							self.addGene(kwargs["ancGenes"].lstGenes[None][int(index)].names, chrom+1, pos, pos+1, int(strand))
+						else:
+							self.addGene([index], chrom+1, pos, pos+1, int(strand))
+				print >> sys.stderr, "(genome ancestral: diags)",
+
+			f.close()
+			self.name = fichier
 
 		else:
-			if len(c) == 2:
-				(ili,ils) = (0,1)
-			else:
-				assert len(c) >= 4
-				(ili,ils) = (2,3)
-
-			# Genome ancestral: "LST-INDEX LST-STRANDS"
-			#############################################
-			for (chrom,l) in enumerate(f):
-				c = l[:-1].split("\t")
-				for (pos,(index,strand)) in enumerate(itertools.izip(c[ili].split(), c[ils].split())):
-					if 'ancGenes' in kwargs:
-						self.addGene(kwargs["ancGenes"].lstGenes[None][int(index)].names, chrom+1, pos, pos+1, int(strand))
-					else:
-						self.addGene([int(index)], chrom+1, pos, pos+1, int(strand))
-			print >> sys.stderr, "(genome ancestral: diags)",
-
-		f.close()
+			genomeBase = fichier
+			print >> sys.stderr, "Filtrage de", genomeBase.name, "...",
+			filterIn = set(kwargs["filterIn"]) if "filterIn" in kwargs else None
+			filterOut = set(kwargs["filterOut"]) if "filterOut" in kwargs else None
+			
+			def filt(gene):
+				if filterIn is not None:
+					return any(s in filterIn for s in gene.names)
+				if filterOut is not None:
+					return all(s not in filterOut for s in gene.names)
+				return True
+	
+			self.lstGenes = {}
+			for (chrom,l) in genomeBase.lstGenes.iteritems():
+				l = [gene for gene in l if filt(gene)]
+				if len(l) > 0:
+					self.lstGenes[chrom] = l
+			self.name = "Filter from " + genomeBase.name
+			print >> sys.stderr, "%d genes -> %d genes" % (sum(len(x) for x in genomeBase.lstGenes.itervalues()), sum(len(x) for x in self.lstGenes.itervalues())),
+		
 		self.init()
 		print >> sys.stderr, "OK"
 
@@ -274,7 +312,7 @@ class Genome:
 	
 	# Renvoie les genes presents sur le chromosome donne a certaines positions
 	###########################################################################
-	def getGenesAt(self, chr, beg, end):
+	def getGenesAt(self, chr, beg, end, onlyInside=False):
 		if chr not in self.lstGenes:
 			return
 		lst = self.lstGenes[chr]
@@ -291,18 +329,26 @@ class Genome:
 			else:
 				return i
 		index = dichotFind(0, len(lst)-1)
-		
-		for i in xrange(index, len(lst)):
-			g = lst[i]
-			if g.beginning > end:
-				break
-			yield g
-		
+	
+		res = []
 		for i in xrange(index-1, -1, -1):
 			g = lst[i]
 			if g.end < beg:
 				break
+			if g.beginning <= end:
+				if (not onlyInside) or ((beg <= g.beginning) and (g.end <= end)):
+					res.append(g)
+		for g in reversed(res):
 			yield g
+
+		for i in xrange(index, len(lst)):
+			g = lst[i]
+			if g.beginning > end:
+				break
+			if g.end >= beg:
+				if (not onlyInside) or ((beg <= g.beginning) and (g.end <= end)):
+					yield g
+		
 
 		
 	# Renvoie les genes presents aux alentours d'un gene donne (fenetre l en nombre de genes)

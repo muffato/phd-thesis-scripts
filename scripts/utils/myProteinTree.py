@@ -65,6 +65,16 @@ def printNewickTree(f, data, info, root):
 	print >> f, tr, ";"
 
 
+# Renvoie le suffixe associe a un numero de duplication ('a' -> 'z', 'aa' -> 'az', 'ba' ...)
+def getDupSuffix(n, upper):
+	base = 64 if upper else 96
+	assert 1 <= n <= 26*27
+	if n <= 26:
+		return "." + chr(base + n)
+	else:
+		return "." + chr(base + (n-1)/26) + chr(base + 1+(n-1)%26)
+
+
 # Charge l'arbre depuis un fichier
 ###################################
 def loadTree(name):
@@ -76,8 +86,11 @@ def loadTree(name):
 		global curr
 		old = curr
 		try:
-			# On enleve le \n final et on coupe suivant les \t
-			l = f.next().replace('\n', '').split('\t')
+			l = ""
+			while (l == "") or l.startswith("#"):
+				# On enleve le \n final et on coupe suivant les \t
+				l = f.next().replace('\n', '')
+			l = l.split('\t')
 			# On stocke le triplet (indentation,key,value)
 			curr = (len(l)-2, l[-2], l[-1])
 			eval(l[-1])

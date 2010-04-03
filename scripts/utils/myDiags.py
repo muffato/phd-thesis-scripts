@@ -288,8 +288,8 @@ class WeightedDiagGraph:
 			allSucc[xsx] = []
 			allPred[xsx] = []
 			for (ysy,c) in l.iteritems():
-				if c >= minimalWeight:
-				#if (c >= minimalWeight) and (xsx < ysy):
+				#if c >= minimalWeight:
+				if (c >= minimalWeight) and (xsx < ysy):
 					allEdges.append( (c,xsx,ysy) )
 		
 		def addEdge(c, xsx, ysy):

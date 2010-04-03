@@ -4,9 +4,6 @@ __doc__ = """
 	Lit les arbres de proteines et cree les fichiers de genes ancestraux
 """
 
-
-# Librairies
-import os
 import sys
 import collections
 
@@ -20,6 +17,13 @@ arguments = utils.myTools.checkArgs( [("phylTree.conf",file), ("proteinTree",fil
 
 phylTree = utils.myPhylTree.PhylogeneticTree(arguments["phylTree.conf"])
 
+dupCount = collections.defaultdict(int)
+def futureName(name, dup):
+	if dup >= 2:
+		dupCount[name] += 1
+		return name + utils.myProteinTree.getDupSuffix(dupCount[name], False)
+	else:
+		return name
 
 ###########################################
 # Sauvegarde toutes les familles de genes #
@@ -34,12 +38,8 @@ def extractGeneFamilies(node, baseName, previousAnc, lastWrittenAnc):
 	# Les genes des descendants
 	if node in data:
 		allGenes = []
-		for (i,(g,d)) in enumerate(data[node]):
-			if info[node]['Duplication'] >= 2:
-				newName = baseName + (".%d" % (i+1))
-			else:
-				newName = baseName
-			allGenes.extend( extractGeneFamilies(g, newName, newAnc, newLastWritten) )
+		for (g,_) in data[node]:
+			allGenes.extend( extractGeneFamilies(g, futureName(baseName, info[node]['Duplication']), newAnc, newLastWritten) )
 	else:
 		allGenes = [ info[node]["gene_name"] ]
 
@@ -54,7 +54,7 @@ nb = 0
 geneFamilies = collections.defaultdict(list)
 for (r,data,info) in utils.myProteinTree.loadTree(arguments["proteinTree"]):
 	nb += 1
-	extractGeneFamilies(r, "FAM%d" % nb, None, None)
+	extractGeneFamilies(r, info[r]["tree_name"], None, None)
 	utils.myProteinTree.printTree(sys.stdout, data, info, r)
 print >> sys.stderr, "%d arbres OK" % nb
 

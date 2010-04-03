@@ -138,7 +138,7 @@ def colorAncestr(eND, eD, phylTree, para, orthos):
 	usedGenesDup = set()
 
 	# On parcourt les chromosomes de l'espece
-	for c in genome.chrList[utils.myGenomes.ContigType.Chromosome] + genome.chrList[utils.myGenomes.ContigType.Scaffold]
+	for c in genome.chrList[utils.myGenomes.ContigType.Chromosome] + genome.chrList[utils.myGenomes.ContigType.Scaffold]:
 		
 		# Eviter d'essayer de creer des DCS sur des scaffolds trop petits
 		if len(genome.lstGenes[c]) < arguments["minChrLen"]:

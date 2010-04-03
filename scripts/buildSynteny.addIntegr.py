@@ -105,7 +105,7 @@ def do(anc):
 	print >> sys.stderr, "Chargement des diagonales projetees de %s ..." % anc,
 	s = []
 	pairwiseDiags = []
-	f = utils.myFile.myTSV.reader(arguments["IN.projDiags"] % anc)
+	f = utils.myFile.myTSV.reader(arguments["IN.projDiags"] % phylTree.fileName[anc])
 	for t in f.csvobject:
 		d = zip([int(x) for x in t[8].split()], [int(x) for x in t[9].split()])
 		if len(d) >= arguments["minimalLength"]:
@@ -118,7 +118,7 @@ def do(anc):
 	s = []
 	singles = 0
 	oldDiags = []
-	f = utils.myFile.myTSV.reader(arguments["IN.ancDiags"] % anc)
+	f = utils.myFile.myTSV.reader(arguments["IN.ancDiags"] % phylTree.fileName[anc])
 	for t in f.csvobject:
 		d = zip([int(x) for x in t[2].split()], [int(x) for x in t[3].split()])
 		score = [int(x) for x in t[4].split()]

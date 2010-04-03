@@ -31,13 +31,15 @@ f = utils.myFile.openFile(arguments["diags"], "r")
 for (i,l) in enumerate(f):
 	t = l[:-1].split("\t")
 	dS = [int(x) for x in t[9].split()]
-	dA = t[7].split()
-	dM = t[4].split()
+	dA = t[4].split()
+	dM = t[7].split()
 	for (x,s) in itertools.izip(dA, dS):
 		dicA[x] = (i,s)
 	for (x,s) in itertools.izip(dM, dS):
 		dicM[x] = (i,s)
 	dicD[i] = (dA, dM)
+f.close()
+print >> sys.stderr, dicD
 
 def rewriteGenome(genome, dic):
 	newGenome = {}

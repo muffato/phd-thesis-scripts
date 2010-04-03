@@ -57,6 +57,26 @@ class myTSV:
 			yield tuple(t(x) for (x,t) in itertools.izip(current_line,new_type_list))
 		f.close()
 
+	# Permet de charger les dumps de MySQL (raboute les lignes tronquees)
+	#######################################################################
+	@staticmethod
+	def MySQLFileLoader(f):
+		tmp = ""
+		for ligne in f:
+			ligne = ligne.replace('\n', '')
+			if ligne[-1] == '\\':
+				# Signe que la ligne n'est pas terminee
+				tmp = ligne[:-1]
+			else:
+				yield tmp + ligne
+				tmp = ""
+		assert (tmp == "")
+
+	# Ecrit un fichier de dump MySQL (\N pour NULL)
+	################################################
+	@staticmethod
+	def MySQLFileWriter(data):
+		return myTSV.printLine(data).replace("None", "\N")
 
 #########################################################################################################################
 # Le but est de pouvoir acceder au fichier et lire la premiere ligne sans devoir le fermer pour le reouvrir juste apres #
@@ -64,17 +84,19 @@ class myTSV:
 class firstLineBuffer:
 	def __init__(self, f):
 		self.f = f
-		try:
-			self.firstLine = self.f.next()
-		except StopIteration:
-			self.firstLine = ""
+		self.firstLine = self.next()
 
 	def __iter__(self):
 		yield self.firstLine
-		for l in self.f:
+		while True:
+			yield self.next()
+	
+	def next(self):
+		while True:
+			l = self.f.next().replace('\n', '').replace('\r', '')
 			# Suppression des lignes avec commentaire
-			if not l.startswith("#"):
-				yield l
+			if (not l.startswith("#")) and (len(l) > 0):
+				return l
 
 	def close(self):
 		return self.f.close()

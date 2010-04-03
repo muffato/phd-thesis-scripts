@@ -7,22 +7,18 @@ __doc__ = """
 import sys
 
 import utils.myFile
+import utils.myTools
+
+arguments = utils.myTools.checkArgs( \
+	[("files",utils.myTools.FileList(0))], \
+	[("nbBins",int,100), ("freq",bool,False), ("min",float,None), ("max",float,None)], \
+	__doc__, \
+showArgs=False)
 
 # Les fichiers a regrouper (par defaut, on lit l'entree standard)
-files = set(sys.argv[1:])
-
-nbBins = 100
-withFreq = False
-for f in list(files):
-	if f.startswith("-nbBins="):
-		nbBins = int(f[8:])
-		files.discard(f)
-	elif f.startswith("-freq"):
-		withFreq = True
-		files.discard(f)
-
+files = arguments["files"]
 if len(files) == 0:
-	files.add("-")
+	files.append("-")
 
 lst = []
 for f in files:
@@ -43,8 +39,8 @@ for f in files:
 	# Fermeture
 	f.close()
 
-c = float(len(lst)) if withFreq else 1.
-
+c = float(len(lst)) if arguments["freq"] else 1.
+nbBins = arguments["nbBins"]
 if nbBins < 0:
 	import collections
 	d = collections.defaultdict(int)
@@ -53,8 +49,8 @@ if nbBins < 0:
 	for x in sorted(d):
 		print x, d[x]/c
 else:
-	mn = min(lst)
-	mx = max(lst)
+	mn = min(lst) if arguments["min"] is None else arguments["min"]
+	mx = max(lst) if arguments["max"] is None else arguments["max"]
 	res = [0] * nbBins
 	for x in lst:
 		i = int(nbBins * (float(x-mn)/(mx-mn)))

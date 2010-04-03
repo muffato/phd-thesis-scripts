@@ -51,17 +51,17 @@ else:
 # Les chromosomes a etudier
 chr1 = []
 chr2 = []
-chr1.extend(genome1.chrList[utils.myGenomes.ContigType.Chromosome]
-chr2.extend(genome2.chrList[utils.myGenomes.ContigType.Chromosome]
+chr1.extend(genome1.chrList[utils.myGenomes.ContigType.Chromosome])
+chr2.extend(genome2.chrList[utils.myGenomes.ContigType.Chromosome])
 if arguments["includeScaffolds"]:
-	chr1.extend(genome1.chrList[utils.myGenomes.ContigType.Scaffold]
-	chr2.extend(genome2.chrList[utils.myGenomes.ContigType.Scaffold]
+	chr1.extend(genome1.chrList[utils.myGenomes.ContigType.Scaffold])
+	chr2.extend(genome2.chrList[utils.myGenomes.ContigType.Scaffold])
 if arguments["includeRandoms"]:
-	chr1.extend(genome1.chrList[utils.myGenomes.ContigType.Random]
-	chr2.extend(genome2.chrList[utils.myGenomes.ContigType.Random]
+	chr1.extend(genome1.chrList[utils.myGenomes.ContigType.Random])
+	chr2.extend(genome2.chrList[utils.myGenomes.ContigType.Random])
 if arguments["includeNones"]:
-	chr1.extend(genome1.chrList[utils.myGenomes.ContigType.None]
-	chr2.extend(genome2.chrList[utils.myGenomes.ContigType.None]
+	chr1.extend(genome1.chrList[utils.myGenomes.ContigType.None])
+	chr2.extend(genome2.chrList[utils.myGenomes.ContigType.None])
 
 table12 = genome1.buildOrthosTable(chr1, genome2, chr2, arguments["includeGaps"], genesAnc)
 

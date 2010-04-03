@@ -74,7 +74,6 @@ arguments = utils.myTools.checkArgs( \
 	[("minimalWeight",int,1), ("minimalLength",int,2), \
 	("IN.projDiags",str,"proj/diags.%s.list.bz2"), \
 	("OUT.ancDiags",str,"anc/diags.%s.list.bz2"), \
-	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
 )
@@ -91,8 +90,12 @@ def do(anc):
 	print >> sys.stderr, "Chargement des diagonales projetees de %s ..." % anc,
 	s = []
 	pairwiseDiags = []
-	f = utils.myFile.myTSV.reader(arguments["IN.projDiags"] % anc)
+	f = utils.myFile.myTSV.reader(arguments["IN.projDiags"] % phylTree.fileName[anc])
 	for t in f.csvobject:
+		assert len(t) == 10
+		assert t[0] == anc
+		if (t[2] not in phylTree.listSpecies) or (t[5] not in phylTree.listSpecies):
+			continue
 		d = zip([int(x) for x in t[8].split()], [int(x) for x in t[9].split()])
 		if len(d) >= arguments["minimalLength"]:
 			pairwiseDiags.append(d)

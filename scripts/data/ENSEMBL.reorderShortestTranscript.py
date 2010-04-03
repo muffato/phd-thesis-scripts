@@ -51,7 +51,4 @@ for chrom in genome.lstGenes:
 		if name is not None:
 			res.append(name)
 		print utils.myFile.myTSV.printLine(res)
-		#	print utils.myFile.myTSV.printLine([gene.chromosome, x, y, gene.strand, " ".join(gene.names), name])
-		#else:
-		#	print utils.myFile.myTSV.printLine([gene.chromosome, gene.beginning, gene.end, gene.strand, " ".join(gene.names), name])
 

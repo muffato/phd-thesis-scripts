@@ -128,6 +128,21 @@ class memoize:
 		"""Return the function's docstring."""
 		return self.func.__doc__
 
+def memoizeC(cache={}):
+	def dowrap(f):
+		def newf(*args):
+			try:
+				return cache[args]
+			except KeyError:
+				cache[args] = value = f(*args)
+				return value
+			except TypeError:
+				# uncachable -- for instance, passing a list as an argument.
+				# Better to not cache than to blow up entirely.
+				return f(*args)
+		return newf
+	return dowrap
+
 
 ########################################################################
 # Cette classe permet de regrouper une liste d'elements                #
@@ -222,7 +237,7 @@ class FileList:
 #  2. des options sous la forme -opt=val (nom, constructeur, val_defaut)        #
 # En cas d'erreur, affiche la syntaxe demandee et une courte description (info) #
 #################################################################################
-def checkArgs(args, options, info):
+def checkArgs(args, options, info, showArgs=True):
 
 	options = options + __moduleoptions
 	#
@@ -343,6 +358,8 @@ def checkArgs(args, options, info):
 		error_usage("Pas assez d'arguments")
 	
 	valArg.update(valOpt)
+	if showArgs:
+		print >> sys.stderr, "Arguments:", valArg
 	return valArg
 
 

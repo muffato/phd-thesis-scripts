@@ -27,8 +27,56 @@ if len(sys.argv) > 2:
 	genome = utils.myGenomes.Genome(sys.argv[1], ancGenes=utils.myGenomes.Genome(sys.argv[2]))
 else:
 	genome = utils.myGenomes.Genome(sys.argv[1])
+	genome = utils.myGenomes.Genome(genome, filterIn=set(gene.names[0] for gene in genome if gene.chromosome == "X"))
 for g in genome:
 	print g
+sys.exit(0)
+
+for m in [1.14, 1.36, 2.46, 1.75]:
+	#print utils.myMaths.randomValue.intParetoMean.cache.keys()
+	print "start", m
+	print utils.myMaths.randomValue.paretoAlphaFromMean(m)
+	print
+	#print utils.myMaths.randomValue.intParetoMean.cache.keys()
+#print utils.myMaths.randomValue.paretocache
+
+sys.exit(0)
+n = int(sys.argv[1])
+for x in xrange(100, 1000, 5):
+	a = 0.01 * x
+	s = 0.
+	si = 0.
+	for _ in xrange(n):
+		t = random.paretovariate(a)
+		s += t
+		si += int(t)
+	print a, s/n, si/n
+
+sys.exit(0)
+
+s = set(xrange(1000000))
+s = range(1000000)
+print "GO"
+for i in xrange(10000):
+	random.sample(s, 100)
+
+sys.exit(0)
+
+
+p = [1,2,5,3,1]
+
+randPick = utils.myMaths.randomValue.bisectChooser(p)
+nb = [0] * len(p)
+for i in xrange(10000000):
+	nb[randPick()] += 1
+
+print nb
+print [nb[i]/p[i] for i in xrange(len(p))]
+
+sys.exit(0)
+
+
+
 sys.exit(0)
 
 #def drawLine(X, Y, Largeur, Hauteur, Coul):
@@ -1253,19 +1301,6 @@ for l in f:
 		print x
 
 sys.exit(0)
-
-p = [1,2,5,3,1]
-
-randPick = utils.myMaths.randomValue(p)
-nb = [0] * len(p)
-for i in xrange(10000000):
-	nb[randPick.getRandomPos()] += 1
-
-print nb
-print [nb[i]/p[i] for i in xrange(len(p))]
-
-sys.exit(0)
-
 phylTree = utils.myPhylTree.PhylogeneticTree(sys.argv[1])
 
 def fileName(anc):

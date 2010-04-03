@@ -10,7 +10,6 @@ import enum
 import itertools
 
 import utils.myFile
-import utils.myDiags
 import utils.myTools
 import utils.myGenomes
 import utils.myPhylTree
@@ -19,7 +18,7 @@ import utils.myPhylTree
 # Arguments
 arguments = utils.myTools.checkArgs( \
 	[("phylTree.conf",file)], \
-	[("diagsFile",str,""), ("range",str,""), \
+	[("sameStrand",bool,True), ("diagsFile",str,""), ("range",str,""), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenesFile",str,"~/work/data/ancGenes/ancGenes.%s.list.bz2")], \
 	__doc__ \
@@ -30,11 +29,25 @@ cat = enum.Enum('Nb', 'Parfaites', 'Voisines', 'MemeChr', 'DiffChr')
 
 
 def do(genome, ancGenes, lstDiags):
+	
+	genome = utils.myGenomes.Genome(genome)
+	ancGenes = utils.myGenomes.Genome(ancGenes)
+	print >> sys.stderr, "Opening diags from", lstDiags
+	lstDiags = utils.myFile.openFile(lstDiags, "r")
+	
+	scoresPaires = dict.fromkeys(cat, 0)
+	scoresDiags = dict.fromkeys(cat, 0)
+	refPairs = sum(len(x)-1 for x in genome.lstGenes.itervalues())
+	
 	for l in lstDiags:
 		t = l.split("\t")
 		diag = [int(x) for x in t[2].split()]
-		strand = [int(x) for x in t[3].split()]
-		score = [int(x) for x in t[4].split()]
+		if arguments["sameStrand"]:
+			strand = [int(x) for x in t[3].split()]
+			score = [int(x) for x in t[4].split()]
+		else:
+			strand = [0] * len(diag)
+			score = [int(x) for x in t[3].split()]
 
 		if len(diag) == 1:
 			continue
@@ -78,48 +91,49 @@ def do(genome, ancGenes, lstDiags):
 
 		print "DIAG", anc, " ".join([str(scoreDiag[cat[x]]) for x in xrange(5)])
 
+	lstDiags.close()
+	return (scoresDiags, scoresPaires, refPairs)
 
+def printStatus(prefix, scoresDiags, scoresPaires, refPairs):
+	print prefix + "DIAGS", anc, " ".join([str(scoresDiags[cat[x]]) for x in xrange(5)])
+	print prefix + "PAIRS", anc, " ".join([str(scoresPaires[cat[x]]) for x in xrange(5)])
+	print prefix + "REFPAIRS", anc, refPairs
+
+def addScore(s1, s2):
+	for x in cat:
+		s1[x] += s2[x]
 
 
 if len(arguments["range"]) == 0:
 	for anc in phylTree.listAncestr:
-		scoresPaires = dict.fromkeys(cat, 0)
-		scoresDiags = dict.fromkeys(cat, 0)
-		refPairs = 0
-
-		genome = utils.myGenomes.Genome(arguments["genesFile"] % phylTree.fileName[anc])
-		ancGenes = utils.myGenomes.Genome(arguments["ancGenesFile"] % phylTree.fileName[anc])
-		lstDiags = utils.myFile.openFile(arguments["diagsFile"] % phylTree.fileName[anc], "r")
-
-		refPairs += sum(len(x)-1 for x in genome.lstGenes.itervalues())
-		do(genome, ancGenes, lstDiags)
-
-		lstDiags.close()
-
-		print "ALLDIAGS", anc, " ".join([str(scoresDiags[cat[x]]) for x in xrange(5)])
-		print "ALLPAIRS", anc, " ".join([str(scoresPaires[cat[x]]) for x in xrange(5)])
-		print "REFPAIRS", anc, refPairs
+		res = do(arguments["genesFile"] % phylTree.fileName[anc], \
+			arguments["ancGenesFile"] % phylTree.fileName[anc], \
+			arguments["diagsFile"] % phylTree.fileName[anc])
+		printStatus("", *res)
 
 else:
-	todo = utils.myTools.getRange(arguments["range"])
+	f = utils.myFile.openFile(arguments["range"], "r")
+	todo = []
+	for l in f:
+		todo.extend(l.split())
+	f.close()
 	for anc in phylTree.listAncestr:
-		scoresPaires = dict.fromkeys(cat, 0)
 		scoresDiags = dict.fromkeys(cat, 0)
+		scoresPaires = dict.fromkeys(cat, 0)
 		refPairs = 0
 
 		for i in todo:
 
-			genome = utils.myGenomes.Genome(arguments["genesFile"] % (i,phylTree.fileName[anc]))
-			ancGenes = utils.myGenomes.Genome(arguments["ancGenesFile"] % (i,phylTree.fileName[anc]))
-			lstDiags = utils.myFile.openFile(arguments["diagsFile"] % (i,phylTree.fileName[anc]), "r")
+			res = do(arguments["genesFile"] % (i,phylTree.fileName[anc]), \
+				arguments["ancGenesFile"] % (i,phylTree.fileName[anc]), \
+				arguments["diagsFile"] % (i,phylTree.fileName[anc]))
 
-			refPairs += sum(len(x)-1 for x in genome.lstGenes.itervalues())
-			do(genome, ancGenes, lstDiags)
+			printStatus("", *res)
+			
+			addScore(scoresDiags, res[0])
+			addScore(scoresPaires, res[1])
+			refPairs += res[2]
 
-			lstDiags.close()
-
-		print "ALLDIAGS", anc, " ".join([str(scoresDiags[cat[x]]) for x in xrange(5)])
-		print "ALLPAIRS", anc, " ".join([str(scoresPaires[cat[x]]) for x in xrange(5)])
-		print "REFPAIRS", refPairs
+		printStatus("ALL", scoresDiags, scoresPaires, refPairs)
 
 

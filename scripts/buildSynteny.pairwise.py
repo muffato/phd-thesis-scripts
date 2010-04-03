@@ -35,7 +35,7 @@ def compare(e1, e2, toStudy):
 			
 			# Les numeros des genes ancestraux
 			dica = genesAnc[anc].dicGenes
-			if e1 in phylTree.species[anc]:
+			if phylTree.isChildOf(e1, anc):
 				da = [dica[dic1[i1].names[-1]][1] for (i1,_) in d1]
 			else:
 				da = [dica[dic2[i2].names[-1]][1] for (i2,_) in d2]
@@ -64,7 +64,7 @@ def compare(e1, e2, toStudy):
 modesOrthos = list(utils.myDiags.OrthosFilterType._keys)
 arguments = utils.myTools.checkArgs( \
 	[("phylTree.conf",file), ("target",str)], \
-	[("fusionThreshold",int,-1), ("sameStrand",bool,True), ("orthosFilter",str,modesOrthos), ("minimalLength",int,2), \
+	[("fusionThreshold",int,-1), ("sameStrand",bool,True), ("orthosFilter",str,modesOrthos), ("minimalLength",int,2), ("withReverseCmp",bool,False), \
 	("OUT.projDiags",str,"proj/diags.%s.list.bz2"), \
 	("genesFile",str,"~/work/data/genes/genes.%s.list.bz2"), \
 	("ancGenomesFile",str,"~/work/ancestralGenomes/Genome.%s.bz2"), \
@@ -112,6 +112,8 @@ for esp in listSpecies:
 # On compare toutes les especes entre elles
 for (e1,e2,toStudy) in dicLinks:
 	compare(e1, e2, toStudy)
+	if arguments["withReverseCmp"]:
+		compare(e2, e1, toStudy)
 
 # Fin
 for anc in tmp:
