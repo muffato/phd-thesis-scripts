@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 # Parmi les sequences lues sur l'entree standard, conserve la derniere de chaque gene
 

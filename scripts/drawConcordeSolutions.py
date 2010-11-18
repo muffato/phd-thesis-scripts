@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 Dessine un genome en coloriant ses genes a partir d'un autre genome reference.

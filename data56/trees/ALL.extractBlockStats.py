@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Cree le tableau des stats des blocs de syntenie et des genes ancestraux en fonction d'un seuil de coupure

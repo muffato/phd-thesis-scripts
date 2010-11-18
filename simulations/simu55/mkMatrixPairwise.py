@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Affiche une matrice recapitulant toutes les comparaisons pair-wise

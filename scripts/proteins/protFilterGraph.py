@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Lit un graphe (aretes + noms) et ne selectionne que les noeuds desires

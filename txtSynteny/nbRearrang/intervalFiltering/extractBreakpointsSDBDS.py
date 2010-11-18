@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	A partir de la liste des etats des intervalles, cherche les points de rearrangements certains, de la forme Synt-Dup*-Rearr-Dup*-Synt

@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Telecharge depuis le site d'Ensembl les fichiers des arbres de proteines

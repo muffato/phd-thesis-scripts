@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	A partir de diagonales pair-wise et de blocs ancestraux fixes,

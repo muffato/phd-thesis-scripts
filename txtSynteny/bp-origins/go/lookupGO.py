@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Charge le fichier de definition de GO et les associations genes Ensembl <-> GO

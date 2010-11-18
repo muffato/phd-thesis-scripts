@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Renvoie pour chaque gene ancestral la liste des branches sur lesquelles il a subi un evenement

@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Groupe toutes les paires de genes modernes orthologues et les paires de genes ancestrales correspondantes

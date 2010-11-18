@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Compare les genes successifs dans le genome moderne et renvoie les scores de simultaneite

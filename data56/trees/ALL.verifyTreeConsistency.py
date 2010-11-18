@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Lit les arbres de proteines et verifie que la structure est compatible avec l'arbre des especes

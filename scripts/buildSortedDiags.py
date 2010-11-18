@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 Trie les gens selon l'ordre consensus issu des especes de l'arbre phylogenetique

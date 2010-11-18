@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Selectionne les points de cassure dont le score est superieure a la moyenne de tous les scores rencontres

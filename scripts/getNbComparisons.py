@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Compte le nombre de comparaisons faites pour chaque ancetre, et le correle a la longueur des diagonales

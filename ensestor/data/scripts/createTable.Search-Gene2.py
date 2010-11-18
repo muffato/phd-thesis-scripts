@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Cree la base Genomicus (table Search & Gene modifiee pour les noms & descriptions)

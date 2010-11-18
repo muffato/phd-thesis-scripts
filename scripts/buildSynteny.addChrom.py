@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Ajoute aux blocs ancestraux les noms des chromosomes des especes modernes sur lesquels ils se retrouvent 

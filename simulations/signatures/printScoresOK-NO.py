@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Separe les valeurs d'un fichier de scores selon si les diagonales etaient sur le meme chromosome ancestral

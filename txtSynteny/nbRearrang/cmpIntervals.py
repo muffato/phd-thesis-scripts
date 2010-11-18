@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Parcourt le genome moderne et definit chacun des ses intervalles en terme de degre de conservation
