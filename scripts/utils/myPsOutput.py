@@ -47,15 +47,17 @@ def printPsFooter():
 def initColor(silent = False):
 
 	# La liste des couleurs et leurs valeurs RGB
-	f = open("/workspace/muffato/scripts/utils/rgb.txt", 'r')
+	f = open("/etc/X11/rgb.txt", 'r')
 	for l in f:
+		if l.startswith("!"):
+			continue
 		c = l.split()
-		s = "".join(c[6:]).lower()
+		s = "".join(c[3:]).lower()
 		if s in colorTableUNIX2RGB:
 			continue
-		rgb = tuple([int(x) for x in c[3:6]])
+		rgb = tuple(int(x) for x in c[:3])
 		if not silent:
-			print "/%s [%s] def" % (s, " ".join(c[:3]))
+			print "/%s [%.3f %.3f %.3f] def" % (s, rgb[0]/255., rgb[1]/255., rgb[2]/255.)
 		colorTableRGB2UNIX[rgb] = s
 		colorTableUNIX2RGB[s] = rgb
 
