@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 import sys
 import utils.myMaths

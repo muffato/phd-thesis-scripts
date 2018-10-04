@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Separe les diagonales pairwise en 3 groupes en fonction de leur utilisation dans les blocs integres:

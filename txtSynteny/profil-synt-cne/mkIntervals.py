@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Lit les exons d'une espece et cree le genome comme liste d'intervalles "exon" / ("intron" | "intergenic")

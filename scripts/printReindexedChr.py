@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Compare deux genomes et reordonne le genome 1 pour qu'il soit plus ressemblant au genome 2

@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Lit les arbres et renvoie le nombre d'evenements de chaque type par million d'annees

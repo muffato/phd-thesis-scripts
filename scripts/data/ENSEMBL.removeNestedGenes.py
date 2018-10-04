@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Parcourt un fichier de genome et enleve les genes inclus dans un autre

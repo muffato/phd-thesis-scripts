@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Met en forme les arbres de proteines (en les telechargeant / utilisant les fichiers locaux)

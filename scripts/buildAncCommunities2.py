@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Reconstruit les chromosomes d'un ancetre a partir de toutes les diagonales extraites entre les especes

@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Analyse l'arbre et supprime les genes qui sont presents via plusieurs transcrits

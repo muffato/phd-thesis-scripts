@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	A partir d'un genome de reference et de 3 genomes voisins, extrait la liste des rearrangements specifiques de chaque branche

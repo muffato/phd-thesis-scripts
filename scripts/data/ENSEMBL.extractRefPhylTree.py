@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Extrait l'arbre phylogenetique des especes utilise par Ensembl

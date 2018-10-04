@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 Prend un genome ancestral et la liste des diagonales inferees a partir des especes modernes

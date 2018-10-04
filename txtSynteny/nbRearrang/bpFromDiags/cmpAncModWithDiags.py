@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Parcourt les deux genomes et extrait les intervalles conserves, les points de cassure

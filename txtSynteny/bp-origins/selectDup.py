@@ -1,4 +1,4 @@
-#! /users/ldog/muffato/python
+#!/usr/bin/env python2
 
 __doc__ = """
 	Renvoie les listes des devenirs de chaque gene le long des branches de l'arbre phylogenetique
